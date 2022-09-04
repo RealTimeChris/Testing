@@ -40,6 +40,7 @@ int32_t main() {
 		 auto theResult = thePacker.parseJsonToEtf(theValue);
 		 std::cout << "THE RESULT 01: " << theResult << std::endl;
 		 auto theResult02 = thePacker.parseEtfToJson(theResult);
+		 std::cout << "THE RESULT 02: " << theResult02 << std::endl;
 		 TestClass theObject{};
 		 parseObject(theResult02, theObject);
 		 std::cout << "THE RESULT 02: " << theResult02 << std::endl;

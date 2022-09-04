@@ -30,6 +30,10 @@
 
 ErlPackError::ErlPackError(const std::string& message) : std::runtime_error(message.c_str()) {};
 
+typedef union {
+	uint64_t uint64Value;
+	double doubleValue;
+} TypePunner;
 
 std::string ErlPacker::parseJsonToEtf(nlohmann::json& dataToParse) {
 	this->bufferString.clear();
@@ -113,7 +117,7 @@ void ErlPacker::singleValueJsonToETF(nlohmann::json& jsonData) {
 	}
 	else if (jsonData.is_number_float()) {
 		double newValue = jsonData.get<double>();
-		this->appendFloatExt(newValue);
+		this->appendNewFloatExt(newValue);
 	}
 	else if (jsonData.is_null()) {
 		this->appendNil();
@@ -142,12 +146,13 @@ void ErlPacker::appendIntegerExt(uint32_t value) {
 	this->writeToBuffer(bufferNew);
 }
 
-void ErlPacker::appendFloatExt(double value) {
+void ErlPacker::appendNewFloatExt(double floatValue) {
 	std::string bufferNew{};
-	bufferNew.resize(9);
-	bufferNew[0] = static_cast<uint8_t>(ETFTokenType::New_Float_Ext);
-	void* doubleValue{ &value };
-	DiscordCoreAPI::storeBits(bufferNew, *static_cast<uint64_t*>(doubleValue));
+	bufferNew.push_back(static_cast<unsigned char>(ETFTokenType::New_Float_Ext));
+
+	TypePunner punner{};
+	punner.doubleValue = floatValue;
+	DiscordCoreAPI::storeBits(bufferNew, punner.uint64Value);
 	this->writeToBuffer(bufferNew);
 }
 
@@ -359,42 +364,19 @@ std::string ErlPacker::parseIntegerExt() {
 }
 
 std::string ErlPacker::parseNewFloatExt() {
-	const char* floatStr = readString(8);
-	auto theResult = DiscordCoreAPI::reverseByteOrder(*(uint64_t*)(floatStr));
-	if (!floatStr) {
-		return std::string{};
-	}
-	std::cout << "THE REAL FLOAT: " << (float)theResult << std::endl;
-	std::cout << "THE REAL OUTPUT: " << std::string{ this->buffer, this->size } << std::endl;
-	std::string j{};
-	return j;
+	TypePunner thePunner{};
+	thePunner.uint64Value = readBits<uint64_t>();
+	std::string theValue = std::to_string(thePunner.doubleValue);
+	std::cout << "THE FINAL FLOAT VALUE: " << theValue << std::endl;
+	return theValue;
 }
 
 std::string ErlPacker::parseFloatExt() {
-	const uint8_t floatLength = 31;
-	const char* floatStr = readString(floatLength);
-
-	if (!floatStr) {
-		return std::string{};
-	}
-	std::cout << "THE REAL OUTPUT: " << std::string{ this->buffer, this->size } << std::endl;
-	double number{};
-	std::cout << "THE REAL OUTPUT 0201: " << floatStr << std::endl;
-	char null_terminated[floatLength + 1] = { 0 };
-
-	memcpy(null_terminated, floatStr, floatLength);
-
-	auto count = sscanf(null_terminated, "%lf", &number);
-	std::cout << "THE COUNT: " << count << std::endl;
-	if (count != 0) {
-		return std::string{};
-	}
-	std::cout.precision(12);
-	std::cout << "THE NUMBER: " << std::float_t{} << number << std::endl;
-
-	std::string j = std::to_string(number);
-	std::cout << "THE VALUE: 0101: " << j << std::endl;
-	return j;
+	TypePunner thePunner{};
+	thePunner.uint64Value = readBits<uint64_t>();
+	std::string theValue = std::to_string(thePunner.doubleValue);
+	std::cout << "THE FINAL FLOAT VALUE: " << theValue << std::endl;
+	return theValue;
 }
 
 bool compareString(const char* theString, const char* theString02, size_t theSize) {

@@ -153,7 +153,7 @@ protected:
 
 		void appendIntegerExt(uint32_t);
 
-		void appendFloatExt(double);
+		void appendNewFloatExt(double);
 
 		void appendNilExt();
 
