@@ -52,7 +52,9 @@ std::string ErlPacker::parseEtfToJson(std::string& dataToParse) {
 	if (this->readBits<uint8_t>() != formatVersion) {
 		throw ErlPackError{ "ErlPacker::parseEtfToJson() Error: Incorrect format version specified." };
 	}
+	this->bufferString.append(R"({)");
 	this->bufferString += this->singleValueETFToJson();
+	this->bufferString.append(R"(})");
 	return this->bufferString;
 }
 
@@ -363,20 +365,33 @@ std::string ErlPacker::parseIntegerExt() {
 	return theValue;
 }
 
-std::string ErlPacker::parseNewFloatExt() {
-	TypePunner thePunner{};
-	thePunner.uint64Value = readBits<uint64_t>();
-	std::string theValue = std::to_string(thePunner.doubleValue);
-	std::cout << "THE FINAL FLOAT VALUE: " << theValue << std::endl;
-	return theValue;
+std::string ErlPacker::parseFloatExt() {
+	const uint8_t floatLength = 31;
+	const char* floatString = readString(floatLength);
+
+	if (floatString == NULL) {
+		return nlohmann::json{};
+	}
+
+	double number{};
+	std::string nullTerminated{};
+	nullTerminated.insert(nullTerminated.begin(), floatString, floatString + floatLength);
+
+	auto count = sscanf(nullTerminated.data(), "%lf", &number);
+
+	if (count != 1) {
+		return std::string{};
+	}
+
+	std::string returnValue = std::to_string(number);
+	return returnValue;
 }
 
-std::string ErlPacker::parseFloatExt() {
-	TypePunner thePunner{};
-	thePunner.uint64Value = readBits<uint64_t>();
-	std::string theValue = std::to_string(thePunner.doubleValue);
-	std::cout << "THE FINAL FLOAT VALUE: " << theValue << std::endl;
-	return theValue;
+std::string ErlPacker::parseNewFloatExt() {
+	uint64_t theValue = readBits<uint64_t>();
+	void* thePtr{ &theValue };
+	std::string theValueNew = std::to_string(*static_cast<double*>(thePtr));
+	return theValueNew;
 }
 
 bool compareString(const char* theString, const char* theString02, size_t theSize) {
@@ -472,9 +487,11 @@ std::string ErlPacker::parseBinaryExt() {
 	}
 	
 	std::string theValue{};
+	theValue.append(R"(")");
 	for (uint32_t x=0;x< length;++x){
 		theValue.push_back(stringNew[x]);
 	}
+	theValue.append(R"(")");
 	std::cout << "THE VALUE: " << theValue << std::endl;
 	return theValue;
 }
