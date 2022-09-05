@@ -30,11 +30,6 @@
 
 ErlPackError::ErlPackError(const std::string& message) : std::runtime_error(message.c_str()) {};
 
-typedef union {
-	uint64_t uint64Value;
-	double doubleValue;
-} TypePunner;
-
 std::string ErlPacker::parseJsonToEtf(nlohmann::json& dataToParse) {
 	this->bufferString.clear();
 	this->offSet = 0;
@@ -52,9 +47,7 @@ std::string ErlPacker::parseEtfToJson(std::string& dataToParse) {
 	if (this->readBits<uint8_t>() != formatVersion) {
 		throw ErlPackError{ "ErlPacker::parseEtfToJson() Error: Incorrect format version specified." };
 	}
-	this->bufferString.append(R"({)");
 	this->bufferString += this->singleValueETFToJson();
-	this->bufferString.append(R"(})");
 	return this->bufferString;
 }
 
@@ -152,9 +145,8 @@ void ErlPacker::appendNewFloatExt(double floatValue) {
 	std::string bufferNew{};
 	bufferNew.push_back(static_cast<unsigned char>(ETFTokenType::New_Float_Ext));
 
-	TypePunner punner{};
-	punner.doubleValue = floatValue;
-	DiscordCoreAPI::storeBits(bufferNew, punner.uint64Value);
+	void* punner{ &floatValue };
+	DiscordCoreAPI::storeBits(bufferNew, *static_cast<uint64_t*>(punner));
 	this->writeToBuffer(bufferNew);
 }
 
@@ -220,8 +212,6 @@ const char* ErlPacker::readString(uint32_t length) {
 	}
 	const char* theStringNew = this->buffer + this->offSet;
 	this->offSet += length;
-
-	std::cout << "THE STRING REALER: " << std::string{ this->buffer, this->offSet } << std::endl;
 	return theStringNew;
 }
 
@@ -232,90 +222,62 @@ std::string ErlPacker::singleValueETFToJson() {
 	uint8_t type = this->readBits<uint8_t>();
 	switch (static_cast<ETFTokenType>(type)) {
 	case ETFTokenType::Small_Integer_Ext: {
-		std::cout << "WERE HERE 0101" << std::endl;
-		std::string theValue = this->parseSmallIntegerExt();
-		return theValue;
+		return this->parseSmallIntegerExt();
 	}
 	case ETFTokenType::Integer_Ext: {
-		std::cout << "WERE HERE 0202" << std::endl;
-		std::string theValue = this->parseIntegerExt();
-		return theValue;
+		return this->parseIntegerExt();
 	}
 	case ETFTokenType::New_Float_Ext: {
-		std::cout << "WERE HERE 0303" << std::endl;
-		std::string theValue = this->parseNewFloatExt();
-		std::cout << "THE VALUE REAL: " << theValue << std::endl;
-		return theValue;
+		return this->parseNewFloatExt();
 	}
 	case ETFTokenType::Float_Ext: {
-		std::cout << "WERE HERE 0404" << std::endl;
-		std::string theValue = this->parseFloatExt();
-		std::cout << "THE VALUE REAL: " << theValue << std::endl;
-		return theValue;
+		return this->parseFloatExt();
 	}
 	case ETFTokenType::Atom_Ext: {
-		std::cout << "WERE HERE 0505" << std::endl;
-		std::string theValue = parseAtomUtf8Ext();
-		return theValue;
+		std::string theString{}; 
+		theString.append(R"(")");
+		theString += this->parseAtomUtf8Ext();
+		theString.append(R"(")");
+		return theString;
 	}
 	case ETFTokenType::Small_Tuple_Ext: {
-		std::cout << "WERE HERE 0606" << std::endl;
-		std::string theValue = parseSmallTupleExt();
-		return theValue;
+		return this->parseSmallTupleExt();
 	}
 	case ETFTokenType::Large_Tuple_Ext: {
-		std::cout << "WERE HERE 0707" << std::endl;
-		std::string theValue = parseLargeTupleExt();
-		return theValue;
+		return this->parseLargeTupleExt();
 	}
 	case ETFTokenType::Nil_Ext: {
-		std::cout << "WERE HERE 0808" << std::endl;
-		std::string theValue = parseNilExt();
-		return theValue;
+		return this->parseNilExt();
 	}
 	case ETFTokenType::String_Ext: {
-		std::cout << "WERE HERE 0909" << std::endl;
-		std::string theValue = parseStringAsList();
-		return theValue;
+		std::string theString{};
+		theString.append(R"(")");
+		theString += this->parseStringAsList();
+		theString.append(R"(")");
+		return theString;
 	}
 	case ETFTokenType::List_Ext: {
-		std::cout << "WERE HERE 10101" << std::endl;
-		std::string theValue = parseListExt();
-		return theValue;
+		return this->parseListExt();
 	}
 	case ETFTokenType::Binary_Ext: {
-		std::cout << "WERE HERE 11111" << std::endl;
-		std::string theValue{};
-		theValue += parseBinaryExt();
-		return theValue;
+		return this->parseBinaryExt();
 	}
 	case ETFTokenType::Small_Big_Ext: {
-		std::cout << "WERE HERE 12121" << std::endl;
-		std::string theValue = parseSmallBigExt();
-		return theValue;
+		return this->parseSmallBigExt();
 	}
 	case ETFTokenType::Large_Big_Ext: {
-		std::cout << "WERE HERE 1313" << std::endl;
-		std::string theValue = parseLargeBigExt();
-		return theValue;
+		return this->parseLargeBigExt();
 	}
 	case ETFTokenType::Small_Atom_Ext: {
-		std::cout << "WERE HERE 1414" << std::endl;
-		std::string theValue = parseSmallAtomExt();
-		return theValue;
+		return this->parseSmallAtomExt();
 	}
 	case ETFTokenType::Map_Ext: {
-		std::cout << "WERE HERE 1515" << std::endl;
-		std::string theValue = parseMapExt();
-		return theValue;
+		return this->parseMapExt();
 	}
 	case ETFTokenType::Atom_Utf8_Ext: {
-		std::cout << "WERE HERE 1616" << std::endl;
-		std::string theValue = parseAtomUtf8Ext();
-		return theValue;
+		return this->parseAtomUtf8Ext();
 	}
 	default: {
-		std::cout << "THE UNKNOWN TYPE: " << +type << std::endl;
 		throw ErlPackError{ "ErlPacker::singleValueETFToJson() Error: Unknown data type in ETF.\n\n" };
 	}
 	}
@@ -452,7 +414,9 @@ std::string ErlPacker::parseLargeTupleExt() {
 }
 
 std::string ErlPacker::parseNilExt() {
-	return std::string{};
+	std::string theString{};
+	theString.append(R"([])");
+	return theString;
 }
 
 std::string ErlPacker::parseStringAsList() {
@@ -469,7 +433,7 @@ std::string ErlPacker::parseStringAsList() {
 
 std::string ErlPacker::parseListExt() {
 	uint32_t length = this->readBits<uint32_t>();
-	std::string  theArray = this->parseArray(length);
+	std::string theArray = this->parseArray(length);
 	uint8_t theValue = this->readBits<uint8_t>();
 	const ETFTokenType tailMarker = static_cast<ETFTokenType>(theValue);
 	if (tailMarker != ETFTokenType::Nil_Ext) {
@@ -480,19 +444,17 @@ std::string ErlPacker::parseListExt() {
 
 std::string ErlPacker::parseBinaryExt() {
 	uint32_t length = this->readBits<uint32_t>();
-	std::cout << "BINARY LENGTH: " << length << std::endl;
 	auto stringNew = this->readString(length);
 	if (stringNew == nullptr) {
 		return std::string{};
 	}
-	
+
 	std::string theValue{};
-	theValue.append(R"(")");
-	for (uint32_t x=0;x< length;++x){
+	
+	for (uint32_t x = 0; x < length; ++x) {
 		theValue.push_back(stringNew[x]);
 	}
-	theValue.append(R"(")");
-	std::cout << "THE VALUE: " << theValue << std::endl;
+	
 	return theValue;
 }
 
@@ -508,26 +470,32 @@ std::string ErlPacker::parseLargeBigExt() {
 
 std::string ErlPacker::parseArray(const uint32_t length) {
 	std::string array{};
+	array.append(R"([)");
 	for (uint32_t x = 0; x < length; ++x) {
 		array.append(this->singleValueETFToJson());
 	}
+	array.append(R"(])");
 	return array;
 }
 
 std::string ErlPacker::parseMapExt() {
 	uint32_t length = readBits<uint32_t>();
-	std::cout << "THE LENGTH: " << length << std::endl;
 	std::string map{};
+	map.append(R"({)");
 	for (uint32_t i = 0; i < length; ++i) {
-		auto key = singleValueETFToJson();
-		key += ":";
+		std::string theKey{};
+		theKey.append(R"(")");
+		theKey += singleValueETFToJson();
+		theKey.append(R"(")");
+		theKey += ":";
 		auto value = singleValueETFToJson();
 		if (i < length - 1) {
 			value += ",";
 		}
-		map.append(key);
+		map.append(theKey);
 		map.append(value);
 	}
+	map.append(R"(})");
 	return map;
 }
 

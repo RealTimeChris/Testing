@@ -81,12 +81,12 @@ else()
 	message(FATAL_ERROR "Please, set the VCPKG base directory, or the location of the DiscordCoreAPIConfig.cmake file!")
 endif()
 
-find_package(simdjson CONFIG REQUIRED)
 find_package(FFMPEG MODULE REQUIRED)
 find_package(NLOHMANN MODULE REQUIRED)
 find_package(OPENSSL MODULE REQUIRED)
 find_package(OPUS MODULE REQUIRED)
 find_package(SODIUM MODULE REQUIRED)
+find_package(simdjson CONFIG REQUIRED)
 find_package(DiscordCoreAPI CONFIG REQUIRED)
 
 add_subdirectory(Executable)

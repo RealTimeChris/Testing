@@ -20,33 +20,50 @@ struct TestClass {
 	std::string theString{ "HELP HELP HELP" };
 };
 
-void parseObject(std::string& theString, TestClass& theDat) {
-	simdjson::ondemand::parser theParser{};
+DiscordCoreAPI::CoRoutine<void> parseObject(std::string& theString, TestClass& theDat, simdjson::ondemand::parser*theParser) {
+	co_await DiscordCoreAPI::NewThreadAwaitable<void>();
 	theString.reserve(theString.size() + simdjson::SIMDJSON_PADDING);
-	auto theDocument = theParser.iterate(theString);
+	auto theDocument = theParser->iterate(theString);
+
+	theDat.theFloat = theDocument.find_field("theFloat").get_double().take_value();
 	theDat.theInt = theDocument.find_field("theInt").get_int64().take_value();
 	theDat.theString = theDocument.find_field("theString").get_string().take_value();
 }
-
+void function(const std::string& theString) {
+	auto newString = (std::string&)theString;
+	newString.resize(2000);
+}
 int32_t main() {
-	 try {
-		 nlohmann::json theValue{};
-		 theValue["theInt"] = int32_t{ 254423243 };
-		 theValue["theString"] = "TESTING TESTING FOR REAL";
-		 theValue["theFloat"] = 34.234f;
-		 simdjson::ondemand::parser parser{};
-		 ErlPacker thePacker{};
-		 std::cout << "THE RESULT 00: " << theValue.dump() << std::endl;
-		 auto theResult = thePacker.parseJsonToEtf(theValue);
-		 std::cout << "THE RESULT 01: " << theResult << std::endl;
-		 auto theResult02 = thePacker.parseEtfToJson(theResult);
-		 std::cout << "THE RESULT 02: " << theResult02 << std::endl;
-		 TestClass theObject{};
-		 parseObject(theResult02, theObject);
-		 std::cout << "THE RESULT 02: " << theResult02 << std::endl;
-		 nlohmann::json theStringNewest{ nlohmann::json::parse(theResult02) };
-		 std::cout << theObject.theInt << ", TEST VALUE 02: " << theObject.theString << std::endl;
-		 std::cout << "THE RESULT 03: " << theStringNewest << std::endl;
+	try {
+		{
+			DiscordCoreAPI::ModifyGuildData theGuild{ DiscordCoreAPI::Guild{} };
+			nlohmann::json theValue{ };
+			theValue["d"] = static_cast<std::string>(theGuild);
+			theValue["op"] = 1;
+			theValue["s"] = 1344;
+			theValue["t"] = "GUILD_CREATE";
+			simdjson::ondemand::parser parser{};
+			ErlPacker thePacker{};
+			auto theString = thePacker.parseJsonToEtf(theValue);
+			auto theNewString = thePacker.parseEtfToJson(theString);
+			theNewString.reserve(theNewString.size() + simdjson::SIMDJSON_PADDING);
+			auto theDocument = parser.iterate(theNewString);
+			std::cout << "THE RESULT 03: " << theNewString << std::endl;
+			uint64_t theValue01{};
+			theValue01 = theDocument["s"].get_uint64();
+			std::cout << "THE RESULT 03: " << theValue01 << std::endl;
+			uint64_t theValue02{};
+			theDocument["op"].get(theValue02);
+			std::cout << "THE RESULT 03: " << theValue02 << std::endl;
+			theDocument["opss"].get(theValue02);
+			std::cout << "THE RESULT 03: " << theValue02 << std::endl;
+			theValue01 = theDocument["opss"].get_uint64();
+			//std::cout << "THE RESULT 03: " << theDocument.get_object() << std::endl;
+
+		}
+		 
+		 
+		 
 		 std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
 	}
