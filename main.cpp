@@ -24,7 +24,7 @@ DiscordCoreAPI::CoRoutine<void> parseObject(std::string& theString, TestClass& t
 	co_await DiscordCoreAPI::NewThreadAwaitable<void>();
 	theString.reserve(theString.size() + simdjson::SIMDJSON_PADDING);
 	auto theDocument = theParser->iterate(theString);
-
+	
 	theDat.theFloat = theDocument.find_field("theFloat").get_double().take_value();
 	theDat.theInt = theDocument.find_field("theInt").get_int64().take_value();
 	theDat.theString = theDocument.find_field("theString").get_string().take_value();
@@ -35,8 +35,16 @@ void function(const std::string& theString) {
 }
 int32_t main() {
 	try {
-		{
+		std::string theString{ "-2" };
+		std::cout << stoull(theString) << std::endl;
+		{std::string theValueNew{ R"(\u000D)" };
+		std::cout << theValueNew << std::endl;
 			DiscordCoreAPI::ModifyGuildData theGuild{ DiscordCoreAPI::Guild{} };
+			theValueNew.resize(1024 * 1024*1024);
+			DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::microseconds{1} };
+			theStopWatch.resetTimer();
+			std::string_view theNewStringer{ theValueNew };
+			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
 			nlohmann::json theValue{ };
 			theValue["d"] = static_cast<std::string>(theGuild);
 			theValue["op"] = 1;
