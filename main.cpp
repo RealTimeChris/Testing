@@ -33,9 +33,24 @@ void function(const std::string& theString) {
 	auto newString = (std::string&)theString;
 	newString.resize(2000);
 }
+
+void testFunction(const char* theString, int32_t length) {
+	std::string theStringNew{};
+	theStringNew.resize(25);
+	memcpy(theStringNew.data(), theString, length);
+
+}
+
 int32_t main() {
 	try {
-		std::string theString{ "-2" };
+		//std::string theString{ "-2" }; 
+		std::string const theString({ '\0', '6', '\a', 'H', '\t' });
+		testFunction("\"",3);
+		//theString.reserve(1024);
+		//for (int32_t x = 0; x < 104; ++x) {
+		//	theString.push_back('\r');
+		//}theString.shrink_to_fit();
+		/*std::cout << "STRING SIZE: " << theString<< std::endl;
 		std::cout << stoull(theString) << std::endl;
 		{std::string theValueNew{ R"(\u000D)" };
 		std::cout << theValueNew << std::endl;
@@ -67,8 +82,8 @@ int32_t main() {
 			std::cout << "THE RESULT 03: " << theValue02 << std::endl;
 			theValue01 = theDocument["opss"].get_uint64();
 			//std::cout << "THE RESULT 03: " << theDocument.get_object() << std::endl;
-
-		}
+			*/
+		
 		 
 		 
 		 
