@@ -41,50 +41,106 @@ void testFunction(const char* theString, int32_t length) {
 
 }
 
+std::string getString(simdjson::ondemand::value& jsonData, const char* theKey) {
+	try {
+		std::string_view theStringNew{};
+		auto theValue = jsonData[theKey].get(theStringNew);
+		if (theValue != simdjson::error_code::SUCCESS) {
+			return "0";
+		}
+		std::string theStringNewer{ theStringNew.data(), theStringNew.size() };
+		return theStringNewer;
+	}
+	catch (...) {
+		return "";
+	}
+}
+
+template<typename ReturnType>void parseObject(simdjson::ondemand::value& jsonObjectData, ReturnType& theData){}
+	
+template<> void parseObject(simdjson::ondemand::value& jsonObjectData, DiscordCoreAPI::GuildWidgetImageData& theData) {
+	theData.url = getString(jsonObjectData, "widget_image");
+}
+
+void escapeCharacters(std::string& theString) {
+	auto theSize = theString.size();
+	for (int32_t x = 0; x < theSize; x++) {
+		switch (static_cast<char>(theString[x])) {
+		case 0x0008: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, 'b');
+			break;
+		}
+		case 0x0009: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, 't');
+			break;
+		}
+		case 0x000A: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, 'n');
+			break;
+		}
+		case 0x000B: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, 'v');
+			break;
+		}
+		case 0x000C: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, 'f');
+			break;
+		}
+		case 0x000D: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, 'r');
+			break;
+		}
+		case 0x005: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, '\\');
+			break;
+		}
+		case 0x0022: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, '"');
+			break;
+		}
+		case 0x0027: {
+			theString[x] = '\\';
+			theString.insert(theString.begin() + x + 1, '\'');
+			break;
+		}
+		default: {
+		}
+		}
+	}
+}
+
+std::string_view theFunction(std::string& theString, DiscordCoreAPI::StopWatch<std::chrono::microseconds>& theStopWatch) {
+	std::cout << "TIME PASSED 0303: " << theStopWatch.totalTimePassed() << std::endl;
+	theStopWatch.resetTimer();
+	std::string_view theStringNew{ theString.data(), theString.size() };
+	std::cout << "TIME PASSED 0404: " << theStopWatch.totalTimePassed() << std::endl;
+	theStopWatch.resetTimer();
+	return theString;
+}
+
 int32_t main() {
 	try {
-		//std::string theString{ "-2" }; 
-		std::string const theString({ '\0', '6', '\a', 'H', '\t' });
-		testFunction("\"",3);
-		//theString.reserve(1024);
-		//for (int32_t x = 0; x < 104; ++x) {
-		//	theString.push_back('\r');
-		//}theString.shrink_to_fit();
-		/*std::cout << "STRING SIZE: " << theString<< std::endl;
-		std::cout << stoull(theString) << std::endl;
-		{std::string theValueNew{ R"(\u000D)" };
-		std::cout << theValueNew << std::endl;
-			DiscordCoreAPI::ModifyGuildData theGuild{ DiscordCoreAPI::Guild{} };
-			theValueNew.resize(1024 * 1024*1024);
-			DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::microseconds{1} };
-			theStopWatch.resetTimer();
-			std::string_view theNewStringer{ theValueNew };
-			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
-			nlohmann::json theValue{ };
-			theValue["d"] = static_cast<std::string>(theGuild);
-			theValue["op"] = 1;
-			theValue["s"] = 1344;
-			theValue["t"] = "GUILD_CREATE";
-			simdjson::ondemand::parser parser{};
-			ErlPacker thePacker{};
-			auto theString = thePacker.parseJsonToEtf(theValue);
-			auto theNewString = thePacker.parseEtfToJson(theString);
-			theNewString.reserve(theNewString.size() + simdjson::SIMDJSON_PADDING);
-			auto theDocument = parser.iterate(theNewString);
-			std::cout << "THE RESULT 03: " << theNewString << std::endl;
-			uint64_t theValue01{};
-			theValue01 = theDocument["s"].get_uint64();
-			std::cout << "THE RESULT 03: " << theValue01 << std::endl;
-			uint64_t theValue02{};
-			theDocument["op"].get(theValue02);
-			std::cout << "THE RESULT 03: " << theValue02 << std::endl;
-			theDocument["opss"].get(theValue02);
-			std::cout << "THE RESULT 03: " << theValue02 << std::endl;
-			theValue01 = theDocument["opss"].get_uint64();
-			//std::cout << "THE RESULT 03: " << theDocument.get_object() << std::endl;
-			*/
-		
-		 
+		DiscordCoreAPI::GuildWidgetImageData theData{};
+		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::microseconds{1} };
+		theStopWatch.resetTimer();
+		std::string theValue{};
+		std::string& theValue02{ theValue };
+		std::cout << "TIME PASSED 0101: " << theStopWatch.totalTimePassed() << std::endl;
+		theValue.resize(1024 * 1024 * 1024);
+		std::cout << "TIME PASSED 0202: " << theStopWatch.totalTimePassed() << std::endl;
+
+		theStopWatch.resetTimer();
+		theValue02 = theFunction(theValue, theStopWatch);
+		std::cout << "TIME PASSED 0505: " << theStopWatch.totalTimePassed() << std::endl;
+
 		 
 		 
 		 std::this_thread::sleep_for(std::chrono::seconds{ 3 });
