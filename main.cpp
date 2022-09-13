@@ -1,5 +1,6 @@
 #include <discordcoreapi/Index.hpp>
 #include <simdjson.h>
+#include <unordered_set>
 #include "ErlPacker.hpp"
 
 struct testClass {
@@ -124,23 +125,187 @@ std::string_view theFunction(std::string& theString, DiscordCoreAPI::StopWatch<s
 	std::cout << "TIME PASSED 0404: " << theStopWatch.totalTimePassed() << std::endl;
 	theStopWatch.resetTimer();
 	return theString;
+
 }
+
+template<typename ObjectType>
+class ObjectCache {
+public:
+	ObjectCache() noexcept {};
+
+	void emplace(ObjectType&& theData) noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		this->theMap.emplace(std::move(theData));
+	}
+
+	void emplace(ObjectType& theData) noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		this->theMap.emplace(theData);
+	}
+
+	const ObjectType& readOnly(ObjectType& theKey) noexcept {
+		std::shared_lock theLock{ this->theMutex };
+		return *this->theMap.find(theKey);
+	}
+
+	ObjectType& at(ObjectType&& theKey) noexcept {
+		std::shared_lock theLock{ this->theMutex };
+		return (ObjectType&)*this->theMap.find(theKey);
+	}
+
+	ObjectType& at(ObjectType& theKey) noexcept {
+		std::shared_lock theLock{ this->theMutex };
+		return (ObjectType&)*this->theMap.find(theKey);
+	}
+
+	auto begin() {
+		std::unique_lock theLock{ this->theMutex };
+		return this->theMap.begin();
+	}
+
+	auto end() {
+		std::unique_lock theLock{ this->theMutex };
+		return this->theMap.end();
+	}
+
+	bool contains(ObjectType& theKey) noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		return this->theMap.contains(theKey);
+	}
+
+	void erase(ObjectType& theKey) {
+		std::unique_lock theLock{ this->theMutex };
+		if (this->theMap.contains(theKey)) {
+			this->theMap.erase(theKey);
+		}
+	}
+
+	size_t size() noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		return this->theMap.size();
+	}
+
+protected:
+	std::unordered_set<ObjectType> theMap{};
+	std::shared_mutex theMutex{};
+};
+
+
+namespace DiscordCoreAPI {
+	inline bool operator==(const DiscordCoreAPI::UserData& lhs, const DiscordCoreAPI::UserData& rhs) {
+		if (lhs.id == rhs.id) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+}
+struct UserHash {
+	std::size_t operator()(DiscordCoreAPI::UserData const& object) const noexcept {
+		return object.id;
+	}
+};
+
+template<> struct std::hash<DiscordCoreAPI::UserData> {
+	std::size_t operator()(DiscordCoreAPI::UserData const& object) const noexcept {
+		return object.id;
+	}
+};
+namespace Test {
+
+	void escapeCharacters(std::string& theString) {
+		auto theSize = theString.size();
+		for (int32_t x = 0; x < theSize; x++) {
+			switch (static_cast<char>(theString[x])) {
+			case 0x08: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, 'b');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x09: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, 't');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x0A: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, 'n');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x0B: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, 'v');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x0C: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, 'f');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x0D: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, 'r');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x22: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, '"');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x5C: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, '\\');
+				theSize++;
+				x++;
+				break;
+			}
+			case 0x27: {
+				theString[x] = '\\';
+				theString.insert(theString.begin() + x + 1, '\'');
+				theSize++;
+				x++;
+				break;
+			}
+			default: {
+				theString.insert(theString.begin() + x, theString[x]);
+			}
+			}
+		}
+	}
+	
+}
+
+
 
 int32_t main() {
 	try {
-		DiscordCoreAPI::GuildWidgetImageData theData{};
-		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::microseconds{1} };
-		theStopWatch.resetTimer();
-		std::string theValue{};
-		std::string& theValue02{ theValue };
-		std::cout << "TIME PASSED 0101: " << theStopWatch.totalTimePassed() << std::endl;
-		theValue.resize(1024 * 1024 * 1024);
-		std::cout << "TIME PASSED 0202: " << theStopWatch.totalTimePassed() << std::endl;
-
-		theStopWatch.resetTimer();
-		theValue02 = theFunction(theValue, theStopWatch);
-		std::cout << "TIME PASSED 0505: " << theStopWatch.totalTimePassed() << std::endl;
-
+		ObjectCache<DiscordCoreAPI::UserData> theCache{};
+		DiscordCoreAPI::UserData theData{};
+		theData.id = 2312312312312;
+		theCache.emplace(theData);
+		if (theCache.contains(theData)) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
+		auto theDataNew = theCache.readOnly(theData);
+		std::string theStringNew{ "\n\n\n" };
+		std::cout << theStringNew << std::endl;
+		Test::escapeCharacters(theStringNew);
+		std::cout << theStringNew << "THIS WAS THE STRING" << std::endl;
 		 
 		 
 		 std::this_thread::sleep_for(std::chrono::seconds{ 3 });
