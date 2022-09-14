@@ -191,121 +191,99 @@ protected:
 };
 
 
-namespace DiscordCoreAPI {
-	inline bool operator==(const DiscordCoreAPI::UserData& lhs, const DiscordCoreAPI::UserData& rhs) {
-		if (lhs.id == rhs.id) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-}
-struct UserHash {
-	std::size_t operator()(DiscordCoreAPI::UserData const& object) const noexcept {
-		return object.id;
-	}
+class JsonStringGenerator {
+public:
+	JsonStringGenerator()noexcept;
+	operator std::string();
+
+	void appendInteger(uint64_t theInteger, const char* theName);
+
+	void appendString(std::string theString, const char* theName);
+
+	void appendBool(bool theBool, const char* theName);
+
+	void appendFloat(double theFloat, const char* theName);
+
+	void appendArray(const char* theName);
+
+	void closeArray();
+
+	void closeStruct();
+
+	template<typename ElementType>
+	void appendElement(ElementType theElement);
+
+	void appendStruct(const char* theName);
+
+protected:
+	std::string theString{};
+	bool haveWeStarted{ false };
 };
 
-template<> struct std::hash<DiscordCoreAPI::UserData> {
-	std::size_t operator()(DiscordCoreAPI::UserData const& object) const noexcept {
-		return object.id;
-	}
-};
-namespace Test {
-
-	void escapeCharacters(std::string& theString) {
-		auto theSize = theString.size();
-		for (int32_t x = 0; x < theSize; x++) {
-			switch (static_cast<char>(theString[x])) {
-			case 0x08: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, 'b');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x09: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, 't');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x0A: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, 'n');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x0B: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, 'v');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x0C: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, 'f');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x0D: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, 'r');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x22: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, '"');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x5C: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, '\\');
-				theSize++;
-				x++;
-				break;
-			}
-			case 0x27: {
-				theString[x] = '\\';
-				theString.insert(theString.begin() + x + 1, '\'');
-				theSize++;
-				x++;
-				break;
-			}
-			default: {
-				theString.insert(theString.begin() + x, theString[x]);
-			}
-			}
-		}
-	}
-	
+JsonStringGenerator::JsonStringGenerator()noexcept{
+	this->theString += "{";
 }
 
+JsonStringGenerator::operator std::string() {
+	this->theString += "}";
+	return this->theString;
+}
 
+void JsonStringGenerator::appendInteger(uint64_t theInteger, const char* theName){
+	if (this->haveWeStarted) {
+		this->theString += ",";
+	}
+	if (!this->haveWeStarted) {
+		this->haveWeStarted = true;
+	}
+	this->theString += "\"" + std::string{ theName } + "\":";
+	this->theString += std::to_string(theInteger);
+}
+
+void JsonStringGenerator::appendString(std::string theString, const char* theName){
+	if (this->haveWeStarted) {
+		this->theString += ",";
+	}
+	if (!this->haveWeStarted) {
+		this->haveWeStarted = true;
+	}
+	this->theString += "\"" + std::string{ theName } + "\":";
+	this->theString += "\"" + theString + "\"";
+}
+
+void JsonStringGenerator::appendBool(bool theBool, const char* theName){
+	if (this->haveWeStarted) {
+		this->theString += ",";
+	}
+	if (!this->haveWeStarted) {
+		this->haveWeStarted = true;
+	}
+	this->theString += "\"" + std::string{ theName } + "\":";
+	std::stringstream theStream{};
+	theStream << std::boolalpha << theBool;
+	this->theString += theStream.str();
+}
+
+void JsonStringGenerator::appendFloat(double theFloat, const char* theName){}
+
+void JsonStringGenerator::appendArray(const char* theName){}
+
+void JsonStringGenerator::closeArray(){}
+
+void JsonStringGenerator::closeStruct(){}
+
+template<typename ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement){}
+
+void JsonStringGenerator::appendStruct(const char* theName){}
 
 int32_t main() {
 	try {
-		ObjectCache<DiscordCoreAPI::UserData> theCache{};
-		DiscordCoreAPI::UserData theData{};
-		theData.id = 2312312312312;
-		theCache.emplace(theData);
-		if (theCache.contains(theData)) {
-			std::cout << "WERE HERE THIS IS IT!" << std::endl;
-		}
-		auto theDataNew = theCache.readOnly(theData);
-		std::string theStringNew{ "\n\n\n" };
-		std::cout << theStringNew << std::endl;
-		Test::escapeCharacters(theStringNew);
-		std::cout << theStringNew << "THIS WAS THE STRING" << std::endl;
+		JsonStringGenerator theGenerator{};
+		theGenerator.appendBool(true, "theValue");
+		theGenerator.appendString(":THE VALUE", "theValue");
+		theGenerator.appendInteger(23232, "theValue");
+		std::cout << static_cast<std::string>(theGenerator) << std::endl;
 		 
 		 
 		 std::this_thread::sleep_for(std::chrono::seconds{ 3 });
