@@ -261,35 +261,32 @@ protected:
 };
 
 JsonStringGenerator::JsonStringGenerator()noexcept{
-	this->haveWeStarted.push_back(false);
 	this->theString += "{";
 }
 
 JsonStringGenerator::operator std::string() {
 	this->theString += "}";
+	this->haveWeStarted.push_back(false);
 	return this->theString;
 }
 
 void JsonStringGenerator::appendInteger(uint64_t theInteger, const char* theName = nullptr) {
 	
 	if (theName != nullptr) {
-		if (*this->haveWeStarted.end()) {
+		if (*(this->haveWeStarted.end()-1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStarted.end()) {
-			this->haveWeStarted.push_back(true);
+		if (!*(this->haveWeStarted.end()-1)) {
+			*this->haveWeStarted.end() = true;
 		}
 		this->theString += "\"" + std::string{ theName } + "\":";
 	}
 	else {
-		if (this->haveWeStartedTheArray.size() == 0) {
-			this->haveWeStartedTheArray.push_back(false);
-		}
-		if (!*this->haveWeStartedTheArray.end()) {
+		if (*(this->haveWeStartedTheArray.end()-1)) {
 			this->theString += ",";
 		}
-		if (!*this-> haveWeStartedTheArray.end()) {
-			this->haveWeStartedTheArray.push_back(true);
+		if (!*(this->haveWeStartedTheArray.end()-1)) {
+			*(this->haveWeStartedTheArray.end() -1)= true;
 		}
 	}
 	this->theString += std::to_string(theInteger);
@@ -297,20 +294,20 @@ void JsonStringGenerator::appendInteger(uint64_t theInteger, const char* theName
 
 void JsonStringGenerator::appendString(std::string theString, const char* theName = nullptr) {
 	if (theName != nullptr) {
-		if (*this->haveWeStarted.end()) {
+		if (*(this->haveWeStarted.end() - 1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStarted.end()) {
-			this->haveWeStarted.push_back(true);
+		if (!*(this->haveWeStarted.end()-1)) {
+			*this->haveWeStarted.end() = true;
 		}
 		this->theString += "\"" + std::string{ theName } + "\":";
 	}
 	else {
-		if (!*this->haveWeStartedTheArray.end()) {
+		if (*(this->haveWeStartedTheArray.end()-1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStartedTheArray.end()) {
-			this->haveWeStartedTheArray.push_back(true);
+		if (!*(this->haveWeStartedTheArray.end()-1)) {
+			*(this->haveWeStartedTheArray.end() -1)= true;
 		}
 	}
 	this->theString += "\"" + theString + "\"";
@@ -318,20 +315,20 @@ void JsonStringGenerator::appendString(std::string theString, const char* theNam
 
 void JsonStringGenerator::appendBool(bool theBool, const char* theName = nullptr) {
 	if (theName != nullptr) {
-		if (*this->haveWeStarted.end()) {
+		if (*(this->haveWeStarted.end() - 1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStarted.end()) {
-			this->haveWeStarted.push_back(true);
+		if (!*(this->haveWeStarted.end() - 1)) {
+			*this->haveWeStarted.end() = true;
 		}
 		this->theString += "\"" + std::string{ theName } + "\":";
 	}
 	else {
-		if (!*this->haveWeStartedTheArray.end()) {
+		if (*(this->haveWeStartedTheArray.end()-1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStartedTheArray.end()) {
-			this->haveWeStartedTheArray.push_back(true);
+		if (!*(this->haveWeStartedTheArray.end()-1)) {
+			*(this->haveWeStartedTheArray.end() -1)= true;
 		}
 	}
 	std::stringstream theStream{};
@@ -341,30 +338,30 @@ void JsonStringGenerator::appendBool(bool theBool, const char* theName = nullptr
 
 void JsonStringGenerator::appendFloat(double theFloat, const char* theName = nullptr) {
 	if (theName != nullptr) {
-		if (*this->haveWeStarted.end()) {
+		if (*(this->haveWeStarted.end()-1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStarted.end()) {
-			this->haveWeStarted.push_back(true);
+		if (!*(this->haveWeStarted.end()-1)) {
+			*this->haveWeStarted.end() = true;
 		}
 		this->theString += "\"" + std::string{ theName } + "\":";
 	}
 	else {
-		if (!*this->haveWeStartedTheArray.end()) {
+		if (*(this->haveWeStartedTheArray.end()-1)) {
 			this->theString += ",";
 		}
-		if (!*this->haveWeStartedTheArray.end()) {
-			this->haveWeStartedTheArray.push_back(true);
+		if (!*(this->haveWeStartedTheArray.end()-1)) {
+			*(this->haveWeStartedTheArray.end() -1)= true;
 		}
 	}
 	this->theString += std::to_string(theFloat);
 }
 
 void JsonStringGenerator::appendArray(const char* theName) {
-	if (!*this->haveWeStarted.end()) {
+	if (*(this->haveWeStarted.end()-1)) {
 		this->theString += ",";
 	}
-	if (!*this->haveWeStarted.end()) {
+	if (this->haveWeStarted.size() == 0) {
 		this->haveWeStarted.push_back(true);
 	}
 	this->theString += "\"" + std::string{ theName } + "\":[";
@@ -442,7 +439,7 @@ void JsonStringGenerator::appendElement(ElementType theElement) {
 
 void JsonStringGenerator::closeArray() {
 	this->theString += "]";
-	this->haveWeStartedTheArray.erase(this->haveWeStartedTheArray.end());
+	this->haveWeStartedTheArray.erase(this->haveWeStartedTheArray.end() - 1);
 }
 
 void JsonStringGenerator::appendStruct(const char* theName) {}
