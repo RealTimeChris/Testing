@@ -213,14 +213,55 @@ public:
 	template<typename ElementType>
 	void appendElement(ElementType theElement);
 
+	template<std::same_as<std::string> ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<const char*> ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<int8_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<int16_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<int32_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<int64_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<uint8_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<uint16_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<uint32_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<uint64_t>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<float>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<double>  ElementType>
+	void appendElement(ElementType theElement);
+
+	template<std::same_as<bool>  ElementType>
+	void appendElement(ElementType theElement);
+
 	void appendStruct(const char* theName);
 
 protected:
 	std::string theString{};
-	bool haveWeStarted{ false };
+	std::vector<bool> haveWeStarted{ false };
+	std::vector<bool> haveWeStartedTheArray{ false };
 };
 
 JsonStringGenerator::JsonStringGenerator()noexcept{
+	this->haveWeStarted.push_back(false);
 	this->theString += "{";
 }
 
@@ -229,60 +270,197 @@ JsonStringGenerator::operator std::string() {
 	return this->theString;
 }
 
-void JsonStringGenerator::appendInteger(uint64_t theInteger, const char* theName){
-	if (this->haveWeStarted) {
-		this->theString += ",";
+void JsonStringGenerator::appendInteger(uint64_t theInteger, const char* theName = nullptr) {
+	
+	if (theName != nullptr) {
+		if (*this->haveWeStarted.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStarted.end()) {
+			this->haveWeStarted.push_back(true);
+		}
+		this->theString += "\"" + std::string{ theName } + "\":";
 	}
-	if (!this->haveWeStarted) {
-		this->haveWeStarted = true;
+	else {
+		if (this->haveWeStartedTheArray.size() == 0) {
+			this->haveWeStartedTheArray.push_back(false);
+		}
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->theString += ",";
+		}
+		if (!*this-> haveWeStartedTheArray.end()) {
+			this->haveWeStartedTheArray.push_back(true);
+		}
 	}
-	this->theString += "\"" + std::string{ theName } + "\":";
 	this->theString += std::to_string(theInteger);
 }
 
-void JsonStringGenerator::appendString(std::string theString, const char* theName){
-	if (this->haveWeStarted) {
-		this->theString += ",";
+void JsonStringGenerator::appendString(std::string theString, const char* theName = nullptr) {
+	if (theName != nullptr) {
+		if (*this->haveWeStarted.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStarted.end()) {
+			this->haveWeStarted.push_back(true);
+		}
+		this->theString += "\"" + std::string{ theName } + "\":";
 	}
-	if (!this->haveWeStarted) {
-		this->haveWeStarted = true;
+	else {
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->haveWeStartedTheArray.push_back(true);
+		}
 	}
-	this->theString += "\"" + std::string{ theName } + "\":";
 	this->theString += "\"" + theString + "\"";
 }
 
-void JsonStringGenerator::appendBool(bool theBool, const char* theName){
-	if (this->haveWeStarted) {
-		this->theString += ",";
+void JsonStringGenerator::appendBool(bool theBool, const char* theName = nullptr) {
+	if (theName != nullptr) {
+		if (*this->haveWeStarted.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStarted.end()) {
+			this->haveWeStarted.push_back(true);
+		}
+		this->theString += "\"" + std::string{ theName } + "\":";
 	}
-	if (!this->haveWeStarted) {
-		this->haveWeStarted = true;
+	else {
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->haveWeStartedTheArray.push_back(true);
+		}
 	}
-	this->theString += "\"" + std::string{ theName } + "\":";
 	std::stringstream theStream{};
 	theStream << std::boolalpha << theBool;
 	this->theString += theStream.str();
 }
 
-void JsonStringGenerator::appendFloat(double theFloat, const char* theName){}
+void JsonStringGenerator::appendFloat(double theFloat, const char* theName = nullptr) {
+	if (theName != nullptr) {
+		if (*this->haveWeStarted.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStarted.end()) {
+			this->haveWeStarted.push_back(true);
+		}
+		this->theString += "\"" + std::string{ theName } + "\":";
+	}
+	else {
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->theString += ",";
+		}
+		if (!*this->haveWeStartedTheArray.end()) {
+			this->haveWeStartedTheArray.push_back(true);
+		}
+	}
+	this->theString += std::to_string(theFloat);
+}
 
-void JsonStringGenerator::appendArray(const char* theName){}
-
-void JsonStringGenerator::closeArray(){}
-
-void JsonStringGenerator::closeStruct(){}
+void JsonStringGenerator::appendArray(const char* theName) {
+	if (!*this->haveWeStarted.end()) {
+		this->theString += ",";
+	}
+	if (!*this->haveWeStarted.end()) {
+		this->haveWeStarted.push_back(true);
+	}
+	this->theString += "\"" + std::string{ theName } + "\":[";
+}
 
 template<typename ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement){}
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	
+}
 
-void JsonStringGenerator::appendStruct(const char* theName){}
+template<std::same_as<const char*>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendString(theElement);
+}
+
+template<std::same_as<std::string>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendString(theElement);
+}
+
+template<std::same_as<int8_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<int16_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<int32_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<int64_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<uint8_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<uint16_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<uint32_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<uint64_t>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendInteger(theElement);
+}
+
+template<std::same_as<float>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendFloat(theElement);
+}
+
+template<std::same_as<double>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendFloat(theElement);
+}
+
+template<std::same_as<bool>  ElementType>
+void JsonStringGenerator::appendElement(ElementType theElement) {
+	this->appendBool(theElement);
+}
+
+void JsonStringGenerator::closeArray() {
+	this->theString += "]";
+	this->haveWeStartedTheArray.erase(this->haveWeStartedTheArray.end());
+}
+
+void JsonStringGenerator::appendStruct(const char* theName) {}
+
+void JsonStringGenerator::closeStruct() {}
 
 int32_t main() {
 	try {
 		JsonStringGenerator theGenerator{};
 		theGenerator.appendBool(true, "theValue");
-		theGenerator.appendString(":THE VALUE", "theValue");
+		theGenerator.appendString("THE VALUE", "theValue");
 		theGenerator.appendInteger(23232, "theValue");
+		theGenerator.appendFloat(23232.02f, "theValue");
+		theGenerator.appendArray("TEST ARRAY");
+		theGenerator.appendElement<double>(0.00f);
+		theGenerator.appendElement(23);
+		theGenerator.appendElement("TESTING THE ARRAY");
+		theGenerator.closeArray();
 		std::cout << static_cast<std::string>(theGenerator) << std::endl;
 		 
 		 
