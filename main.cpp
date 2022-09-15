@@ -8,7 +8,7 @@ enum class ObjectType : int8_t {
     Array = 1,
     String = 2,
     Boolean = 3,
-    Number = 4,
+    Number_Integer = 4,
     Number_Unsigned = 5,
     Number_Float = 6,
     Number_Double = 7,
@@ -158,7 +158,7 @@ JsonValueInternal::JsonValueInternal(ObjectType t) {
         break;
     }
 
-    case ObjectType::Number:
+    case ObjectType::Number_Integer:
     {
         theInt = std::make_unique<int64_t>();
         break;
@@ -488,7 +488,7 @@ JsonValueInternal::~JsonValueInternal() {};
             return this->theStringNew.data();
 
         }
-        case ObjectType::Number: {
+        case ObjectType::Number_Integer: {
             if (!this->theKey.empty()) {
                 this->theStringNew.push_back('\"');
                 this->theStringNew += this->theKey;
@@ -564,28 +564,28 @@ JsonValueInternal::~JsonValueInternal() {};
         template<std::same_as<int64_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
             theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int32_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
             theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int16_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
             theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int8_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
             theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
         }
 
