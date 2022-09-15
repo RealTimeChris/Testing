@@ -1,11 +1,7 @@
 #include <discordcoreapi/Index.hpp>
 #include <simdjson.h>
-#include <unordered_set>
 #include "ErlPacker.hpp"
-#define JSON_HEDLEY_RETURNS_NON_NULL
-#include <nlohmann/thirdparty/hedley/hedley.hpp>
-#include <xmemory>
-#include <type_traits>
+#include <stdint.h>
 
 enum class ObjectType : int8_t {
     Object = 0,
@@ -21,200 +17,408 @@ enum class ObjectType : int8_t {
 
 class JsonScalarObject;
 
-struct Object { 
-    std::unordered_map<std::string, JsonScalarObject>theMap{};
+struct Object {
+    std::map<std::string, JsonScalarObject>theMap{};
 };
+
 struct Array {
     std::vector<JsonScalarObject> theVector{};
 };
 
-/// helper for exception-safe theScalar creation
-template<typename T, typename... Args>
-static T* create(Args&& ... args)
+struct JsonValueInternal
 {
-    struct Deleter {
-        void operator()(T* obj) {
-            delete obj;
-        }
-    };
-    std::unique_ptr<T, Deleter> obj(new T{});
-    return obj.release();
-}
+    std::unique_ptr<std::string> theString{ nullptr };
+    std::unique_ptr<Object> theObject;
+    std::unique_ptr<bool> theBool;
+    std::unique_ptr<float> theFloat;
+    std::unique_ptr<double> theDouble;
+    std::unique_ptr<std::int64_t> theInt;
+    std::unique_ptr<std::uint64_t> theUint;
+    std::unique_ptr<Array> theArray;
+
+    JsonValueInternal(ObjectType t);
+
+    JsonValueInternal& operator=(bool value) noexcept;
+
+    JsonValueInternal(bool value) noexcept;
+
+    JsonValueInternal& operator=(std::int64_t value) noexcept;
+
+    JsonValueInternal(std::int64_t value) noexcept;
+
+    JsonValueInternal& operator=(std::uint64_t value) noexcept;
+
+    JsonValueInternal(std::uint64_t value) noexcept;
+
+    JsonValueInternal& operator=(double value) noexcept;
+
+    JsonValueInternal(double value) noexcept;
+
+    JsonValueInternal& operator=(float value) noexcept;
+
+    JsonValueInternal(float value) noexcept;
+
+    JsonValueInternal& operator=(std::string& value) noexcept;
+
+    JsonValueInternal(std::string& value) noexcept;
+
+    JsonValueInternal& operator=(Object& value) noexcept;
+
+    JsonValueInternal(Object& value) noexcept;
+
+    JsonValueInternal& operator=(Object&& value) noexcept;
+
+    JsonValueInternal(Object&& value)  noexcept;
+
+    JsonValueInternal& operator=(Array& value) noexcept;
+
+    JsonValueInternal(Array& value) noexcept;
+
+    JsonValueInternal& operator=(Array&& value) noexcept;
+
+    JsonValueInternal(Array&& value) noexcept;
+
+    JsonValueInternal& operator=(const JsonValueInternal& other) noexcept;
+
+    JsonValueInternal(const JsonValueInternal& other) noexcept;
+
+    ~JsonValueInternal() noexcept;
+};
 
 struct JsonScalarObject {
-    union JsonValueInternal
+
+    ObjectType type();
+
+    JsonScalarObject& operator=(const JsonScalarObject&);
+
+    JsonScalarObject(const JsonScalarObject&);
+
+    JsonScalarObject& operator=(Array& theArray);
+
+    JsonScalarObject(Array& theArray);
+
+    JsonScalarObject& operator=(float& other);
+
+    JsonScalarObject(float& other);
+
+    JsonScalarObject& operator=(float&& other);
+
+    JsonScalarObject(float&& other);
+
+    JsonScalarObject& operator=(double& other);
+
+    JsonScalarObject(double& other);
+
+    JsonScalarObject& operator=(double&& other);
+
+    JsonScalarObject(double&& other);
+
+    JsonScalarObject& operator=(std::string&& other);
+
+    JsonScalarObject(std::string&& other);
+
+    JsonScalarObject& operator=(std::string& other);
+
+    JsonScalarObject(std::string& other);
+
+    const char* toString(int32_t  depth);
+
+    JsonScalarObject();
+
+    JsonValueInternal theValue{ ObjectType::String };
+    std::string theStringNew{};
+    std::string theKey{};
+    ObjectType theType{};
+};
+
+JsonValueInternal::JsonValueInternal(ObjectType t) {
+    switch (t)
     {
-        /// theScalar (stored with pointer to save storage)
-        void* theScalar{ nullptr };
-        Object* theObject;
-        Array* theArray;
+    case ObjectType::Object:
+    {
+        theObject = std::make_unique<Object>();
+        break;
+    }
 
-        JsonValueInternal(ObjectType t)
-        {
-            switch (t)
-            {
-            case ObjectType::Object:
-            {
-                theObject = new Object{};
-                break;
-            }
+    case ObjectType::Array:
+    {
+        theArray = std::make_unique<Array>();
+        break;
+    }
 
-            case ObjectType::Array:
-            {
-                theArray = create<Array>();
-                break;
-            }
+    case ObjectType::String:
+    {
+        theString = std::make_unique<std::string>();
+        break;
+    }
 
-            case ObjectType::String:
-            {
-                theScalar = new std::string{};
-                break;
-            }
+    case ObjectType::Boolean:
+    {
+        theBool = std::make_unique<bool>();
+        break;
+    }
 
-            case ObjectType::Boolean:
-            {
-                theScalar = new bool{};
-                break;
-            }
+    case ObjectType::Number:
+    {
+        theInt = std::make_unique<int64_t>();
+        break;
+    }
 
-            case ObjectType::Number:
-            {
-                theScalar = new int64_t{};
-                break;
-            }
+    case ObjectType::Number_Unsigned:
+    {
+        theUint = std::make_unique<uint64_t>();
+        break;
+    }
 
-            case ObjectType::Number_Unsigned:
-            {
-                theScalar = new uint64_t{};
-                break;
-            }
+    case ObjectType::Number_Float:
+    {
+        theFloat = std::make_unique<float>();
+        break;
+    }
 
-            case ObjectType::Number_Float:
-            {
-                theScalar = new float{};
-                break;
-            }
+    case ObjectType::Number_Double:
+    {
+        theDouble = std::make_unique<double>();
+        break;
+    }
 
-            case ObjectType::Number_Double:
-            {
-                theScalar = new double{};
-                break;
-            }
+    case ObjectType::Null:
+    {
+        theObject = std::make_unique<Object>();
+        break;
+    }
+    }
+}
 
-            case ObjectType::Null:
-            {
-                theScalar = new Object{};
-                break;
-            }
-            }
-        }
+JsonValueInternal& JsonValueInternal::operator=(bool value) noexcept {
+    this->theBool = std::make_unique<bool>();
+    *this->theBool = value;
+    return *this;
+};
 
-        /// default constructor (for null values)
-        JsonValueInternal() noexcept = default;
-        /// constructor for booleans
-        JsonValueInternal(bool value) noexcept : theScalar(new bool{ value }) {}
-        /// constructor for numbers (integer)
-        JsonValueInternal(int64_t value) noexcept : theScalar(new int64_t{ value }) {};
-        /// constructor for numbers (unsigned)
-        JsonValueInternal(uint64_t value) noexcept : theScalar(new uint64_t{ value }) {};
-        /// constructor for numbers (floating-point)
-        JsonValueInternal(double value) noexcept : theScalar(new double{ value }) {};
-        /// constructor for empty values of a given type
+JsonValueInternal::JsonValueInternal(bool value) noexcept : theBool(std::make_unique<bool>(value)) {
+    *this = value;
+};
 
-        /// constructor for strings
-        JsonValueInternal(const std::string& value) : theScalar(new std::string{ value }) {};
+JsonValueInternal& JsonValueInternal::operator=(int64_t value) noexcept {
+    this->theInt = std::make_unique<int64_t>();
+    *this->theInt = value;
+    return *this;
+};
 
-        /// constructor for rvalue strings
-        JsonValueInternal(std::string&& value) : theScalar(new std::string{ std::move(value) }) {};
+JsonValueInternal::JsonValueInternal(int64_t value) noexcept : theInt(std::make_unique<int64_t>()) {
+    *this = value;
+};
 
-        /// constructor for theScalars
-        JsonValueInternal(const Object& value) : theScalar(new Object{ value }) {}
+JsonValueInternal& JsonValueInternal::operator=(uint64_t value) noexcept {
+    this->theUint = std::make_unique<uint64_t>();
+    *this->theUint = value;
+    return *this;
+};
 
-        /// constructor for rvalue theScalars
-        JsonValueInternal(Object&& value) : theScalar(new Object{ std::move(value) }) {};
+JsonValueInternal::JsonValueInternal(uint64_t value) noexcept : theUint(std::make_unique<uint64_t>()) {
+    *this = value;
+};
 
-        /// constructor for arrays
-        JsonValueInternal(const Array& value) : theScalar(new Array{ value }) {};
+JsonValueInternal& JsonValueInternal::operator=(double value) noexcept {
+    this->theDouble = std::make_unique<double>();
+    *this->theDouble = value;
+    return *this;
+};
 
-        /// constructor for rvalue arrays
-        JsonValueInternal(Array&& value) : theScalar(new Array{ std::move(value) }) {};
-        ~JsonValueInternal() {};
-    };
+JsonValueInternal::JsonValueInternal(double value) noexcept : theDouble(std::make_unique<double>()) {
+    *this = value;
+};
+
+JsonValueInternal& JsonValueInternal::operator=(float value) noexcept {
+    this->theFloat = std::make_unique<float>();
+    *this->theFloat = value;
+    return *this;
+};
+
+JsonValueInternal::JsonValueInternal(float value) noexcept : theFloat(std::make_unique<float>()) {
+    *this = value;
+};
+
+JsonValueInternal& JsonValueInternal::operator=(std::string& value) noexcept {
+    this->theString = std::make_unique<std::string>();
+    *this->theString = value;
+    return *this;
+};
+
+JsonValueInternal::JsonValueInternal(std::string& value) noexcept : theString(std::make_unique<std::string>()) {
+    *this = value;
+};
+
+JsonValueInternal& JsonValueInternal::operator=(Object& value) noexcept {
+    this->theObject = std::make_unique<Object>();
+    *this->theObject = value;
+    return *this;
+};
+
+JsonValueInternal::JsonValueInternal(Object& value)  noexcept : theObject(std::make_unique<Object>()) {
+    *this = value;
+};
+
+JsonValueInternal& JsonValueInternal::operator=(Object&& value) noexcept {
+    this->theObject = std::make_unique<Object>();
+    *this->theObject = value;
+    return *this;
+};
+
+JsonValueInternal::JsonValueInternal(Object&& value)  noexcept : theObject(std::make_unique<Object>()) {
+    *this = std::move(value);
+};
+
+JsonValueInternal& JsonValueInternal::operator=(Array& value) noexcept {
+    this->theArray = std::make_unique<Array>();
+    *this->theArray = value;
+    return *this;
+};
+
+JsonValueInternal::JsonValueInternal(Array& value)  noexcept : theArray(std::make_unique<Array>()) {
+    *this = value;
+};
+
+JsonValueInternal& JsonValueInternal::operator=(Array&& value) noexcept {
+    this->theArray = std::make_unique<Array>();
+    *this->theArray = value;
+    return *this;
+};
+
+JsonValueInternal::JsonValueInternal(Array&& value)  noexcept : theArray(std::make_unique<Array>()) {
+    *this = std::move(value);
+};
+
+JsonValueInternal& JsonValueInternal::operator=(const JsonValueInternal& other) noexcept {
+    if (other.theArray){
+        this->theArray = std::make_unique<Array>();
+        *this->theArray = *other.theArray;
+    }else if (other.theBool){
+        this->theBool = std::make_unique<bool>();
+        *this->theBool = *other.theBool;
+    }
+    else if (other.theDouble) {
+        this->theDouble = std::make_unique<double>();
+        *this->theDouble = *other.theDouble;
+    }
+    else if (other.theFloat) {
+        this->theFloat = std::make_unique<float>();
+        *this->theFloat = *other.theFloat;
+    }
+    else if (other.theInt) {
+        this->theInt = std::make_unique<int64_t>();
+        *this->theInt = *other.theInt;
+    }
+    else if (other.theObject) {
+        this->theObject = std::make_unique<Object>();
+        *this->theObject = *other.theObject;
+    }
+    else if (other.theString){
+        this->theString = std::make_unique<std::string>();
+        *this->theString = *other.theString;
+    }
+    else if (other.theUint) {
+        this->theUint = std::make_unique<uint64_t>();
+        *this->theUint = *other.theUint;
+    }
+    return *this;
+}
+
+JsonValueInternal::JsonValueInternal(const JsonValueInternal& other)  noexcept {
+    *this = other;
+}
+
+JsonValueInternal::~JsonValueInternal() {};
 
 
-
-    ObjectType type() {
+    ObjectType JsonScalarObject::type() {
         return this->theType;
     }
 
-    
-    JsonScalarObject& operator=(std::vector<JsonScalarObject> theArray) {
-        this->theValue.theArray = create<Array>(theArray.begin(), theArray.end());
-        this->theValue.theArray->theVector.insert(this->theValue.theArray->theVector.begin(), theArray.begin(), theArray.end());
+    JsonScalarObject& JsonScalarObject::operator=(const JsonScalarObject& other) {
+        this->theKey = other.theKey;
+        this->theStringNew = other.theStringNew;
+        this->theType = other.theType;
+        this->theValue = other.theValue;
+        return *this;
+    }
+
+    JsonScalarObject::JsonScalarObject(const JsonScalarObject&other) {
+        *this = other;
+    }
+
+    JsonScalarObject& JsonScalarObject::operator=(Array& theArray) {
+        this->theValue = theArray;
         this->theType = ObjectType::Array;
         return *this;
     }
 
-    JsonScalarObject(std::vector<JsonScalarObject> theArray) {
-        *this=theArray;
+    JsonScalarObject::JsonScalarObject(Array& theArray){
+        *this = theArray;
     };
 
-    JsonScalarObject& operator=(float& other) {
-        this->theValue.theScalar = new float{};
-        *(float*)this->theValue.theScalar = other;
+    JsonScalarObject& JsonScalarObject::operator=(float& other) {
+        this->theValue = other;
         this->theType = ObjectType::Number_Float;
         return *this;
     }
 
-    JsonScalarObject(float& other) :theValue(new float{ other }) {
+    JsonScalarObject::JsonScalarObject(float& other) {
         *this = other;
     }
 
-    JsonScalarObject& operator=(Array& other) {
-        this->theValue.theArray = new Array{};
-        *this->theValue.theArray = other;
-        this->theType = ObjectType::Array;
-        return *this;
-    }
-
-    JsonScalarObject(Array& other) {
-        *this = other;
-    }
-
-    JsonScalarObject& operator=(double& other) {
-        this->theValue.theScalar = new double{};
-        *(double*)this->theValue.theScalar = other;
+    JsonScalarObject& JsonScalarObject::operator=(float&& other) {
+        this->theValue = other;
         this->theType = ObjectType::Number_Float;
         return *this;
     }
 
-    JsonScalarObject(double& other) :theValue(new double{ other }) {
+    JsonScalarObject::JsonScalarObject(float&& other) {
         *this = other;
     }
 
-    JsonScalarObject& operator=(std::string&& other) {
-        this->theValue.theScalar = new std::string{};
-        *(std::string*)this->theValue.theScalar = other;
+    JsonScalarObject& JsonScalarObject::operator=(double& other) {
+        this->theValue = other;
+        this->theType = ObjectType::Number_Double;
+        return *this;
+    }
+
+    JsonScalarObject::JsonScalarObject(double& other) {
+        *this = other;
+    }
+
+    JsonScalarObject& JsonScalarObject::operator=(double&& other) {
+        this->theValue = other;
+        this->theType = ObjectType::Number_Double;
+        return *this;
+    }
+
+    JsonScalarObject::JsonScalarObject(double&& other) {
+        *this = other;
+    }
+
+    JsonScalarObject& JsonScalarObject::operator=(std::string&& other) {
+        this->theValue = other;
         this->theType = ObjectType::String;
         return *this;
     }
 
-    JsonScalarObject(std::string&& other) :theValue(ObjectType::String) {
+    JsonScalarObject::JsonScalarObject(std::string&& other) {
         *this = other;
     }
 
-    JsonScalarObject& operator=(std::string& other) {
-        this->theValue.theScalar = new std::string{};
-        *(std::string*)this->theValue.theScalar = other;
+    JsonScalarObject& JsonScalarObject::operator=(std::string& other) {
+        this->theValue = other;
         this->theType = ObjectType::String;
         return *this;
     }
 
-    JsonScalarObject(std::string& other) :theValue(ObjectType::String) {
+    JsonScalarObject::JsonScalarObject(std::string& other) {
         *this = other;
     }
 
-    const char* toString(int32_t  depth) {
+    const char* JsonScalarObject::toString(int32_t  depth) {
         switch (this->theType) {
         case ObjectType::Number_Float: {
             if (!this->theKey.empty()) {
@@ -224,7 +428,7 @@ struct JsonScalarObject {
                 this->theStringNew.push_back(':');
             }
             depth++;
-            float theFloat = *(float*)this->theValue.theScalar;
+            float theFloat = *this->theValue.theFloat.get();
             std::stringstream theStream{};
             theStream << std::setprecision(12) << theFloat;
             this->theStringNew += theStream.str();
@@ -241,7 +445,7 @@ struct JsonScalarObject {
                 this->theStringNew.push_back(':');
             }
             depth++;
-            double theFloat = *(double*)this->theValue.theScalar;
+            double theFloat = *this->theValue.theDouble.get();
             std::stringstream theStream{};
             theStream << std::setprecision(12) << theFloat;
             this->theStringNew += theStream.str();
@@ -259,7 +463,7 @@ struct JsonScalarObject {
             }
             depth++;
             this->theStringNew += "\"";
-            this->theStringNew += (*(std::string*)this->theValue.theScalar).data();
+            this->theStringNew += *this->theValue.theString.get();
             this->theStringNew += "\"";
             if (depth > 0) {
                 this->theStringNew += ",";
@@ -274,7 +478,7 @@ struct JsonScalarObject {
                 this->theStringNew.push_back(':');
             }
             depth++;
-            bool theData = *(bool*)this->theValue.theScalar;
+            bool theData = *this->theValue.theBool.get();
             std::stringstream theStream{};
             theStream << std::boolalpha << theData;
             this->theStringNew += theStream.str();
@@ -292,7 +496,7 @@ struct JsonScalarObject {
                 this->theStringNew.push_back(':');
             }
             depth++;
-            int64_t theData = *(int64_t*)this->theValue.theScalar;
+            int64_t theData = *this->theValue.theInt.get();
             if (depth > 0) {
                 this->theStringNew += ",";
             }
@@ -337,114 +541,103 @@ struct JsonScalarObject {
         }
     }
 
-    JsonScalarObject() {};
+    JsonScalarObject::JsonScalarObject() {};
 
-    JsonValueInternal theValue{};
-    std::string theStringNew{};
-    std::string theKey{};
-    ObjectType theType{};
-};
 
     struct JsonObject {
         std::unordered_map<std::string, JsonScalarObject> theMap{};
 
         template<std::same_as<float> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Float;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<double> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Double;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int64_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int32_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int16_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<int8_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<uint64_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<uint32_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<uint16_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<uint8_t> JsonObjectType>
         void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<Array> JsonObjectType>
         void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Array;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<std::string> JsonObjectType>
         void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::String;
             theMap[keyName].theKey = keyName;
         }
 
         template<std::same_as<bool> JsonObjectType>
         void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Boolean;
             theMap[keyName].theKey = keyName;
         }
 
-        template<std::same_as<std::vector<JsonScalarObject>> JsonVectorType>
-        void append(const char* keyName, JsonVectorType theObject) {
-            theMap[keyName] = JsonScalarObject{ theObject };
-            theMap[keyName].theType = ObjectType::Array;
-            theMap[keyName].theKey = keyName;
-        }
         operator std::string() {
             std::string theString{};
             theString.append("{");
@@ -469,8 +662,9 @@ struct JsonScalarObject {
             std::string theScalar{ "TESTING FOR REAL" };
             JsonObject theObject{ };
             double theFloat{ 0.05f };
-            std::vector<JsonScalarObject> theVectorNew{};
-            theVectorNew.push_back(JsonScalarObject{ theScalar });
+            Array theVectorNew{};
+            JsonScalarObject theValue{ theScalar };
+            theVectorNew.theVector.push_back(theValue);
             theObject.append("TEST02", theFloat);
             theObject.append("TEST03", theVectorNew);
             std::cout << "WERE HERE THIS IS IT! 0101: " << nlohmann::json::parse((std::string)theObject).dump() << std::endl;
