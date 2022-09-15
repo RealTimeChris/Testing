@@ -2,470 +2,463 @@
 #include <simdjson.h>
 #include <unordered_set>
 #include "ErlPacker.hpp"
+#define JSON_HEDLEY_RETURNS_NON_NULL
+#include <nlohmann/thirdparty/hedley/hedley.hpp>
+#include <xmemory>
+#include <type_traits>
 
-struct testClass {
-	void testFunction(std::string&& theVector) {
-		std::string newString{};
-		newString = std::move(theVector);
-	}
-	void testFunction02(char* theVector, size_t length) {
-		std::unique_ptr<char[]> thePtr{};
-		std::string theString{ theVector, length };
-		std::cout << "THE STRING: " << theString << "TESTING" << std::endl;
-	}
+enum class ObjectType : int8_t {
+    Object = 0,
+    Array = 1,
+    String = 2,
+    Boolean = 3,
+    Number = 4,
+    Number_Unsigned = 5,
+    Number_Float = 6,
+    Number_Double = 7,
+    Null = 8
 };
 
-struct TestClass {
-	float theFloat{ 2.33 };
-	int32_t theInt{ 233 };
-	std::string theString{ "HELP HELP HELP" };
+class JsonScalarObject;
+
+struct Object { 
+    std::unordered_map<std::string, JsonScalarObject>theMap{};
+};
+struct Array {
+    std::vector<JsonScalarObject> theVector{};
 };
 
-DiscordCoreAPI::CoRoutine<void> parseObject(std::string& theString, TestClass& theDat, simdjson::ondemand::parser*theParser) {
-	co_await DiscordCoreAPI::NewThreadAwaitable<void>();
-	theString.reserve(theString.size() + simdjson::SIMDJSON_PADDING);
-	auto theDocument = theParser->iterate(theString);
-	
-	theDat.theFloat = theDocument.find_field("theFloat").get_double().take_value();
-	theDat.theInt = theDocument.find_field("theInt").get_int64().take_value();
-	theDat.theString = theDocument.find_field("theString").get_string().take_value();
-}
-void function(const std::string& theString) {
-	auto newString = (std::string&)theString;
-	newString.resize(2000);
-}
-
-void testFunction(const char* theString, int32_t length) {
-	std::string theStringNew{};
-	theStringNew.resize(25);
-	memcpy(theStringNew.data(), theString, length);
-
+/// helper for exception-safe theScalar creation
+template<typename T, typename... Args>
+static T* create(Args&& ... args)
+{
+    struct Deleter {
+        void operator()(T* obj) {
+            delete obj;
+        }
+    };
+    std::unique_ptr<T, Deleter> obj(new T{});
+    return obj.release();
 }
 
-std::string getString(simdjson::ondemand::value& jsonData, const char* theKey) {
-	try {
-		std::string_view theStringNew{};
-		auto theValue = jsonData[theKey].get(theStringNew);
-		if (theValue != simdjson::error_code::SUCCESS) {
-			return "0";
-		}
-		std::string theStringNewer{ theStringNew.data(), theStringNew.size() };
-		return theStringNewer;
-	}
-	catch (...) {
-		return "";
-	}
-}
+struct JsonScalarObject {
+    union JsonValueInternal
+    {
+        /// theScalar (stored with pointer to save storage)
+        void* theScalar{ nullptr };
+        Object* theObject;
+        Array* theArray;
 
-template<typename ReturnType>void parseObject(simdjson::ondemand::value& jsonObjectData, ReturnType& theData){}
-	
-template<> void parseObject(simdjson::ondemand::value& jsonObjectData, DiscordCoreAPI::GuildWidgetImageData& theData) {
-	theData.url = getString(jsonObjectData, "widget_image");
-}
+        JsonValueInternal(ObjectType t)
+        {
+            switch (t)
+            {
+            case ObjectType::Object:
+            {
+                theObject = new Object{};
+                break;
+            }
 
-void escapeCharacters(std::string& theString) {
-	auto theSize = theString.size();
-	for (int32_t x = 0; x < theSize; x++) {
-		switch (static_cast<char>(theString[x])) {
-		case 0x0008: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, 'b');
-			break;
-		}
-		case 0x0009: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, 't');
-			break;
-		}
-		case 0x000A: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, 'n');
-			break;
-		}
-		case 0x000B: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, 'v');
-			break;
-		}
-		case 0x000C: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, 'f');
-			break;
-		}
-		case 0x000D: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, 'r');
-			break;
-		}
-		case 0x005: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, '\\');
-			break;
-		}
-		case 0x0022: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, '"');
-			break;
-		}
-		case 0x0027: {
-			theString[x] = '\\';
-			theString.insert(theString.begin() + x + 1, '\'');
-			break;
-		}
-		default: {
-		}
-		}
-	}
-}
+            case ObjectType::Array:
+            {
+                theArray = create<Array>();
+                break;
+            }
 
-std::string_view theFunction(std::string& theString, DiscordCoreAPI::StopWatch<std::chrono::microseconds>& theStopWatch) {
-	std::cout << "TIME PASSED 0303: " << theStopWatch.totalTimePassed() << std::endl;
-	theStopWatch.resetTimer();
-	std::string_view theStringNew{ theString.data(), theString.size() };
-	std::cout << "TIME PASSED 0404: " << theStopWatch.totalTimePassed() << std::endl;
-	theStopWatch.resetTimer();
-	return theString;
+            case ObjectType::String:
+            {
+                theScalar = new std::string{};
+                break;
+            }
 
-}
+            case ObjectType::Boolean:
+            {
+                theScalar = new bool{};
+                break;
+            }
 
-template<typename ObjectType>
-class ObjectCache {
-public:
-	ObjectCache() noexcept {};
+            case ObjectType::Number:
+            {
+                theScalar = new int64_t{};
+                break;
+            }
 
-	void emplace(ObjectType&& theData) noexcept {
-		std::unique_lock theLock{ this->theMutex };
-		this->theMap.emplace(std::move(theData));
-	}
+            case ObjectType::Number_Unsigned:
+            {
+                theScalar = new uint64_t{};
+                break;
+            }
 
-	void emplace(ObjectType& theData) noexcept {
-		std::unique_lock theLock{ this->theMutex };
-		this->theMap.emplace(theData);
-	}
+            case ObjectType::Number_Float:
+            {
+                theScalar = new float{};
+                break;
+            }
 
-	const ObjectType& readOnly(ObjectType& theKey) noexcept {
-		std::shared_lock theLock{ this->theMutex };
-		return *this->theMap.find(theKey);
-	}
+            case ObjectType::Number_Double:
+            {
+                theScalar = new double{};
+                break;
+            }
 
-	ObjectType& at(ObjectType&& theKey) noexcept {
-		std::shared_lock theLock{ this->theMutex };
-		return (ObjectType&)*this->theMap.find(theKey);
-	}
+            case ObjectType::Null:
+            {
+                theScalar = new Object{};
+                break;
+            }
+            }
+        }
 
-	ObjectType& at(ObjectType& theKey) noexcept {
-		std::shared_lock theLock{ this->theMutex };
-		return (ObjectType&)*this->theMap.find(theKey);
-	}
+        /// default constructor (for null values)
+        JsonValueInternal() noexcept = default;
+        /// constructor for booleans
+        JsonValueInternal(bool value) noexcept : theScalar(new bool{ value }) {}
+        /// constructor for numbers (integer)
+        JsonValueInternal(int64_t value) noexcept : theScalar(new int64_t{ value }) {};
+        /// constructor for numbers (unsigned)
+        JsonValueInternal(uint64_t value) noexcept : theScalar(new uint64_t{ value }) {};
+        /// constructor for numbers (floating-point)
+        JsonValueInternal(double value) noexcept : theScalar(new double{ value }) {};
+        /// constructor for empty values of a given type
 
-	auto begin() {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theMap.begin();
-	}
+        /// constructor for strings
+        JsonValueInternal(const std::string& value) : theScalar(new std::string{ value }) {};
 
-	auto end() {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theMap.end();
-	}
+        /// constructor for rvalue strings
+        JsonValueInternal(std::string&& value) : theScalar(new std::string{ std::move(value) }) {};
 
-	bool contains(ObjectType& theKey) noexcept {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theMap.contains(theKey);
-	}
+        /// constructor for theScalars
+        JsonValueInternal(const Object& value) : theScalar(new Object{ value }) {}
 
-	void erase(ObjectType& theKey) {
-		std::unique_lock theLock{ this->theMutex };
-		if (this->theMap.contains(theKey)) {
-			this->theMap.erase(theKey);
-		}
-	}
+        /// constructor for rvalue theScalars
+        JsonValueInternal(Object&& value) : theScalar(new Object{ std::move(value) }) {};
 
-	size_t size() noexcept {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theMap.size();
-	}
+        /// constructor for arrays
+        JsonValueInternal(const Array& value) : theScalar(new Array{ value }) {};
 
-protected:
-	std::unordered_set<ObjectType> theMap{};
-	std::shared_mutex theMutex{};
+        /// constructor for rvalue arrays
+        JsonValueInternal(Array&& value) : theScalar(new Array{ std::move(value) }) {};
+        ~JsonValueInternal() {};
+    };
+
+
+
+    ObjectType type() {
+        return this->theType;
+    }
+
+    
+    JsonScalarObject& operator=(std::vector<JsonScalarObject> theArray) {
+        this->theValue.theArray = create<Array>(theArray.begin(), theArray.end());
+        this->theValue.theArray->theVector.insert(this->theValue.theArray->theVector.begin(), theArray.begin(), theArray.end());
+        this->theType = ObjectType::Array;
+        return *this;
+    }
+
+    JsonScalarObject(std::vector<JsonScalarObject> theArray) {
+        *this=theArray;
+    };
+
+    JsonScalarObject& operator=(float& other) {
+        this->theValue.theScalar = new float{};
+        *(float*)this->theValue.theScalar = other;
+        this->theType = ObjectType::Number_Float;
+        return *this;
+    }
+
+    JsonScalarObject(float& other) :theValue(new float{ other }) {
+        *this = other;
+    }
+
+    JsonScalarObject& operator=(Array& other) {
+        this->theValue.theArray = new Array{};
+        *this->theValue.theArray = other;
+        this->theType = ObjectType::Array;
+        return *this;
+    }
+
+    JsonScalarObject(Array& other) {
+        *this = other;
+    }
+
+    JsonScalarObject& operator=(double& other) {
+        this->theValue.theScalar = new double{};
+        *(double*)this->theValue.theScalar = other;
+        this->theType = ObjectType::Number_Float;
+        return *this;
+    }
+
+    JsonScalarObject(double& other) :theValue(new double{ other }) {
+        *this = other;
+    }
+
+    JsonScalarObject& operator=(std::string&& other) {
+        this->theValue.theScalar = new std::string{};
+        *(std::string*)this->theValue.theScalar = other;
+        this->theType = ObjectType::String;
+        return *this;
+    }
+
+    JsonScalarObject(std::string&& other) :theValue(ObjectType::String) {
+        *this = other;
+    }
+
+    JsonScalarObject& operator=(std::string& other) {
+        this->theValue.theScalar = new std::string{};
+        *(std::string*)this->theValue.theScalar = other;
+        this->theType = ObjectType::String;
+        return *this;
+    }
+
+    JsonScalarObject(std::string& other) :theValue(ObjectType::String) {
+        *this = other;
+    }
+
+    const char* toString(int32_t  depth) {
+        switch (this->theType) {
+        case ObjectType::Number_Float: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
+            depth++;
+            float theFloat = *(float*)this->theValue.theScalar;
+            std::stringstream theStream{};
+            theStream << std::setprecision(12) << theFloat;
+            this->theStringNew += theStream.str();
+            return this->theStringNew.data();
+        }
+        case ObjectType::Number_Double: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
+            depth++;
+            double theFloat = *(double*)this->theValue.theScalar;
+            std::stringstream theStream{};
+            theStream << std::setprecision(12) << theFloat;
+            this->theStringNew += theStream.str();
+            return this->theStringNew.data();
+        }
+        case ObjectType::String: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
+            depth++;
+            this->theStringNew += "\"";
+            this->theStringNew += (*(std::string*)this->theValue.theScalar).data();
+            this->theStringNew += "\"";
+            return this->theStringNew.data();
+        }
+        case ObjectType::Boolean: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
+            depth++;
+            bool theData = *(bool*)this->theValue.theScalar;
+            std::stringstream theStream{};
+            theStream << std::boolalpha << theData;
+            this->theStringNew += theStream.str();
+            return this->theStringNew.data();
+
+        }
+        case ObjectType::Number: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
+            depth++;
+            int64_t theData = *(int64_t*)this->theValue.theScalar;
+            this->theStringNew += std::to_string(theData);
+            return this->theStringNew.data();
+        }
+        case ObjectType::Array: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
+            this->theStringNew += "[";
+            for (auto& value : this->theValue.theArray->theVector) {
+                depth++;
+                this->theStringNew.append(value.toString(depth));
+            }
+            this->theStringNew += "]";
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
+            this->theStringNew += this->theStringNew;
+            depth--;
+            return this->theStringNew.data();
+        }
+        case ObjectType::Object: {
+            this->theStringNew += "{";
+            for (auto& [key,value]:this->theValue.theObject->theMap) {
+                depth++;
+                this->theStringNew.append(value.toString(depth));
+            }
+            this->theStringNew += "}";
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
+            depth--;
+            return this->theStringNew.data();
+        }
+        }
+    }
+
+    JsonScalarObject() {};
+
+    JsonValueInternal theValue{};
+    std::string theStringNew{};
+    std::string theKey{};
+    ObjectType theType{};
 };
 
+    struct JsonObject {
+        std::unordered_map<std::string, JsonScalarObject> theMap{};
 
-class JsonStringGenerator {
-public:
-	JsonStringGenerator()noexcept;
-	operator std::string();
+        template<std::same_as<float> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number_Float;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void appendInteger(uint64_t theInteger, const char* theName);
+        template<std::same_as<double> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number_Double;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void appendString(std::string theString, const char* theName);
+        template<std::same_as<int64_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void appendBool(bool theBool, const char* theName);
+        template<std::same_as<int32_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void appendFloat(double theFloat, const char* theName);
+        template<std::same_as<int16_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void appendArray(const char* theName);
+        template<std::same_as<int8_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void closeArray();
+        template<std::same_as<uint64_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number_Unsigned;
+            theMap[keyName].theKey = keyName;
+        }
 
-	void closeStruct();
+        template<std::same_as<uint32_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number_Unsigned;
+            theMap[keyName].theKey = keyName;
+        }
 
-	template<typename ElementType>
-	void appendElement(ElementType theElement);
+        template<std::same_as<uint16_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number_Unsigned;
+            theMap[keyName].theKey = keyName;
+        }
 
-	template<std::same_as<std::string> ElementType>
-	void appendElement(ElementType theElement);
+        template<std::same_as<uint8_t> JsonObjectType>
+        void append(const char* keyName, JsonObjectType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Number_Unsigned;
+            theMap[keyName].theKey = keyName;
+        }
 
-	template<std::same_as<const char*> ElementType>
-	void appendElement(ElementType theElement);
+        template<std::same_as<Array> JsonObjectType>
+        void append(const char* keyName, JsonObjectType  theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Array;
+            theMap[keyName].theKey = keyName;
+        }
 
-	template<std::same_as<int8_t>  ElementType>
-	void appendElement(ElementType theElement);
+        template<std::same_as<std::string> JsonObjectType>
+        void append(const char* keyName, JsonObjectType  theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::String;
+            theMap[keyName].theKey = keyName;
+        }
 
-	template<std::same_as<int16_t>  ElementType>
-	void appendElement(ElementType theElement);
+        template<std::same_as<bool> JsonObjectType>
+        void append(const char* keyName, JsonObjectType  theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Boolean;
+            theMap[keyName].theKey = keyName;
+        }
 
-	template<std::same_as<int32_t>  ElementType>
-	void appendElement(ElementType theElement);
+        template<std::same_as<std::vector<JsonScalarObject>> JsonVectorType>
+        void append(const char* keyName, JsonVectorType theObject) {
+            theMap[keyName] = JsonScalarObject{ theObject };
+            theMap[keyName].theType = ObjectType::Array;
+            theMap[keyName].theKey = keyName;
+        }
+        operator std::string() {
+            std::string theString{};
+            theString.append("{");
+            for (auto& [key, value] : this->theMap) {
+                theString.append(value.toString(0));
+            }
+            theString.append("}");
+            return theString;
+        }
+        JsonScalarObject& operator[](const char* key)
+        {
+            return this->theMap[key];
+        }
+    };
 
-	template<std::same_as<int64_t>  ElementType>
-	void appendElement(ElementType theElement);
+    int32_t main() {
+        try {
+            std::vector<JsonScalarObject> theVector{};
+            std::string theScalar{ "TESTING FOR REAL" };
+            JsonObject theObject{ };
+            double theFloat{ 0.05f };
+            std::vector<JsonScalarObject> theVectorNew{};
+            theVectorNew.push_back(JsonScalarObject{ theScalar });
+            theObject.append("TEST02", theFloat);
+            theObject.append("TEST03", theVectorNew);
+            std::cout << "WERE HERE THIS IS IT! 0101: " << (std::string)theObject << std::endl;
 
-	template<std::same_as<uint8_t>  ElementType>
-	void appendElement(ElementType theElement);
+            std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
-	template<std::same_as<uint16_t>  ElementType>
-	void appendElement(ElementType theElement);
+        }
+        catch (...) { DiscordCoreAPI::reportException("main()"); };
 
-	template<std::same_as<uint32_t>  ElementType>
-	void appendElement(ElementType theElement);
-
-	template<std::same_as<uint64_t>  ElementType>
-	void appendElement(ElementType theElement);
-
-	template<std::same_as<float>  ElementType>
-	void appendElement(ElementType theElement);
-
-	template<std::same_as<double>  ElementType>
-	void appendElement(ElementType theElement);
-
-	template<std::same_as<bool>  ElementType>
-	void appendElement(ElementType theElement);
-
-	void appendStruct(const char* theName);
-
-protected:
-	std::string theString{};
-	std::vector<bool> haveWeStarted{ false };
-	std::vector<bool> haveWeStartedTheArray{ false };
-};
-
-JsonStringGenerator::JsonStringGenerator()noexcept{
-	this->theString += "{";
-}
-
-JsonStringGenerator::operator std::string() {
-	this->theString += "}";
-	this->haveWeStarted.push_back(false);
-	return this->theString;
-}
-
-void JsonStringGenerator::appendInteger(uint64_t theInteger, const char* theName = nullptr) {
-	
-	if (theName != nullptr) {
-		if (*(this->haveWeStarted.end()-1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStarted.end()-1)) {
-			*this->haveWeStarted.end() = true;
-		}
-		this->theString += "\"" + std::string{ theName } + "\":";
-	}
-	else {
-		if (*(this->haveWeStartedTheArray.end()-1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStartedTheArray.end()-1)) {
-			*(this->haveWeStartedTheArray.end() -1)= true;
-		}
-	}
-	this->theString += std::to_string(theInteger);
-}
-
-void JsonStringGenerator::appendString(std::string theString, const char* theName = nullptr) {
-	if (theName != nullptr) {
-		if (*(this->haveWeStarted.end() - 1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStarted.end()-1)) {
-			*this->haveWeStarted.end() = true;
-		}
-		this->theString += "\"" + std::string{ theName } + "\":";
-	}
-	else {
-		if (*(this->haveWeStartedTheArray.end()-1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStartedTheArray.end()-1)) {
-			*(this->haveWeStartedTheArray.end() -1)= true;
-		}
-	}
-	this->theString += "\"" + theString + "\"";
-}
-
-void JsonStringGenerator::appendBool(bool theBool, const char* theName = nullptr) {
-	if (theName != nullptr) {
-		if (*(this->haveWeStarted.end() - 1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStarted.end() - 1)) {
-			*this->haveWeStarted.end() = true;
-		}
-		this->theString += "\"" + std::string{ theName } + "\":";
-	}
-	else {
-		if (*(this->haveWeStartedTheArray.end()-1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStartedTheArray.end()-1)) {
-			*(this->haveWeStartedTheArray.end() -1)= true;
-		}
-	}
-	std::stringstream theStream{};
-	theStream << std::boolalpha << theBool;
-	this->theString += theStream.str();
-}
-
-void JsonStringGenerator::appendFloat(double theFloat, const char* theName = nullptr) {
-	if (theName != nullptr) {
-		if (*(this->haveWeStarted.end()-1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStarted.end()-1)) {
-			*this->haveWeStarted.end() = true;
-		}
-		this->theString += "\"" + std::string{ theName } + "\":";
-	}
-	else {
-		if (*(this->haveWeStartedTheArray.end()-1)) {
-			this->theString += ",";
-		}
-		if (!*(this->haveWeStartedTheArray.end()-1)) {
-			*(this->haveWeStartedTheArray.end() -1)= true;
-		}
-	}
-	this->theString += std::to_string(theFloat);
-}
-
-void JsonStringGenerator::appendArray(const char* theName) {
-	if (*(this->haveWeStarted.end()-1)) {
-		this->theString += ",";
-	}
-	if (this->haveWeStarted.size() == 0) {
-		this->haveWeStarted.push_back(true);
-	}
-	this->theString += "\"" + std::string{ theName } + "\":[";
-}
-
-template<typename ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	
-}
-
-template<std::same_as<const char*>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendString(theElement);
-}
-
-template<std::same_as<std::string>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendString(theElement);
-}
-
-template<std::same_as<int8_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<int16_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<int32_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<int64_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<uint8_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<uint16_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<uint32_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<uint64_t>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendInteger(theElement);
-}
-
-template<std::same_as<float>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendFloat(theElement);
-}
-
-template<std::same_as<double>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendFloat(theElement);
-}
-
-template<std::same_as<bool>  ElementType>
-void JsonStringGenerator::appendElement(ElementType theElement) {
-	this->appendBool(theElement);
-}
-
-void JsonStringGenerator::closeArray() {
-	this->theString += "]";
-	this->haveWeStartedTheArray.erase(this->haveWeStartedTheArray.end() - 1);
-}
-
-void JsonStringGenerator::appendStruct(const char* theName) {}
-
-void JsonStringGenerator::closeStruct() {}
-
-int32_t main() {
-	try {
-		JsonStringGenerator theGenerator{};
-		theGenerator.appendBool(true, "theValue");
-		theGenerator.appendString("THE VALUE", "theValue");
-		theGenerator.appendInteger(23232, "theValue");
-		theGenerator.appendFloat(23232.02f, "theValue");
-		theGenerator.appendArray("TEST ARRAY");
-		theGenerator.appendElement<double>(0.00f);
-		theGenerator.appendElement(23);
-		theGenerator.appendElement("TESTING THE ARRAY");
-		theGenerator.closeArray();
-		std::cout << static_cast<std::string>(theGenerator) << std::endl;
-		 
-		 
-		 std::this_thread::sleep_for(std::chrono::seconds{ 3 });
-
-	}
-	 catch (...) { DiscordCoreAPI::reportException("main()"); };
-	
-	 return 0;
-}
-
+        return 0;
+    }
