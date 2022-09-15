@@ -11,199 +11,280 @@ struct Array;
 struct JsonObjectBase {
 	void* thePtr{ nullptr };
 
-	JsonObjectBase(ObjectType t);
+	JsonObjectBase(const char* keyName, bool value) noexcept;
 
-	JsonObjectBase& operator=(bool value) noexcept;
+	JsonObjectBase(const char* keyName, int64_t value) noexcept;
 
-	JsonObjectBase(bool value) noexcept;
+	JsonObjectBase(const char* keyName, uint64_t value) noexcept;
 
-	JsonObjectBase& operator=(std::int64_t value) noexcept;
+	JsonObjectBase(const char* keyName, double value) noexcept;
 
-	JsonObjectBase(int64_t value) noexcept;
+	JsonObjectBase(const char* keyName, float value) noexcept;
 
-	JsonObjectBase& operator=(std::uint64_t value) noexcept;
+	JsonObjectBase(const char* keyName, const char* value) noexcept;
 
-	JsonObjectBase(uint64_t value) noexcept;
+	JsonObjectBase(const char* keyName, std::string& value) noexcept;
 
-	JsonObjectBase& operator=(double value) noexcept;
-
-	JsonObjectBase(double value) noexcept;
-
-	JsonObjectBase& operator=(float value) noexcept;
-
-	JsonObjectBase(float value) noexcept;
-
-	JsonObjectBase& operator=(std::string& value) noexcept;
-
-	JsonObjectBase(std::string& value) noexcept;
-
-	JsonObjectBase& operator=(std::string&& value) noexcept;
-
-	JsonObjectBase(std::string&& value) noexcept;
-
-	JsonObjectBase&operator=(JsonObjectBase&& value) noexcept;
-
-	JsonObjectBase(JsonObjectBase&& value) noexcept;
-
-	JsonObjectBase& operator=(Array& value) noexcept;
-
-	JsonObjectBase(Array& value) noexcept;
+	JsonObjectBase(const char* keyName, std::string&& value) noexcept;
 
 	JsonObjectBase& operator=(JsonObjectBase& other) noexcept;
 
 	JsonObjectBase(JsonObjectBase& other) noexcept;
 
 	JsonObjectBase& operator=(const JsonObjectBase& other) noexcept = default;
-
+	
 	JsonObjectBase(const JsonObjectBase& other) noexcept = default;
-
-	void append(const char* keyName, JsonObjectBase&& theData);
-
-	void append(const char* keyName, JsonObjectBase& theData);
-
-	std::unordered_map<std::string, JsonObjectBase>& getMap();
-
-	std::unordered_map<std::string, JsonObjectBase> theMap{};
 
 	ObjectType type();
 
-	const char* toString(std::unordered_map<std::string, JsonObjectBase>& theMap);
+	std::string getString();
 
-	std::string toString(Array& theValue, bool doWeDrawAComma);
+	uint64_t getUint64();
 
-	std::string toString(JsonObjectBase& theValue, bool doWeDrawAComma);
+	int64_t getInt64();
 
-	std::string toString(std::string& theValue, bool doWeDrawAComma);
+	bool getBool();
 
-	std::string toString(bool& theValue, bool doWeDrawAComma);
+	float getFloat();
 
-	std::string toString(float& theValue, bool doWeDrawAComma);
-
-	std::string toString(double& theValue, bool doWeDrawAComma);
-
-	std::string toString(uint64_t& theValue, bool doWeDrawAComma);
-
-	std::string toString(int64_t& theValue, bool doWeDrawAComma);
+	double getDouble();
 
 	JsonObjectBase()noexcept {};
 
 	operator std::string() {
 		std::string theString{};
-		theString.append("{");
-		theString.append(this->toString(*this, false));
-		theString.append("}");
-		if (theString[theString.size() - 2] == ',') {
-			theString.erase(theString.begin() + theString.size() - 2);
+		switch (this->theType) {
+		case ObjectType::String: {
+			theString += "\"";
+			theString += this->getString();
+			theString += "\"";
+			break;
 		}
-		std::cout << "THE STRING: 0101: " << theString << std::endl;
+
+		case ObjectType::Boolean: {
+			std::stringstream theStream{};
+			theStream << std::boolalpha << this->getBool();
+			theString += theStream.str();
+			break;
+		}
+
+		case ObjectType::Number_Integer: {
+			theString += std::to_string(this->getInt64());
+			break;
+		}
+
+		case ObjectType::Number_Unsigned: {
+			theString += std::to_string(this->getUint64());
+			break;
+		}
+
+		case ObjectType::Number_Float: {
+			theString += std::to_string(this->getFloat());
+			break;
+		}
+
+		case ObjectType::Number_Double: {
+			theString += std::to_string(this->getDouble());
+			break;
+		}
+
+		case ObjectType::Null: {
+			theString += "null";
+			break;
+		}
+		}
 		return theString;
 	}
 
-	JsonObjectBase& operator[](const char* key) {
-		return this->theMap[key];
-	}
-
-
 	~JsonObjectBase();
 
-	std::string theStringNew{};
-	int32_t currentDepth{};
 	std::string theKey{};
+
 	ObjectType theType{};
+
+};
+
+std::string JsonObjectBase::getString(){
+	return *static_cast<std::string*>(this->thePtr);
+}
+
+uint64_t JsonObjectBase::getUint64(){
+	return *static_cast<uint64_t*>(this->thePtr);
+}
+
+int64_t JsonObjectBase::getInt64(){
+	return *static_cast<int64_t*>(this->thePtr);
+}
+
+ObjectType JsonObjectBase::type() {
+	return this->theType;
+}
+
+bool JsonObjectBase::getBool(){
+	return *static_cast<bool*>(this->thePtr);
+}
+
+float JsonObjectBase::getFloat(){
+	return *static_cast<float*>(this->thePtr);
+}
+
+double JsonObjectBase::getDouble(){
+	return *static_cast<double*>(this->thePtr);
+}
+
+
+struct Array;
+
+struct Object : public JsonObjectBase {
+	Object& operator=(JsonObjectBase) noexcept;
+	Object(JsonObjectBase) noexcept;
+	Object(const char* keyName) noexcept;
+	void append(JsonObjectBase& theObject);
+	void append(JsonObjectBase&& theObject);
+	void append(Array& theObject);
+	void append(Array&& theObject);
+	std::unordered_map<std::string, JsonObjectBase>& getMap();
+	operator std::string();
+	Object& operator[](const char* theKey);
+	~Object() noexcept;
 };
 
 struct Array : public JsonObjectBase {
-	friend class JsonObjectBase;
-	void append(JsonObjectBase& theObject);
-	void append(JsonObjectBase&& theObject);
-	std::vector<JsonObjectBase>& getVector();
+	Array()noexcept = default;
+	Array(const char* keyName) noexcept;
+	void append(Object& theObject);
+	void append(Object&& theObject);
+	std::vector<Object>& getVector();
 	operator std::string();
-protected:
-	std::vector<JsonObjectBase> theVector{};
+	~Array() noexcept;
 };
 
-
-void JsonObjectBase::append(const char* keyName, JsonObjectBase& theData) {
-	this->theMap.emplace(keyName, theData);
-	this->theMap[keyName].theKey = keyName;
-}
-
-void JsonObjectBase::append(const char* keyName, JsonObjectBase&& theData) {
-	this->theMap.emplace(keyName, std::move(theData));
-	this->theMap[keyName].theKey = keyName;
-}
-
-std::unordered_map<std::string, JsonObjectBase>& JsonObjectBase::getMap() {
-	return this->theMap;
-}
-
-void Array::append(JsonObjectBase& theObject) {
-	this->theVector.push_back(theObject);
-}
-
-std::vector<JsonObjectBase>& Array::getVector() {
-	return this->theVector;
-}
-
-void Array::append(JsonObjectBase&& theObject) {
-	this->theVector.push_back(std::move(theObject));
-}
-
-bool operator==(const JsonObjectBase& lhs, const JsonObjectBase& rhs) {
-	if (lhs.currentDepth == rhs.currentDepth) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
-JsonObjectBase::JsonObjectBase(ObjectType theType) {
-	switch (theType) {
-	case ObjectType::JsonObjectBase: {
-		thePtr = std::make_unique<JsonObjectBase>().release();
-		break;
-	}
-
-	case ObjectType::Array: {
-		thePtr = std::make_unique<Array>().release();
-		break;
-	}
-
+Object& Object::operator=(JsonObjectBase theData) noexcept {
+	this->theKey = theData.theKey;
+	switch (theData.theType) {
 	case ObjectType::String: {
-		thePtr = std::make_unique<std::string>().release();
+		this->thePtr = std::make_unique<std::string>().release();
 		break;
 	}
 
 	case ObjectType::Boolean: {
-		thePtr = std::make_unique<bool>().release();
+		this->thePtr = std::make_unique<bool>().release();
 		break;
 	}
 
 	case ObjectType::Number_Integer: {
-		thePtr = std::make_unique<int64_t>().release();
+		this->thePtr = std::make_unique<int64_t>().release();
 		break;
 	}
 
 	case ObjectType::Number_Unsigned: {
-		thePtr = std::make_unique<uint64_t>().release();
+		this->thePtr = std::make_unique<uint64_t>().release();
 		break;
 	}
 
 	case ObjectType::Number_Float: {
-		thePtr = std::make_unique<float>().release();
+		this->thePtr = std::make_unique<float>().release();
 		break;
 	}
 
 	case ObjectType::Number_Double: {
-		thePtr = std::make_unique<double>().release();
+		this->thePtr = std::make_unique<double>().release();
 		break;
 	}
 
 	case ObjectType::Null: {
-		thePtr = std::make_unique<JsonObjectBase>().release();
+		this->thePtr = std::make_unique<JsonObjectBase>().release();
 		break;
 	}
+	}
+	*(int*)this->thePtr = *(int*)theData.thePtr;
+	this->theType = theData.theType;
+	return *this;
+}
+
+Object& Object::operator[](const char* keyName) {
+	this->getMap()[keyName] = Object{ keyName };
+	return (Object&)this->getMap()[keyName];
+}
+
+Object::Object(JsonObjectBase theData) noexcept{
+	*this = theData;
+}
+
+Object::Object(const char* keyName) noexcept {
+	this->thePtr = new std::unordered_map<std::string, JsonObjectBase>{};
+	this->theKey = keyName;
+};
+
+void Object::append(JsonObjectBase& theObject) {
+	this->getMap()[theObject.theKey] = theObject;
+}
+
+void Object::append(JsonObjectBase&& theObject) {
+	this->getMap()[theObject.theKey] = std::move(theObject);
+};
+
+void Object::append(Array& theObject) {
+	this->getMap()[theObject.theKey] = theObject;
+}
+
+void Object::append(Array&& theObject) {
+	this->getMap()[theObject.theKey] = std::move(theObject);
+};
+
+std::unordered_map<std::string, JsonObjectBase>& Object::getMap(){
+	return *static_cast<std::unordered_map<std::string, JsonObjectBase>*>(this->thePtr);
+}
+
+Object::operator std::string(){
+	std::string theString{};
+	theString += "\"" + this->theKey + "\":{";
+	int32_t currentIndex{};
+	for (auto& [key, value] : this->getMap()) {
+		currentIndex++;
+		theString += "\"" + key + "\":";
+		theString += value;
+		if (currentIndex > 0 && currentIndex < this->getMap().size() ) {
+			theString += ",";
+		}
+	}
+	theString += "}";
+	std::cout << "THE STRING: " << theString << std::endl;
+	return std::string{};
+}
+
+Object::~Object() noexcept{
+	if (this->thePtr) {
+		delete this->thePtr;
+		this->thePtr = nullptr;
+	}
+}
+
+Array::Array(const char* keyName) noexcept {
+	this->thePtr = new std::vector<JsonObjectBase>{};
+	this->theKey = keyName;
+}
+
+void Array::append(Object& theObject){
+	this->getVector().push_back(theObject);
+}
+
+void Array::append(Object&& theObject){
+	this->getVector().push_back(std::move(theObject));
+}
+
+std::vector<Object>& Array::getVector() {
+	return *static_cast<std::vector<Object>*>(this->thePtr);
+}
+
+Array::operator std::string() {
+	return std::string{};
+}
+
+Array::~Array() noexcept {
+	if (this->thePtr) {
+		delete this->thePtr;
+		this->thePtr = nullptr;
 	}
 }
 
@@ -239,363 +320,71 @@ JsonObjectBase& JsonObjectBase::operator=(JsonObjectBase& other) noexcept {
 		this->thePtr = std::make_unique<std::string>().release();
 		*(std::string*)this->thePtr = *(std::string*)other.thePtr;
 	}
-	this->currentDepth = other.currentDepth;
-	this->theStringNew = other.theStringNew;
 	this->theType = other.theType;
 	this->theKey = other.theKey;
-	this->theMap = other.theMap;
-	this->thePtr = other.thePtr;
 	return *this;
-}
-
-JsonObjectBase& JsonObjectBase::operator=(JsonObjectBase&& value) noexcept {
-	this->currentDepth = value.currentDepth;
-	
-	this->theKey = std::move(value.theKey);
-	this->theMap = std::move(value.theMap);
-	this->theStringNew = std::move(value.theStringNew);
-	this->theType = std::move(value.theType);
-	this->thePtr = value.thePtr;
-	return *this;
-}
-
-JsonObjectBase::JsonObjectBase(JsonObjectBase&& value) noexcept {
-	*this = std::move(value);
 }
 
 JsonObjectBase::JsonObjectBase(JsonObjectBase& other) noexcept {
 	*this = other;
 }
 
-ObjectType JsonObjectBase::type() {
-	return this->theType;
-}
-
-
-JsonObjectBase& JsonObjectBase::operator=(Array& theArray) noexcept {
-	this->thePtr = std::make_unique<Array>().release();
-	this->theType = ObjectType::Array;
-	*(Array*)this->thePtr = theArray;
-	return *this;
-}
-
-JsonObjectBase::JsonObjectBase(Array& theArray) noexcept {
-	*this = theArray;
-};
-
-JsonObjectBase& JsonObjectBase::operator=(uint64_t other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, uint64_t other) noexcept {
 	this->thePtr = std::make_unique<uint64_t>().release();
 	this->theType = ObjectType::Number_Unsigned;
 	*(uint64_t*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(uint64_t other) noexcept {
-	*this = other;
-}
-
-JsonObjectBase& JsonObjectBase::operator=(int64_t other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, int64_t other) noexcept {
 	this->thePtr = std::make_unique<int64_t>().release();
 	this->theType = ObjectType::Number_Integer;
 	*(int64_t*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(int64_t other) noexcept {
-	*this = other;
+JsonObjectBase::JsonObjectBase(const char* keyName, const char* value) noexcept {
+	this->thePtr = std::make_unique<std::string>().release();
+	this->theType = ObjectType::String;
+	*(std::string*)this->thePtr = value;
+	this->theKey = keyName;
 }
 
-JsonObjectBase& JsonObjectBase::operator=(bool other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, bool other) noexcept {
 	this->thePtr = std::make_unique<bool>().release();
 	this->theType = ObjectType::Boolean;
 	*(bool*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(bool other) noexcept {
-	*this = other;
-}
-
-JsonObjectBase& JsonObjectBase::operator=(float other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, float other) noexcept {
 	this->thePtr = std::make_unique<float>().release();
 	this->theType = ObjectType::Number_Float;
 	*(float*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(float other) noexcept {
-	*this = other;
-}
-
-JsonObjectBase& JsonObjectBase::operator=(double other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, double other) noexcept {
 	this->thePtr = std::make_unique<double>().release();
 	this->theType = ObjectType::Number_Double;
 	*(double*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(double other) noexcept {
-	*this = other;
-}
-
-JsonObjectBase& JsonObjectBase::operator=(std::string&& other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, std::string&& other) noexcept {
 	this->thePtr = std::make_unique<std::string>().release();
 	this->theType = ObjectType::String;
 	*(std::string*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(std::string&& other) noexcept {
-	*this = other;
-}
-
-JsonObjectBase& JsonObjectBase::operator=(std::string& other) noexcept {
+JsonObjectBase::JsonObjectBase(const char* keyName, std::string& other) noexcept {
 	this->thePtr = std::make_unique<std::string>().release();
 	this->theType = ObjectType::String;
 	*(std::string*)this->thePtr = other;
-	return *this;
+	this->theKey = keyName;
 }
 
-JsonObjectBase::JsonObjectBase(std::string& other) noexcept {
-	*this = other;
-}
-
-std::string JsonObjectBase::toString(Array& theValue, bool doWeDrawAComma){
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	this->theStringNew += "["; 
-	for (auto& value : theValue.theVector) {
-		switch (value.theType) {
-		case ObjectType::Number_Float: {
-			this->theStringNew += this->toString(*(float*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Double: {
-			this->theStringNew += this->toString(*(double*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::String: {
-			this->theStringNew += this->toString(*(std::string*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Boolean: {
-			this->theStringNew += this->toString(*(bool*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Integer: {
-			this->theStringNew += this->toString(*(int64_t*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Array: {
-			this->theStringNew += this->toString(*(Array*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::JsonObjectBase: {
-			this->theStringNew += this->toString(*(JsonObjectBase*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Unsigned: {
-			this->theStringNew += this->toString(*(uint64_t*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		}
-	}
-	this->theStringNew += "]";
-	if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
-		this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
-	}
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(JsonObjectBase& theValue, bool doWeDrawAComma){
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	this->theStringNew += "{";
-	for (auto& [key,value] : theValue.theMap) {
-		switch (value.theType) {
-		case ObjectType::Number_Float: {
-			this->theStringNew += this->toString(*(float*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Double: {
-			this->theStringNew += this->toString(*(double*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::String: {
-			this->theStringNew += this->toString(*(std::string*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Boolean: {
-			this->theStringNew += this->toString(*(bool*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Integer: {
-			this->theStringNew += this->toString(*(int64_t*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Array: {
-			this->theStringNew += this->toString(*(Array*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::JsonObjectBase: {
-			this->theStringNew += this->toString(*(JsonObjectBase*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Unsigned: {
-			this->theStringNew += this->toString(*(uint64_t*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		}
-	}
-	this->theStringNew += "}";
-	if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
-		this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
-	}
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(std::string& theValue, bool doWeDrawAComma){
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	this->theStringNew += "\"";
-	this->theStringNew += theValue;
-	this->theStringNew += "\"";
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(float& theValue, bool doWeDrawAComma){
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	std::stringstream theStream{};
-	theStream << std::setprecision(12) << theValue;
-	this->theStringNew += theStream.str();
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(double& theValue, bool doWeDrawAComma){
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	std::stringstream theStream{};
-	theStream << std::setprecision(12) << theValue;
-	this->theStringNew += theStream.str();
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(uint64_t& theValue, bool doWeDrawAComma){
-
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	this->theStringNew += std::to_string(theValue);
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(bool& theValue, bool doWeDrawAComma) {
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	std::stringstream theStream{};
-	theStream << std::boolalpha << theValue;
-	this->theStringNew += theStream.str();
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-std::string JsonObjectBase::toString(int64_t& theValue, bool doWeDrawAComma){
-
-	if (!this->theKey.empty()) {
-		this->theStringNew.push_back('\"');
-		this->theStringNew += this->theKey;
-		this->theStringNew.push_back('\"');
-		this->theStringNew.push_back(':');
-	}
-	this->theStringNew += std::to_string(theValue);
-	std::cout << "THE STRING: " << theStringNew << std::endl;
-	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
-	return this->theStringNew.data();
-}
-
-const char* JsonObjectBase::toString(std::unordered_map<std::string, JsonObjectBase>& theMap) {
-	for (auto& [key, value] : theMap) {
-		std::cout << "THE TYPE: " << (int)value.theType << std::endl;
-		switch (value.theType) {
-		case ObjectType::Number_Float: {
-			this->theStringNew += this->toString(*(float*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Double: {
-			this->theStringNew += this->toString(*(double*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::String: {
-			this->theStringNew += this->toString(*(std::string*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Boolean: {
-			this->theStringNew += this->toString(*(bool*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Integer: {
-			this->theStringNew += this->toString(*(int64_t*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Array: {
-			this->theStringNew += this->toString(*(Array*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::JsonObjectBase: {
-			this->theStringNew += this->toString(*(JsonObjectBase*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		case ObjectType::Number_Unsigned: {
-			this->theStringNew += this->toString(*(uint64_t*)value.thePtr, false);
-			return this->theStringNew.data();
-		}
-		}
-
-	}
-	
-	return this->theStringNew.data();
-}
 
 JsonObjectBase::~JsonObjectBase() {}
 
@@ -606,53 +395,6 @@ JsonObjectBase::~JsonObjectBase() {}
         int32_t currentDepth{ 0 };
     };
 
-	Array::operator std::string() {
-		std::string theString{ "\"" };
-		theString += this->theKey;
-		theString += "\":[";
-		bool doWeAddCommas{ false };
-		for (uint32_t x = 0; x < this->theVector.size(); ++x) {
-			if (x > 0 && x < this->theVector.size() - 1) {
-				doWeAddCommas = true;
-			}
-			switch (this->theVector[x].theType) {
-				case ObjectType::Number_Float: {
-					this->theStringNew += this->toString(*(float*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::Number_Double: {
-					this->theStringNew += this->toString(*(double*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::String: {
-					this->theStringNew += this->toString(*(std::string*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::Boolean: {
-					this->theStringNew += this->toString(*(bool*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::Number_Integer: {
-					this->theStringNew += this->toString(*(int64_t*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::Array: {
-					this->theStringNew += this->toString(*(Array*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::JsonObjectBase: {
-					this->theStringNew += this->toString(*(JsonObjectBase*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-				case ObjectType::Number_Unsigned: {
-					this->theStringNew += this->toString(*(uint64_t*)theVector[x].thePtr, false);
-					return this->theStringNew.data();
-				}
-			}
-		}
-		theString += "]";
-		return theString;
-	}
 
     struct WebSocketIdentifyData {
         DiscordCoreInternal::UpdatePresenceData presence{};
@@ -666,42 +408,40 @@ JsonObjectBase::~JsonObjectBase() {}
     };
 
     WebSocketIdentifyData::operator JsonObjectBase() {
-		JsonObjectBase data{};
-        JsonObjectBase theD{};
-        JsonObjectBase theProperties{};
-		theProperties.append("browser", "DiscordCoreAPI");
-		theProperties.append("device", "DiscordCoreAPI");
-        Array theShard{};
-        theShard.append(static_cast<uint64_t>(this->currentShard));
-        theShard.append(static_cast<uint64_t>(this->numberOfShards));
-        theD.append("shard", theShard);
-        theD.append("large_threshold", static_cast<uint64_t>(250));
-        theD.append("intents", static_cast<uint64_t>(this->intents));
-        theD.append("compress", false);
-        theD.append("token", this->botToken);
-        Array theActivities{};
+		Object data{ "d" };
+		Object theProperties{ "properties" };
+		theProperties.append({ "browser", "DiscordCoreAPI" });
+		theProperties.append({ "device", "DiscordCoreAPI" });
+		Array theShard{ "shard" };
+		theShard.append(JsonObjectBase{ "",static_cast<uint64_t>(this->currentShard) });
+		theShard.append(JsonObjectBase{ "",static_cast<uint64_t>(this->numberOfShards) });
+		data.append(theShard);
+		data.append({ "large_threshold", static_cast<uint64_t>(250) });
+		data.append({ "intents", static_cast<uint64_t>(this->intents) });
+		data.append({ "compress", false });
+		data.append({ "token", this->botToken });
+		Array theActivities{ "activities" };
         for (auto& value : this->presence.activities) {
-            JsonObjectBase dataNew{};
+			Object dataNew{ "" };
             if (static_cast<std::string>(value.url) != "") {
-                dataNew.append("url", std::string{ value.url });
+				dataNew.append({ "url", std::string{ value.url } });
             }
-            dataNew.append("name", std::string{ value.name });
-            dataNew.append("type", static_cast<uint64_t>(value.type));
+			dataNew.append({ "name", std::string{ value.name } });
+			dataNew.append({ "type", static_cast<uint64_t>(value.type) });
             theActivities.append(dataNew);
         }
-        JsonObjectBase dataNewReal{};
-        dataNewReal.append("status", this->presence.status);
-        dataNewReal.append("since", static_cast<uint64_t>(0));
-        dataNewReal.append("afk", this->presence.afk);
-        theD.append("presence", dataNewReal);
-        data.append("op", static_cast<uint64_t>(2));
+		Object presence{ "presence" };
+		presence.append({ "status", this->presence.status });
+		presence.append({ "since", static_cast<uint64_t>(0) });
+		presence.append({ "afk", this->presence.afk });
+		data.append(presence);
+		data.append({ "op", static_cast<uint64_t>(2) });
 #ifdef _WIN32
-        theProperties.append("os", "Windows");
+		theProperties.append({ "os", "Windows" });
 #else
-		theProperties.append("os", "Linux");
+		theProperties.append({ "os", "Linux" });
 #endif
-		theD.append("properties", theProperties);
-        data.append("d", theD);
+		data.append({ "properties", theProperties });
         return data;
     }
 
