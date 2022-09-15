@@ -149,7 +149,7 @@ public:
 
 	template<std::same_as<Object> JsonObjectType>
 	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
+		//this->theObject = JsonObjectBase{ keyName, theData };
 	}
 
 	template<std::same_as<Array> JsonObjectType>
@@ -213,8 +213,8 @@ struct Object : public JsonObject {
 	void append(JsonObject&& theObject);
 	void append(Array& theObject);
 	void append(Array&& theObject);
+	std::string toString(bool doWeAddComma = false, bool doWeAddCurlyBrackets = true);
 	std::unordered_map<std::string, Object>& getMap();
-	operator std::string();
 	Object& operator[](const char* theKey);
 	~Object() noexcept;
 };
@@ -239,7 +239,7 @@ Object& Object::operator[](const char* keyName) {
 	if (!this->getMap().contains(keyName)) {
 		this->getMap()[keyName] = Object{ keyName };
 	}
-	std::cout << "THE OBJECT: 01 " << std::string{ this->getMap()[keyName] } << std::endl;
+	std::cout << "THE OBJECT: 01 " << std::string{ this->getMap()[keyName].toString() } << std::endl;
 	return this->getMap()[keyName];
 }
 
@@ -252,6 +252,7 @@ Object& Object::operator=(JsonObject& theData) noexcept {
 	this->theObject = theData.theObject;
 	return *this;
 }
+
 Object& Object::operator=(JsonObject&& theData) noexcept{
 	this->theObject = theData.theObject;
 	return *this;
@@ -299,21 +300,36 @@ std::unordered_map<std::string, Object>& Object::getMap(){
 	return *static_cast<std::unordered_map<std::string, Object>*>(this->theObject.thePtr);
 }
 
-Object::operator std::string(){
-	std::string theString{};
-	theString += "\"" + this->theObject.theKey + "\":{";
+std::string Object::toString(bool doWeAddComma, bool doWeAddCurlyBrackets) {
+	std::string theString{}; 
+	if (doWeAddComma) {
+		theString += ",";
+	}
+	if (doWeAddCurlyBrackets){
+		theString += "{";
+	}
+	
+	theString += "\"" + this->theObject.theKey + "\":";
 	int32_t currentIndex{};
 	for (auto& [key, value] : this->getMap()) {
+		if (value.theObject.theType == ObjectType::JsonObjectBase) {
+			doWeAddCurlyBrackets = true;
+		}
 		currentIndex++;
 		theString += "\"" + key + "\":";
-		theString += value;
-		if (currentIndex > 0 && currentIndex < this->getMap().size() ) {
-			theString += ",";
+		if (currentIndex > 0 && currentIndex < this->getMap().size()) {
+			doWeAddComma = true;
 		}
+		theString += value.toString(doWeAddComma, doWeAddCurlyBrackets);
+		
+		std::cout << "THE STRING: 0303" << std::string{ value.toString() } << std::endl;
+		
 	}
-	theString += "}";
-	std::cout << "THE STRING: " << theString << std::endl;
-	return std::string{};
+	if (doWeAddCurlyBrackets) {
+		theString += "}";
+	}
+	std::cout << "THE STRING: 0202" << theString << std::endl;
+	return theString;
 }
 
 Object::~Object() noexcept{
@@ -450,7 +466,12 @@ JsonObjectBase::JsonObjectBase(const char* keyName, std::string& other) noexcept
 }
 
 
-JsonObjectBase::~JsonObjectBase() {};
+JsonObjectBase::~JsonObjectBase() {
+	if (this->thePtr) {
+		delete this->thePtr;
+		this->thePtr = nullptr;
+	}
+};
 
 
     struct WebSocketIdentifyData {
@@ -469,7 +490,7 @@ JsonObjectBase::~JsonObjectBase() {};
 		Object theProperties{ "properties" };
 		theProperties["browser"] = "DiscordCoreAPI";
 		theProperties["device"] = "DiscordCoreAPI";
-		std::cout << "THE OBJET RELADER: " << std::string{ theProperties} << std::endl;
+		std::cout << "THE OBJET RELADER: " << std::string{ theProperties.toString(false, true) } << std::endl;
 		Array theShard{ "shard" };
 		theShard.append(Object{ "" });
 		theShard.append(Object{ "",JsonObject{"",static_cast<uint64_t>(this->numberOfShards)} });
