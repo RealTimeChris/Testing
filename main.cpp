@@ -28,13 +28,13 @@ struct Array {
 struct JsonValueInternal
 {
     std::unique_ptr<std::string> theString{ nullptr };
-    std::unique_ptr<Object> theObject;
-    std::unique_ptr<bool> theBool;
-    std::unique_ptr<float> theFloat;
-    std::unique_ptr<double> theDouble;
-    std::unique_ptr<std::int64_t> theInt;
-    std::unique_ptr<std::uint64_t> theUint;
-    std::unique_ptr<Array> theArray;
+    std::unique_ptr<Object> theObject{ nullptr };
+    std::unique_ptr<bool> theBool{ nullptr };
+    std::unique_ptr<float> theFloat{ nullptr };
+    std::unique_ptr<double> theDouble{ nullptr };
+    std::unique_ptr<std::int64_t> theInt{ nullptr };
+    std::unique_ptr<std::uint64_t> theUint{ nullptr };
+    std::unique_ptr<Array> theArray{ nullptr };
 
     JsonValueInternal(ObjectType t);
 
