@@ -2,6 +2,7 @@
 #include <simdjson.h>
 #include "ErlPacker.hpp"
 #include <stdint.h>
+#include <set>
 
 enum class ObjectType : int8_t {
     Object = 0,
@@ -18,10 +19,18 @@ enum class ObjectType : int8_t {
 class JsonScalarObject;
 
 struct Object {
-    std::map<std::string, JsonScalarObject>theMap{};
+    friend class JsonScalarObject;
+    void append(const char* keyName, JsonScalarObject&& theData);;
+    void append(const char* keyName, JsonScalarObject& theData);;
+protected:
+    std::unordered_map<std::string, JsonScalarObject>theMap{};
 };
 
 struct Array {
+    friend class JsonScalarObject;
+    void append(JsonScalarObject& theObject);
+    void append(JsonScalarObject&& theObject);
+protected:
     std::vector<JsonScalarObject> theVector{};
 };
 
@@ -62,6 +71,10 @@ struct JsonValueInternal
 
     JsonValueInternal(std::string& value) noexcept;
 
+    JsonValueInternal& operator=(std::string&& value) noexcept;
+
+    JsonValueInternal(std::string&& value) noexcept;
+
     JsonValueInternal& operator=(Object& value) noexcept;
 
     JsonValueInternal(Object& value) noexcept;
@@ -97,6 +110,10 @@ struct JsonScalarObject {
 
     JsonScalarObject(Array& theArray);
 
+    JsonScalarObject& operator=(Object& theArray);
+
+    JsonScalarObject(Object& theArray);
+
     JsonScalarObject& operator=(float& other);
 
     JsonScalarObject(float& other);
@@ -127,12 +144,40 @@ struct JsonScalarObject {
 
     JsonValueInternal theValue{ ObjectType::String };
     std::string theStringNew{};
+    int32_t currentDepth{};
     std::string theKey{};
     ObjectType theType{};
 };
 
-JsonValueInternal::JsonValueInternal(ObjectType t) {
-    switch (t)
+void Object::append(const char* keyName,JsonScalarObject& theData) {
+    this->theMap.emplace(keyName, theData);
+    this->theMap[keyName].theKey = keyName;
+}
+
+void Object::append(const char* keyName, JsonScalarObject&& theData) {
+    this->theMap.emplace(keyName, std::move(theData));
+    this->theMap[keyName].theKey = keyName;
+}
+
+void Array::append(JsonScalarObject& theObject){
+    this->theVector.push_back(theObject);
+}
+
+void Array::append(JsonScalarObject&& theObject) {
+    this->theVector.push_back(std::move(theObject));
+}
+
+bool operator==(const JsonScalarObject& lhs, const JsonScalarObject& rhs) {
+    if (lhs.currentDepth == rhs.currentDepth) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+JsonValueInternal::JsonValueInternal(ObjectType theType) {
+    switch (theType)
     {
     case ObjectType::Object:
     {
@@ -196,7 +241,7 @@ JsonValueInternal& JsonValueInternal::operator=(bool value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(bool value) noexcept : theBool(std::make_unique<bool>(value)) {
+JsonValueInternal::JsonValueInternal(bool value) noexcept {
     *this = value;
 };
 
@@ -206,7 +251,7 @@ JsonValueInternal& JsonValueInternal::operator=(int64_t value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(int64_t value) noexcept : theInt(std::make_unique<int64_t>()) {
+JsonValueInternal::JsonValueInternal(int64_t value) noexcept {
     *this = value;
 };
 
@@ -216,7 +261,7 @@ JsonValueInternal& JsonValueInternal::operator=(uint64_t value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(uint64_t value) noexcept : theUint(std::make_unique<uint64_t>()) {
+JsonValueInternal::JsonValueInternal(uint64_t value) noexcept {
     *this = value;
 };
 
@@ -226,7 +271,7 @@ JsonValueInternal& JsonValueInternal::operator=(double value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(double value) noexcept : theDouble(std::make_unique<double>()) {
+JsonValueInternal::JsonValueInternal(double value) noexcept {
     *this = value;
 };
 
@@ -236,7 +281,7 @@ JsonValueInternal& JsonValueInternal::operator=(float value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(float value) noexcept : theFloat(std::make_unique<float>()) {
+JsonValueInternal::JsonValueInternal(float value) noexcept {
     *this = value;
 };
 
@@ -246,7 +291,7 @@ JsonValueInternal& JsonValueInternal::operator=(std::string& value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(std::string& value) noexcept : theString(std::make_unique<std::string>()) {
+JsonValueInternal::JsonValueInternal(std::string& value) noexcept {
     *this = value;
 };
 
@@ -256,7 +301,7 @@ JsonValueInternal& JsonValueInternal::operator=(Object& value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(Object& value)  noexcept : theObject(std::make_unique<Object>()) {
+JsonValueInternal::JsonValueInternal(Object& value)  noexcept {
     *this = value;
 };
 
@@ -266,7 +311,7 @@ JsonValueInternal& JsonValueInternal::operator=(Object&& value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(Object&& value)  noexcept : theObject(std::make_unique<Object>()) {
+JsonValueInternal::JsonValueInternal(Object&& value)  noexcept {
     *this = std::move(value);
 };
 
@@ -276,7 +321,7 @@ JsonValueInternal& JsonValueInternal::operator=(Array& value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(Array& value)  noexcept : theArray(std::make_unique<Array>()) {
+JsonValueInternal::JsonValueInternal(Array& value)  noexcept {
     *this = value;
 };
 
@@ -286,7 +331,7 @@ JsonValueInternal& JsonValueInternal::operator=(Array&& value) noexcept {
     return *this;
 };
 
-JsonValueInternal::JsonValueInternal(Array&& value)  noexcept : theArray(std::make_unique<Array>()) {
+JsonValueInternal::JsonValueInternal(Array&& value)  noexcept {
     *this = std::move(value);
 };
 
@@ -347,6 +392,16 @@ JsonValueInternal::~JsonValueInternal() {};
     JsonScalarObject::JsonScalarObject(const JsonScalarObject&other) {
         *this = other;
     }
+
+    JsonScalarObject& JsonScalarObject::operator=(Object& theArray) {
+        this->theValue = theArray;
+        this->theType = ObjectType::Object;
+        return *this;
+    }
+
+    JsonScalarObject::JsonScalarObject(Object& theArray) {
+        *this = theArray;
+    };
 
     JsonScalarObject& JsonScalarObject::operator=(Array& theArray) {
         this->theValue = theArray;
@@ -526,12 +581,21 @@ JsonValueInternal::~JsonValueInternal() {};
             return this->theStringNew.data();
         }
         case ObjectType::Object: {
+            if (!this->theKey.empty()) {
+                this->theStringNew.push_back('\"');
+                this->theStringNew += this->theKey;
+                this->theStringNew.push_back('\"');
+                this->theStringNew.push_back(':');
+            }
             this->theStringNew += "{";
             for (auto& [key,value]:this->theValue.theObject->theMap) {
                 depth++;
                 this->theStringNew.append(value.toString(depth));
             }
             this->theStringNew += "}";
+            if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
+                this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
+            }
             if (depth > 0) {
                 this->theStringNew += ",";
             }
@@ -539,10 +603,10 @@ JsonValueInternal::~JsonValueInternal() {};
             return this->theStringNew.data();
         }
         }
+        return std::string{}.data();
     }
 
     JsonScalarObject::JsonScalarObject() {};
-
 
     struct JsonObject {
         std::unordered_map<std::string, JsonScalarObject> theMap{};
@@ -552,6 +616,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Float;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<double> JsonObjectType>
@@ -559,6 +624,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Double;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<int64_t> JsonObjectType>
@@ -566,6 +632,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<int32_t> JsonObjectType>
@@ -573,6 +640,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<int16_t> JsonObjectType>
@@ -580,6 +648,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<int8_t> JsonObjectType>
@@ -587,6 +656,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Integer;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<uint64_t> JsonObjectType>
@@ -594,6 +664,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<uint32_t> JsonObjectType>
@@ -601,6 +672,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<uint16_t> JsonObjectType>
@@ -608,6 +680,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<uint8_t> JsonObjectType>
@@ -615,6 +688,15 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Number_Unsigned;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
+        }
+
+        template<std::same_as<Object> JsonObjectType>
+        void append(const char* keyName, JsonObjectType  theObject) {
+            theMap[keyName] = theObject;
+            theMap[keyName].theType = ObjectType::Object;
+            theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<Array> JsonObjectType>
@@ -622,6 +704,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Array;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<std::string> JsonObjectType>
@@ -629,6 +712,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::String;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         template<std::same_as<bool> JsonObjectType>
@@ -636,6 +720,7 @@ JsonValueInternal::~JsonValueInternal() {};
             theMap[keyName] = theObject;
             theMap[keyName].theType = ObjectType::Boolean;
             theMap[keyName].theKey = keyName;
+            this->currentDepth++;
         }
 
         operator std::string() {
@@ -648,12 +733,15 @@ JsonValueInternal::~JsonValueInternal() {};
             if (theString[theString.size() - 2] == ',') {
                 theString.erase(theString.begin() + theString.size() - 2);
             }
+            std::cout << "THE STRING: " << theString << std::endl;
             return theString;
         }
         JsonScalarObject& operator[](const char* key)
         {
             return this->theMap[key];
         }
+    protected:
+        int32_t currentDepth{ 0 };
     };
 
     int32_t main() {
@@ -663,8 +751,19 @@ JsonValueInternal::~JsonValueInternal() {};
             JsonObject theObject{ };
             double theFloat{ 0.05f };
             Array theVectorNew{};
+            Object theObjectNew{};
+            
+            
             JsonScalarObject theValue{ theScalar };
-            theVectorNew.theVector.push_back(theValue);
+            theVectorNew.append(theValue);
+            theVectorNew.append(theValue);
+            theVectorNew.append(theValue);
+            theObjectNew.append("Test", std::string{ "TEST" });
+            theObjectNew.append("TEST", 0.230f);
+            theObjectNew.append("TEST_VECTOR", theVectorNew);
+            theObject.append("NEW DATA STRUCTURE", theObjectNew);
+            //theObject.append("test", theVectorNew);
+            //theObject.append("test", theVectorNew);
             theObject.append("TEST02", theFloat);
             theObject.append("TEST03", theVectorNew);
             std::cout << "WERE HERE THIS IS IT! 0101: " << nlohmann::json::parse((std::string)theObject).dump() << std::endl;
