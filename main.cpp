@@ -228,6 +228,9 @@ struct JsonScalarObject {
             std::stringstream theStream{};
             theStream << std::setprecision(12) << theFloat;
             this->theStringNew += theStream.str();
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
             return this->theStringNew.data();
         }
         case ObjectType::Number_Double: {
@@ -242,6 +245,9 @@ struct JsonScalarObject {
             std::stringstream theStream{};
             theStream << std::setprecision(12) << theFloat;
             this->theStringNew += theStream.str();
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
             return this->theStringNew.data();
         }
         case ObjectType::String: {
@@ -255,6 +261,9 @@ struct JsonScalarObject {
             this->theStringNew += "\"";
             this->theStringNew += (*(std::string*)this->theValue.theScalar).data();
             this->theStringNew += "\"";
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
             return this->theStringNew.data();
         }
         case ObjectType::Boolean: {
@@ -269,6 +278,9 @@ struct JsonScalarObject {
             std::stringstream theStream{};
             theStream << std::boolalpha << theData;
             this->theStringNew += theStream.str();
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
             return this->theStringNew.data();
 
         }
@@ -281,6 +293,9 @@ struct JsonScalarObject {
             }
             depth++;
             int64_t theData = *(int64_t*)this->theValue.theScalar;
+            if (depth > 0) {
+                this->theStringNew += ",";
+            }
             this->theStringNew += std::to_string(theData);
             return this->theStringNew.data();
         }
@@ -297,10 +312,12 @@ struct JsonScalarObject {
                 this->theStringNew.append(value.toString(depth));
             }
             this->theStringNew += "]";
+            if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
+                this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
+            }
             if (depth > 0) {
                 this->theStringNew += ",";
-            }
-            this->theStringNew += this->theStringNew;
+            } 
             depth--;
             return this->theStringNew.data();
         }
@@ -432,9 +449,12 @@ struct JsonScalarObject {
             std::string theString{};
             theString.append("{");
             for (auto& [key, value] : this->theMap) {
-                theString.append(value.toString(0));
+                theString.append(value.toString(1));
             }
             theString.append("}");
+            if (theString[theString.size() - 2] == ',') {
+                theString.erase(theString.begin() + theString.size() - 2);
+            }
             return theString;
         }
         JsonScalarObject& operator[](const char* key)
@@ -453,7 +473,7 @@ struct JsonScalarObject {
             theVectorNew.push_back(JsonScalarObject{ theScalar });
             theObject.append("TEST02", theFloat);
             theObject.append("TEST03", theVectorNew);
-            std::cout << "WERE HERE THIS IS IT! 0101: " << (std::string)theObject << std::endl;
+            std::cout << "WERE HERE THIS IS IT! 0101: " << nlohmann::json::parse((std::string)theObject).dump() << std::endl;
 
             std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
