@@ -4,769 +4,712 @@
 #include <stdint.h>
 #include <set>
 
-enum class ObjectType : int8_t {
-    Object = 0,
-    Array = 1,
-    String = 2,
-    Boolean = 3,
-    Number_Integer = 4,
-    Number_Unsigned = 5,
-    Number_Float = 6,
-    Number_Double = 7,
-    Null = 8
+enum class ObjectType : int8_t { JsonObjectBase = 0, Array = 1, String = 2, Boolean = 3, Number_Integer = 4, Number_Unsigned = 5, Number_Float = 6, Number_Double = 7, Null = 8 };
+
+struct Array;
+
+struct JsonObjectBase {
+	void* thePtr{ nullptr };
+
+	JsonObjectBase(ObjectType t);
+
+	JsonObjectBase& operator=(bool value) noexcept;
+
+	JsonObjectBase(bool value) noexcept;
+
+	JsonObjectBase& operator=(std::int64_t value) noexcept;
+
+	JsonObjectBase(int64_t value) noexcept;
+
+	JsonObjectBase& operator=(std::uint64_t value) noexcept;
+
+	JsonObjectBase(uint64_t value) noexcept;
+
+	JsonObjectBase& operator=(double value) noexcept;
+
+	JsonObjectBase(double value) noexcept;
+
+	JsonObjectBase& operator=(float value) noexcept;
+
+	JsonObjectBase(float value) noexcept;
+
+	JsonObjectBase& operator=(std::string& value) noexcept;
+
+	JsonObjectBase(std::string& value) noexcept;
+
+	JsonObjectBase& operator=(std::string&& value) noexcept;
+
+	JsonObjectBase(std::string&& value) noexcept;
+
+	JsonObjectBase&operator=(JsonObjectBase&& value) noexcept;
+
+	JsonObjectBase(JsonObjectBase&& value) noexcept;
+
+	JsonObjectBase& operator=(Array& value) noexcept;
+
+	JsonObjectBase(Array& value) noexcept;
+
+	JsonObjectBase& operator=(JsonObjectBase& other) noexcept;
+
+	JsonObjectBase(JsonObjectBase& other) noexcept;
+
+	JsonObjectBase& operator=(const JsonObjectBase& other) noexcept = default;
+
+	JsonObjectBase(const JsonObjectBase& other) noexcept = default;
+
+	void append(const char* keyName, JsonObjectBase&& theData);
+
+	void append(const char* keyName, JsonObjectBase& theData);
+
+	std::unordered_map<std::string, JsonObjectBase>& getMap();
+
+	std::unordered_map<std::string, JsonObjectBase> theMap{};
+
+	ObjectType type();
+
+	const char* toString(std::unordered_map<std::string, JsonObjectBase>& theMap);
+
+	std::string toString(Array& theValue, bool doWeDrawAComma);
+
+	std::string toString(JsonObjectBase& theValue, bool doWeDrawAComma);
+
+	std::string toString(std::string& theValue, bool doWeDrawAComma);
+
+	std::string toString(bool& theValue, bool doWeDrawAComma);
+
+	std::string toString(float& theValue, bool doWeDrawAComma);
+
+	std::string toString(double& theValue, bool doWeDrawAComma);
+
+	std::string toString(uint64_t& theValue, bool doWeDrawAComma);
+
+	std::string toString(int64_t& theValue, bool doWeDrawAComma);
+
+	JsonObjectBase()noexcept {};
+
+	operator std::string() {
+		std::string theString{};
+		theString.append("{");
+		theString.append(this->toString(*this, false));
+		theString.append("}");
+		if (theString[theString.size() - 2] == ',') {
+			theString.erase(theString.begin() + theString.size() - 2);
+		}
+		std::cout << "THE STRING: 0101: " << theString << std::endl;
+		return theString;
+	}
+
+	JsonObjectBase& operator[](const char* key) {
+		return this->theMap[key];
+	}
+
+
+	~JsonObjectBase();
+
+	std::string theStringNew{};
+	int32_t currentDepth{};
+	std::string theKey{};
+	ObjectType theType{};
 };
 
-class JsonScalarObject;
-
-struct Object {
-    friend class JsonScalarObject;
-    void append(const char* keyName, JsonScalarObject&& theData);;
-    void append(const char* keyName, JsonScalarObject& theData);;
+struct Array : public JsonObjectBase {
+	friend class JsonObjectBase;
+	void append(JsonObjectBase& theObject);
+	void append(JsonObjectBase&& theObject);
+	std::vector<JsonObjectBase>& getVector();
+	operator std::string();
 protected:
-    std::unordered_map<std::string, JsonScalarObject>theMap{};
+	std::vector<JsonObjectBase> theVector{};
 };
 
-struct Array {
-    friend class JsonScalarObject;
-    void append(JsonScalarObject& theObject);
-    void append(JsonScalarObject&& theObject);
-protected:
-    std::vector<JsonScalarObject> theVector{};
-};
 
-struct JsonValueInternal
-{
-    std::unique_ptr<std::string> theString{ nullptr };
-    std::unique_ptr<Object> theObject{ nullptr };
-    std::unique_ptr<bool> theBool{ nullptr };
-    std::unique_ptr<float> theFloat{ nullptr };
-    std::unique_ptr<double> theDouble{ nullptr };
-    std::unique_ptr<std::int64_t> theInt{ nullptr };
-    std::unique_ptr<std::uint64_t> theUint{ nullptr };
-    std::unique_ptr<Array> theArray{ nullptr };
-
-    JsonValueInternal(ObjectType t);
-
-    JsonValueInternal& operator=(bool value) noexcept;
-
-    JsonValueInternal(bool value) noexcept;
-
-    JsonValueInternal& operator=(std::int64_t value) noexcept;
-
-    JsonValueInternal(std::int64_t value) noexcept;
-
-    JsonValueInternal& operator=(std::uint64_t value) noexcept;
-
-    JsonValueInternal(std::uint64_t value) noexcept;
-
-    JsonValueInternal& operator=(double value) noexcept;
-
-    JsonValueInternal(double value) noexcept;
-
-    JsonValueInternal& operator=(float value) noexcept;
-
-    JsonValueInternal(float value) noexcept;
-
-    JsonValueInternal& operator=(std::string& value) noexcept;
-
-    JsonValueInternal(std::string& value) noexcept;
-
-    JsonValueInternal& operator=(std::string&& value) noexcept;
-
-    JsonValueInternal(std::string&& value) noexcept;
-
-    JsonValueInternal& operator=(Object& value) noexcept;
-
-    JsonValueInternal(Object& value) noexcept;
-
-    JsonValueInternal& operator=(Object&& value) noexcept;
-
-    JsonValueInternal(Object&& value)  noexcept;
-
-    JsonValueInternal& operator=(Array& value) noexcept;
-
-    JsonValueInternal(Array& value) noexcept;
-
-    JsonValueInternal& operator=(Array&& value) noexcept;
-
-    JsonValueInternal(Array&& value) noexcept;
-
-    JsonValueInternal& operator=(const JsonValueInternal& other) noexcept;
-
-    JsonValueInternal(const JsonValueInternal& other) noexcept;
-
-    ~JsonValueInternal() noexcept;
-};
-
-struct JsonScalarObject {
-
-    ObjectType type();
-
-    JsonScalarObject& operator=(const JsonScalarObject&);
-
-    JsonScalarObject(const JsonScalarObject&);
-
-    JsonScalarObject& operator=(Array& theArray);
-
-    JsonScalarObject(Array& theArray);
-
-    JsonScalarObject& operator=(Object& theArray);
-
-    JsonScalarObject(Object& theArray);
-
-    JsonScalarObject& operator=(float& other);
-
-    JsonScalarObject(float& other);
-
-    JsonScalarObject& operator=(float&& other);
-
-    JsonScalarObject(float&& other);
-
-    JsonScalarObject& operator=(double& other);
-
-    JsonScalarObject(double& other);
-
-    JsonScalarObject& operator=(double&& other);
-
-    JsonScalarObject(double&& other);
-
-    JsonScalarObject& operator=(std::string&& other);
-
-    JsonScalarObject(std::string&& other);
-
-    JsonScalarObject& operator=(std::string& other);
-
-    JsonScalarObject(std::string& other);
-
-    const char* toString(int32_t  depth);
-
-    JsonScalarObject();
-
-    JsonValueInternal theValue{ ObjectType::String };
-    std::string theStringNew{};
-    int32_t currentDepth{};
-    std::string theKey{};
-    ObjectType theType{};
-};
-
-void Object::append(const char* keyName,JsonScalarObject& theData) {
-    this->theMap.emplace(keyName, theData);
-    this->theMap[keyName].theKey = keyName;
+void JsonObjectBase::append(const char* keyName, JsonObjectBase& theData) {
+	this->theMap.emplace(keyName, theData);
+	this->theMap[keyName].theKey = keyName;
 }
 
-void Object::append(const char* keyName, JsonScalarObject&& theData) {
-    this->theMap.emplace(keyName, std::move(theData));
-    this->theMap[keyName].theKey = keyName;
+void JsonObjectBase::append(const char* keyName, JsonObjectBase&& theData) {
+	this->theMap.emplace(keyName, std::move(theData));
+	this->theMap[keyName].theKey = keyName;
 }
 
-void Array::append(JsonScalarObject& theObject){
-    this->theVector.push_back(theObject);
+std::unordered_map<std::string, JsonObjectBase>& JsonObjectBase::getMap() {
+	return this->theMap;
 }
 
-void Array::append(JsonScalarObject&& theObject) {
-    this->theVector.push_back(std::move(theObject));
+void Array::append(JsonObjectBase& theObject) {
+	this->theVector.push_back(theObject);
 }
 
-bool operator==(const JsonScalarObject& lhs, const JsonScalarObject& rhs) {
-    if (lhs.currentDepth == rhs.currentDepth) {
-        return true;
-    }
-    else {
-        return false;
-    }
+std::vector<JsonObjectBase>& Array::getVector() {
+	return this->theVector;
 }
 
-JsonValueInternal::JsonValueInternal(ObjectType theType) {
-    switch (theType)
-    {
-    case ObjectType::Object:
-    {
-        theObject = std::make_unique<Object>();
-        break;
-    }
-
-    case ObjectType::Array:
-    {
-        theArray = std::make_unique<Array>();
-        break;
-    }
-
-    case ObjectType::String:
-    {
-        theString = std::make_unique<std::string>();
-        break;
-    }
-
-    case ObjectType::Boolean:
-    {
-        theBool = std::make_unique<bool>();
-        break;
-    }
-
-    case ObjectType::Number_Integer:
-    {
-        theInt = std::make_unique<int64_t>();
-        break;
-    }
-
-    case ObjectType::Number_Unsigned:
-    {
-        theUint = std::make_unique<uint64_t>();
-        break;
-    }
-
-    case ObjectType::Number_Float:
-    {
-        theFloat = std::make_unique<float>();
-        break;
-    }
-
-    case ObjectType::Number_Double:
-    {
-        theDouble = std::make_unique<double>();
-        break;
-    }
-
-    case ObjectType::Null:
-    {
-        theObject = std::make_unique<Object>();
-        break;
-    }
-    }
+void Array::append(JsonObjectBase&& theObject) {
+	this->theVector.push_back(std::move(theObject));
 }
 
-JsonValueInternal& JsonValueInternal::operator=(bool value) noexcept {
-    this->theBool = std::make_unique<bool>();
-    *this->theBool = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(bool value) noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(int64_t value) noexcept {
-    this->theInt = std::make_unique<int64_t>();
-    *this->theInt = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(int64_t value) noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(uint64_t value) noexcept {
-    this->theUint = std::make_unique<uint64_t>();
-    *this->theUint = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(uint64_t value) noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(double value) noexcept {
-    this->theDouble = std::make_unique<double>();
-    *this->theDouble = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(double value) noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(float value) noexcept {
-    this->theFloat = std::make_unique<float>();
-    *this->theFloat = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(float value) noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(std::string& value) noexcept {
-    this->theString = std::make_unique<std::string>();
-    *this->theString = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(std::string& value) noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(Object& value) noexcept {
-    this->theObject = std::make_unique<Object>();
-    *this->theObject = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(Object& value)  noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(Object&& value) noexcept {
-    this->theObject = std::make_unique<Object>();
-    *this->theObject = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(Object&& value)  noexcept {
-    *this = std::move(value);
-};
-
-JsonValueInternal& JsonValueInternal::operator=(Array& value) noexcept {
-    this->theArray = std::make_unique<Array>();
-    *this->theArray = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(Array& value)  noexcept {
-    *this = value;
-};
-
-JsonValueInternal& JsonValueInternal::operator=(Array&& value) noexcept {
-    this->theArray = std::make_unique<Array>();
-    *this->theArray = value;
-    return *this;
-};
-
-JsonValueInternal::JsonValueInternal(Array&& value)  noexcept {
-    *this = std::move(value);
-};
-
-JsonValueInternal& JsonValueInternal::operator=(const JsonValueInternal& other) noexcept {
-    if (other.theArray){
-        this->theArray = std::make_unique<Array>();
-        *this->theArray = *other.theArray;
-    }else if (other.theBool){
-        this->theBool = std::make_unique<bool>();
-        *this->theBool = *other.theBool;
-    }
-    else if (other.theDouble) {
-        this->theDouble = std::make_unique<double>();
-        *this->theDouble = *other.theDouble;
-    }
-    else if (other.theFloat) {
-        this->theFloat = std::make_unique<float>();
-        *this->theFloat = *other.theFloat;
-    }
-    else if (other.theInt) {
-        this->theInt = std::make_unique<int64_t>();
-        *this->theInt = *other.theInt;
-    }
-    else if (other.theObject) {
-        this->theObject = std::make_unique<Object>();
-        *this->theObject = *other.theObject;
-    }
-    else if (other.theString){
-        this->theString = std::make_unique<std::string>();
-        *this->theString = *other.theString;
-    }
-    else if (other.theUint) {
-        this->theUint = std::make_unique<uint64_t>();
-        *this->theUint = *other.theUint;
-    }
-    return *this;
+bool operator==(const JsonObjectBase& lhs, const JsonObjectBase& rhs) {
+	if (lhs.currentDepth == rhs.currentDepth) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
-JsonValueInternal::JsonValueInternal(const JsonValueInternal& other)  noexcept {
-    *this = other;
+JsonObjectBase::JsonObjectBase(ObjectType theType) {
+	switch (theType) {
+	case ObjectType::JsonObjectBase: {
+		thePtr = std::make_unique<JsonObjectBase>().release();
+		break;
+	}
+
+	case ObjectType::Array: {
+		thePtr = std::make_unique<Array>().release();
+		break;
+	}
+
+	case ObjectType::String: {
+		thePtr = std::make_unique<std::string>().release();
+		break;
+	}
+
+	case ObjectType::Boolean: {
+		thePtr = std::make_unique<bool>().release();
+		break;
+	}
+
+	case ObjectType::Number_Integer: {
+		thePtr = std::make_unique<int64_t>().release();
+		break;
+	}
+
+	case ObjectType::Number_Unsigned: {
+		thePtr = std::make_unique<uint64_t>().release();
+		break;
+	}
+
+	case ObjectType::Number_Float: {
+		thePtr = std::make_unique<float>().release();
+		break;
+	}
+
+	case ObjectType::Number_Double: {
+		thePtr = std::make_unique<double>().release();
+		break;
+	}
+
+	case ObjectType::Null: {
+		thePtr = std::make_unique<JsonObjectBase>().release();
+		break;
+	}
+	}
 }
 
-JsonValueInternal::~JsonValueInternal() {};
+JsonObjectBase& JsonObjectBase::operator=(JsonObjectBase& other) noexcept {
+	if (!other.thePtr) {
+		other.thePtr = std::make_unique<JsonObjectBase>().release();
+	}
+	if (other.theType==ObjectType::Array) {
+		this->thePtr = std::make_unique<Array>().release();
+		*(Array*)this->thePtr = *(Array*)other.thePtr;
+	}
+	else if (other.theType == ObjectType::Boolean) {
+		this->thePtr = std::make_unique<bool>().release();
+		*(bool*)this->thePtr = *(bool*)other.thePtr;
+	}
+	else if (other.theType == ObjectType::Number_Double) {
+		this->thePtr = std::make_unique<double>().release();
+		*(double*)this->thePtr = *(double*)other.thePtr;
+	}
+	else if (other.theType == ObjectType::Number_Float) {
+		this->thePtr = std::make_unique<float>().release();
+		*(float*)this->thePtr = *(float*)other.thePtr;
+	}
+	else if (other.theType == ObjectType::Number_Integer) {
+		this->thePtr = std::make_unique<int64_t>().release();
+		*(int64_t*)this->thePtr = *(int64_t*)other.thePtr;
+	}
+	else if (other.theType == ObjectType::Number_Unsigned) {
+		this->thePtr = std::make_unique<uint64_t>().release();
+		*(uint64_t*)this->thePtr = *(uint64_t*)other.thePtr;
+	}
+	else if (other.theType == ObjectType::String) {
+		this->thePtr = std::make_unique<std::string>().release();
+		*(std::string*)this->thePtr = *(std::string*)other.thePtr;
+	}
+	this->currentDepth = other.currentDepth;
+	this->theStringNew = other.theStringNew;
+	this->theType = other.theType;
+	this->theKey = other.theKey;
+	this->theMap = other.theMap;
+	this->thePtr = other.thePtr;
+	return *this;
+}
+
+JsonObjectBase& JsonObjectBase::operator=(JsonObjectBase&& value) noexcept {
+	this->currentDepth = value.currentDepth;
+	
+	this->theKey = std::move(value.theKey);
+	this->theMap = std::move(value.theMap);
+	this->theStringNew = std::move(value.theStringNew);
+	this->theType = std::move(value.theType);
+	this->thePtr = value.thePtr;
+	return *this;
+}
+
+JsonObjectBase::JsonObjectBase(JsonObjectBase&& value) noexcept {
+	*this = std::move(value);
+}
+
+JsonObjectBase::JsonObjectBase(JsonObjectBase& other) noexcept {
+	*this = other;
+}
+
+ObjectType JsonObjectBase::type() {
+	return this->theType;
+}
 
 
-    ObjectType JsonScalarObject::type() {
-        return this->theType;
-    }
+JsonObjectBase& JsonObjectBase::operator=(Array& theArray) noexcept {
+	this->thePtr = std::make_unique<Array>().release();
+	this->theType = ObjectType::Array;
+	*(Array*)this->thePtr = theArray;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(const JsonScalarObject& other) {
-        this->theKey = other.theKey;
-        this->theStringNew = other.theStringNew;
-        this->theType = other.theType;
-        this->theValue = other.theValue;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(Array& theArray) noexcept {
+	*this = theArray;
+};
 
-    JsonScalarObject::JsonScalarObject(const JsonScalarObject&other) {
-        *this = other;
-    }
+JsonObjectBase& JsonObjectBase::operator=(uint64_t other) noexcept {
+	this->thePtr = std::make_unique<uint64_t>().release();
+	this->theType = ObjectType::Number_Unsigned;
+	*(uint64_t*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(Object& theArray) {
-        this->theValue = theArray;
-        this->theType = ObjectType::Object;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(uint64_t other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(Object& theArray) {
-        *this = theArray;
-    };
+JsonObjectBase& JsonObjectBase::operator=(int64_t other) noexcept {
+	this->thePtr = std::make_unique<int64_t>().release();
+	this->theType = ObjectType::Number_Integer;
+	*(int64_t*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(Array& theArray) {
-        this->theValue = theArray;
-        this->theType = ObjectType::Array;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(int64_t other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(Array& theArray){
-        *this = theArray;
-    };
+JsonObjectBase& JsonObjectBase::operator=(bool other) noexcept {
+	this->thePtr = std::make_unique<bool>().release();
+	this->theType = ObjectType::Boolean;
+	*(bool*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(float& other) {
-        this->theValue = other;
-        this->theType = ObjectType::Number_Float;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(bool other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(float& other) {
-        *this = other;
-    }
+JsonObjectBase& JsonObjectBase::operator=(float other) noexcept {
+	this->thePtr = std::make_unique<float>().release();
+	this->theType = ObjectType::Number_Float;
+	*(float*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(float&& other) {
-        this->theValue = other;
-        this->theType = ObjectType::Number_Float;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(float other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(float&& other) {
-        *this = other;
-    }
+JsonObjectBase& JsonObjectBase::operator=(double other) noexcept {
+	this->thePtr = std::make_unique<double>().release();
+	this->theType = ObjectType::Number_Double;
+	*(double*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(double& other) {
-        this->theValue = other;
-        this->theType = ObjectType::Number_Double;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(double other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(double& other) {
-        *this = other;
-    }
+JsonObjectBase& JsonObjectBase::operator=(std::string&& other) noexcept {
+	this->thePtr = std::make_unique<std::string>().release();
+	this->theType = ObjectType::String;
+	*(std::string*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(double&& other) {
-        this->theValue = other;
-        this->theType = ObjectType::Number_Double;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(std::string&& other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(double&& other) {
-        *this = other;
-    }
+JsonObjectBase& JsonObjectBase::operator=(std::string& other) noexcept {
+	this->thePtr = std::make_unique<std::string>().release();
+	this->theType = ObjectType::String;
+	*(std::string*)this->thePtr = other;
+	return *this;
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(std::string&& other) {
-        this->theValue = other;
-        this->theType = ObjectType::String;
-        return *this;
-    }
+JsonObjectBase::JsonObjectBase(std::string& other) noexcept {
+	*this = other;
+}
 
-    JsonScalarObject::JsonScalarObject(std::string&& other) {
-        *this = other;
-    }
+std::string JsonObjectBase::toString(Array& theValue, bool doWeDrawAComma){
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	this->theStringNew += "["; 
+	for (auto& value : theValue.theVector) {
+		switch (value.theType) {
+		case ObjectType::Number_Float: {
+			this->theStringNew += this->toString(*(float*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Double: {
+			this->theStringNew += this->toString(*(double*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::String: {
+			this->theStringNew += this->toString(*(std::string*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Boolean: {
+			this->theStringNew += this->toString(*(bool*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Integer: {
+			this->theStringNew += this->toString(*(int64_t*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Array: {
+			this->theStringNew += this->toString(*(Array*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::JsonObjectBase: {
+			this->theStringNew += this->toString(*(JsonObjectBase*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Unsigned: {
+			this->theStringNew += this->toString(*(uint64_t*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		}
+	}
+	this->theStringNew += "]";
+	if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
+		this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
+	}
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
 
-    JsonScalarObject& JsonScalarObject::operator=(std::string& other) {
-        this->theValue = other;
-        this->theType = ObjectType::String;
-        return *this;
-    }
+std::string JsonObjectBase::toString(JsonObjectBase& theValue, bool doWeDrawAComma){
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	this->theStringNew += "{";
+	for (auto& [key,value] : theValue.theMap) {
+		switch (value.theType) {
+		case ObjectType::Number_Float: {
+			this->theStringNew += this->toString(*(float*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Double: {
+			this->theStringNew += this->toString(*(double*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::String: {
+			this->theStringNew += this->toString(*(std::string*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Boolean: {
+			this->theStringNew += this->toString(*(bool*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Integer: {
+			this->theStringNew += this->toString(*(int64_t*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Array: {
+			this->theStringNew += this->toString(*(Array*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::JsonObjectBase: {
+			this->theStringNew += this->toString(*(JsonObjectBase*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Unsigned: {
+			this->theStringNew += this->toString(*(uint64_t*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		}
+	}
+	this->theStringNew += "}";
+	if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
+		this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
+	}
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
 
-    JsonScalarObject::JsonScalarObject(std::string& other) {
-        *this = other;
-    }
+std::string JsonObjectBase::toString(std::string& theValue, bool doWeDrawAComma){
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	this->theStringNew += "\"";
+	this->theStringNew += theValue;
+	this->theStringNew += "\"";
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
 
-    const char* JsonScalarObject::toString(int32_t  depth) {
-        switch (this->theType) {
-        case ObjectType::Number_Float: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            depth++;
-            float theFloat = *this->theValue.theFloat.get();
-            std::stringstream theStream{};
-            theStream << std::setprecision(12) << theFloat;
-            this->theStringNew += theStream.str();
-            if (depth > 0) {
-                this->theStringNew += ",";
-            }
-            return this->theStringNew.data();
-        }
-        case ObjectType::Number_Double: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            depth++;
-            double theFloat = *this->theValue.theDouble.get();
-            std::stringstream theStream{};
-            theStream << std::setprecision(12) << theFloat;
-            this->theStringNew += theStream.str();
-            if (depth > 0) {
-                this->theStringNew += ",";
-            }
-            return this->theStringNew.data();
-        }
-        case ObjectType::String: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            depth++;
-            this->theStringNew += "\"";
-            this->theStringNew += *this->theValue.theString.get();
-            this->theStringNew += "\"";
-            if (depth > 0) {
-                this->theStringNew += ",";
-            }
-            return this->theStringNew.data();
-        }
-        case ObjectType::Boolean: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            depth++;
-            bool theData = *this->theValue.theBool.get();
-            std::stringstream theStream{};
-            theStream << std::boolalpha << theData;
-            this->theStringNew += theStream.str();
-            if (depth > 0) {
-                this->theStringNew += ",";
-            }
-            return this->theStringNew.data();
+std::string JsonObjectBase::toString(float& theValue, bool doWeDrawAComma){
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	std::stringstream theStream{};
+	theStream << std::setprecision(12) << theValue;
+	this->theStringNew += theStream.str();
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
 
-        }
-        case ObjectType::Number_Integer: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            depth++;
-            int64_t theData = *this->theValue.theInt.get();
-            if (depth > 0) {
-                this->theStringNew += ",";
-            }
-            this->theStringNew += std::to_string(theData);
-            return this->theStringNew.data();
-        }
-        case ObjectType::Array: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            this->theStringNew += "[";
-            for (auto& value : this->theValue.theArray->theVector) {
-                depth++;
-                this->theStringNew.append(value.toString(depth));
-            }
-            this->theStringNew += "]";
-            if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
-                this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
-            }
-            if (depth > 0) {
-                this->theStringNew += ",";
-            } 
-            depth--;
-            return this->theStringNew.data();
-        }
-        case ObjectType::Object: {
-            if (!this->theKey.empty()) {
-                this->theStringNew.push_back('\"');
-                this->theStringNew += this->theKey;
-                this->theStringNew.push_back('\"');
-                this->theStringNew.push_back(':');
-            }
-            this->theStringNew += "{";
-            for (auto& [key,value]:this->theValue.theObject->theMap) {
-                depth++;
-                this->theStringNew.append(value.toString(depth));
-            }
-            this->theStringNew += "}";
-            if (this->theStringNew[this->theStringNew.size() - 2] == ',') {
-                this->theStringNew.erase(this->theStringNew.begin() + this->theStringNew.size() - 2);
-            }
-            if (depth > 0) {
-                this->theStringNew += ",";
-            }
-            depth--;
-            return this->theStringNew.data();
-        }
-        }
-        return std::string{}.data();
-    }
+std::string JsonObjectBase::toString(double& theValue, bool doWeDrawAComma){
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	std::stringstream theStream{};
+	theStream << std::setprecision(12) << theValue;
+	this->theStringNew += theStream.str();
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
 
-    JsonScalarObject::JsonScalarObject() {};
+std::string JsonObjectBase::toString(uint64_t& theValue, bool doWeDrawAComma){
+
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	this->theStringNew += std::to_string(theValue);
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
+
+std::string JsonObjectBase::toString(bool& theValue, bool doWeDrawAComma) {
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	std::stringstream theStream{};
+	theStream << std::boolalpha << theValue;
+	this->theStringNew += theStream.str();
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
+
+std::string JsonObjectBase::toString(int64_t& theValue, bool doWeDrawAComma){
+
+	if (!this->theKey.empty()) {
+		this->theStringNew.push_back('\"');
+		this->theStringNew += this->theKey;
+		this->theStringNew.push_back('\"');
+		this->theStringNew.push_back(':');
+	}
+	this->theStringNew += std::to_string(theValue);
+	std::cout << "THE STRING: " << theStringNew << std::endl;
+	this->theStringNew = this->theStringNew.substr(0, this->theStringNew.size() - 2);
+	return this->theStringNew.data();
+}
+
+const char* JsonObjectBase::toString(std::unordered_map<std::string, JsonObjectBase>& theMap) {
+	for (auto& [key, value] : theMap) {
+		std::cout << "THE TYPE: " << (int)value.theType << std::endl;
+		switch (value.theType) {
+		case ObjectType::Number_Float: {
+			this->theStringNew += this->toString(*(float*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Double: {
+			this->theStringNew += this->toString(*(double*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::String: {
+			this->theStringNew += this->toString(*(std::string*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Boolean: {
+			this->theStringNew += this->toString(*(bool*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Integer: {
+			this->theStringNew += this->toString(*(int64_t*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Array: {
+			this->theStringNew += this->toString(*(Array*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::JsonObjectBase: {
+			this->theStringNew += this->toString(*(JsonObjectBase*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		case ObjectType::Number_Unsigned: {
+			this->theStringNew += this->toString(*(uint64_t*)value.thePtr, false);
+			return this->theStringNew.data();
+		}
+		}
+
+	}
+	
+	return this->theStringNew.data();
+}
+
+JsonObjectBase::~JsonObjectBase() {}
 
     struct JsonObject {
-        std::unordered_map<std::string, JsonScalarObject> theMap{};
 
-        template<std::same_as<float> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Float;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<double> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Double;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<int64_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Integer;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<int32_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Integer;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<int16_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Integer;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<int8_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Integer;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<uint64_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Unsigned;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<uint32_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Unsigned;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<uint16_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Unsigned;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<uint8_t> JsonObjectType>
-        void append(const char* keyName, JsonObjectType theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Number_Unsigned;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<Object> JsonObjectType>
-        void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Object;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<Array> JsonObjectType>
-        void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Array;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<std::string> JsonObjectType>
-        void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::String;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        template<std::same_as<bool> JsonObjectType>
-        void append(const char* keyName, JsonObjectType  theObject) {
-            theMap[keyName] = theObject;
-            theMap[keyName].theType = ObjectType::Boolean;
-            theMap[keyName].theKey = keyName;
-            this->currentDepth++;
-        }
-
-        operator std::string() {
-            std::string theString{};
-            theString.append("{");
-            for (auto& [key, value] : this->theMap) {
-                theString.append(value.toString(1));
-            }
-            theString.append("}");
-            if (theString[theString.size() - 2] == ',') {
-                theString.erase(theString.begin() + theString.size() - 2);
-            }
-            std::cout << "THE STRING: " << theString << std::endl;
-            return theString;
-        }
-        JsonScalarObject& operator[](const char* key)
-        {
-            return this->theMap[key];
-        }
+        
     protected:
         int32_t currentDepth{ 0 };
     };
 
+	Array::operator std::string() {
+		std::string theString{ "\"" };
+		theString += this->theKey;
+		theString += "\":[";
+		bool doWeAddCommas{ false };
+		for (uint32_t x = 0; x < this->theVector.size(); ++x) {
+			if (x > 0 && x < this->theVector.size() - 1) {
+				doWeAddCommas = true;
+			}
+			switch (this->theVector[x].theType) {
+				case ObjectType::Number_Float: {
+					this->theStringNew += this->toString(*(float*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::Number_Double: {
+					this->theStringNew += this->toString(*(double*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::String: {
+					this->theStringNew += this->toString(*(std::string*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::Boolean: {
+					this->theStringNew += this->toString(*(bool*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::Number_Integer: {
+					this->theStringNew += this->toString(*(int64_t*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::Array: {
+					this->theStringNew += this->toString(*(Array*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::JsonObjectBase: {
+					this->theStringNew += this->toString(*(JsonObjectBase*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+				case ObjectType::Number_Unsigned: {
+					this->theStringNew += this->toString(*(uint64_t*)theVector[x].thePtr, false);
+					return this->theStringNew.data();
+				}
+			}
+		}
+		theString += "]";
+		return theString;
+	}
+
+    struct WebSocketIdentifyData {
+        DiscordCoreInternal::UpdatePresenceData presence{};
+        std::int32_t largeThreshold{};
+        std::int32_t numberOfShards{};
+        std::int32_t currentShard{};
+        std::string botToken{};
+        int64_t intents{};
+
+        operator JsonObjectBase();
+    };
+
+    WebSocketIdentifyData::operator JsonObjectBase() {
+		JsonObjectBase data{};
+        JsonObjectBase theD{};
+        JsonObjectBase theProperties{};
+		theProperties.append("browser", "DiscordCoreAPI");
+		theProperties.append("device", "DiscordCoreAPI");
+        Array theShard{};
+        theShard.append(static_cast<uint64_t>(this->currentShard));
+        theShard.append(static_cast<uint64_t>(this->numberOfShards));
+        theD.append("shard", theShard);
+        theD.append("large_threshold", static_cast<uint64_t>(250));
+        theD.append("intents", static_cast<uint64_t>(this->intents));
+        theD.append("compress", false);
+        theD.append("token", this->botToken);
+        Array theActivities{};
+        for (auto& value : this->presence.activities) {
+            JsonObjectBase dataNew{};
+            if (static_cast<std::string>(value.url) != "") {
+                dataNew.append("url", std::string{ value.url });
+            }
+            dataNew.append("name", std::string{ value.name });
+            dataNew.append("type", static_cast<uint64_t>(value.type));
+            theActivities.append(dataNew);
+        }
+        JsonObjectBase dataNewReal{};
+        dataNewReal.append("status", this->presence.status);
+        dataNewReal.append("since", static_cast<uint64_t>(0));
+        dataNewReal.append("afk", this->presence.afk);
+        theD.append("presence", dataNewReal);
+        data.append("op", static_cast<uint64_t>(2));
+#ifdef _WIN32
+        theProperties.append("os", "Windows");
+#else
+		theProperties.append("os", "Linux");
+#endif
+		theD.append("properties", theProperties);
+        data.append("d", theD);
+        return data;
+    }
+
     int32_t main() {
         try {
-            std::vector<JsonScalarObject> theVector{};
-            std::string theScalar{ "TESTING FOR REAL" };
-            JsonObject theObject{ };
-            double theFloat{ 0.05f };
-            Array theVectorNew{};
-            Object theObjectNew{};
-            
-            
-            JsonScalarObject theValue{ theScalar };
-            theVectorNew.append(theValue);
-            theVectorNew.append(theValue);
-            theVectorNew.append(theValue);
-            theObjectNew.append("Test", std::string{ "TEST" });
-            theObjectNew.append("TEST", 0.230f);
-            theObjectNew.append("TEST_VECTOR", theVectorNew);
-            theObject.append("NEW DATA STRUCTURE", theObjectNew);
-            //theObject.append("test", theVectorNew);
-            //theObject.append("test", theVectorNew);
-            theObject.append("TEST02", theFloat);
-            theObject.append("TEST03", theVectorNew);
-            std::cout << "WERE HERE THIS IS IT! 0101: " << nlohmann::json::parse((std::string)theObject).dump() << std::endl;
+			WebSocketIdentifyData theData{};
+			theData.botToken = "TESTING VALUE 23123123123";
+			std::string theString = static_cast<std::string>(theData.operator JsonObjectBase().operator std::string());
 
             std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
