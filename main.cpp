@@ -4,9 +4,8 @@
 #include <stdint.h>
 #include <set>
 
-enum class ObjectType : int8_t { Null = 0, Object = 1, Array = 2, String = 3, Boolean = 4, Number_Integer = 5, Number_Unsigned = 6, Number_Float = 7, Number_Double = 8 };
 enum class JsonParseEvent { Null_Value = 0, Object_Start = 1, Object_End = 2, Array_Start = 3, Array_End = 4, String = 5, Boolean = 6, Number_Integer = 7, Number_Unsigned = 8, Number_Float = 9, Number_Double = 10 };
-
+enum class JsonParserState { Adding_Object_Elements = 0, Adding_Array_Elements = 1 };
 struct JsonValue {
 	JsonParseEvent theEvent{};
 	std::string theValue{};
@@ -17,6 +16,14 @@ public:
 	JsonSerializer()noexcept = default;
 	std::string getString();
 
+	size_t parseForward(JsonParseEvent theEvent);
+
+	JsonValue getEvent();
+
+	size_t getObjectSize(const char* theName = nullptr);
+
+	size_t getArraySize(const char* theName = nullptr);
+
 	template<std::same_as<uint64_t> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
 		std::string theString = std::to_string(theData);
@@ -25,457 +32,301 @@ public:
 
 	template<std::same_as<int64_t> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
+		std::string theString = std::to_string(theData);
+		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer,.theValue = theString,.theKey = keyName });
 	}
 
 	template<std::same_as<std::string> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
+		this->theValues.push_back({ .theEvent = JsonParseEvent::String,.theValue = theData,.theKey = keyName });
 	}
 
 	template<std::same_as<bool> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
+		std::stringstream theStream{};
+		theStream << std::boolalpha << theData;
+		this->theValues.push_back({ .theEvent = JsonParseEvent::String,.theValue = theStream.str(),.theKey = keyName });
 	}
 
 	template<std::same_as<float> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
+		std::string theString = std::to_string(theData);
+		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer,.theValue = theString,.theKey = keyName });
 	}
 
 	template<std::same_as<double> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
-	}
-
-	template<std::same_as<JsonObjectBase> JsonObjectType>
-	void addEvent(const char* keyName, JsonObjectType theData) {
+		std::string theString = std::to_string(theData);
+		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer,.theValue = theString,.theKey = keyName });
 	}
 
 	template<std::same_as<const char*> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
+		this->theValues.push_back({ .theEvent = JsonParseEvent::String,.theValue = theData,.theKey = keyName });
 	}
 
-	template<std::same_as<Object> JsonObjectType>
+	template<std::same_as<JsonParseEvent> JsonObjectType>
 	void addEvent(const char* keyName, JsonObjectType theData) {
-	}
-
-	template<std::same_as<Array> JsonObjectType>
-	void addEvent(const char* keyName, JsonObjectType theData) {
-	}
-
-	template<std::same_as<ObjectType> JsonObjectType>
-	void addEvent(const char* keyName, JsonObjectType theData) {
+		this->theValues.push_back({ .theEvent = theData,.theValue = "",.theKey = keyName });
 	}
 
 protected:
-
 	std::vector<JsonValue> theValues{};
+	bool isThisTheFirstElement{ true };
+	JsonParserState theState{};
+	size_t currentPosition{};
 };
-struct Array;
-struct Object;
 
-struct JsonObjectBase {
-	void* thePtr{};
-
-	JsonObjectBase(const char* keyName, bool value) noexcept;
-
-	JsonObjectBase(const char* keyName, int64_t value) noexcept;
-
-	JsonObjectBase(const char* keyName, uint64_t value) noexcept;
-
-	JsonObjectBase(const char* keyName, double value) noexcept;
-
-	JsonObjectBase(const char* keyName, float value) noexcept;
-
-	JsonObjectBase(const char* keyName, const char* value) noexcept;
-
-	JsonObjectBase(const char* keyName, std::string& value) noexcept;
-
-	JsonObjectBase(const char* keyName, std::string&& value) noexcept;
-
-	JsonObjectBase(const char* keyName, Object& value) noexcept;
-
-	JsonObjectBase& operator=(const JsonObjectBase& other) noexcept;
-
-	JsonObjectBase(const JsonObjectBase& other) noexcept;
-
-	JsonObjectBase() noexcept;
-
-	ObjectType type();
-
-	std::string getString();
-
-	uint64_t getUint64();
-
-	int64_t getInt64();
-
-	bool getBool();
-
-	float getFloat();
-
-	double getDouble();
-
-	operator std::string() {
-		std::string theString{};
-		switch (this->theType) {
-		case ObjectType::String: {
-			theString += "\"";
-			theString += this->getString();
-			theString += "\"";
-			break;
+size_t JsonSerializer::parseForward(JsonParseEvent theEvent) {
+	for (uint32_t x = 0; x < this->theValues.size(); ++x) {
+		if (this->theValues[x].theEvent == theEvent) {
+			return x;
 		}
-
-		case ObjectType::Boolean: {
-			std::stringstream theStream{};
-			theStream << std::boolalpha << this->getBool();
-			theString += theStream.str();
-			break;
-		}
-
-		case ObjectType::Number_Integer: {
-			theString += std::to_string(this->getInt64());
-			break;
-		}
-
-		case ObjectType::Number_Unsigned: {
-			theString += std::to_string(this->getUint64());
-			break;
-		}
-
-		case ObjectType::Number_Float: {
-			theString += std::to_string(this->getFloat());
-			break;
-		}
-
-		case ObjectType::Number_Double: {
-			theString += std::to_string(this->getDouble());
-			break;
-		}
-
-		case ObjectType::Null: {
-			theString += "null";
-			break;
-		}
-		}
-		return theString;
 	}
-
-	~JsonObjectBase();
-
-	ObjectType theType{};
-
-	std::string theKey{};
-
-};
-
-class JsonObject {
-public:
-	JsonObject()noexcept = default;
-
-	JsonObjectBase theObject{};
-	
-
-};
-JsonObjectBase::JsonObjectBase() noexcept {
-	this->theType = ObjectType::Null;
-	this->thePtr = new uint64_t{};
 }
 
-std::string JsonObjectBase::JsonObjectBase::getString(){
-	return *static_cast<std::string*>(this->thePtr);
+JsonValue JsonSerializer::getEvent() {
+	JsonValue theResult = this->theValues.front();
+	this->theValues.erase(this->theValues.begin());
+	return theResult;
 }
 
-uint64_t JsonObjectBase::JsonObjectBase::getUint64(){
-	return *static_cast<uint64_t*>(this->thePtr);
-}
-
-int64_t JsonObjectBase::JsonObjectBase::getInt64(){
-	return *static_cast<int64_t*>(this->thePtr);
-}
-
-ObjectType JsonObjectBase::JsonObjectBase::type() {
-	return this->theType;
-}
-
-bool JsonObjectBase::JsonObjectBase::getBool(){
-	return *static_cast<bool*>(this->thePtr);
-}
-
-float JsonObjectBase::JsonObjectBase::getFloat(){
-	return *static_cast<float*>(this->thePtr);
-}
-
-double JsonObjectBase::JsonObjectBase::getDouble(){
-	return *static_cast<double*>(this->thePtr);
-}
-
-
-struct Array;
-
-struct Object : public JsonObject {
-	Object& operator=(JsonObject& theData) noexcept;
-	Object& operator=(JsonObject&& theData) noexcept;
-	Object& operator=(const Object& theData) noexcept;
-	Object(const Object& theData) noexcept;
-	Object(const char* keyName, JsonObject) noexcept;
-	Object(const char* keyName) noexcept;
-	Object()noexcept = default;
-	void append(JsonObject& theObject);
-	void append(JsonObject&& theObject);
-	void append(Array& theObject);
-	void append(Array&& theObject);
-	std::string toString(bool doWeAddComma = false, bool doWeAddCurlyBrackets = true);
-	std::unordered_map<std::string, Object>& getMap();
-	~Object() noexcept;
-};
-
-struct Array : public JsonObject {
-	Array()noexcept = default;
-	Array(const char* keyName) noexcept;
-	void append(Object& theObject);
-	void append(Object&& theObject);
-	std::vector<Object>& getVector();
-	operator std::string();
-	~Array() noexcept;
-};
-
-
-Object::Object(const Object& theData) noexcept {
-	this->theObject.thePtr = new std::unordered_map<std::string, Object>{};
-	std::cout << "WERE CONSTRUCTING!" << std::endl;
-	*this = theData;
-}
-
-Object& Object::operator=(JsonObject& theData) noexcept {
-	this->theObject = theData.theObject;
-	return *this;
-}
-
-Object& Object::operator=(JsonObject&& theData) noexcept{
-	this->theObject = theData.theObject;
-	return *this;
-}
-
-Object& Object::operator=(const Object& theData) noexcept {
-	this->theObject = theData.theObject;
-	return *this;
-
-}
-
-Object::Object(const char* keyName, JsonObject theData) noexcept:JsonObject(theData) {
-	this->theObject.thePtr = new std::unordered_map<std::string, Object>{};
-	*this = theData;
-}
-
-Object::Object(const char* keyName) noexcept {
-	this->theObject.thePtr= new std::unordered_map<std::string, Object>{};
-	this->theObject.theKey = keyName;
-};
-
-void Object::append(JsonObject& theObject) {
-	this->getMap()[theObject.theObject.theKey] = theObject;
-}
-
-void Object::append(JsonObject&& theObject) {
-	this->getMap()[theObject.theObject.theKey] = std::move(theObject);
-};
-
-void Object::append(Array& theObject) {
-	this->getMap()[theObject.theObject.theKey] = theObject;
-}
-
-void Object::append(Array&& theObject) {
-	this->getMap()[theObject.theObject.theKey] = std::move(theObject);
-};
-
-std::unordered_map<std::string, Object>& Object::getMap(){
-	return *static_cast<std::unordered_map<std::string, Object>*>(this->theObject.thePtr);
-}
-
-std::string Object::toString(bool doWeAddComma, bool doWeAddCurlyBrackets) {
-	std::string theString{}; 
-	if (doWeAddCurlyBrackets) {
-		theString += "\"" + this->theObject.theKey + "\":";
-		theString += "{";
+size_t JsonSerializer::getArraySize(const char* theName) {
+	size_t theSize{};
+	if (theName != nullptr) {
+		for (uint32_t x = 0; x < this->theValues.size(); ++x) {
+			if (this->theValues[x].theKey == theName) {
+				this->currentPosition = x;
+				break;
+			}
+		}
 	}
-	int32_t currentIndex{};
-	for (auto& [key, value] : this->getMap()) {
-		if (value.theObject.theType == ObjectType::Object) {
-			doWeAddCurlyBrackets = true;
-			theString += "{";
+	bool areWeCounting{ false };
+	bool areWeCountingObjects{ false };
+	for (uint32_t x = this->currentPosition; x < this->theValues.size(); ++x) {
+		if (this->theValues[x].theEvent == JsonParseEvent::Array_Start) {
+			areWeCounting = true;
 		}
-		else if (value.theObject.theType == ObjectType::Boolean || value.theObject.theType == ObjectType::Number_Double || value.theObject.theType == ObjectType::Number_Float
-			|| value.theObject.theType == ObjectType::Number_Integer || value.theObject.theType == ObjectType::Number_Unsigned || value.theObject.theType == ObjectType::String
-			|| value.theObject.theType == ObjectType::Null) {
-			doWeAddCurlyBrackets = false;
+		if (areWeCounting && this->theValues[x].theEvent == JsonParseEvent::Array_End) {
+			areWeCounting = false;
+			this->currentPosition = x;
+			break;
 		}
-		currentIndex++;
-		theString += "\"" + key + "\":";
-		if (currentIndex > 0 && currentIndex < this->getMap().size()) {
-			theString += ",";
+		if (areWeCounting && this->theValues[x].theEvent == JsonParseEvent::Object_Start) {
+			areWeCountingObjects = true;
+			theSize++;
 		}
-		theString += value.toString(doWeAddComma, doWeAddCurlyBrackets);
-		
-		std::cout << "THE STRING: 0303" << std::string{ value.toString() } << std::endl;
-		if (value.theObject.theType == ObjectType::Object) {
+		if (areWeCounting && !areWeCountingObjects) {
+			if (this->theValues[x].theEvent == JsonParseEvent::Boolean || this->theValues[x].theEvent == JsonParseEvent::Number_Double ||
+				this->theValues[x].theEvent == JsonParseEvent::Number_Float || this->theValues[x].theEvent == JsonParseEvent::Number_Integer ||
+				this->theValues[x].theEvent == JsonParseEvent::Number_Unsigned || this->theValues[x].theEvent == JsonParseEvent::String || this->theValues[x].theEvent == JsonParseEvent::Null_Value) {
+				theSize++;
+			}
+		}
+		this->currentPosition = x;
+	}
+	return theSize;
+}
+
+size_t JsonSerializer::getObjectSize(const char* theName) {
+	size_t theSize{};
+	if (theName != nullptr) {
+		for (uint32_t x = 0; x < this->theValues.size(); ++x) {
+			if (this->theValues[x].theKey == theName) {
+				this->currentPosition = x;
+				break;
+			}
+		}
+	}
+	int32_t currentDepth{ 0 };
+	bool areWeInsideASubObject{ false };
+	for (uint32_t x = this->currentPosition; x < this->theValues.size(); ++x) {
+		if (this->theValues[x].theEvent == JsonParseEvent::Object_Start) {
+			std::cout << "THE CURRENT INDEX: " << x << ", THE EVENT: " << (int)this->theValues[x].theEvent << std::endl;
+			if (!areWeInsideASubObject) {
+				theSize++;
+				areWeInsideASubObject = true;
+			}
+			else {
+				currentDepth++;
+			}
+		}
+		if (this->theValues[x].theEvent == JsonParseEvent::Object_End) {			
+			if (areWeInsideASubObject && !currentDepth) {
+				areWeInsideASubObject = false;
+			}
+			else {
+				currentDepth--;
+			}
+			this->currentPosition = x;
+		}
+		this->currentPosition = x;
+	}
+	return theSize;
+}
+std::string JsonSerializer::getString() {
+	std::string theString{"{"};
+	for (auto& value : this->theValues) {
+		switch (value.theEvent) {
+		case JsonParseEvent::Object_Start: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			this->isThisTheFirstElement = true;
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":{";
+			}
+			else {
+				this->theState = JsonParserState::Adding_Object_Elements;
+				theString += "{";
+			}
+			break;
+		}
+		case JsonParseEvent::Object_End: {
 			theString += "}";
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			if (theString[theString.size() - 2] == ',') {
+				theString.erase(theString.begin() + theString.size() - 2);
+			}
+			break;
+		}
+		case JsonParseEvent::Array_Start: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			this->isThisTheFirstElement = true;
+			this->theState = JsonParserState::Adding_Array_Elements;
+			theString += "\"" + value.theKey + "\":[";
+			break;
+		}
+		case JsonParseEvent::Array_End: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			this->theState = JsonParserState::Adding_Object_Elements;
+			theString += "]";
+			if (theString[theString.size() - 2] == ',') {
+				theString.erase(theString.begin() + theString.size() - 2);
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::Boolean: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":" + value.theValue;
+			}
+			else {
+				theString += value.theValue;
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::Null_Value: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":" + value.theValue;
+			}
+			else {
+				theString += value.theValue;
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::Number_Double: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":" + value.theValue;
+			}
+			else {
+				theString += value.theValue;
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::Number_Float: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":" + value.theValue;
+			}
+			else {
+				theString += value.theValue;
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::Number_Integer: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":" + value.theValue;
+			}
+			else {
+				theString += value.theValue;
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::Number_Unsigned: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":" + value.theValue;
+			}
+			else {
+				theString += value.theValue;
+			}
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
+		case JsonParseEvent::String: {
+			if (!this->isThisTheFirstElement) {
+				theString += ",";
+			}
+			if (this->theState == JsonParserState::Adding_Object_Elements) {
+				theString += "\"" + value.theKey + "\":\"" + value.theValue + "\"";
+			}
+			else {
+				theString += "\"" + value.theValue + "\"";
+			}
+			
+			if (this->isThisTheFirstElement) {
+				this->isThisTheFirstElement = false;
+			}
+			break;
+		}
 		}
 		
 	}
-	if (doWeAddCurlyBrackets) {
-		theString += "}";
-	}
-	
-	
-	std::cout << "THE STRING: 0202" << theString << std::endl;
+	theString += "}";
 	return theString;
 }
-
-Object::~Object() noexcept{
-	if (this->theObject.thePtr) {
-		delete this->theObject.thePtr;
-		this->theObject.thePtr= nullptr;
-	}
-}
-
-Array::Array(const char* keyName) noexcept {
-	this->theObject.thePtr= new std::vector<JsonObject>{};
-	this->theObject.theKey = keyName;
-}
-
-void Array::append(Object& theObject){
-	this->getVector().push_back(theObject);
-}
-
-void Array::append(Object&& theObject){
-	this->getVector().push_back(std::move(theObject));
-}
-
-std::vector<Object>& Array::getVector() {
-	return *static_cast<std::vector<Object>*>(this->theObject.thePtr);
-}
-
-Array::operator std::string() {
-	return std::string{};
-}
-
-Array::~Array() noexcept {
-	if (this->theObject.thePtr) {
-		delete this->theObject.thePtr;
-		this->theObject.thePtr= nullptr;
-	}
-}
-
-JsonObjectBase& JsonObjectBase::operator=(const JsonObjectBase& other) noexcept {
-	if (!other.thePtr) {
-		const_cast<JsonObjectBase*>(&other)->thePtr = std::make_unique<JsonObject>().release();
-	}
-	if (other.theType == ObjectType::Array) {
-		this->thePtr= std::make_unique<Array>().release();
-		*(Array*)this->thePtr= *(Array*)other.thePtr;
-	}
-	else if (other.theType == ObjectType::Boolean) {
-		this->thePtr= std::make_unique<bool>().release();
-		*(bool*)this->thePtr= *(bool*)other.thePtr;
-	}
-	else if (other.theType == ObjectType::Number_Double) {
-		this->thePtr= std::make_unique<double>().release();
-		*(double*)this->thePtr= *(double*)other.thePtr;
-	}
-	else if (other.theType == ObjectType::Number_Float) {
-		this->thePtr= std::make_unique<float>().release();
-		*(float*)this->thePtr= *(float*)other.thePtr;
-	}
-	else if (other.theType == ObjectType::Number_Integer) {
-		this->thePtr= std::make_unique<int64_t>().release();
-		*(int64_t*)this->thePtr= *(int64_t*)other.thePtr;
-	}
-	else if (other.theType == ObjectType::Number_Unsigned) {
-		this->thePtr= std::make_unique<uint64_t>().release();
-		*(uint64_t*)this->thePtr= *(uint64_t*)other.thePtr;
-	}
-	else if (other.theType == ObjectType::String) {
-		this->thePtr= std::make_unique<std::string>().release();
-		*(std::string*)this->thePtr= *(std::string*)other.thePtr;
-	}
-	this->theType = other.theType;
-	this->theKey = other.theKey;
-	return *this;
-}
-
-JsonObjectBase::JsonObjectBase(const JsonObjectBase& other) noexcept {
-	*this = other;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, Object& value) noexcept {
-	this->thePtr = std::make_unique<Object>().release();
-	this->theType = ObjectType::Object;
-	*(Object*)this->thePtr = value;
-	this->theKey = keyName;
-}
-
-
-JsonObjectBase::JsonObjectBase(const char* keyName, uint64_t other) noexcept {
-	this->thePtr= std::make_unique<uint64_t>().release();
-	this->theType = ObjectType::Number_Unsigned;
-	*(uint64_t*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, int64_t other) noexcept {
-	this->thePtr= std::make_unique<int64_t>().release();
-	this->theType = ObjectType::Number_Integer;
-	*(int64_t*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, const char* value) noexcept {
-	this->thePtr= std::make_unique<std::string>().release();
-	this->theType = ObjectType::String;
-	*(std::string*)this->thePtr= value;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, bool other) noexcept {
-	this->thePtr= std::make_unique<bool>().release();
-	this->theType = ObjectType::Boolean;
-	*(bool*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, float other) noexcept {
-	this->thePtr= std::make_unique<float>().release();
-	this->theType = ObjectType::Number_Float;
-	*(float*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, double other) noexcept {
-	this->thePtr= std::make_unique<double>().release();
-	this->theType = ObjectType::Number_Double;
-	*(double*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, std::string&& other) noexcept {
-	this->thePtr= std::make_unique<std::string>().release();
-	this->theType = ObjectType::String;
-	*(std::string*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-JsonObjectBase::JsonObjectBase(const char* keyName, std::string& other) noexcept {
-	this->thePtr= std::make_unique<std::string>().release();
-	this->theType = ObjectType::String;
-	*(std::string*)this->thePtr= other;
-	this->theKey = keyName;
-}
-
-
-JsonObjectBase::~JsonObjectBase() {
-	if (this->thePtr) {
-		delete this->thePtr;
-		this->thePtr = nullptr;
-	}
-};
-
-
     struct WebSocketIdentifyData {
         DiscordCoreInternal::UpdatePresenceData presence{};
         std::int32_t largeThreshold{};
@@ -489,42 +340,50 @@ JsonObjectBase::~JsonObjectBase() {
 
     WebSocketIdentifyData::operator JsonSerializer() {
 		JsonSerializer theSerializer{};
+		theSerializer.addEvent("op", static_cast<uint64_t>(2));
+		theSerializer.addEvent("d", JsonParseEvent::Object_Start);
 		theSerializer.addEvent("token", this->botToken);
-		/*		Object data{ "d" };
-		Object theProperties{ "properties" };
-		theProperties["browser"] = "DiscordCoreAPI";
-		theProperties["device"] = "DiscordCoreAPI";
-		std::cout << "THE OBJET RELADER: " << std::string{ theProperties.toString(false, true) } << std::endl;
-		Array theShard{ "shard" };
-		theShard.append(Object{ "" });
-		theShard.append(Object{ "",JsonObject{"",static_cast<uint64_t>(this->numberOfShards)} });
-		data.append(theShard);
-		data.append(Object{ "large_threshold",JsonObject{ "",static_cast<uint64_t>(250)}});
-		data.append(Object{ "intents", JsonObject{ "",static_cast<uint64_t>(this->intents) } });
-		data.append({ "compress", false });
-		data.append({ "token", this->botToken });
-		Array theActivities{ "activities" };
-        for (auto& value : this->presence.activities) {
-			Object dataNew{ "" };
-            if (static_cast<std::string>(value.url) != "") {
-				dataNew.append({ "url", std::string{ value.url } });
-            }
-			dataNew.append({ "name", std::string{ value.name } });
-			dataNew.append({ "type", static_cast<uint64_t>(value.type) });
-            theActivities.append(dataNew);
-        }
-		Object presence{ "presence" };
-		presence.append({ "status", this->presence.status });
-		presence.append({ "since", static_cast<uint64_t>(0) });
-		presence.append({ "afk", this->presence.afk });
-		data.append(presence);
-		data.append({ "op", static_cast<uint64_t>(2) });
+		
+		theSerializer.addEvent("properties", JsonParseEvent::Object_Start);
+		theSerializer.addEvent("browser", "DiscordCoreAPI");
+		theSerializer.addEvent("device", "DiscordCoreAPI");
 #ifdef _WIN32
-		theProperties.append({ "os", "Windows" });
+		theSerializer.addEvent("os", "Windows");
 #else
-		theProperties.append({ "os", "Linux" });
+		theSerializer.addEvent("os", "Linux");
 #endif
-		data.append({ "properties", theProperties });*/
+		theSerializer.addEvent("properties", JsonParseEvent::Object_End);
+		theSerializer.addEvent("shard", JsonParseEvent::Array_Start);
+		theSerializer.addEvent("", static_cast<uint64_t>(this->currentShard));
+		theSerializer.addEvent("", static_cast<uint64_t>(this->numberOfShards));
+		theSerializer.addEvent("shard", JsonParseEvent::Array_End);
+		theSerializer.addEvent("large_threshold", static_cast<uint64_t>(this->largeThreshold));
+		theSerializer.addEvent("intents", static_cast<uint64_t>(this->intents));
+		theSerializer.addEvent("compress", false);
+		theSerializer.addEvent("presence", JsonParseEvent::Object_Start);
+		theSerializer.addEvent("status", this->presence.status);
+		theSerializer.addEvent("afk", this->presence.afk);
+		theSerializer.addEvent("since", this->presence.since);
+		theSerializer.addEvent("activities", JsonParseEvent::Array_Start);
+		std::vector<uint64_t>theVector{};
+		for (uint32_t x = 0; x < 112; ++x) {
+			theVector.push_back(x);
+		}
+		DiscordCoreAPI::ActivityData theDataNew{};
+		theDataNew.name = "/help for my commands";
+		theDataNew.url = "";
+		this->presence.activities.push_back(theDataNew);
+		for (auto& value : this->presence.activities) {
+			theSerializer.addEvent("", JsonParseEvent::Object_Start);
+			theSerializer.addEvent("url", std::string{ value.url });
+			theSerializer.addEvent("name", std::string{ value.name });
+			theSerializer.addEvent("type", static_cast<uint64_t>(value.type));
+			theSerializer.addEvent("", JsonParseEvent::Object_End);
+		}
+		theSerializer.addEvent("activities", JsonParseEvent::Array_End);
+		theSerializer.addEvent("presence", JsonParseEvent::Object_End);
+		theSerializer.addEvent("d", JsonParseEvent::Object_End);
+
 		return theSerializer;
     }
 
@@ -532,7 +391,19 @@ JsonObjectBase::~JsonObjectBase() {
         try {
 			WebSocketIdentifyData theData{};
 			theData.botToken = "TESTING VALUE 23123123123";
-			std::cout << "THE STRING FINAL: " << theData.operator JsonSerializer().getString() << std::endl;
+			auto serializer = theData.operator JsonSerializer();
+			std::cout << "THE STRING FINAL: " << serializer.getObjectSize("shard") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getObjectSize("d") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getObjectSize("d") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getObjectSize("d") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getArraySize("theVector") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getArraySize("theVector") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getArraySize("theVector") << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getArraySize("theVector") << std::endl;
+			
+			std::cout << "THE STRING FINAL: " << serializer.getString() << std::endl;
+			std::cout << "THE STRING FINAL: " << serializer.getString() << std::endl;
+			
 
             std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
