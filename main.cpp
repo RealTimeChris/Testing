@@ -4,8 +4,69 @@
 #include <stdint.h>
 #include <set>
 
-enum class ObjectType : int8_t { JsonObjectBase = 0, Array = 1, String = 2, Boolean = 3, Number_Integer = 4, Number_Unsigned = 5, Number_Float = 6, Number_Double = 7, Null = 8 };
+enum class ObjectType : int8_t { Null = 0, Object = 1, Array = 2, String = 3, Boolean = 4, Number_Integer = 5, Number_Unsigned = 6, Number_Float = 7, Number_Double = 8 };
+enum class JsonParseEvent { Null_Value = 0, Object_Start = 1, Object_End = 2, Array_Start = 3, Array_End = 4, String = 5, Boolean = 6, Number_Integer = 7, Number_Unsigned = 8, Number_Float = 9, Number_Double = 10 };
 
+struct JsonValue {
+	JsonParseEvent theEvent{};
+	std::string theValue{};
+	std::string theKey{};
+};
+class JsonSerializer {
+public:
+	JsonSerializer()noexcept = default;
+	std::string getString();
+
+	template<std::same_as<uint64_t> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+		std::string theString = std::to_string(theData);
+		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Unsigned,.theValue = theString,.theKey = keyName });
+	}
+
+	template<std::same_as<int64_t> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<std::string> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<bool> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<float> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<double> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<JsonObjectBase> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<const char*> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<Object> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<Array> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+	template<std::same_as<ObjectType> JsonObjectType>
+	void addEvent(const char* keyName, JsonObjectType theData) {
+	}
+
+protected:
+
+	std::vector<JsonValue> theValues{};
+};
 struct Array;
 struct Object;
 
@@ -27,6 +88,8 @@ struct JsonObjectBase {
 	JsonObjectBase(const char* keyName, std::string& value) noexcept;
 
 	JsonObjectBase(const char* keyName, std::string&& value) noexcept;
+
+	JsonObjectBase(const char* keyName, Object& value) noexcept;
 
 	JsonObjectBase& operator=(const JsonObjectBase& other) noexcept;
 
@@ -103,64 +166,9 @@ struct JsonObjectBase {
 
 class JsonObject {
 public:
+	JsonObject()noexcept = default;
 
-	JsonObject() noexcept = default;
-
-	JsonObjectBase theObject;
-	template<std::same_as<uint64_t> JsonObjectType>
-	JsonObject(const char*keyName,JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<int64_t> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<std::string> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<bool> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<float> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<double> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<JsonObjectBase> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<const char*> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<Object> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		//this->theObject = JsonObjectBase{ keyName, theData };
-	}
-
-	template<std::same_as<Array> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
-	
-	template<std::same_as<ObjectType> JsonObjectType>
-	JsonObject(const char* keyName, JsonObjectType theData) {
-		this->theObject = JsonObjectBase{ keyName, theData };
-	}
+	JsonObjectBase theObject{};
 	
 
 };
@@ -204,18 +212,16 @@ struct Object : public JsonObject {
 	Object& operator=(JsonObject& theData) noexcept;
 	Object& operator=(JsonObject&& theData) noexcept;
 	Object& operator=(const Object& theData) noexcept;
-	Object& operator=(Object&& theData) noexcept;
 	Object(const Object& theData) noexcept;
 	Object(const char* keyName, JsonObject) noexcept;
 	Object(const char* keyName) noexcept;
-	Object()noexcept;
+	Object()noexcept = default;
 	void append(JsonObject& theObject);
 	void append(JsonObject&& theObject);
 	void append(Array& theObject);
 	void append(Array&& theObject);
 	std::string toString(bool doWeAddComma = false, bool doWeAddCurlyBrackets = true);
 	std::unordered_map<std::string, Object>& getMap();
-	Object& operator[](const char* theKey);
 	~Object() noexcept;
 };
 
@@ -230,21 +236,9 @@ struct Array : public JsonObject {
 };
 
 
-
-Object::Object() noexcept {
-	this->theObject.thePtr = new std::unordered_map<std::string, Object>{};
-}
-
-Object& Object::operator[](const char* keyName) {
-	if (!this->getMap().contains(keyName)) {
-		this->getMap()[keyName] = Object{ keyName };
-	}
-	std::cout << "THE OBJECT: 01 " << std::string{ this->getMap()[keyName].toString() } << std::endl;
-	return this->getMap()[keyName];
-}
-
 Object::Object(const Object& theData) noexcept {
-	this->theObject.thePtr= new std::unordered_map<std::string, Object>{};
+	this->theObject.thePtr = new std::unordered_map<std::string, Object>{};
+	std::cout << "WERE CONSTRUCTING!" << std::endl;
 	*this = theData;
 }
 
@@ -264,13 +258,7 @@ Object& Object::operator=(const Object& theData) noexcept {
 
 }
 
-Object& Object::operator=(Object&& theData) noexcept {
-	this->theObject = std::move(theData.theObject);
-	return *this;
-
-}
-
-Object::Object(const char* keyName, JsonObject theData) noexcept {
+Object::Object(const char* keyName, JsonObject theData) noexcept:JsonObject(theData) {
 	this->theObject.thePtr = new std::unordered_map<std::string, Object>{};
 	*this = theData;
 }
@@ -302,32 +290,39 @@ std::unordered_map<std::string, Object>& Object::getMap(){
 
 std::string Object::toString(bool doWeAddComma, bool doWeAddCurlyBrackets) {
 	std::string theString{}; 
-	if (doWeAddComma) {
-		theString += ",";
-	}
-	if (doWeAddCurlyBrackets){
+	if (doWeAddCurlyBrackets) {
+		theString += "\"" + this->theObject.theKey + "\":";
 		theString += "{";
 	}
-	
-	theString += "\"" + this->theObject.theKey + "\":";
 	int32_t currentIndex{};
 	for (auto& [key, value] : this->getMap()) {
-		if (value.theObject.theType == ObjectType::JsonObjectBase) {
+		if (value.theObject.theType == ObjectType::Object) {
 			doWeAddCurlyBrackets = true;
+			theString += "{";
+		}
+		else if (value.theObject.theType == ObjectType::Boolean || value.theObject.theType == ObjectType::Number_Double || value.theObject.theType == ObjectType::Number_Float
+			|| value.theObject.theType == ObjectType::Number_Integer || value.theObject.theType == ObjectType::Number_Unsigned || value.theObject.theType == ObjectType::String
+			|| value.theObject.theType == ObjectType::Null) {
+			doWeAddCurlyBrackets = false;
 		}
 		currentIndex++;
 		theString += "\"" + key + "\":";
 		if (currentIndex > 0 && currentIndex < this->getMap().size()) {
-			doWeAddComma = true;
+			theString += ",";
 		}
 		theString += value.toString(doWeAddComma, doWeAddCurlyBrackets);
 		
 		std::cout << "THE STRING: 0303" << std::string{ value.toString() } << std::endl;
+		if (value.theObject.theType == ObjectType::Object) {
+			theString += "}";
+		}
 		
 	}
 	if (doWeAddCurlyBrackets) {
 		theString += "}";
 	}
+	
+	
 	std::cout << "THE STRING: 0202" << theString << std::endl;
 	return theString;
 }
@@ -408,6 +403,13 @@ JsonObjectBase::JsonObjectBase(const JsonObjectBase& other) noexcept {
 	*this = other;
 }
 
+JsonObjectBase::JsonObjectBase(const char* keyName, Object& value) noexcept {
+	this->thePtr = std::make_unique<Object>().release();
+	this->theType = ObjectType::Object;
+	*(Object*)this->thePtr = value;
+	this->theKey = keyName;
+}
+
 
 JsonObjectBase::JsonObjectBase(const char* keyName, uint64_t other) noexcept {
 	this->thePtr= std::make_unique<uint64_t>().release();
@@ -482,11 +484,13 @@ JsonObjectBase::~JsonObjectBase() {
         std::string botToken{};
         int64_t intents{};
 
-        operator JsonObject();
+        operator JsonSerializer();
     };
 
-    WebSocketIdentifyData::operator JsonObject() {
-		Object data{ "d" };
+    WebSocketIdentifyData::operator JsonSerializer() {
+		JsonSerializer theSerializer{};
+		theSerializer.addEvent("token", this->botToken);
+		/*		Object data{ "d" };
 		Object theProperties{ "properties" };
 		theProperties["browser"] = "DiscordCoreAPI";
 		theProperties["device"] = "DiscordCoreAPI";
@@ -520,16 +524,15 @@ JsonObjectBase::~JsonObjectBase() {
 #else
 		theProperties.append({ "os", "Linux" });
 #endif
-		data.append({ "properties", theProperties });
-        return data;
+		data.append({ "properties", theProperties });*/
+		return theSerializer;
     }
 
     int32_t main() {
         try {
 			WebSocketIdentifyData theData{};
 			theData.botToken = "TESTING VALUE 23123123123";
-			std::string theString = theData.operator JsonObject().theObject.operator std::string();
-			std::cout << "THE STRING FINAL: " << theString << std::endl;
+			std::cout << "THE STRING FINAL: " << theData.operator JsonSerializer().getString() << std::endl;
 
             std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
