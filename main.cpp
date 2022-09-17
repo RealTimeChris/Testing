@@ -98,18 +98,9 @@ JsonValue& JsonValue::operator=(uint8_t theData) {
 }
 
 template<typename JsonObjectType>
-JsonValue& JsonValue::operator=(std::vector<JsonObjectType>theData) {
-	for (auto& value : theData) {
-		JsonValue theValue{ value };
-		this->theValues.push_back(theValue);
-	}
-	return *this;
-}
-
-template<typename JsonObjectType>
 JsonSerializer& JsonSerializer::operator=(std::vector<JsonObjectType>theData) {
 	JsonValue theValue{};
-	theValue.theEvent = JsonParseEvent::Array_Start;
+	theValue = JsonParseEvent::Array_Start;
 	this->theValues.push_back(theValue);
 	for (auto& value : theData) {
 		theValue = value;

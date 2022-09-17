@@ -45,8 +45,8 @@ enum class JsonParseEvent : uint16_t {
 };
 
 struct JsonValue {
-	template<typename JsonObjectType>
-	JsonValue& operator=(std::vector<JsonObjectType>);
+	JsonValue()noexcept = default;
+
 	JsonValue& operator=(int8_t);
 	JsonValue& operator=(int16_t);
 	JsonValue& operator=(int32_t);
@@ -61,10 +61,9 @@ struct JsonValue {
 	JsonValue& operator=(std::string);
 	JsonValue& operator=(const char*);
 	JsonValue& operator=(JsonParseEvent);
-	JsonValue()noexcept = default;
+	
 	JsonParseEvent theEvent{};
 	std::string theValue{};
-	std::vector<JsonValue> theValues{};
 	operator std::string();
 };
 
