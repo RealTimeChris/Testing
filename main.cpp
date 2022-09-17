@@ -9,8 +9,90 @@ JsonValue::operator std::string() {
 
 }
 
+JsonValue& JsonValue::operator=(JsonParseEvent theData) {
+	this->theEvent = theData;
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(bool theData) {
+	this->theEvent = JsonParseEvent::Boolean;
+	if (theData) {
+		this->theValue = "true";
+	}
+	else {
+		this->theValue = "false";
+	}
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(const char* theData) {
+	this->theEvent = JsonParseEvent::String;
+	this->theValue = theData;
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(std::string theData) {
+	this->theEvent = JsonParseEvent::String;
+	this->theValue = theData;
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(float theData) {
+	this->theEvent = JsonParseEvent::Number_Float;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(double theData) {
+	this->theEvent = JsonParseEvent::Number_Double;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(int64_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer_Large;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(int32_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(int16_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(int8_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer_Small;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(uint64_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer_Large;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
 JsonValue& JsonValue::operator=(uint32_t theData){
 	this->theEvent = JsonParseEvent::Number_Integer;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(uint16_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer;
+	this->theValue = std::to_string(theData);
+	return *this;
+}
+
+JsonValue& JsonValue::operator=(uint8_t theData) {
+	this->theEvent = JsonParseEvent::Number_Integer_Small;
 	this->theValue = std::to_string(theData);
 	return *this;
 }
@@ -45,29 +127,175 @@ JsonSerializer& JsonSerializer::operator=(JsonParseEvent theData) {
 	return *this;
 }
 
-JsonSerializer& JsonSerializer::operator=(bool theData){
+JsonSerializer& JsonSerializer::operator=(uint8_t theData) {
 	JsonValue theNewData{};
-	theNewData.theEvent = JsonParseEvent::Boolean;
-	std::string theString{};
-	if (theData) {
-		theString = "true";
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
 	}
 	else {
-		theString = "false";
+		this->theValues.push_back(theNewData);
 	}
-	theNewData.theValue = theString;
-	this->theValues.push_back(theNewData);
+	this->isItFound = false;
 	return *this;
 }
 
-JsonSerializer& JsonSerializer::operator=(uint32_t theData){
+JsonSerializer& JsonSerializer::operator=(uint16_t theData) {
 	JsonValue theNewData{};
-	theNewData.theEvent = JsonParseEvent::Boolean;
-	std::string theString{ std::to_string(theData) };
-	theNewData.theValue = theString;
-	this->theValues.push_back(theNewData);
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
 	return *this;
 }
+
+JsonSerializer& JsonSerializer::operator=(uint32_t theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(uint64_t theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int8_t theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int16_t theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int32_t theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int64_t theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(float theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(double theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(std::string theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(const char* theData) {
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(bool theData){
+	JsonValue theNewData{};
+	theNewData = theData;
+	if (this->isItFound) {
+		this->theValues[this->currentPosition + 1] = theNewData;
+	}
+	else {
+		this->theValues.push_back(theNewData);
+	}
+	this->isItFound = false;
+	return *this;
+}
+
 
 JsonSerializer::operator std::string() {
 	auto theString = this->getString();
@@ -76,10 +304,19 @@ JsonSerializer::operator std::string() {
 
 
 JsonSerializer& JsonSerializer::operator[](const char* keyName) {
-	JsonValue theName{};
-	theName.theEvent = JsonParseEvent::Key;
-	theName.theValue = keyName;
-	this->theValues.push_back(theName);
+	for (size_t x = 0; x < this->theValues.size();++x) {
+		if (this->theValues[x].theValue == keyName) {
+			this->currentPosition = x;
+			this->isItFound = true;
+			break;
+		}
+	}
+	if (!this->isItFound) {
+		JsonValue theName{};
+		theName.theEvent = JsonParseEvent::Key;
+		theName.theValue = keyName;
+		this->theValues.push_back(theName);
+	}
 	return *this;
 }
 
@@ -251,6 +488,7 @@ std::string JsonSerializer::getString() {
 		std::int32_t largeThreshold{ 250 };
 		std::int32_t numberOfShards{};
 		std::int32_t currentShard{};
+		bool compress{ false };
 		std::string botToken{};
 		int64_t intents{};
 
@@ -262,12 +500,14 @@ std::string JsonSerializer::getString() {
 		std::vector<uint32_t> theVector{};
 		theVector.push_back(244);
 		theVector.push_back(243);
+		
 		theSerializer["TEST_VECTOR"] = theVector;
 		theSerializer["d"] = JsonParseEvent::Object_Start;
-		theSerializer["compress"] = false;
+		theSerializer["compress"] = this->compress;
+		theSerializer["compress"] = true;
 		theSerializer["intents"] = static_cast<uint32_t>(this->intents);
-		theSerializer.addEvent(static_cast<uint32_t>(250), "large_threshold");
-		theSerializer.addEvent(JsonParseEvent::Object_Start, "presence");
+		theSerializer["large_threshold"] = static_cast<uint32_t>(250);
+		theSerializer["presence"] = JsonParseEvent::Object_Start;
 		theSerializer.addEvent(JsonParseEvent::Array_Start, "activities");
 
 		for (auto& value : this->presence.activities) {
@@ -333,15 +573,19 @@ std::string JsonSerializer::getString() {
 			
 			std::string theString = theSerializer;
 			std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
-			std::cout << "THE FINAL STRING: " << thePacker.parseJsonToEtf(theString) << std::endl;
+			theData.compress = true;
+			auto theSerializer02 = theData.operator JsonSerializer();
+
+			std::string theString02 = theSerializer02;
+			std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
 			nlohmann::json::parse(static_cast<std::string>(theSerializer));
 			DiscordCoreAPI::DiscordCoreClient theClient{ DiscordCoreAPI::DiscordCoreClientConfig {} };
 			std::unique_ptr<DiscordCoreInternal::WebSocketSSLShard> theShard{ std::make_unique<DiscordCoreInternal::WebSocketSSLShard>(&theClient,nullptr,0,nullptr) };
 			theShard->connect("gateway.discord.gg", "443", true, true);
 			auto theJsonData = nlohmann::json{ theData.operator JsonSerializer().getString() };
-			std::string theString02{};
-			theShard->stringifyJsonData(theJsonData, theString02, DiscordCoreInternal::WebSocketOpCode::Op_Text);
-			theShard->sendMessage(theString02, false);
+			std::string theString03{};
+			theShard->stringifyJsonData(theJsonData, theString03, DiscordCoreInternal::WebSocketOpCode::Op_Text);
+			theShard->sendMessage(theString03, false);
 			theShard->processIO(100000);
 			theShard->processIO(100000);
 			theShard->processIO(100000);

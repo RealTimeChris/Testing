@@ -47,7 +47,20 @@ enum class JsonParseEvent : uint16_t {
 struct JsonValue {
 	template<typename JsonObjectType>
 	JsonValue& operator=(std::vector<JsonObjectType>);
+	JsonValue& operator=(int8_t);
+	JsonValue& operator=(int16_t);
+	JsonValue& operator=(int32_t);
+	JsonValue& operator=(int64_t);
+	JsonValue& operator=(uint8_t);
+	JsonValue& operator=(uint16_t);
 	JsonValue& operator=(uint32_t);
+	JsonValue& operator=(uint64_t);
+	JsonValue& operator=(bool);
+	JsonValue& operator=(double);
+	JsonValue& operator=(float);
+	JsonValue& operator=(std::string);
+	JsonValue& operator=(const char*);
+	JsonValue& operator=(JsonParseEvent);
 	JsonValue()noexcept = default;
 	JsonParseEvent theEvent{};
 	std::string theValue{};
@@ -62,7 +75,18 @@ public:
 	JsonSerializer& operator=(bool);
 	template<typename JsonObjectType>
 	JsonSerializer& operator=(std::vector<JsonObjectType>theData);
+	JsonSerializer& operator=(int8_t);
+	JsonSerializer& operator=(int16_t);
+	JsonSerializer& operator=(int32_t);
+	JsonSerializer& operator=(int64_t);
+	JsonSerializer& operator=(uint8_t);
+	JsonSerializer& operator=(uint16_t);
 	JsonSerializer& operator=(uint32_t);
+	JsonSerializer& operator=(uint64_t);
+	JsonSerializer& operator=(double);
+	JsonSerializer& operator=(float);
+	JsonSerializer& operator=(std::string);
+	JsonSerializer& operator=(const char*);
 	JsonSerializer& operator=(JsonParseEvent);
 
 	std::string getString();
@@ -334,10 +358,10 @@ public:
 	operator std::string();
 
 protected:
-	std::unordered_map<std::string, int32_t> theDepths{};
 	std::vector<JsonValue> theValues{};
 	JsonParserState theState{};
 	size_t currentPosition{};
+	bool isItFound{ false };
 };
 
 	struct ErlPackError : public std::runtime_error {
