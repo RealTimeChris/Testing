@@ -600,7 +600,9 @@ recursive_generator<std::invoke_result_t<FUNC&, typename recursive_generator<T>:
 		co_yield std::invoke(func, static_cast<decltype(value)>(value));
 	}
 }
+
 enum class JsonParserState { Adding_Object_Elements = 0, Adding_Array_Elements = 1 };
+
 enum class JsonParseEvent : uint16_t {
 	Unset = 0 << 0,
 	Null_Value = 1 << 1,
@@ -614,149 +616,97 @@ enum class JsonParseEvent : uint16_t {
 	Number_Integer_Small = 1 << 9,
 	Number_Integer_Large = 1 << 10,
 	Number_Float = 1 << 11,
-	Number_Double = 1 << 12,
-	Key = 1 << 13
+	Number_Double = 1 << 12
 };
+
 class JsonSerializer;
-class JsonRecord;
+
 class JsonObject;
+
 struct JsonScalarValue {
-	template<typename T>
-	friend 	class recursive_generator;
-	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
-	JsonScalarValue()noexcept = default;
-	JsonScalarValue& operator=(const JsonScalarValue&);
-	JsonScalarValue(const JsonScalarValue&);
-	JsonScalarValue& operator=(JsonParseEvent);
-	JsonScalarValue& operator=(int8_t);
-	JsonScalarValue& operator=(int16_t);
-	JsonScalarValue& operator=(int32_t);
-	JsonScalarValue& operator=(int64_t);
-	JsonScalarValue& operator=(uint8_t);
-	JsonScalarValue& operator=(uint16_t);
-	JsonScalarValue& operator=(uint32_t);
-	JsonScalarValue& operator=(uint64_t);
-	JsonScalarValue& operator=(bool);
-	JsonScalarValue& operator=(double);
-	JsonScalarValue& operator=(float);
-	JsonScalarValue& operator=(std::string);
-	JsonScalarValue& operator=(const char*);
+	
+	friend class JsonSerializer;
 
+	friend class JsonObject;
+
+	JsonScalarValue() noexcept = default;
+	JsonScalarValue& operator=(const JsonScalarValue&) noexcept;
+	JsonScalarValue(const JsonScalarValue&) noexcept;
+	JsonScalarValue& operator=(int8_t) noexcept;
+	JsonScalarValue& operator=(int16_t) noexcept;
+	JsonScalarValue& operator=(int32_t) noexcept;
+	JsonScalarValue& operator=(int64_t) noexcept;
+	JsonScalarValue& operator=(uint8_t) noexcept;
+	JsonScalarValue& operator=(uint16_t) noexcept;
+	JsonScalarValue& operator=(uint32_t) noexcept;
+	JsonScalarValue& operator=(uint64_t) noexcept;
+	JsonScalarValue& operator=(bool) noexcept;
+	JsonScalarValue& operator=(double) noexcept;
+	JsonScalarValue& operator=(float) noexcept;
+	JsonScalarValue& operator=(std::string) noexcept;
+	JsonScalarValue& operator=(const char*) noexcept;
+	JsonScalarValue(int8_t) noexcept;
+	JsonScalarValue(int16_t) noexcept;
+	JsonScalarValue(int32_t) noexcept;
+	JsonScalarValue(int64_t) noexcept;
+	JsonScalarValue(uint8_t) noexcept;
+	JsonScalarValue(uint16_t) noexcept;
+	JsonScalarValue(uint32_t) noexcept;
+	JsonScalarValue(uint64_t) noexcept;
+	JsonScalarValue(bool) noexcept;
+	JsonScalarValue(double) noexcept;
+	JsonScalarValue(float) noexcept;
+	JsonScalarValue(std::string) noexcept;
+	JsonScalarValue(const char*) noexcept;
+
+	operator std::string() noexcept;
+protected:
+	JsonParseEvent theEvent{};
 	std::string theValue{};
-	std::string theKey{};
-	operator std::string();
+	
 };
-
-inline bool operator<(const JsonScalarValue& lhs, const JsonScalarValue& rhs) {
-	if (lhs.theKey < rhs.theKey) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
 
 class JsonObject {
 public:
-	template<typename T>
-	friend 	class recursive_generator;
-	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
-	JsonObject() noexcept = default;
-	JsonScalarValue theScalarValue{};
-	std::string theKey{};
-	std::map<std::string, JsonObject>theValue{};
-	template<typename JsonObjectType>
-	JsonObject& operator=(std::vector<JsonObjectType>& theVector);
-	JsonObject& operator=(int8_t);
-	JsonObject& operator=(int16_t);
-	JsonObject& operator=(int32_t);
-	JsonObject& operator=(int64_t);
-	JsonObject& operator=(uint8_t);
-	JsonObject& operator=(uint16_t);
-	JsonObject& operator=(uint32_t);
-	JsonObject& operator=(uint64_t);
-	JsonObject& operator=(bool);
-	JsonObject& operator=(double);
-	JsonObject& operator=(float);
-	JsonObject& operator=(std::string);
-	JsonObject& operator=(const char*);
-};
-
-class JsonRecord {
-public:
-	template<typename T>
-	friend 	class recursive_generator;
-	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
 	friend class JsonSerializer;
-	JsonRecord() noexcept = default;
+
+	JsonObject() noexcept = default;
+	JsonObject& operator=(const JsonObject&) noexcept = default;
+	JsonObject(const JsonObject&) noexcept = default;
+	JsonObject& operator=(JsonObject&&) noexcept = default;
+	JsonObject(JsonObject&&) noexcept = default;
+
+	
+	JsonObject& operator=(const JsonScalarValue& theData) noexcept;
+	JsonObject(const JsonScalarValue& theData) noexcept;
+	JsonObject& operator[](const char*) noexcept;
 protected:
+	std::map<std::string, JsonObject> theValues{};
+	JsonScalarValue theScalarValue{};
 	size_t theIndentationLevel{ 0 };
-	JsonScalarValue theScalar{};
+	std::string theMostRecentKey{};
 	JsonParseEvent theEvent{};
-	JsonObject theObject{};
 	std::string theKey{};
 };
 
 class JsonSerializer {
 public:
-	template<typename T>
-	friend 	class recursive_generator;
-	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
-	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
 	JsonSerializer(const char*) noexcept;
-	JsonSerializer(const JsonSerializer& other);
-	JsonSerializer& operator=(const JsonSerializer& other);
-	void pushBack(float);
-	void pushBack(double);
-	void pushBack(bool);
-	void pushBack(int8_t);
-	void pushBack(int16_t);
-	void pushBack(int32_t);
-	void pushBack(int64_t);
-	void pushBack(uint8_t);
-	void pushBack(uint16_t);
-	void pushBack(uint32_t);
-	void pushBack(uint64_t);
-	void pushBack(std::string);
-	void pushBack(const char*);
-	void pushBack(JsonSerializer& theData);
-	JsonSerializer& operator=(int8_t);
-	JsonSerializer& operator=(int16_t);
-	JsonSerializer& operator=(int32_t);
-	JsonSerializer& operator=(int64_t);
-	JsonSerializer& operator=(uint8_t);
-	JsonSerializer& operator=(uint16_t);
-	JsonSerializer& operator=(uint32_t);
-	JsonSerializer& operator=(uint64_t);
-	JsonSerializer& operator=(bool);
-	JsonSerializer& operator=(double);
-	JsonSerializer& operator=(float);
-	JsonSerializer& operator=(std::string);
-	JsonSerializer& operator=(const char*);
-	JsonSerializer& operator=(JsonParseEvent);
-	recursive_generator<std::string> getString(const JsonObject& theValueNew = JsonObject{});
-	bool doesItExist(const char* keyName, JsonScalarValue& theRecords);
-	bool doesItExist(const char* keyName, std::vector<JsonRecord>& theRecords);
-	bool doesItExist(const char* keyName, JsonObject& theRecords);
+	JsonSerializer(const JsonSerializer& other) noexcept = default;
+	JsonSerializer& operator=(const JsonSerializer& other) noexcept = default;
+	std::string getString(JsonObject& theValueNew) noexcept;
+	std::string getScalarObject(JsonObject& theObject) noexcept;
+	bool doesItExist(const char* keyName, JsonObject& theRecords) noexcept;
 
-	std::vector<JsonScalarValue>& operator[](std::string keyName);
+	JsonObject& operator[](const char* keyName) noexcept;
 
-	JsonSerializer& operator[](const char* keyName);
-
-	operator std::string();
+	operator std::string() noexcept;
 
 protected:
-	std::vector<JsonRecord> theJsonData{};
 	JsonParserState theCurrentState{};
+	size_t theIndentationLevel{ 0 };
 	std::string theMostRecentKey{};
-	size_t indentationLevel{ 0 };
+	JsonObject theJsonData{};
 };
 
 	struct ErlPackError : public std::runtime_error {
