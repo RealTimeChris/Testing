@@ -27,7 +27,11 @@
 #define ERL_PACKER_02
 
 #include <discordcoreapi/FoundationEntities.hpp>
+#include <nlohmann/json.hpp>
+#include <simdjson.h>
 #include <coroutine>
+#include <stdint.h>
+#include <set>
 
 template<typename T>
 class generator;
@@ -596,7 +600,7 @@ recursive_generator<std::invoke_result_t<FUNC&, typename recursive_generator<T>:
 		co_yield std::invoke(func, static_cast<decltype(value)>(value));
 	}
 }
-
+enum class JsonParserState { Adding_Object_Elements = 0, Adding_Array_Elements = 1 };
 enum class JsonParseEvent : uint16_t {
 	Unset = 0 << 0,
 	Null_Value = 1 << 1,
@@ -613,11 +617,19 @@ enum class JsonParseEvent : uint16_t {
 	Number_Double = 1 << 12,
 	Key = 1 << 13
 };
-
+class JsonSerializer;
+class JsonRecord;
+class JsonObject;
 struct JsonScalarValue {
+	template<typename T>
+	friend 	class recursive_generator;
+	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
 	JsonScalarValue()noexcept = default;
 	JsonScalarValue& operator=(const JsonScalarValue&);
 	JsonScalarValue(const JsonScalarValue&);
+	JsonScalarValue& operator=(JsonParseEvent);
 	JsonScalarValue& operator=(int8_t);
 	JsonScalarValue& operator=(int16_t);
 	JsonScalarValue& operator=(int32_t);
@@ -648,6 +660,11 @@ inline bool operator<(const JsonScalarValue& lhs, const JsonScalarValue& rhs) {
 
 class JsonObject {
 public:
+	template<typename T>
+	friend 	class recursive_generator;
+	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
 	JsonObject() noexcept = default;
 	JsonScalarValue theScalarValue{};
 	std::string theKey{};
@@ -671,6 +688,11 @@ public:
 
 class JsonRecord {
 public:
+	template<typename T>
+	friend 	class recursive_generator;
+	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
 	friend class JsonSerializer;
 	JsonRecord() noexcept = default;
 protected:
@@ -683,7 +705,12 @@ protected:
 
 class JsonSerializer {
 public:
-	JsonSerializer() noexcept = default;
+	template<typename T>
+	friend 	class recursive_generator;
+	friend recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord);
+	friend recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord);
+	JsonSerializer(const char*) noexcept;
 	JsonSerializer(const JsonSerializer& other);
 	JsonSerializer& operator=(const JsonSerializer& other);
 	void pushBack(float);
@@ -699,6 +726,7 @@ public:
 	void pushBack(uint64_t);
 	void pushBack(std::string);
 	void pushBack(const char*);
+	void pushBack(JsonSerializer& theData);
 	JsonSerializer& operator=(int8_t);
 	JsonSerializer& operator=(int16_t);
 	JsonSerializer& operator=(int32_t);
@@ -714,6 +742,7 @@ public:
 	JsonSerializer& operator=(const char*);
 	JsonSerializer& operator=(JsonParseEvent);
 	recursive_generator<std::string> getString(const JsonObject& theValueNew = JsonObject{});
+	bool doesItExist(const char* keyName, JsonScalarValue& theRecords);
 	bool doesItExist(const char* keyName, std::vector<JsonRecord>& theRecords);
 	bool doesItExist(const char* keyName, JsonObject& theRecords);
 
@@ -725,6 +754,7 @@ public:
 
 protected:
 	std::vector<JsonRecord> theJsonData{};
+	JsonParserState theCurrentState{};
 	std::string theMostRecentKey{};
 	size_t indentationLevel{ 0 };
 };

@@ -1,28 +1,18 @@
 #include <discordcoreapi/Index.hpp>
-
-
-
-#include <simdjson.h>
 #include "ErlPacker.hpp"
 
-
-
-#include <stdint.h>
-#include <set>
-#include <nlohmann/json.hpp>
-
 JsonScalarValue& JsonScalarValue::operator=(const JsonScalarValue& other){
-	this->theKey = other.theKey;
 	this->theValue = other.theValue;
+	this->theKey = other.theKey;
 	return *this;
 }
+
 JsonScalarValue::JsonScalarValue(const JsonScalarValue&other) {
 	*this = other;
 }
 
 JsonScalarValue::operator std::string() {
 	return this->theValue;
-
 }
 
 JsonScalarValue& JsonScalarValue::operator=(bool theData) {
@@ -36,7 +26,11 @@ JsonScalarValue& JsonScalarValue::operator=(bool theData) {
 	JsonScalarValue theValue{};
 	theValue.theValue = theString;
 	*this = theValue;
-	std::cout << "THE BOOLEAN VALUE: " << this->theValue << std::endl;
+	return *this;
+}
+
+JsonScalarValue& JsonScalarValue::operator=(JsonParseEvent theData) {
+	this->theValue = std::to_string(static_cast<uint8_t>(theData));
 	return *this;
 }
 
@@ -99,48 +93,97 @@ JsonScalarValue& JsonScalarValue::operator=(uint8_t theData) {
 	this->theValue = std::to_string(theData);
 	return *this;
 }
+
 template<typename JsonObjectType>
 JsonObject& JsonObject::operator=(std::vector<JsonObjectType>& theData){
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(int8_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(int16_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(int32_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(int64_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(uint8_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(uint16_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(uint32_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(uint64_t theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(bool theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(double theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(float theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(std::string theData) {
+	this->theScalarValue = theData;
 	return *this;
 }
+
 JsonObject& JsonObject::operator=(const char* theData) {
+	this->theScalarValue = theData;
 	return *this;
+}
+
+JsonSerializer::JsonSerializer(const char* theKeyName) noexcept {
+	JsonRecord theRecord{};
+	theRecord.theKey = theKeyName;
+	theRecord.theEvent = JsonParseEvent::Key;
+	this->indentationLevel++;
+	this->theJsonData.push_back(theRecord);
+	theRecord.theEvent = JsonParseEvent::Object_Start;
+	this->theJsonData.push_back(theRecord);
+}
+
+void JsonSerializer::pushBack(JsonSerializer& theData) {
+	JsonScalarValue theValue{};
+	*this = theData;
+	JsonRecord theRecord{};
+	theRecord.theEvent = JsonParseEvent::Object_Start;
+	theRecord.theKey = this->theMostRecentKey;
+	theRecord.theIndentationLevel = this->indentationLevel;
+	theRecord.theScalar = theValue;
+	this->theJsonData.push_back(theRecord);
 }
 
 void JsonSerializer::pushBack(float theData){
@@ -299,6 +342,7 @@ JsonSerializer& JsonSerializer::operator=(int8_t theData){
 	std::cout << "INDENTATION LEVEL: (N-INTEGER-SMALL): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(int16_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -312,6 +356,7 @@ JsonSerializer& JsonSerializer::operator=(int16_t theData) {
 	std::cout << "INDENTATION LEVEL: (N-INTEGER): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(int32_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -325,6 +370,7 @@ JsonSerializer& JsonSerializer::operator=(int32_t theData) {
 	std::cout << "INDENTATION LEVEL: (N-INTEGER): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(int64_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -338,6 +384,7 @@ JsonSerializer& JsonSerializer::operator=(int64_t theData) {
 	std::cout << "INDENTATION LEVEL: (N-INTEGER-LARGE): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(uint8_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -351,6 +398,7 @@ JsonSerializer& JsonSerializer::operator=(uint8_t theData) {
 	std::cout << "INDENTATION LEVEL: (N-INTEGER-SMALL): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(uint16_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -364,6 +412,7 @@ JsonSerializer& JsonSerializer::operator=(uint16_t theData) {
 	std::cout << "INDENTATION LEVEL: (N-INTEGER): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(uint32_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -377,6 +426,7 @@ JsonSerializer& JsonSerializer::operator=(uint32_t theData) {
 	std::cout << "INDENTATION LEVEL: (N-INTEGER): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(uint64_t theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -418,6 +468,7 @@ JsonSerializer& JsonSerializer::operator=(double theData) {
 	std::cout << "INDENTATION LEVEL: (N-DOUBLE): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(float theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -431,6 +482,7 @@ JsonSerializer& JsonSerializer::operator=(float theData) {
 	std::cout << "INDENTATION LEVEL: (N-FLOAT): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(std::string theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -444,6 +496,7 @@ JsonSerializer& JsonSerializer::operator=(std::string theData) {
 	std::cout << "INDENTATION LEVEL: (STRING): " << this->indentationLevel << std::endl;
 	return *this;
 }
+
 JsonSerializer& JsonSerializer::operator=(const char* theData) {
 	JsonScalarValue theValue{};
 	theValue = theData;
@@ -458,10 +511,27 @@ JsonSerializer& JsonSerializer::operator=(const char* theData) {
 	return *this;
 }
 
+JsonSerializer& JsonSerializer::operator=(JsonParseEvent theData) {
+	JsonScalarValue theValue{};
+	theValue = theData;
+	JsonRecord theRecord{};
+	theRecord.theEvent = theData;
+	theRecord.theKey = this->theMostRecentKey;
+	theRecord.theIndentationLevel = this->indentationLevel;
+	theRecord.theScalar = theValue;
+	this->theJsonData.push_back(theRecord);
+	this->indentationLevel--;
+	std::cout << "INDENTATION LEVEL: (PARSE-EVENT): " << this->indentationLevel << ", THE EVENT KEY: " << theRecord.theKey << std::endl;
+	return *this;
+}
+
 JsonSerializer& JsonSerializer::operator=(const JsonSerializer& other) {
 	this->theMostRecentKey = other.theMostRecentKey;
 	this->indentationLevel = other.indentationLevel;
 	this->theJsonData = other.theJsonData;
+	for (auto& value : other.theJsonData) {
+		this->theJsonData.emplace_back(value);
+	}
 	return *this;
 }
 
@@ -469,45 +539,77 @@ JsonSerializer::JsonSerializer(const JsonSerializer& other) {
 	*this = other;
 }
 
-
-
 JsonSerializer::operator std::string() {
 	auto theString = this->getString().begin().operator*();
 	return theString.substr(0, theString.size() - 1);
 }
 
-bool JsonSerializer::doesItExist(const char* keyName, JsonObject& theRecords) {
-	for (auto& [key, value] : theRecords.theValue) {
-		this->doesItExist(keyName, value);
-		if (key == keyName||keyName==value.theKey||keyName==value.theScalarValue.theKey) {
-			return true;
-		}
+bool JsonSerializer::doesItExist(const char* keyName, JsonScalarValue& theRecords) {
+	if (keyName == theRecords.theKey) {
+		return true;
 	}
 	return false;
 }
 
-bool JsonSerializer::doesItExist(const char*keyName,std::vector<JsonRecord>& theRecords) {
+bool JsonSerializer::doesItExist(const char* keyName, JsonObject& theRecords) {
+	for (auto& [key, value] : theRecords.theValue) {
+		if (key == keyName || keyName == value.theKey || keyName == value.theScalarValue.theKey) {
+			return true;
+		}
+		return this->doesItExist(keyName, value);
+	}
+	return false;
+}
+
+bool JsonSerializer::doesItExist(const char* keyName, std::vector<JsonRecord>& theRecords) {
 	for (uint32_t x = 0; x < theRecords.size(); ++x) {
 		if (keyName == theRecords[x].theKey || keyName == theRecords[x].theObject.theKey || keyName == theRecords[x].theScalar.theKey) {
 			return true;
 		}
-		this->doesItExist(keyName, theRecords[x].theObject);
+		return this->doesItExist(keyName, theRecords[x].theObject);
 	}
 	return false;
+}
+
+recursive_generator<std::string> recurseThroughRecordsThree(JsonObject theRecord) {
+	std::string theString{};
+	for (auto& [key, value] : theRecord.theValue) {
+
+		std::cout << "THE OBJECT KEY: " << key << "THE OBJECT VALUE: " << value.theScalarValue.theValue << std::endl;
+		theString += recurseThroughRecordsThree(value).begin().operator*();
+	}
+	co_yield theString;
+}
+
+recursive_generator<std::string> recurseThroughRecordsTwo(JsonRecord theRecord) {
+	std::string theString{};
+	std::cout << "THE SCALAR KEY: " << theRecord.theKey << "THE SCALAR VALUE: " << theRecord.theScalar.theValue << std::endl;
+	for (auto& [key, value] : theRecord.theObject.theValue) {
+		theString += recurseThroughRecordsThree(value).begin().operator*();
+	}
+	co_yield theString;
+}
+
+recursive_generator<std::string> recurseThroughRecords(JsonSerializer theRecord) {
+	std::string theString{};
+	for (auto& value : theRecord.theJsonData) {
+		theRecord.getString(value.theObject);
+		theString += recurseThroughRecordsTwo(value).begin().operator*();
+	}
+	co_yield theString;
 }
 
  JsonSerializer& JsonSerializer::operator[](const char* keyName) {
 	 this->indentationLevel++;
 	 this->theMostRecentKey = keyName;
+	 auto theString = recurseThroughRecords(*this).begin().operator*();
 	 bool doesItExist{ this->doesItExist(keyName,this->theJsonData) };
 	 for (uint32_t x = 0; x < this->theJsonData.size(); ++x) {
-		 if (keyName == this->theJsonData[x].theKey||keyName==this->theJsonData[x].theObject.theKey|| keyName == this->theJsonData[x].theScalar.theKey) {
+		 if (keyName == this->theJsonData[x].theKey || keyName == this->theJsonData[x].theObject.theKey || keyName == this->theJsonData[x].theScalar.theKey) {
 			 doesItExist = true;
 		 }
 	 }
-	 std::cout << "INDENTATION LEVEL: " << this->indentationLevel << ", KEY NAME: " << keyName << std::endl;
 	 if (doesItExist) {
-		 std::cout << "IT DOES EXIST INDENTATION LEVEL: " << this->indentationLevel << ", KEY NAME: " << keyName << std::endl;
 		 this->indentationLevel--;
 	 }
 	return *this;
@@ -594,7 +696,7 @@ recursive_generator<std::string> JsonSerializer::getString(const JsonObject& the
     };
 
 	WebSocketIdentifyData::operator JsonSerializer() {
-		JsonSerializer theSerializer{};
+		JsonSerializer theSerializer{ "d" };
 		std::vector<uint32_t> theVector{};
 		theVector.push_back(244);
 		theVector.push_back(243);
@@ -603,9 +705,9 @@ recursive_generator<std::string> JsonSerializer::getString(const JsonObject& the
 		theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 		
 		
-
+		theSerializer["d"]["presence"]["activities"] = JsonParseEvent::Array_Start;
 		for (auto& value : this->presence.activities) {
-			JsonSerializer theDataNew{};
+			JsonSerializer theDataNew{ "" };
 			if (value.url != "") {
 				theDataNew["url"] = value.url;
 			}
@@ -613,37 +715,30 @@ recursive_generator<std::string> JsonSerializer::getString(const JsonObject& the
 			theDataNew["type"] = static_cast<uint8_t>(value.type);
 			theSerializer["d"]["presence"]["activities"].pushBack(theDataNew);
 		}
-		/*
-		theSerializer.addEvent(JsonParseEvent::Array_End);
-		theSerializer.addEvent(this->presence.afk, "afk");
+	
+		theSerializer["afk"] = this->presence.afk;
 		if (this->presence.since == 0) { 
-			theSerializer.addEvent(JsonParseEvent::Null_Value, "since");
+			theSerializer["since"] = JsonParseEvent::Null_Value;
 		}
 		else {
-			theSerializer.addEvent(this->presence.since, "since");
+			theSerializer["since"] = this->presence.since;
 		}
 		
-		theSerializer.addEvent(this->presence.status, "status");
+		theSerializer["status"] = this->presence.status;
 
-		theSerializer.addEvent(JsonParseEvent::Object_End);
-		theSerializer.addEvent(JsonParseEvent::Object_Start, "properties");
-		theSerializer.addEvent("DiscordCoreAPI", "browser");
-		theSerializer.addEvent("DiscordCoreAPI", "device");
+		theSerializer["properties"] = JsonParseEvent::Object_Start;
+		theSerializer["properties"]["browser"] = "DiscordCoreAPI";
+		theSerializer["properties"]["device"] = "DiscordCoreAPI";
 #ifdef _WIN32
-		theSerializer.addEvent("Windows", "os");
+		theSerializer["properties"]["os"] = "Windows";
 #else
-		theSerializer.addEvent("Linux", "os");
+		theSerializer["properties"]["os"] = "Linux";
 #endif
-		theSerializer.addEvent(JsonParseEvent::Object_End);
-		theSerializer.addEvent(JsonParseEvent::Array_Start, "shard");
-		theSerializer.addEvent(static_cast<uint8_t>(this->currentShard));
-		theSerializer.addEvent(static_cast<uint8_t>(this->numberOfShards));
-		theSerializer.addEvent(JsonParseEvent::Array_End);
-		theSerializer.addEvent(this->botToken, "token");
-		theSerializer.addEvent(JsonParseEvent::Object_End);
-		theSerializer.addEvent(static_cast<uint8_t>(2), "op");
-		theSerializer.addEvent(JsonParseEvent::Object_End);
-		*/
+		theSerializer["shard"] = JsonParseEvent::Array_Start;
+		theSerializer.pushBack(static_cast<uint8_t>(this->currentShard));
+		theSerializer.pushBack(static_cast<uint8_t>(this->numberOfShards));
+		theSerializer["token"] = this->botToken;
+		theSerializer["op"] = static_cast<uint8_t>(2);
 		return theSerializer;
 		}
 
