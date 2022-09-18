@@ -23,57 +23,682 @@
 /// https://discordcoreapi.com
 /// \file ErlPacker.hpp
 
+#ifndef ERL_PACKER_02
+#define ERL_PACKER_02
 
 #include <discordcoreapi/FoundationEntities.hpp>
+#include <coroutine>
 
-enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };
+template<typename T>
+class generator;
+
+namespace detail
+{
+	template<typename T>
+	class generator_promise
+	{
+	public:
+
+		using value_type = std::remove_reference_t<T>;
+		using reference_type = std::conditional_t<std::is_reference_v<T>, T, T&>;
+		using pointer_type = value_type*;
+
+		generator_promise() = default;
+
+		generator<T> get_return_object() noexcept;
+
+		constexpr std::suspend_always initial_suspend() const noexcept { return {}; }
+		constexpr std::suspend_always final_suspend() const noexcept { return {}; }
+
+		template<
+			typename U = T,
+			std::enable_if_t<!std::is_rvalue_reference<U>::value, int> = 0>
+		std::suspend_always yield_value(std::remove_reference_t<T>& value) noexcept
+		{
+			m_value = std::addressof(value);
+			return {};
+		}
+
+		std::suspend_always yield_value(std::remove_reference_t<T>&& value) noexcept
+		{
+			m_value = std::addressof(value);
+			return {};
+		}
+
+		void unhandled_exception()
+		{
+			m_exception = std::current_exception();
+		}
+
+		void return_void()
+		{
+		}
+
+		reference_type value() const noexcept
+		{
+			return static_cast<reference_type>(*m_value);
+		}
+
+		// Don't allow any use of 'co_await' inside the generator coroutine.
+		template<typename U>
+		std::suspend_never await_transform(U&& value) = delete;
+
+		void rethrow_if_exception()
+		{
+			if (m_exception)
+			{
+				std::rethrow_exception(m_exception);
+			}
+		}
+
+	private:
+
+		pointer_type m_value;
+		std::exception_ptr m_exception;
+
+	};
+
+	struct generator_sentinel {};
+
+	template<typename T>
+	class generator_iterator
+	{
+		using coroutine_handle = std::coroutine_handle<generator_promise<T>>;
+
+	public:
+
+		using iterator_category = std::input_iterator_tag;
+		// What type should we use for counting elements of a potentially infinite sequence?
+		using difference_type = std::ptrdiff_t;
+		using value_type = typename generator_promise<T>::value_type;
+		using reference = typename generator_promise<T>::reference_type;
+		using pointer = typename generator_promise<T>::pointer_type;
+
+		// Iterator needs to be default-constructible to satisfy the Range concept.
+		generator_iterator() noexcept
+			: m_coroutine(nullptr)
+		{}
+
+		explicit generator_iterator(coroutine_handle coroutine) noexcept
+			: m_coroutine(coroutine)
+		{}
+
+		friend bool operator==(const generator_iterator& it, generator_sentinel) noexcept
+		{
+			return !it.m_coroutine || it.m_coroutine.done();
+		}
+
+		friend bool operator!=(const generator_iterator& it, generator_sentinel s) noexcept
+		{
+			return !(it == s);
+		}
+
+		friend bool operator==(generator_sentinel s, const generator_iterator& it) noexcept
+		{
+			return (it == s);
+		}
+
+		friend bool operator!=(generator_sentinel s, const generator_iterator& it) noexcept
+		{
+			return it != s;
+		}
+
+		generator_iterator& operator++()
+		{
+			m_coroutine.resume();
+			if (m_coroutine.done())
+			{
+				m_coroutine.promise().rethrow_if_exception();
+			}
+
+			return *this;
+		}
+
+		// Need to provide post-increment operator to implement the 'Range' concept.
+		void operator++(int)
+		{
+			(void)operator++();
+		}
+
+		reference operator*() const noexcept
+		{
+			return m_coroutine.promise().value();
+		}
+
+		pointer operator->() const noexcept
+		{
+			return std::addressof(operator*());
+		}
+
+	private:
+
+		coroutine_handle m_coroutine;
+	};
+}
+
+template<typename T>
+class [[nodiscard]] generator
+{
+public:
+
+	using promise_type = detail::generator_promise<T>;
+	using iterator = detail::generator_iterator<T>;
+
+	generator() noexcept
+		: m_coroutine(nullptr)
+	{}
+
+	generator(generator&& other) noexcept
+		: m_coroutine(other.m_coroutine)
+	{
+		other.m_coroutine = nullptr;
+	}
+
+	generator(const generator& other) = delete;
+
+	~generator()
+	{
+		if (m_coroutine)
+		{
+			m_coroutine.destroy();
+		}
+	}
+
+	generator& operator=(generator other) noexcept
+	{
+		swap(other);
+		return *this;
+	}
+
+	iterator begin()
+	{
+		if (m_coroutine)
+		{
+			m_coroutine.resume();
+			if (m_coroutine.done())
+			{
+				m_coroutine.promise().rethrow_if_exception();
+			}
+		}
+
+		return iterator{ m_coroutine };
+	}
+
+	detail::generator_sentinel end() noexcept
+	{
+		return detail::generator_sentinel{};
+	}
+
+	void swap(generator& other) noexcept
+	{
+		std::swap(m_coroutine, other.m_coroutine);
+	}
+
+private:
+
+	friend class detail::generator_promise<T>;
+
+	explicit generator(std::coroutine_handle<promise_type> coroutine) noexcept
+		: m_coroutine(coroutine)
+	{}
+
+	std::coroutine_handle<promise_type> m_coroutine;
+
+};
+
+template<typename T>
+void swap(generator<T>& a, generator<T>& b)
+{
+	a.swap(b);
+}
+
+namespace detail
+{
+	template<typename T>
+	generator<T> generator_promise<T>::get_return_object() noexcept
+	{
+		using coroutine_handle = std::coroutine_handle<generator_promise<T>>;
+		return generator<T>{ coroutine_handle::from_promise(*this) };
+	}
+}
+
+template<typename FUNC, typename T>
+generator<std::invoke_result_t<FUNC&, typename generator<T>::iterator::reference>> fmap(FUNC func, generator<T> source)
+{
+	for (auto&& value : source)
+	{
+		co_yield std::invoke(func, static_cast<decltype(value)>(value));
+	}
+}
+
+template<typename T>
+class [[nodiscard]] recursive_generator
+{
+public:
+
+	class promise_type final
+	{
+	public:
+
+		promise_type() noexcept
+			: m_value(nullptr)
+			, m_exception(nullptr)
+			, m_root(this)
+			, m_parentOrLeaf(this)
+		{}
+
+		promise_type(const promise_type&) = delete;
+		promise_type(promise_type&&) = delete;
+
+		auto get_return_object() noexcept
+		{
+			return recursive_generator<T>{ *this };
+		}
+
+		std::suspend_always initial_suspend() noexcept
+		{
+			return {};
+		}
+
+		std::suspend_always final_suspend() noexcept
+		{
+			return {};
+		}
+
+		void unhandled_exception() noexcept
+		{
+			m_exception = std::current_exception();
+		}
+
+		void return_void() noexcept {}
+
+		std::suspend_always yield_value(T& value) noexcept
+		{
+			m_value = std::addressof(value);
+			return {};
+		}
+
+		std::suspend_always yield_value(T&& value) noexcept
+		{
+			m_value = std::addressof(value);
+			return {};
+		}
+
+		auto yield_value(recursive_generator&& generator) noexcept
+		{
+			return yield_value(generator);
+		}
+
+		auto yield_value(recursive_generator& generator) noexcept
+		{
+			struct awaitable
+			{
+
+				awaitable(promise_type* childPromise)
+					: m_childPromise(childPromise)
+				{}
+
+				bool await_ready() noexcept
+				{
+					return this->m_childPromise == nullptr;
+				}
+
+				void await_suspend(std::coroutine_handle<promise_type>) noexcept
+				{}
+
+				void await_resume()
+				{
+					if (this->m_childPromise != nullptr)
+					{
+						this->m_childPromise->throw_if_exception();
+					}
+				}
+
+			private:
+				promise_type* m_childPromise;
+			};
+
+			if (generator.m_promise != nullptr)
+			{
+				m_root->m_parentOrLeaf = generator.m_promise;
+				generator.m_promise->m_root = m_root;
+				generator.m_promise->m_parentOrLeaf = this;
+				generator.m_promise->resume();
+
+				if (!generator.m_promise->is_complete())
+				{
+					return awaitable{ generator.m_promise };
+				}
+
+				m_root->m_parentOrLeaf = this;
+			}
+
+			return awaitable{ nullptr };
+		}
+
+		// Don't allow any use of 'co_await' inside the recursive_generator coroutine.
+		template<typename U>
+		std::suspend_never await_transform(U&& value) = delete;
+
+		void destroy() noexcept
+		{
+			std::coroutine_handle<promise_type>::from_promise(*this).destroy();
+		}
+
+		void throw_if_exception()
+		{
+			if (m_exception != nullptr)
+			{
+				std::rethrow_exception(std::move(m_exception));
+			}
+		}
+
+		bool is_complete() noexcept
+		{
+			return std::coroutine_handle<promise_type>::from_promise(*this).done();
+		}
+
+		T& value() noexcept
+		{
+			assert(this == m_root);
+			assert(!is_complete());
+			return *(m_parentOrLeaf->m_value);
+		}
+
+		void pull() noexcept
+		{
+			assert(this == m_root);
+			assert(!m_parentOrLeaf->is_complete());
+
+			m_parentOrLeaf->resume();
+
+			while (m_parentOrLeaf != this && m_parentOrLeaf->is_complete())
+			{
+				m_parentOrLeaf = m_parentOrLeaf->m_parentOrLeaf;
+				m_parentOrLeaf->resume();
+			}
+		}
+
+	private:
+
+		void resume() noexcept
+		{
+			std::coroutine_handle<promise_type>::from_promise(*this).resume();
+		}
+
+		std::add_pointer_t<T> m_value;
+		std::exception_ptr m_exception;
+
+		promise_type* m_root;
+
+		// If this is the promise of the root generator then this field
+		// is a pointer to the leaf promise.
+		// For non-root generators this is a pointer to the parent promise.
+		promise_type* m_parentOrLeaf;
+
+	};
+
+	recursive_generator() noexcept
+		: m_promise(nullptr)
+	{}
+
+	recursive_generator(promise_type& promise) noexcept
+		: m_promise(&promise)
+	{}
+
+	recursive_generator(recursive_generator&& other) noexcept
+		: m_promise(other.m_promise)
+	{
+		other.m_promise = nullptr;
+	}
+
+	recursive_generator(const recursive_generator& other) = delete;
+	recursive_generator& operator=(const recursive_generator& other) = delete;
+
+	~recursive_generator()
+	{
+		if (m_promise != nullptr)
+		{
+			m_promise->destroy();
+		}
+	}
+
+	recursive_generator& operator=(recursive_generator&& other) noexcept
+	{
+		if (this != &other)
+		{
+			if (m_promise != nullptr)
+			{
+				m_promise->destroy();
+			}
+
+			m_promise = other.m_promise;
+			other.m_promise = nullptr;
+		}
+
+		return *this;
+	}
+
+	class iterator
+	{
+	public:
+
+		using iterator_category = std::input_iterator_tag;
+		// What type should we use for counting elements of a potentially infinite sequence?
+		using difference_type = std::ptrdiff_t;
+		using value_type = std::remove_reference_t<T>;
+		using reference = std::conditional_t<std::is_reference_v<T>, T, T&>;
+		using pointer = std::add_pointer_t<T>;
+
+		iterator() noexcept
+			: m_promise(nullptr)
+		{}
+
+		explicit iterator(promise_type* promise) noexcept
+			: m_promise(promise)
+		{}
+
+		bool operator==(const iterator& other) const noexcept
+		{
+			return m_promise == other.m_promise;
+		}
+
+		bool operator!=(const iterator& other) const noexcept
+		{
+			return m_promise != other.m_promise;
+		}
+
+		iterator& operator++()
+		{
+			assert(m_promise != nullptr);
+			assert(!m_promise->is_complete());
+
+			m_promise->pull();
+			if (m_promise->is_complete())
+			{
+				auto* temp = m_promise;
+				m_promise = nullptr;
+				temp->throw_if_exception();
+			}
+
+			return *this;
+		}
+
+		void operator++(int)
+		{
+			(void)operator++();
+		}
+
+		reference operator*() const noexcept
+		{
+			assert(m_promise != nullptr);
+			return static_cast<reference>(m_promise->value());
+		}
+
+		pointer operator->() const noexcept
+		{
+			return std::addressof(operator*());
+		}
+
+	private:
+
+		promise_type* m_promise;
+
+	};
+
+	iterator begin()
+	{
+		if (m_promise != nullptr)
+		{
+			m_promise->pull();
+			if (!m_promise->is_complete())
+			{
+				return iterator(m_promise);
+			}
+
+			m_promise->throw_if_exception();
+		}
+
+		return iterator(nullptr);
+	}
+
+	iterator end() noexcept
+	{
+		return iterator(nullptr);
+	}
+
+	void swap(recursive_generator& other) noexcept
+	{
+		std::swap(m_promise, other.m_promise);
+	}
+
+private:
+
+	friend class promise_type;
+
+	promise_type* m_promise;
+
+};
+
+template<typename T>
+void swap(recursive_generator<T>& a, recursive_generator<T>& b) noexcept
+{
+	a.swap(b);
+}
+
+// Note: When applying fmap operator to a recursive_generator we just yield a non-recursive
+// generator since we generally won't be using the result in a recursive context.
+template<typename FUNC, typename T>
+recursive_generator<std::invoke_result_t<FUNC&, typename recursive_generator<T>::iterator::reference>> fmap(FUNC func, recursive_generator<T> source)
+{
+	for (auto&& value : source)
+	{
+		co_yield std::invoke(func, static_cast<decltype(value)>(value));
+	}
+}
 
 enum class JsonParseEvent : uint16_t {
-	Null_Value = 1 << 0,
-	Object_Start = 1 << 1,
-	Object_End = 1 << 2,
-	Array_Start = 1 << 3,
-	Array_End = 1 << 4,
-	String = 1 << 5,
-	Boolean = 1 << 6,
-	Number_Integer = 1 << 7,
-	Number_Integer_Small = 1 << 8,
-	Number_Integer_Large = 1 << 9,
+	Unset = 0 << 0,
+	Null_Value = 1 << 1,
+	Object_Start = 1 << 2,
+	Object_End = 1 << 3,
+	Array_Start = 1 << 4,
+	Array_End = 1 << 5,
+	String = 1 << 6,
+	Boolean = 1 << 7,
+	Number_Integer = 1 << 8,
+	Number_Integer_Small = 1 << 9,
+	Number_Integer_Large = 1 << 10,
 	Number_Float = 1 << 11,
 	Number_Double = 1 << 12,
 	Key = 1 << 13
 };
 
-struct JsonValue {
-	JsonValue()noexcept = default;
+struct JsonScalarValue {
+	JsonScalarValue()noexcept = default;
+	JsonScalarValue& operator=(const JsonScalarValue&);
+	JsonScalarValue(const JsonScalarValue&);
+	JsonScalarValue& operator=(int8_t);
+	JsonScalarValue& operator=(int16_t);
+	JsonScalarValue& operator=(int32_t);
+	JsonScalarValue& operator=(int64_t);
+	JsonScalarValue& operator=(uint8_t);
+	JsonScalarValue& operator=(uint16_t);
+	JsonScalarValue& operator=(uint32_t);
+	JsonScalarValue& operator=(uint64_t);
+	JsonScalarValue& operator=(bool);
+	JsonScalarValue& operator=(double);
+	JsonScalarValue& operator=(float);
+	JsonScalarValue& operator=(std::string);
+	JsonScalarValue& operator=(const char*);
 
-	JsonValue& operator=(int8_t);
-	JsonValue& operator=(int16_t);
-	JsonValue& operator=(int32_t);
-	JsonValue& operator=(int64_t);
-	JsonValue& operator=(uint8_t);
-	JsonValue& operator=(uint16_t);
-	JsonValue& operator=(uint32_t);
-	JsonValue& operator=(uint64_t);
-	JsonValue& operator=(bool);
-	JsonValue& operator=(double);
-	JsonValue& operator=(float);
-	JsonValue& operator=(std::string);
-	JsonValue& operator=(const char*);
-	JsonValue& operator=(JsonParseEvent);
-	
-	JsonParseEvent theEvent{};
 	std::string theValue{};
+	std::string theKey{};
 	operator std::string();
+};
+
+inline bool operator<(const JsonScalarValue& lhs, const JsonScalarValue& rhs) {
+	if (lhs.theKey < rhs.theKey) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
+class JsonObject {
+public:
+	JsonObject() noexcept = default;
+	JsonScalarValue theScalarValue{};
+	std::string theKey{};
+	std::map<std::string, JsonObject>theValue{};
+	template<typename JsonObjectType>
+	JsonObject& operator=(std::vector<JsonObjectType>& theVector);
+	JsonObject& operator=(int8_t);
+	JsonObject& operator=(int16_t);
+	JsonObject& operator=(int32_t);
+	JsonObject& operator=(int64_t);
+	JsonObject& operator=(uint8_t);
+	JsonObject& operator=(uint16_t);
+	JsonObject& operator=(uint32_t);
+	JsonObject& operator=(uint64_t);
+	JsonObject& operator=(bool);
+	JsonObject& operator=(double);
+	JsonObject& operator=(float);
+	JsonObject& operator=(std::string);
+	JsonObject& operator=(const char*);
+};
+
+class JsonRecord {
+public:
+	friend class JsonSerializer;
+	JsonRecord() noexcept = default;
+protected:
+	size_t theIndentationLevel{ 0 };
+	JsonScalarValue theScalar{};
+	JsonParseEvent theEvent{};
+	JsonObject theObject{};
+	std::string theKey{};
 };
 
 class JsonSerializer {
 public:
 	JsonSerializer() noexcept = default;
-
-	JsonSerializer& operator=(bool);
-	template<typename JsonObjectType>
-	JsonSerializer& operator=(std::vector<JsonObjectType>theData);
+	JsonSerializer(const JsonSerializer& other);
+	JsonSerializer& operator=(const JsonSerializer& other);
+	void pushBack(float);
+	void pushBack(double);
+	void pushBack(bool);
+	void pushBack(int8_t);
+	void pushBack(int16_t);
+	void pushBack(int32_t);
+	void pushBack(int64_t);
+	void pushBack(uint8_t);
+	void pushBack(uint16_t);
+	void pushBack(uint32_t);
+	void pushBack(uint64_t);
+	void pushBack(std::string);
+	void pushBack(const char*);
 	JsonSerializer& operator=(int8_t);
 	JsonSerializer& operator=(int16_t);
 	JsonSerializer& operator=(int32_t);
@@ -82,285 +707,26 @@ public:
 	JsonSerializer& operator=(uint16_t);
 	JsonSerializer& operator=(uint32_t);
 	JsonSerializer& operator=(uint64_t);
+	JsonSerializer& operator=(bool);
 	JsonSerializer& operator=(double);
 	JsonSerializer& operator=(float);
 	JsonSerializer& operator=(std::string);
 	JsonSerializer& operator=(const char*);
 	JsonSerializer& operator=(JsonParseEvent);
+	recursive_generator<std::string> getString(const JsonObject& theValueNew = JsonObject{});
+	bool doesItExist(const char* keyName, std::vector<JsonRecord>& theRecords);
+	bool doesItExist(const char* keyName, JsonObject& theRecords);
 
-	std::string getString();
-
-	std::vector<JsonValue>& operator[](std::string keyName);
+	std::vector<JsonScalarValue>& operator[](std::string keyName);
 
 	JsonSerializer& operator[](const char* keyName);
-
-	template<std::same_as<uint64_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Large;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<int64_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Large;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<int32_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<uint32_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<int16_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<uint16_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<int8_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Small;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<uint8_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Small;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<std::string> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::String;
-		theValue.theValue = theData;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<bool> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString{};
-		if (theData) {
-			theString = "true";
-		}
-		else {
-			theString = "false";
-		}
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Boolean;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<float> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<double> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<const char*> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::String;
-		theValue.theValue = theData;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<JsonParseEvent> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-			theValue.theEvent = theData;
-			theValue.theValue = "null";
-			this->theValues.push_back(theValue);
-		}
-		else {
-			JsonValue theValue{};
-			theValue.theEvent = theData;
-			theValue.theValue = "";
-			this->theValues.push_back(theValue);
-		}
-	}
-
-	template<std::same_as<JsonSerializer> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-			for (auto& value : theData.theValues) {
-				this->theValues.push_back(value);
-			}
-		}
-		else {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = "";
-			this->theValues.push_back(theValue);
-			for (auto& value : theData.theValues) {
-				this->theValues.push_back(value);
-			}
-		}
-	}
-
-	template<std::same_as<std::nullptr_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-			this->theValues.push_back({ .theEvent = theData, .theValue = "null" });
-		}
-		else {
-			this->theValues.push_back({ .theEvent = theData, .theValue = "" });
-		}
-	}
-
-	template<typename KeyType, typename ObjectType> void addEvent(std::unordered_map<KeyType, ObjectType> theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_Start, .theValue = keyName });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_End, .theValue = keyName });
-		}
-		else {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_Start, .theValue = "" });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_End, .theValue = "" });
-		}
-	}
-
-	template<typename JsonObjectType> void addEvent(std::vector<JsonObjectType> theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_Start, .theValue = keyName });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_End, .theValue = keyName });
-		}
-		else {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_Start, .theValue = "" });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_End, .theValue = "" });
-		}
-	}
 
 	operator std::string();
 
 protected:
-	std::vector<JsonValue> theValues{};
-	JsonParserState theState{};
-	size_t currentPosition{};
-	bool isItFound{ false };
+	std::vector<JsonRecord> theJsonData{};
+	std::string theMostRecentKey{};
+	size_t indentationLevel{ 0 };
 };
 
 	struct ErlPackError : public std::runtime_error {
@@ -493,3 +859,4 @@ protected:
 		std::string parseAtomUtf8Ext();
 	};
 
+#endif // !ERL_PACKER

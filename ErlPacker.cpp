@@ -90,67 +90,46 @@
 	}
 
 	void ErlPacker::singleValueJsonToETF(simdjson::ondemand::value jsonData) {
-		bool add_comma;
 		switch (jsonData.type()) {
-		case simdjson::ondemand::json_type::array:
-			std::cout << "NEW ARRAY: [";
-			add_comma = false;
+		case simdjson::ondemand::json_type::array: {
 			this->appendListHeader(jsonData.count_elements().take_value());
 			for (auto child : jsonData.get_array()) {
-				if (add_comma) {
-					std::cout << ",";
-				}
-				// We need the call to value() to get
-				// an ondemand::value type.
 				this->singleValueJsonToETF(child.value());
-				add_comma = true;
 			}
 			this->appendNilExt();
-			std::cout << "]\n";
 			break;
-		case simdjson::ondemand::json_type::object:
-			std::cout << "{";
-			add_comma = false;
+		}
+		case simdjson::ondemand::json_type::object: {
 			this->appendMapHeader(jsonData.count_fields().take_value());
 			for (auto field : jsonData.get_object()) {
-				if (add_comma) {
-					std::cout << ",";
-				}
-				// key() returns the key as it appears in the raw
-				// JSON document, if we want the unescaped key,
-				// we should do field.unescaped_key().
 				std::stringstream theStream{};
-				std::cout << "NEW OBJECT:" << "\"" << field.key() << "\": \n";
 				theStream << field.key();
 				std::string theKey = theStream.str();
-				std::cout << "NEW KEY:" << "\"" << theKey + "\"\n";
-				
+
 				auto theSize = theKey.size();
 				this->appendBinaryExt(theKey, theSize);
 				this->singleValueJsonToETF(field.value());
-				add_comma = true;
 			}
-			std::cout << "}\n";
-			break;
-		case simdjson::ondemand::json_type::number:
-			// assume it fits in a double
-			this->writeNumber(jsonData);
-			break;
-		case simdjson::ondemand::json_type::string:
-			// get_string() would return escaped string, but
-			// we are happy with unescaped string.
-			this->writeString(jsonData);
-			break;
-		case simdjson::ondemand::json_type::boolean:
-			std::cout << "NEW BOOL:" << "\"" << jsonData.get_bool().take_value() + "\"\n";
-			this->writeBool(jsonData);
-			break;
-		case simdjson::ondemand::json_type::null:
-			std::cout << "null";
 			break;
 		}
+		case simdjson::ondemand::json_type::number: {
+			this->writeNumber(jsonData);
+			break;
+		}
+		case simdjson::ondemand::json_type::string: {
+			this->writeString(jsonData);
+			break;
+		}
+		case simdjson::ondemand::json_type::boolean: {
+			this->writeBool(jsonData);
+			break;
+		}
+		case simdjson::ondemand::json_type::null: {
+			break;
+		}
+		}
 	}
-		
+
 	void ErlPacker::writeToBuffer(const std::string& bytes) {
 		this->bufferString.insert(this->bufferString.end(), bytes.begin(), bytes.end());
 		std::cout << "THE BYTES: " << bytes << std::endl;
