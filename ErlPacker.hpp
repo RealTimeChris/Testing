@@ -46,24 +46,55 @@ enum class JsonParseEvent : uint16_t {
 
 struct JsonValue {
 	JsonValue()noexcept = default;
-
-	JsonValue& operator=(int8_t);
-	JsonValue& operator=(int16_t);
-	JsonValue& operator=(int32_t);
-	JsonValue& operator=(int64_t);
-	JsonValue& operator=(uint8_t);
-	JsonValue& operator=(uint16_t);
-	JsonValue& operator=(uint32_t);
-	JsonValue& operator=(uint64_t);
-	JsonValue& operator=(bool);
-	JsonValue& operator=(double);
-	JsonValue& operator=(float);
-	JsonValue& operator=(std::string);
-	JsonValue& operator=(const char*);
-	JsonValue& operator=(JsonParseEvent);
-	
+	std::unordered_map<std::string, JsonValue> theValues{};
+	JsonParserState theState{};
 	JsonParseEvent theEvent{};
 	std::string theValue{};
+	JsonValue& operator[](const char*);
+	template<std::same_as<std::string> KeyType, std::same_as<bool> JsonObjectType> JsonValue& operator=(std::unordered_map<KeyType, JsonObjectType>& theData) {
+		JsonValue theValue{};
+		for (auto& [key, value] : theData) {
+			theValue = value;
+			this->theValues[key] = theValue;
+		}
+		return *this;
+	}
+	template<std::same_as<std::string> JsonObjectType> JsonValue& operator=(std::vector<JsonObjectType>& theData) {
+		JsonValue theValue{};
+		for (uint32_t x = 0; x < theData.size(); ++x) {
+			theValue = theData[x];
+			this->theValues[std::to_string(x)] = theValue;
+		}
+		return *this;
+	}
+	template<std::same_as<std::string> KeyType, std::same_as<std::string> JsonObjectType> JsonValue& operator=(std::unordered_map<KeyType, JsonObjectType>& theData) {
+		JsonValue theValue{};
+		for (auto& [key, value] : theData) {
+			theValue = value;
+			this->theValues[key] = value;
+		}
+		return *this;
+	}
+	JsonValue& operator=(const JsonValue& theData);
+	JsonValue(const JsonValue& theData);
+	JsonValue& operator=(JsonValue&& theData);
+	JsonValue& operator=(JsonParseEvent);
+	JsonValue& operator=(const std::string&&);
+	JsonValue& operator=(const std::string&);
+	JsonValue& operator=(std::string&&);
+	JsonValue& operator=(std::string&);
+	JsonValue& operator=(const char*);
+	JsonValue& operator=(uint64_t);
+	JsonValue& operator=(uint32_t);
+	JsonValue& operator=(uint16_t);
+	JsonValue& operator=(uint8_t);
+	JsonValue& operator=(int64_t);
+	JsonValue& operator=(int32_t);
+	JsonValue& operator=(int16_t);
+	JsonValue& operator=(int8_t);
+	JsonValue& operator=(double);
+	JsonValue& operator=(float);
+	JsonValue& operator=(bool);
 	operator std::string();
 };
 
@@ -71,295 +102,138 @@ class JsonSerializer {
 public:
 	JsonSerializer() noexcept = default;
 
-	JsonSerializer& operator=(bool);
-	template<typename JsonObjectType>
-	JsonSerializer& operator=(std::vector<JsonObjectType>theData);
-	JsonSerializer& operator=(int8_t);
-	JsonSerializer& operator=(int16_t);
-	JsonSerializer& operator=(int32_t);
-	JsonSerializer& operator=(int64_t);
-	JsonSerializer& operator=(uint8_t);
-	JsonSerializer& operator=(uint16_t);
-	JsonSerializer& operator=(uint32_t);
-	JsonSerializer& operator=(uint64_t);
-	JsonSerializer& operator=(double);
-	JsonSerializer& operator=(float);
-	JsonSerializer& operator=(std::string);
-	JsonSerializer& operator=(const char*);
-	JsonSerializer& operator=(JsonParseEvent);
+	JsonSerializer& operator[](const char*);
 
-	std::string getString();
-
-	std::vector<JsonValue>& operator[](std::string keyName);
-
-	JsonSerializer& operator[](const char* keyName);
-
-	template<std::same_as<uint64_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
+	template<std::same_as<std::string> KeyType, std::same_as<std::string> JsonObjectType> JsonSerializer& operator=(std::unordered_map<KeyType, JsonObjectType>&& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Large;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Object_Start;
+		this->theValues[""] = theValue;
+		for (auto [key, value] : theData) {
+			this->theValues[key] = theValue;
+		}
+		theValue = JsonParseEvent::Object_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<int64_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
+	template<std::same_as<std::string> KeyType, std::same_as<std::string> JsonObjectType> JsonSerializer& operator=(std::unordered_map<KeyType, JsonObjectType>& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Large;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Object_Start;
+		this->theValues[""] = theValue;
+		for (auto [key, value] : theData) {
+			this->theValues[key] = theValue;
+		}
+		theValue = JsonParseEvent::Object_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<int32_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
+	template<std::same_as<std::string> JsonObjectType> JsonSerializer& operator=(std::vector<JsonObjectType>&& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Array_Start;
+		this->theValues[this->latestKey] = theValue;
+		for (uint32_t x = 0; x < theData.size(); ++x) {
+			theValue = theData[x];
+			this->theValues[std::to_string(x)] = theValue;
+		}
+		theValue = JsonParseEvent::Array_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<uint32_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
+	template<std::same_as<std::string> JsonObjectType> JsonSerializer& operator=(std::vector<JsonObjectType>& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Array_Start;
+		this->theValues[this->latestKey] = theValue;
+		for (uint32_t x = 0; x < theData.size(); ++x) {
+			theValue = theData[x];
+			this->theValues[std::to_string(x)] = theValue;
+		}
+		theValue = JsonParseEvent::Array_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<int16_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<uint16_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<int8_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
+	template<std::same_as<uint8_t> JsonObjectType> JsonSerializer& operator=(std::vector<JsonObjectType>&& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Small;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Array_Start;
+		this->theValues[this->latestKey] = theValue;
+		for (uint32_t x = 0; x < theData.size(); ++x) {
+			theValue = theData[x];
+			this->theValues[std::to_string(x)] = theValue;
+		}
+		theValue = JsonParseEvent::Array_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<uint8_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
+	template<std::same_as<uint8_t> JsonObjectType> JsonSerializer& operator=(std::vector<JsonObjectType>& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Number_Integer_Small;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Array_Start;
+		this->theValues[this->latestKey] = theValue;
+		for (uint32_t x = 0; x < theData.size(); ++x) {
+			theValue = theData[x];
+			this->theValues[std::to_string(x)] = theValue;
+		}
+		theValue = JsonParseEvent::Array_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<std::string> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
+	template<std::same_as<JsonValue> JsonObjectType> JsonSerializer& operator=(JsonObjectType& theData) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::String;
-		theValue.theValue = theData;
-		this->theValues.push_back(theValue);
+		theValue = JsonParseEvent::Object_Start;
+		this->theValues[this->latestKey] = theValue;
+		for (auto& [key, value] : theData.theValues) {
+			theValue = key;
+			this->theValues[key] = theValue;
+			theValue = value;
+			this->theValues[key] = theValue;
+		}
+		theValue = JsonParseEvent::Object_End;
+		this->theValues[""] = theValue;
+		this->isItFound = false;
+		return *this;
 	}
 
-	template<std::same_as<bool> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString{};
-		if (theData) {
-			theString = "true";
-		}
-		else {
-			theString = "false";
-		}
+	template<std::same_as<uint8_t> JsonObjectType> void emplace(JsonObjectType& theObject) {
 		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::Boolean;
-		theValue.theValue = theString;
-		this->theValues.push_back(theValue);
+		theValue = static_cast<uint8_t>(theObject);
+		this->theValues.emplace(this->latestKey, theValue);
 	}
+	
+	JsonSerializer& operator=(JsonSerializer&&) noexcept;
+	JsonSerializer& operator=(const JsonSerializer&) noexcept;
+	JsonSerializer(const JsonSerializer&) noexcept;
+	JsonSerializer& operator=(JsonParseEvent) noexcept;
+	JsonSerializer& operator=(std::string&&) noexcept;
+	JsonSerializer& operator=(std::string&) noexcept;
+	JsonSerializer& operator=(const char*) noexcept;
+	JsonSerializer& operator=(uint64_t) noexcept;
+	JsonSerializer& operator=(uint32_t) noexcept;
+	JsonSerializer& operator=(uint16_t) noexcept;
+	JsonSerializer& operator=(uint8_t) noexcept;
+	JsonSerializer& operator=(int64_t) noexcept;
+	JsonSerializer& operator=(int32_t) noexcept;
+	JsonSerializer& operator=(int16_t) noexcept;
+	JsonSerializer& operator=(int8_t) noexcept;
+	JsonSerializer& operator=(double) noexcept;
+	JsonSerializer& operator=(float) noexcept;
+	JsonSerializer& operator=(bool) noexcept;
 
-	template<std::same_as<float> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<double> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		std::string theString = std::to_string(theData);
-		this->theValues.push_back({ .theEvent = JsonParseEvent::Number_Integer, .theValue = theString });
-	}
-
-	template<std::same_as<const char*> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-		}
-		JsonValue theValue{};
-		theValue.theEvent = JsonParseEvent::String;
-		theValue.theValue = theData;
-		this->theValues.push_back(theValue);
-	}
-
-	template<std::same_as<JsonParseEvent> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-			theValue.theEvent = theData;
-			theValue.theValue = "null";
-			this->theValues.push_back(theValue);
-		}
-		else {
-			JsonValue theValue{};
-			theValue.theEvent = theData;
-			theValue.theValue = "";
-			this->theValues.push_back(theValue);
-		}
-	}
-
-	template<std::same_as<JsonSerializer> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-			for (auto& value : theData.theValues) {
-				this->theValues.push_back(value);
-			}
-		}
-		else {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = "";
-			this->theValues.push_back(theValue);
-			for (auto& value : theData.theValues) {
-				this->theValues.push_back(value);
-			}
-		}
-	}
-
-	template<std::same_as<std::nullptr_t> JsonObjectType> void addEvent(JsonObjectType theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			JsonValue theValue{};
-			theValue.theEvent = JsonParseEvent::Key;
-			theValue.theValue = keyName;
-			this->theValues.push_back(theValue);
-			this->theValues.push_back({ .theEvent = theData, .theValue = "null" });
-		}
-		else {
-			this->theValues.push_back({ .theEvent = theData, .theValue = "" });
-		}
-	}
-
-	template<typename KeyType, typename ObjectType> void addEvent(std::unordered_map<KeyType, ObjectType> theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_Start, .theValue = keyName });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_End, .theValue = keyName });
-		}
-		else {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_Start, .theValue = "" });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Object_End, .theValue = "" });
-		}
-	}
-
-	template<typename JsonObjectType> void addEvent(std::vector<JsonObjectType> theData, const char* keyName = nullptr) {
-		if (keyName != nullptr) {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_Start, .theValue = keyName });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_End, .theValue = keyName });
-		}
-		else {
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_Start, .theValue = "" });
-			for (auto& [key, value] : theData) {
-				this->addEvent(value, key);
-			}
-			this->theValues.push_back({ .theEvent = JsonParseEvent::Array_End, .theValue = "" });
-		}
-	}
-
-	operator std::string();
+	std::string toString();
 
 protected:
-	std::vector<JsonValue> theValues{};
+	std::unordered_map<std::string, JsonValue> theValues{};
 	JsonParserState theState{};
 	size_t currentPosition{};
+	std::string latestKey{};
 	bool isItFound{ false };
 };
 
