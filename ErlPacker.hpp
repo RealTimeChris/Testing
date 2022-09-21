@@ -126,12 +126,9 @@ public:
 	JsonRecord(double) noexcept;
 	JsonRecord(float) noexcept;
 	JsonRecord(std::string&) noexcept;
-	JsonRecord(const char*) noexcept;
 
-	void pushBack(JsonRecord& other) noexcept;
-	void pushBack(JsonRecord&& other) noexcept;
+	JsonRecord(const char*) noexcept;
 	operator std::string() noexcept;
-	std::unordered_map<std::string, JsonRecord> theJsonData{};
 	std::vector<JsonRecord> theArrayData{};
 	JsonParseEvent theEvent{ JsonParseEvent::Unset };
 	size_t currentObjectOrArrayStartIndex{ 0 };
@@ -144,78 +141,21 @@ class JsonSerializer {
 public:
 	friend class JsonRecord;
 	JsonSerializer() noexcept = default;
-
-	template<typename KeyType, typename ObjectType> JsonSerializer& operator=(std::unordered_map<KeyType, ObjectType> other) {
-		for (auto& [key, value] : other) {
-			JsonRecord theRecord{};
-			theRecord = value;
-			theRecord.theKey = key;
-			this->theJsonData[key] = theRecord;
-		}
-		if (other.size() == 0) {
-			JsonRecord theRecord{};
-			theRecord.theValue = "";
-			theRecord.theEvent = JsonParseEvent::Null_Value;
-			this->theJsonData[""] = theRecord;
-		}
-		return *this;
-	}
-
-	template<typename ObjectType, std::enable_if<std::is_enum<EnumConverter>::value, ObjectType>> JsonSerializer& operator=(std::vector<ObjectType> other) {
-		for (auto& [key, value] : other) {
-			JsonRecord theRecord{};
-			theRecord = value;
-			theRecord.theKey = key;
-			this->theJsonData[key] = theRecord;
-		}
-		if (other.size() == 0) {
-			JsonRecord theRecord{};
-			theRecord.theValue = "";
-			theRecord.theEvent = JsonParseEvent::Null_Value;
-			this->theJsonData[""] = theRecord;
-		}
-		return *this;
-	}
-
-	template<std::same_as<size_t> ObjectType> JsonSerializer& operator=(std::vector<ObjectType> other) {
-		for (auto& [key, value] : other) {
-			JsonRecord theRecord{};
-			theRecord = value;
-			theRecord.theKey = key;
-			this->theJsonData[key] = theRecord;
-		}
-		if (other.size() == 0) {
-			JsonRecord theRecord{};
-			theRecord.theValue = "";
-			theRecord.theEvent = JsonParseEvent::Null_Value;
-			this->theJsonData[""] = theRecord;
-		}
-		return *this;
-	}
-
-	template<std::same_as<std::string> ObjectType> JsonSerializer& operator=(std::vector<ObjectType> other) {
-		for (auto& [key, value] : other) {
-			JsonRecord theRecord{};
-			theRecord = value;
-			theRecord.theKey = key;
-			this->theJsonData[key] = theRecord;
-		}
-		if (other.size() == 0) {
-			JsonRecord theRecord{};
-			theRecord.theValue = "";
-			theRecord.theEvent = JsonParseEvent::Null_Value;
-			this->theJsonData[""] = theRecord;
-		}
-		return *this;
-	}
+	void addNewStructure(const char* keyName);
+	void appendStructElement(const char* keyName, JsonRecord&&);
+	void appendStructElement(const char* keyName, JsonRecord&);
+	void endStructure();
+	void addNewArray(const char* keyName);
+	void appendArrayElement(JsonSerializer&&);
+	void appendArrayElement(JsonSerializer&);
+	void endArray();
 
 	std::string getString();
-	JsonRecord& operator[](const char* keyName) noexcept;
 	operator std::string() noexcept;
 
 protected:
-	std::unordered_map<std::string, JsonRecord> theJsonData{};
 	size_t currentObjectOrArrayStartIndex{ 0 };
+	std::vector<JsonRecord> theJsonData{};
 	JsonParserState theState{};
 };
 
