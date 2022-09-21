@@ -195,38 +195,19 @@ JsonRecord::JsonRecord(uint8_t theData) noexcept {
 	this->theValue = std::to_string(theData);
 }
 
-JsonSerializer::JsonSerializer() noexcept {
-}
-
 JsonSerializer::operator std::string() noexcept {
 	auto theString = this->getString();
 	return theString;
 }
 
-void JsonRecord::pushBack(const char* keyName, JsonRecord& other) noexcept {
-	bool isItFound{ false };
-	if (this->theKey == keyName) {
-		isItFound = true;
-	}
-	if (!isItFound) {
-		JsonRecord theRecord{};
-		theRecord.theEvent = JsonParseEvent::Array_Start;
-		theRecord.theKey = keyName;
-		*this = theRecord;
-	}
+void JsonRecord::pushBack(JsonRecord& other) noexcept {
+	this->theEvent = JsonParseEvent::Array_Start;
+	this->theArrayData.push_back(other);
 }
 
-void JsonRecord::pushBack(const char* keyName, JsonRecord&& other) noexcept {
-	bool isItFound{ false };
-	if (this->theKey == keyName) {
-		isItFound = true;
-	}
-	if (!isItFound) {
-		JsonRecord theRecord{};
-		theRecord.theEvent = JsonParseEvent::Array_Start;
-		theRecord.theKey = keyName;
-		*this = theRecord;
-	}
+void JsonRecord::pushBack(JsonRecord&& other) noexcept {
+	this->theEvent = JsonParseEvent::Array_Start;
+	this->theArrayData.push_back(other);
 }
 
 JsonRecord::operator std::string() noexcept {
@@ -261,7 +242,7 @@ JsonRecord::operator std::string() noexcept {
 		this->theState = JsonParserState::Starting_Array;
 		theString += "[";
 		theString += "\"" + this->theKey + "\":";
-		for (auto& [key, value] : this->theJsonData) {
+		for (auto& value: this->theArrayData) {
 			theString += static_cast<std::string>(value);
 		}
 		this->theState = JsonParserState::Adding_Object_Elements;
@@ -461,8 +442,10 @@ JsonRecord& JsonSerializer::operator[](const char* keyName) noexcept {
 	WebSocketIdentifyData::operator JsonSerializer() {
 		JsonSerializer theSerializer{};
 		theSerializer["d"]["compress"] = false;
-		theSerializer["d"]["token"] = this->botToken;
-		
+		theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+		theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
+
+		theSerializer["d"]["presences"]["activities"] = JsonParseEvent::Array_Start;
 		for (auto& value : this->presence.activities) {
 			JsonRecord theSerializer02{};
 			std::string theString{};
@@ -473,25 +456,32 @@ JsonRecord& JsonSerializer::operator[](const char* keyName) noexcept {
 			theString = std::string{ value.name };
 			theSerializer02["name"] = theString;
 			theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
+			theSerializer["activities"].pushBack(theSerializer02);
 		}
 
-		theSerializer["d"]["afk"] = this->presence.afk;
-		if (this->presence.since != 0) {
-			theSerializer["d"]["since"] = this->presence.since;
+		theSerializer["afk"] = this->presence.afk;
+		if (this->presence.since == 0) {
+			theSerializer["since"] = JsonParseEvent::Null_Value;
+		}
+		else {
+			theSerializer["since"] = this->presence.since;
 		}
 
-		theSerializer["d"]["status"] = this->presence.status;
-		theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-		theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+		theSerializer["status"] = this->presence.status;
+		theSerializer["properties"] = JsonParseEvent::Object_Start;
+		theSerializer["browser"] = "DiscordCoreAPI";
+		theSerializer["device"] = "DiscordCoreAPI";
 #ifdef _WIN32
-		theSerializer["d"]["properties"]["os"] = "Windows";
+		theSerializer["os"] = "Windows";
 #else
-		theSerializer["d"]["properties"]["os"] = "Linux";
+		theSerializer["os"] = "Linux";
 #endif
-		theSerializer[""] = JsonParseEvent::Object_End;
+		theSerializer["shard"].pushBack( static_cast<uint32_t>(this->currentShard));
+		theSerializer["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
+		theSerializer["token"] = this->botToken;
 		theSerializer["op"] = static_cast<uint8_t>(2);
 		return theSerializer;
-	}
+		}
 
 
     int32_t main() noexcept {

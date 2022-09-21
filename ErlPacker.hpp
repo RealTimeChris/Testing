@@ -128,10 +128,11 @@ public:
 	JsonRecord(std::string&) noexcept;
 	JsonRecord(const char*) noexcept;
 
-	void pushBack(const char* keyName, JsonRecord& other) noexcept;
-	void pushBack(const char* keyName, JsonRecord&& other) noexcept;
+	void pushBack(JsonRecord& other) noexcept;
+	void pushBack(JsonRecord&& other) noexcept;
 	operator std::string() noexcept;
 	std::unordered_map<std::string, JsonRecord> theJsonData{};
+	std::vector<JsonRecord> theArrayData{};
 	JsonParseEvent theEvent{ JsonParseEvent::Unset };
 	size_t currentObjectOrArrayStartIndex{ 0 };
 	JsonParserState theState{};
@@ -142,7 +143,7 @@ public:
 class JsonSerializer {
 public:
 	friend class JsonRecord;
-	JsonSerializer() noexcept;
+	JsonSerializer() noexcept = default;
 
 	template<typename KeyType, typename ObjectType> JsonSerializer& operator=(std::unordered_map<KeyType, ObjectType> other) {
 		for (auto& [key, value] : other) {
