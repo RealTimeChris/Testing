@@ -132,7 +132,7 @@ public:
 	void pushBack(const char* keyName, JsonRecord&& other) noexcept;
 	operator std::string() noexcept;
 	std::unordered_map<std::string, JsonRecord> theJsonData{};
-	JsonParseEvent theEvent{ JsonParseEvent::Object_Start };
+	JsonParseEvent theEvent{ JsonParseEvent::Unset };
 	size_t currentObjectOrArrayStartIndex{ 0 };
 	JsonParserState theState{};
 	std::string theValue{};
