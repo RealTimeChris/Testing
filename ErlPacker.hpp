@@ -148,6 +148,8 @@ public:
 	void addNewArray(const char* keyName);
 	void appendArrayElement(JsonSerializer&&);
 	void appendArrayElement(JsonSerializer&);
+	void appendArrayElement(JsonRecord&&);
+	void appendArrayElement(JsonRecord&);
 	void endArray();
 
 	std::string getString();

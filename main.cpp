@@ -207,12 +207,6 @@ JsonRecord::operator std::string() noexcept {
 	if (this->theKey != "") {
 		theString += "\"" + this->theKey + "\":";
 	}
-	if (this->theState != JsonParserState::Starting_Object && this->theState != JsonParserState::Starting_Array) {
-		theString += ",";
-	}
-	if (this->theKey != "") {
-		theString += "\"" + this->theKey + "\":";
-	}
 	switch (this->theEvent) {
 	case JsonParseEvent::Object_Start: {
 		this->theState = JsonParserState::Starting_Object;
@@ -359,6 +353,14 @@ void JsonSerializer::addNewArray(const char* keyName) {
 
 }
 
+void JsonSerializer::appendArrayElement(JsonRecord&& theRecord) {
+	this->theJsonData.push_back(std::move(theRecord));
+}
+
+void JsonSerializer::appendArrayElement(JsonRecord& theRecord) {
+	this->theJsonData.push_back(theRecord);
+}
+
 void JsonSerializer::appendArrayElement(JsonSerializer&&theRecord) {
 	this->addNewStructure("");
 	for (auto& value : theRecord.theJsonData) {
@@ -383,6 +385,7 @@ void JsonSerializer::endArray() {
 
 std::string JsonSerializer::getString() {
 	std::string theString{};
+	this->theState = JsonParserState::Starting_Object;
 	for (auto iterator = this->theJsonData.begin(); iterator != this->theJsonData.end(); ++iterator) {
 		if (this->theState != JsonParserState::Starting_Object && this->theState != JsonParserState::Starting_Array) {
 			theString += ",";
@@ -562,22 +565,25 @@ JsonRecord& JsonRecord::operator[](const char* keyName) noexcept {
 		theSerializer.appendStructElement("afk", this->presence.afk);
 		if (this->presence.since != 0) {
 			theSerializer.appendStructElement("since", this->presence.since);
-		}/*
+		}
 
-		theSerializer["d"]["status"] = this->presence.status;
-		theSerializer["d"]["properties"] = JsonParseEvent::Object_Start;
-		theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-		theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+		theSerializer.appendStructElement("status", this->presence.status);
+		theSerializer.addNewStructure("properties");
+		theSerializer.appendStructElement("browser", "DiscordCoreAPI");
+		theSerializer.appendStructElement("device", "DiscordCoreAPI");
 #ifdef _WIN32
-		theSerializer["d"]["properties"]["os"] = "Windows";
+		theSerializer.appendStructElement("os", "Windows");
 #else
 		theSerializer["d"]["properties"]["os"] = "Linux";
 #endif
-		theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->currentShard));
-		theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
-		theSerializer["d"]["token"] = this->botToken;
-		theSerializer["op"] = static_cast<uint8_t>(2);
-		*/
+		theSerializer.endStructure();
+		theSerializer.addNewArray("shard");
+		theSerializer.appendArrayElement(static_cast<uint32_t>(this->currentShard));
+		theSerializer.appendArrayElement(static_cast<uint32_t>(this->numberOfShards));
+		theSerializer.endArray(); 
+		theSerializer.appendStructElement("token", this->botToken);
+		theSerializer.endStructure();
+		theSerializer.appendStructElement("op", static_cast<uint8_t>(2));
 		return theSerializer;
 		}
 
