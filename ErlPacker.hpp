@@ -33,6 +33,10 @@
 #include <stdint.h>
 #include <set>
 
+enum class BaseEnum :uint8_t;
+enum class DerivedEnum :uint8_t {
+	test_value = 1
+};
 
 enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };
 
@@ -52,9 +56,50 @@ enum class JsonParseEvent : uint16_t {
 	Number_Double = 1 << 12
 };
 
+template<typename TheType>
+concept IsEnum = std::is_enum<TheType>::value;
+
+struct EnumConverter {
+	template<IsEnum EnumType> EnumConverter(EnumType other) {
+		this->thePtr = new uint64_t{};
+		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
+	};
+
+	template<IsEnum EnumType> EnumConverter(std::vector<EnumType> other) {
+		this->thePtr = new std::vector<uint64_t>{};
+		for (auto& value : other) {
+			static_cast<std::vector<uint64_t>*>(this->thePtr)->emplace_back(static_cast<uint64_t>(value));
+		}
+		this->vectorType = true;
+	};
+
+	operator std::vector<uint64_t>() {
+		std::vector<uint64_t> theObject{};
+		for (auto& value : *static_cast<std::vector<uint64_t>*>(this->thePtr)) {
+			theObject.emplace_back(value);
+		}
+
+		return theObject;
+	}
+
+	explicit operator uint64_t() {
+		uint64_t theObject{};
+		theObject = *static_cast<uint64_t*>(this->thePtr);
+		return theObject;
+	}
+
+	~EnumConverter() {
+		delete this->thePtr;
+	}
+
+	void* thePtr{};
+	bool vectorType{ false };
+};
+
 class JsonRecord {
 public:
 	JsonRecord() noexcept = default;
+	JsonRecord& operator=(EnumConverter other);
 	JsonRecord& operator=(int8_t) noexcept;
 	JsonRecord& operator=(int16_t) noexcept;
 	JsonRecord& operator=(int32_t) noexcept;
@@ -66,9 +111,9 @@ public:
 	JsonRecord& operator=(bool) noexcept;
 	JsonRecord& operator=(double) noexcept;
 	JsonRecord& operator=(float) noexcept;
-	JsonRecord& operator=(std::string&&) noexcept;
 	JsonRecord& operator=(std::string&) noexcept;
 	JsonRecord& operator=(const char*) noexcept;
+	JsonRecord& operator[](const char*) noexcept;
 	JsonRecord(int8_t) noexcept;
 	JsonRecord(int16_t) noexcept;
 	JsonRecord(int32_t) noexcept;
@@ -80,13 +125,16 @@ public:
 	JsonRecord(bool) noexcept;
 	JsonRecord(double) noexcept;
 	JsonRecord(float) noexcept;
-	JsonRecord(std::string&&) noexcept;
 	JsonRecord(std::string&) noexcept;
 	JsonRecord(const char*) noexcept;
 
+	void pushBack(const char* keyName, JsonRecord& other) noexcept;
+	void pushBack(const char* keyName, JsonRecord&& other) noexcept;
 	operator std::string() noexcept;
-
+	std::unordered_map<std::string, JsonRecord> theJsonData{};
 	JsonParseEvent theEvent{ JsonParseEvent::Object_Start };
+	size_t currentObjectOrArrayStartIndex{ 0 };
+	JsonParserState theState{};
 	std::string theValue{};
 	std::string theKey{};
 };
@@ -95,38 +143,81 @@ class JsonSerializer {
 public:
 	friend class JsonRecord;
 	JsonSerializer() noexcept;
-	JsonSerializer(const char*) noexcept;
-	JsonSerializer(const JsonSerializer& other) noexcept;
-	JsonSerializer& operator=(const JsonSerializer& other) noexcept;
-	JsonSerializer& operator=(int8_t) noexcept;
-	JsonSerializer& operator=(int16_t) noexcept;
-	JsonSerializer& operator=(int32_t) noexcept;
-	JsonSerializer& operator=(int64_t) noexcept;
-	JsonSerializer& operator=(uint8_t) noexcept;
-	JsonSerializer& operator=(uint16_t) noexcept;
-	JsonSerializer& operator=(uint32_t) noexcept;
-	JsonSerializer& operator=(uint64_t) noexcept;
-	JsonSerializer& operator=(bool) noexcept;
-	JsonSerializer& operator=(double) noexcept;
-	JsonSerializer& operator=(float) noexcept;
-	JsonSerializer& operator=(std::string&&) noexcept;
-	JsonSerializer& operator=(std::string&) noexcept;
-	JsonSerializer& operator=(const char*) noexcept;
+
+	template<typename KeyType, typename ObjectType> JsonSerializer& operator=(std::unordered_map<KeyType, ObjectType> other) {
+		for (auto& [key, value] : other) {
+			JsonRecord theRecord{};
+			theRecord = value;
+			theRecord.theKey = key;
+			this->theJsonData[key] = theRecord;
+		}
+		if (other.size() == 0) {
+			JsonRecord theRecord{};
+			theRecord.theValue = "";
+			theRecord.theEvent = JsonParseEvent::Null_Value;
+			this->theJsonData[""] = theRecord;
+		}
+		return *this;
+	}
+
+	template<typename ObjectType, std::enable_if<std::is_enum<EnumConverter>::value, ObjectType>> JsonSerializer& operator=(std::vector<ObjectType> other) {
+		for (auto& [key, value] : other) {
+			JsonRecord theRecord{};
+			theRecord = value;
+			theRecord.theKey = key;
+			this->theJsonData[key] = theRecord;
+		}
+		if (other.size() == 0) {
+			JsonRecord theRecord{};
+			theRecord.theValue = "";
+			theRecord.theEvent = JsonParseEvent::Null_Value;
+			this->theJsonData[""] = theRecord;
+		}
+		return *this;
+	}
+
+	template<std::same_as<size_t> ObjectType> JsonSerializer& operator=(std::vector<ObjectType> other) {
+		for (auto& [key, value] : other) {
+			JsonRecord theRecord{};
+			theRecord = value;
+			theRecord.theKey = key;
+			this->theJsonData[key] = theRecord;
+		}
+		if (other.size() == 0) {
+			JsonRecord theRecord{};
+			theRecord.theValue = "";
+			theRecord.theEvent = JsonParseEvent::Null_Value;
+			this->theJsonData[""] = theRecord;
+		}
+		return *this;
+	}
+
+	template<std::same_as<std::string> ObjectType> JsonSerializer& operator=(std::vector<ObjectType> other) {
+		for (auto& [key, value] : other) {
+			JsonRecord theRecord{};
+			theRecord = value;
+			theRecord.theKey = key;
+			this->theJsonData[key] = theRecord;
+		}
+		if (other.size() == 0) {
+			JsonRecord theRecord{};
+			theRecord.theValue = "";
+			theRecord.theEvent = JsonParseEvent::Null_Value;
+			this->theJsonData[""] = theRecord;
+		}
+		return *this;
+	}
+
 	std::string getString();
-	JsonSerializer& operator[](const char* keyName) noexcept;
-	JsonSerializer& operator=(JsonRecord&);
-	void pushBack(const char* keyName, JsonRecord& other) noexcept;
-	void pushBack(const char* keyName, JsonRecord&& other) noexcept;
-	void pushBack(const char* keyName, JsonSerializer& other) noexcept;
-	void pushBack(const char* keyName, JsonSerializer&& other) noexcept;
+	JsonRecord& operator[](const char* keyName) noexcept;
 	operator std::string() noexcept;
 
 protected:
-	std::vector<JsonRecord> theJsonData{};
-	size_t currentIndentationLevel{ 0 };
-	size_t theIndentationLevel{ 0 };
+	std::unordered_map<std::string, JsonRecord> theJsonData{};
+	size_t currentObjectOrArrayStartIndex{ 0 };
 	JsonParserState theState{};
 };
+
 
 
 	struct ErlPackError : public std::runtime_error {
