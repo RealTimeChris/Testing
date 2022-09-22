@@ -42,7 +42,8 @@ enum class ValueType {
 	String = 5,
 	Bool = 6,
 	Int64 = 7,
-	Uint64 = 8
+	Uint64 = 8,
+	Unset = 9
 };
 
 struct JsonObject;
@@ -50,16 +51,21 @@ struct JsonObject;
 struct JsonObjectBase;
 
 struct JsonArray {
-	JsonArray(size_t theSize) {
-		for (size_t x = 0; x < theSize; ++x) {
-			std::allocator<JsonObjectBase> theAllocator{};
-			theAllocator.allocate(theSize);
-		}
-	}
+	JsonArray()noexcept = default;
 };
 
 union JsonValue {
+	JsonValue(bool);
+	JsonValue(nullptr_t);
+	JsonValue(std::string);
+	JsonValue(JsonArray);
+	JsonValue(JsonObject);
+	JsonValue(uint64_t);
+	JsonValue(int64_t);
+	JsonValue(double);
+	JsonValue(float);
 	JsonValue()noexcept = default;
+	JsonValue& operator=(ValueType theType);
 	JsonValue(ValueType theType);
 	std::string* theString{};
 	JsonObject* theObject;
@@ -70,6 +76,7 @@ union JsonValue {
 	float theFloat;
 	int64_t theInt;
 	bool theBool;
+	~JsonValue();
 };
 
 struct JsonObjectBase {
@@ -80,16 +87,24 @@ struct JsonObjectBase {
 	std::string theKey{};
 };
 
+inline bool operator==(const JsonObjectBase& lhs, const JsonObjectBase& rhs) {
+	return lhs.theKey == rhs.theKey;
+}
+
 template<> struct std::hash<JsonObjectBase> {
-	std::size_t operator()(JsonObjectBase& object) const noexcept {
+	std::size_t operator()(JsonObjectBase& object)const noexcept {
 		return stoull(object.theKey);
 	}
 };
 
-struct JsonObject : public JsonObjectBase  {
-	std::unordered_set<JsonObjectBase>theValues{};
-	ValueType theType{ ValueType::Null };
-	std::string theKey{};
+struct JsonObject :public JsonObjectBase {
+	JsonObject()noexcept = default;
+	JsonObject(const char* theKey)noexcept;
+	std::unordered_map<std::string, JsonObject>theValues{};
+	//JsonObject& operator=(bool theData);
+	//JsonObject& operator=(JsonObject theData);
+	//JsonObject(bool theData);
+	JsonObject& operator[](const char* theKey);
 };
 
 enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };
@@ -157,10 +172,10 @@ struct EnumConverter {
 
 class JsonSerializer;
 
-class JsonSerializer: public JsonObject {
+class JsonSerializer {
 public:
 
-	std::string getString(JsonObject);
+	std::string getString(JsonObject theData);
 };
 
 
