@@ -33,9 +33,63 @@
 #include <stdint.h>
 #include <set>
 
-enum class BaseEnum :uint8_t;
-enum class DerivedEnum :uint8_t {
-	test_value = 1
+enum class ValueType {
+	Null = 0,
+	Object = 1,
+	Array = 2,
+	Double = 3,
+	Float = 4,
+	String = 5,
+	Bool = 6,
+	Int64 = 7,
+	Uint64 = 8
+};
+
+struct JsonObject;
+
+struct JsonObjectBase;
+
+struct JsonArray {
+	JsonArray(size_t theSize) {
+		for (size_t x = 0; x < theSize; ++x) {
+			std::allocator<JsonObjectBase> theAllocator{};
+			theAllocator.allocate(theSize);
+		}
+	}
+};
+
+union JsonValue {
+	JsonValue()noexcept = default;
+	JsonValue(ValueType theType);
+	std::string* theString{};
+	JsonObject* theObject;
+	JsonArray* theArray;
+	nullptr_t theNull;
+	double theDouble;
+	uint64_t theUint;
+	float theFloat;
+	int64_t theInt;
+	bool theBool;
+};
+
+struct JsonObjectBase {
+	JsonObjectBase()noexcept = default;
+	JsonObjectBase(const char* theKey, ValueType theType);
+	ValueType theType{ ValueType::Null };
+	JsonValue theValue{};
+	std::string theKey{};
+};
+
+template<> struct std::hash<JsonObjectBase> {
+	std::size_t operator()(JsonObjectBase& object) const noexcept {
+		return stoull(object.theKey);
+	}
+};
+
+struct JsonObject : public JsonObjectBase  {
+	std::unordered_set<JsonObjectBase>theValues{};
+	ValueType theType{ ValueType::Null };
+	std::string theKey{};
 };
 
 enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };
@@ -65,12 +119,17 @@ struct EnumConverter {
 		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
 	};
 
-	template<IsEnum EnumType> EnumConverter(std::vector<EnumType> other) {
+	template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> other) {
 		this->thePtr = new std::vector<uint64_t>{};
 		for (auto& value : other) {
 			static_cast<std::vector<uint64_t>*>(this->thePtr)->emplace_back(static_cast<uint64_t>(value));
 		}
 		this->vectorType = true;
+		return *this;
+	};
+
+	template<IsEnum EnumType> EnumConverter(std::vector<EnumType> other) {
+		*this = other;
 	};
 
 	operator std::vector<uint64_t>() {
@@ -96,69 +155,12 @@ struct EnumConverter {
 	bool vectorType{ false };
 };
 
-class JsonRecord {
+class JsonSerializer;
+
+class JsonSerializer: public JsonObject {
 public:
-	JsonRecord() noexcept = default;
-	JsonRecord& operator=(EnumConverter other);
-	JsonRecord& operator=(int8_t) noexcept;
-	JsonRecord& operator=(int16_t) noexcept;
-	JsonRecord& operator=(int32_t) noexcept;
-	JsonRecord& operator=(int64_t) noexcept;
-	JsonRecord& operator=(uint8_t) noexcept;
-	JsonRecord& operator=(uint16_t) noexcept;
-	JsonRecord& operator=(uint32_t) noexcept;
-	JsonRecord& operator=(uint64_t) noexcept;
-	JsonRecord& operator=(bool) noexcept;
-	JsonRecord& operator=(double) noexcept;
-	JsonRecord& operator=(float) noexcept;
-	JsonRecord& operator=(std::string&) noexcept;
-	JsonRecord& operator=(const char*) noexcept;
-	JsonRecord& operator[](const char*) noexcept;
-	JsonRecord(int8_t) noexcept;
-	JsonRecord(int16_t) noexcept;
-	JsonRecord(int32_t) noexcept;
-	JsonRecord(int64_t) noexcept;
-	JsonRecord(uint8_t) noexcept;
-	JsonRecord(uint16_t) noexcept;
-	JsonRecord(uint32_t) noexcept;
-	JsonRecord(uint64_t) noexcept;
-	JsonRecord(bool) noexcept;
-	JsonRecord(double) noexcept;
-	JsonRecord(float) noexcept;
-	JsonRecord(std::string&) noexcept;
 
-	JsonRecord(const char*) noexcept;
-	operator std::string() noexcept;
-	std::vector<JsonRecord> theArrayData{};
-	JsonParseEvent theEvent{ JsonParseEvent::Unset };
-	size_t currentObjectOrArrayStartIndex{ 0 };
-	JsonParserState theState{};
-	std::string theValue{};
-	std::string theKey{};
-};
-
-class JsonSerializer {
-public:
-	friend class JsonRecord;
-	JsonSerializer() noexcept = default;
-	void addNewStructure(const char* keyName);
-	void appendStructElement(const char* keyName, JsonRecord&&);
-	void appendStructElement(const char* keyName, JsonRecord&);
-	void endStructure();
-	void addNewArray(const char* keyName);
-	void appendArrayElement(JsonSerializer&&);
-	void appendArrayElement(JsonSerializer&);
-	void appendArrayElement(JsonRecord&&);
-	void appendArrayElement(JsonRecord&);
-	void endArray();
-
-	std::string getString();
-	operator std::string() noexcept;
-
-protected:
-	size_t currentObjectOrArrayStartIndex{ 0 };
-	std::vector<JsonRecord> theJsonData{};
-	JsonParserState theState{};
+	std::string getString(JsonObject);
 };
 
 

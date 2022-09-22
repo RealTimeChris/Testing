@@ -1,8 +1,59 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
+/*
+JsonObject& JsonObject::operator=(JsonSerializer&&other)noexcept{
+	this->indentationLevel = other.indentationLevel;
+	for (auto& [key, value] : other.theStructData) {
+		this->theStructData[key] = std::move(value);
+	}
+	for (auto& value : other.theArrayData) {
+		this->theArrayData.emplace_back(std::move(value));
+	}
+	this->theEvent = other.theEvent;
+	this->theState = other.theState;
+	this->theValue = other.theValue;
+	return *this;
+}
 
+JsonObject& JsonObject::operator=(JsonSerializer& other)noexcept{
+	this->indentationLevel = other.indentationLevel;
+	for (auto& [key, value] : other.theStructData) {
+		this->theStructData[key] = value;
+	}
+	for (auto& value : other.theArrayData) {
+		this->theArrayData.emplace_back(value);
+	}
+	this->theEvent = other.theEvent;
+	this->theState = other.theState;
+	this->theValue = other.theValue;
+	return *this;
+}
 
-JsonRecord& JsonRecord::operator=(bool theData) noexcept {
+JsonObject::JsonObject(JsonSerializer&& other)noexcept{
+	*this = other;
+}
+
+JsonObject::JsonObject(JsonSerializer& other)noexcept{
+	*this = other;
+}
+
+JsonSerializer& JsonSerializer::operator[](const char*keyName) noexcept {
+	bool isItFound{ false };
+	if (this->theStructData.empty()) {
+		this->indentationLevel++;
+		this->theKey = keyName;
+		this->theEvent = JsonParseEvent::Object_Start;
+		this->theStructData[keyName] = *this;
+		return *this;
+	}
+	this->indentationLevel++;
+	this->theKey = keyName;
+	this->theEvent = JsonParseEvent::Unset;
+	this->theStructData[keyName] = *this;
+	return *this;
+}
+
+JsonObject& JsonObject::operator=(bool theData) noexcept {
 	std::string theString{};
 	if (theData) {
 		theString = "true";
@@ -12,211 +63,452 @@ JsonRecord& JsonRecord::operator=(bool theData) noexcept {
 	}
 	this->theValue = theString;
 	this->theEvent = JsonParseEvent::Boolean;
-	std::cout << "THE KEY: BOOL: REAL " << this->theKey << "THE VALUE: REAL " << this->theValue << std::endl;
 	return *this;
 }
 
-JsonRecord& JsonRecord::operator=(const char* theData) noexcept {
+JsonObject& JsonObject::operator=(const char* theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::String;
-	if (!theData) {
-		this->theEvent = JsonParseEvent::Null_Value;
-		this->theValue = "null";
-	}
-	else {
-		this->theValue = theData;
-	}
-	std::cout << "THE KEY: STRING: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
 	return *this;
 }
 
-JsonRecord& JsonRecord::operator=(std::string& theData) noexcept {
+JsonObject& JsonObject::operator=(std::nullptr_t theData) noexcept {
+	this->theEvent = JsonParseEvent::Null_Value;
+	return *this;
+}
+
+JsonObject& JsonObject::operator=(std::string&& theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::String;
-	if (theData.empty()) {
-		this->theEvent = JsonParseEvent::Null_Value;
-		this->theValue = "null";
-	}
-	else {
-		this->theValue = theData;
-	}
-	std::cout << "THE KEY: STRING: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
 	return *this;
 }
 
-JsonRecord& JsonRecord::operator=(float theData) noexcept {
+JsonObject& JsonObject::operator=(std::string& theData) noexcept {
+	this->theValue = theData;
+	this->theEvent = JsonParseEvent::String;
+	return *this;
+}
+
+JsonObject& JsonObject::operator=(float theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Float;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: FLOAT: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
 	return *this;
 }
 
-JsonRecord& JsonRecord::operator=(double theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Double;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: DOUBLE: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(int64_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer_Large;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(int32_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(int16_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(int8_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer_Small;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(uint64_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer_Large;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(uint32_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(uint16_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator=(uint8_t theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Integer_Small;
-	this->theValue = std::to_string(theData);
-	std::cout << "THE KEY: INTEGER: " << this->theKey << "THE VALUE: " << this->theValue << std::endl;
-	return *this;
-}
-
-JsonRecord::JsonRecord(bool theData) noexcept {
-	this->theEvent = JsonParseEvent::Boolean;
-	std::string theString{};
-	if (theData) {
-		theString = "true";
-	}
-	else {
-		theString = "false";
-	}
-	this->theValue = theString;
-}
-
-JsonRecord::JsonRecord(const char* theData) noexcept {
-	this->theEvent = JsonParseEvent::String;
-	if (theData == nullptr) {
-		this->theEvent = JsonParseEvent::Null_Value;
-		this->theValue = "null";
-	}
-	else {
-		this->theValue = theData;
-	}
-}
-
-JsonRecord::JsonRecord(std::string& theData) noexcept {
-	this->theEvent = JsonParseEvent::String;
-	if (theData.empty()) {
-		this->theEvent = JsonParseEvent::Null_Value;
-		this->theValue = "null";
-	}
-	else {
-		this->theValue = theData;
-	}
-}
-
-JsonRecord::JsonRecord(float theData) noexcept {
+JsonObject& JsonObject::operator=(double theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Float;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(double theData) noexcept {
-	this->theEvent = JsonParseEvent::Number_Double;
-	this->theValue = std::to_string(theData);
-}
-
-JsonRecord::JsonRecord(int64_t theData) noexcept {
+JsonObject& JsonObject::operator=(int64_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer_Large;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(int32_t theData) noexcept {
+JsonObject& JsonObject::operator=(int32_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(int16_t theData) noexcept {
+JsonObject& JsonObject::operator=(int16_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(int8_t theData) noexcept {
+JsonObject& JsonObject::operator=(int8_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer_Small;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(uint64_t theData) noexcept {
+JsonObject& JsonObject::operator=(uint64_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer_Large;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(uint32_t theData) noexcept {
+JsonObject& JsonObject::operator=(uint32_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(uint16_t theData) noexcept {
+JsonObject& JsonObject::operator=(uint16_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonRecord::JsonRecord(uint8_t theData) noexcept {
+JsonObject& JsonObject::operator=(uint8_t theData) noexcept {
+	this->theValue = theData;
 	this->theEvent = JsonParseEvent::Number_Integer_Small;
-	this->theValue = std::to_string(theData);
+	return *this;
 }
 
-JsonSerializer::operator std::string() noexcept {
+JsonObject::JsonObject(const char* keyName, JsonParseEvent theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, const char* theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, std::nullptr_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, std::string&& theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, bool theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, std::string& theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, float theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, double theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, int64_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, int32_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, int16_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, int8_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, uint64_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, uint32_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, uint16_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonObject::JsonObject(const char* keyName, uint8_t theData) noexcept {
+	*this = theData;
+	this->theKey = keyName;
+}
+
+JsonSerializer& JsonSerializer::operator=(const char* theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int64_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int32_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int16_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(int8_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(uint64_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(uint32_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(double theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(float theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(nullptr_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(uint16_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(uint8_t theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(bool theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(std::string& theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(std::string&& theData) noexcept {
+	JsonObject theObject{};
+	theObject = theData;
+	this->theStructData = theObject.theStructData;
+	this->theArrayData = theObject.theArrayData;
+	this->theEvent = theObject.theEvent;
+	this->theState = theObject.theState;
+	this->theValue = theObject.theValue;
+	if (this->theEvent == JsonParseEvent::Object_Start) {
+		this->theStructData[this->theKey] = *this;
+	}
+	return *this;
+}
+
+JsonSerializer::JsonSerializer(const char* other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(int8_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(int16_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(int32_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(int64_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(uint8_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(uint16_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(uint32_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(uint64_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(std::nullptr_t other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(bool other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(double other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(float other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(std::string&& other) noexcept {
+	*this = other;
+}
+JsonSerializer::JsonSerializer(std::string& other) noexcept {
+	*this = other;
+}
+/*
+JsonObject::operator std::string() noexcept {
 	std::string theString{ "{" };
-	theString += this->getString();
-	theString += "}";
-	return theString;
-}
-
-JsonRecord::operator std::string() noexcept {
-	std::string theString{};
+	this->theState = JsonParserState::Starting_Object;
+	std::cout << "WERE HERE THIS IS ITS!" << std::endl;
+	if (this->theState == JsonParserState::Adding_Object_Elements || this->theState == JsonParserState::Adding_Array_Elements) {
+		theString += ",";
+	}
 	if (this->theKey != "") {
 		theString += "\"" + this->theKey + "\":";
 	}
 	switch (this->theEvent) {
 	case JsonParseEvent::Object_Start: {
 		this->theState = JsonParserState::Starting_Object;
-		this->currentObjectOrArrayStartIndex++;
+		this->indentationLevel++;
 		theString += "{";
+		for (auto& [key, value] : this->theStructData) {
+			theString += value;
+		}
 		break;
 	}
 	case JsonParseEvent::Object_End: {
+		this->theState = JsonParserState::Adding_Object_Elements;
 		theString += "}";
-		this->currentObjectOrArrayStartIndex--;
+		this->indentationLevel--;
 		if (theString[theString.size() - 2] == ',') {
 			theString.erase(theString.begin() + theString.size() - 2);
 		}
@@ -225,6 +517,9 @@ JsonRecord::operator std::string() noexcept {
 	case JsonParseEvent::Array_Start: {
 		this->theState = JsonParserState::Starting_Array;
 		theString += "[";
+		for (auto& value : this->theArrayData) {
+			theString += value;
+		}
 		break;
 	}
 	case JsonParseEvent::Array_End: {
@@ -246,7 +541,7 @@ JsonRecord::operator std::string() noexcept {
 		break;
 	}
 	case JsonParseEvent::Null_Value: {
-		theString += this->theValue;
+		theString += "null";
 		if (this->theState == JsonParserState::Starting_Object) {
 			this->theState = JsonParserState::Adding_Object_Elements;
 		}
@@ -317,217 +612,65 @@ JsonRecord::operator std::string() noexcept {
 		}
 		break;
 	}
-		
 	}
-	for (uint32_t x = 0; x < this->currentObjectOrArrayStartIndex; ++x) {
-		theString += "}";
-	}
+	theString += "}";
+	std::cout << "THE STRING FINAL 0101: " << theString << std::endl;
 	return theString;
 }
 
-void JsonSerializer::addNewStructure(const char* keyName) {
-	JsonRecord theRecord{};
-	theRecord.theKey = keyName;
-	theRecord.theEvent = JsonParseEvent::Object_Start;
-	this->theJsonData.push_back(theRecord);
-}
-void JsonSerializer::appendStructElement(const char* keyName, JsonRecord&&theRecord) {
-	theRecord.theKey = keyName;
-	this->theJsonData.push_back(std::move(theRecord));
-
-}
-void JsonSerializer::appendStructElement(const char* keyName, JsonRecord&theRecord) {
-	theRecord.theKey = keyName;
-	this->theJsonData.push_back(theRecord);
-}
-void JsonSerializer::endStructure() {
-	JsonRecord theRecord{};
-	theRecord.theEvent = JsonParseEvent::Object_End;
-	this->theJsonData.push_back(theRecord);
-}
-void JsonSerializer::addNewArray(const char* keyName) {
-	JsonRecord theRecord{};
-	theRecord.theKey = keyName;
-	theRecord.theEvent = JsonParseEvent::Array_Start;
-	this->theJsonData.push_back(theRecord);
-
+JsonObject& JsonObject::operator=(JsonParseEvent other)noexcept{
+	this->theEvent = other;
+	return *this;
 }
 
-void JsonSerializer::appendArrayElement(JsonRecord&& theRecord) {
-	this->theJsonData.push_back(std::move(theRecord));
-}
-
-void JsonSerializer::appendArrayElement(JsonRecord& theRecord) {
-	this->theJsonData.push_back(theRecord);
-}
-
-void JsonSerializer::appendArrayElement(JsonSerializer&&theRecord) {
-	this->addNewStructure("");
-	for (auto& value : theRecord.theJsonData) {
-		this->theJsonData.push_back(std::move(value));
+void JsonSerializer::pushBack(JsonSerializer&& theRecord) {
+	for (auto& [key, value] : theRecord.theStructData) {
+		this->theStructData[key] = value;
 	}
-	this->endStructure();
 }
 
-void JsonSerializer::appendArrayElement(JsonSerializer& theRecord) {
-	this->addNewStructure("");
-	for (auto& value : theRecord.theJsonData) {
-		this->theJsonData.push_back(value);
+void JsonSerializer::pushBack(JsonSerializer& theRecord) {
+	for (auto& [key, value] : theRecord.theStructData) {
+		this->theStructData[key] = value;
 	}
-	this->endStructure();
+}
+*/
+
+JsonValue::JsonValue(ValueType theType){
+	switch (theType) {
+	case ValueType::Bool:{
+		this->theBool = false;
+	} 
+	case ValueType::Double: {
+		this->theDouble = 0.0f;
+	}
+	case ValueType::Float : {
+		this->theDouble = 0.0f;
+	}
+	case ValueType::Uint64: {
+		this->theDouble = 1ull;
+	}
+	case ValueType::Int64: {
+		this->theDouble = 1ll;
+	}
+	case ValueType::String: {
+		this->theString = std::make_unique<std::string>().release();
+	}
+	case ValueType::Null: {
+		this->theNull = nullptr;
+	}
+	case ValueType::Array: {
+		this->theArray = std::make_unique<JsonArray>().release();
+	}
+	case ValueType::Object: {
+		this->theObject = std::make_unique<JsonObject>().release();
+	}
+	}
 }
 
-void JsonSerializer::endArray() {
-	JsonRecord theRecord{};
-	theRecord.theEvent = JsonParseEvent::Array_End;
-	this->theJsonData.push_back(theRecord);
-}
-
-std::string JsonSerializer::getString() {
-	std::string theString{};
-	this->theState = JsonParserState::Starting_Object;
-	for (auto iterator = this->theJsonData.begin(); iterator != this->theJsonData.end(); ++iterator) {
-		if (this->theState != JsonParserState::Starting_Object && this->theState != JsonParserState::Starting_Array) {
-			theString += ",";
-		}
-		if ((*iterator).theKey != "") {
-			theString += "\"" + (*iterator).theKey + "\":";
-		}
-		switch ((*iterator).theEvent) {
-		case JsonParseEvent::Object_Start: {
-			this->theState = JsonParserState::Starting_Object;
-			this->currentObjectOrArrayStartIndex++;
-			theString += "{";
-			break;
-		}
-		case JsonParseEvent::Object_End: {
-			theString += "}";
-			this->currentObjectOrArrayStartIndex--;
-			if (theString[theString.size() - 2] == ',') {
-				theString.erase(theString.begin() + theString.size() - 2);
-			}
-			break;
-		}
-		case JsonParseEvent::Array_Start: {
-			this->theState = JsonParserState::Starting_Array;
-			theString += "[";
-			break;
-		}
-		case JsonParseEvent::Array_End: {
-			this->theState = JsonParserState::Adding_Object_Elements;
-			theString += "]";
-			if (theString[theString.size() - 2] == ',') {
-				theString.erase(theString.begin() + theString.size() - 2);
-			}
-			break;
-		}
-		case JsonParseEvent::Boolean: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::Null_Value: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::Number_Double: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::Number_Float: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::Number_Integer: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::Number_Integer_Large: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::Number_Integer_Small: {
-			theString += (*iterator).theValue;
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		case JsonParseEvent::String: {
-			theString += "\"";
-			theString += (*iterator).theValue;
-			theString += "\"";
-			if (this->theState == JsonParserState::Starting_Object) {
-				this->theState = JsonParserState::Adding_Object_Elements;
-			}
-			if (this->theState == JsonParserState::Starting_Array) {
-				this->theState = JsonParserState::Adding_Array_Elements;
-			}
-			break;
-		}
-		}
-	}
-	for (uint32_t x = 0; x < this->currentObjectOrArrayStartIndex; ++x) {
-		theString += "}";
-	}
-	
+std::string JsonSerializer::getString(JsonObject theObject) {
+	std::string theString{ "{" };
 	return theString;
-}
-
-JsonRecord& JsonRecord::operator=(EnumConverter other) {
-	JsonRecord theRecord{};
-	if (other.vectorType) {
-		theRecord.theEvent = JsonParseEvent::Array_Start;
-		for (auto& value : static_cast<std::vector<uint64_t>>(other)) {
-			theRecord.theEvent = JsonParseEvent::Number_Integer_Large;
-			theRecord.theValue = std::to_string(static_cast<uint64_t>(value));
-		}
-		theRecord.theEvent = JsonParseEvent::Array_End;
-	}
-	return *this;
-}
-
-JsonRecord& JsonRecord::operator[](const char* keyName) noexcept {
-	this->theKey = keyName;
-	return *this;
 }
 
     struct WebSocketIdentifyData {
@@ -545,52 +688,80 @@ JsonRecord& JsonRecord::operator[](const char* keyName) noexcept {
 	 
 	WebSocketIdentifyData::operator JsonSerializer() {
 		JsonSerializer theSerializer{};
-		theSerializer.addNewStructure("d");
-		theSerializer.appendStructElement("intents", static_cast<uint32_t>(this->intents));
-		theSerializer.appendStructElement("large_threshold", static_cast<uint32_t>(250));
-		theSerializer.addNewArray("activities");
+		/*
+		theSerializer["d"];
+		theSerializer["intents"] = "testing";
+		theSerializer["large_threshold"] = static_cast<uint32_t>(250);
 		for (auto& value : this->presence.activities) {
 			JsonSerializer theSerializer02{};
 			std::string theString{};
 			if (value.url != "") {
 				theString = value.url;
-				theSerializer02.appendStructElement("url", theString);
+				theSerializer02["url"] = theString;
 			}
 			theString = std::string{ value.name };
-			theSerializer02.appendStructElement("name", theString);
-			theSerializer02.appendStructElement("type", uint32_t{ static_cast<uint32_t>(value.type) });
-			theSerializer.appendArrayElement(theSerializer02);
+			theSerializer02["name"] = theString;
+			theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		}
-		theSerializer.endArray();
-		theSerializer.appendStructElement("afk", this->presence.afk);
+		theSerializer["afk"] = this->presence.afk;
 		if (this->presence.since != 0) {
-			theSerializer.appendStructElement("since", this->presence.since);
+			theSerializer["since"] = this->presence.since;
 		}
 
-		theSerializer.appendStructElement("status", this->presence.status);
-		theSerializer.addNewStructure("properties");
-		theSerializer.appendStructElement("browser", "DiscordCoreAPI");
-		theSerializer.appendStructElement("device", "DiscordCoreAPI");
+		theSerializer["status"] = this->presence.status;
+		//theSerializer.appendStructElement("browser", "DiscordCoreAPI");
+		//theSerializer.appendStructElement("device", "DiscordCoreAPI");
 #ifdef _WIN32
-		theSerializer.appendStructElement("os", "Windows");
+		//theSerializer.appendStructElement("os", "Windows");
 #else
 		theSerializer["d"]["properties"]["os"] = "Linux";
 #endif
-		theSerializer.endStructure();
-		theSerializer.addNewArray("shard");
-		theSerializer.appendArrayElement(static_cast<uint32_t>(this->currentShard));
-		theSerializer.appendArrayElement(static_cast<uint32_t>(this->numberOfShards));
-		theSerializer.endArray(); 
-		theSerializer.appendStructElement("token", this->botToken);
-		theSerializer.endStructure();
-		theSerializer.appendStructElement("op", static_cast<uint8_t>(2));
+		auto theInt = static_cast<uint32_t>(this->currentShard);
+		theSerializer.pushBack(theInt);
+		theSerializer.pushBack(static_cast<uint32_t>(this->numberOfShards));
+		*/
 		return theSerializer;
 		}
+
+	/// For editing the permissions of a single Guild ApplicationCommand. \brief For editing the permissions of a single Guild ApplicationCommand.
+	struct EditGuildApplicationCommandPermissionsData {
+		std::vector<DiscordCoreAPI::ApplicationCommandPermissionData> permissions{};///< A vector of ApplicationCommand permissions.
+		std::string commandName{};///< The command name which you would like to edit the permissions of.
+		DiscordCoreAPI::Snowflake applicationId{};///< The current application's Id (The Bot's User Id).
+		uint64_t commandId{};///< The command id which you would like to edit the permissions of.
+		DiscordCoreAPI::Snowflake guildId{};///< The Guild id of the Guild for which you would like to edit the command permissions.
+
+		operator JsonSerializer();
+	};
+
+	EditGuildApplicationCommandPermissionsData::operator JsonSerializer() {
+		JsonSerializer theData{};
+		/*
+		for (auto& value : this->permissions) {
+			JsonSerializer newData{};
+			
+			newData["d"]["permission"] = value.permission;
+			newData["d"]["type"] = static_cast<uint8_t>(value.type);
+			auto theString = std::to_string(value.id);
+			newData["d"]["id"] = theString;
+		}
+		std::cout << "THE STRING: " << theData.getString() << std::endl;
+		*/
+		return theData;
+	}
 
 
     int32_t main() noexcept {
 		try {
 			//EnumConverter  theEnum{ DiscordCoreAPI::ChannelType::Dm };
+			EditGuildApplicationCommandPermissionsData theDataBew{};
+			theDataBew.applicationId = 12312312323;
+			DiscordCoreAPI::ApplicationCommandPermissionData theDataNew{};
+			theDataNew.id = 123123123;
+			theDataNew.permission = true;
+			theDataNew.type = DiscordCoreAPI::ApplicationCommandPermissionType::Channel;
+			theDataBew.commandName = "TESTING";
+			theDataBew.permissions.push_back(theDataNew);
 			WebSocketIdentifyData theData{};
 			theData.largeThreshold = 250;
 			theData.intents = (int64_t)DiscordCoreAPI::GatewayIntents::All_Intents;
@@ -607,7 +778,7 @@ JsonRecord& JsonRecord::operator[](const char* keyName) noexcept {
 			theData.presence.since = 0;
 			theData.presence.status = "online";
 			std::cout << "THE TYPE: " << typeid(std::enable_if<std::is_enum<DiscordCoreAPI::ChannelType>::value, DiscordCoreAPI::ChannelType>::type).name() << std::endl;
-			std::string theString = static_cast<JsonSerializer>(theData);
+			std::string theString = static_cast<JsonSerializer>(theDataBew).getString(JsonObject{});
 			std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
 			theData.compress = true;
 
@@ -615,7 +786,7 @@ JsonRecord& JsonRecord::operator[](const char* keyName) noexcept {
 			DiscordCoreAPI::DiscordCoreClient theClient{ DiscordCoreAPI::DiscordCoreClientConfig {} };
 			std::unique_ptr<DiscordCoreInternal::WebSocketSSLShard> theShard{ std::make_unique<DiscordCoreInternal::WebSocketSSLShard>(&theClient,nullptr,0,nullptr) };
 			theShard->connect("gateway.discord.gg", "443", true, true);
-			auto theJsonData = nlohmann::json{ static_cast<std::string>(theData.operator JsonSerializer()) };
+			auto theJsonData = nlohmann::json{ static_cast<std::string>(theData.operator JsonSerializer().getString(JsonObject{})) };
 			std::string theString03{};
 			theShard->stringifyJsonData(theJsonData, theString03, DiscordCoreInternal::WebSocketOpCode::Op_Text);
 			theShard->sendMessage(theString03, false);
