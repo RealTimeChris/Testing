@@ -51,7 +51,7 @@ struct JsonObject;
 struct JsonObjectBase;
 
 struct JsonArray {
-	JsonArray()noexcept = default;
+	JsonArray() noexcept = default;
 };
 
 union JsonValue {
@@ -105,9 +105,7 @@ struct JsonObject : public JsonObjectBase {
 	std::unordered_map<std::string, JsonObject>theValues{};
 	JsonObject(ValueType) noexcept;
 	JsonObject& operator=(bool theData);
-	//JsonObject& operator=(const char* theData);
-	//JsonObject& operator=(JsonObject theData);
-	//JsonObject(bool theData);
+	JsonObject& operator=(const char* theData);
 	JsonObject& operator[](const char* theKey);
 };
 

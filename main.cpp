@@ -117,6 +117,22 @@ JsonObject::JsonObject(const JsonObject& theKey) {
 	*this = theKey;
 }
 
+JsonObject& JsonObject::operator=(const char* theData) {
+	if (this->theType == ValueType::Unset) {
+		this->theType = ValueType::String;
+		this->theValue.theBool = theData;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE VALUE: " << this->theValue.theBool << std::endl;
+		return *this;
+	}
+	else {
+		JsonObject theObject{ ValueType::String };
+		*theObject.theValue.theString = theData;
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE VALUE: " << theObject.theValue.theBool << std::endl;
+		this->theValues[this->theKey] = theObject;
+		return this->theValues[this->theKey];
+	}
+}
+
 JsonObject& JsonObject::operator=(const JsonObject& theKey) {
 	for (auto& [key, value] : theKey.theValues) {
 		this->theValues[key] = value;
@@ -188,8 +204,7 @@ JsonObject& JsonObject::operator=(bool theData) {
 		return *this;
 	}
 	else {
-		JsonObject theObject{};
-		theObject.theType = ValueType::Bool;
+		JsonObject theObject{ ValueType::Bool };
 		theObject.theValue.theBool = theData;
 		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE VALUE: " << theObject.theValue.theBool << std::endl;
 		this->theValues[this->theKey] = theObject;
@@ -246,6 +261,7 @@ JsonObject& JsonObject::operator=(bool theData) {
 	EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 		JsonObject theData{};
 		theData["d"]["test"]["RESULTS"] = true;
+		theData["d"]["test"]["RESULTS"] = false;
 		for (auto& value : this->permissions) {
 			
 			
@@ -265,7 +281,7 @@ JsonObject& JsonObject::operator=(bool theData) {
 			theDataBew.applicationId = 12312312323;
 			std::string theString = JsonSerializer{}.getString(theDataBew);
 			std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
-			
+			std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
 
 			std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
