@@ -147,7 +147,7 @@ JsonObject& JsonObject::operator=(std::string theData) {
 	}
 	else {
 
-		this->theType = ValueType::String;
+		this->theType = ValueType::Bool;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
 		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
