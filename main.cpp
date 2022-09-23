@@ -123,15 +123,12 @@ JsonObject& JsonObject::operator=(const char* theData) {
 		this->theKey = this->theKey;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString<< std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::String;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
 		return *this;
 	}
 }
@@ -142,15 +139,12 @@ JsonObject& JsonObject::operator=(std::string theData) {
 		this->theKey = this->theKey;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Bool;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
 		return *this;
 	}
 }
@@ -162,11 +156,6 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) {
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
 	this->theKey = theKey.theKey;
-	std::cout << "THE KEY NAME: 234234: " << theKey.theKey << std::endl;
-	std::cout << "THE KEY NAME: 234234: (BOOL) " << theKey.theValue.theBool << std::endl;
-	if (theKey.theValue.theString) {
-		std::cout << "THE KEY NAME: 234234 (STRING): " << theKey.theValue.theString << std::endl;
-	}
 	return *this;
 }
 
@@ -175,25 +164,20 @@ JsonObject& JsonObject::operator[](const char* theKey) {
 		JsonObject theObject{};
 		theObject.theKey = theKey;
 		theObject.theType = ValueType::Object;
-		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
 		this->theValues[theKey] = theObject;
 		return this->theValues[theKey];
 	}
 	else if (this->theKey == theKey && this->theType == ValueType::Object) {
-		std::cout << "THE KEY NAME: 0202: " << theKey << std::endl;
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
 		JsonObject theObject{};
 		theObject.theKey = theKey;
 		theObject.theType = ValueType::Object;
-		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
 		this->theValues[theKey] = theObject;
 		return this->theValues[theKey];
 	} else if (this->theValues.contains(theKey)){
-		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
 		return this->theValues[theKey];
 	} else {
-		std::cout << "THE KEY NAME: 030404: " << theKey << std::endl;
 		JsonObject theObject{};
 		theObject.theType = ValueType::Object;
 		theObject.theKey = theKey;
@@ -201,258 +185,181 @@ JsonObject& JsonObject::operator[](const char* theKey) {
 		return this->theValues[theKey];
 	}
 }
-/*
-JsonObject& JsonObject::operator=(JsonObject theData) {
-	//this->theValues.emplace(theData.theKey, theData);
-	//std::cout << "THE KEY NAME: 0101: " << this->theKey << std::endl;
-	return *this;
-}
-JsonObject::JsonObject(bool theData) {
-	std::cout << "THE DATA: 0101: " << theData << ", THE KEY: " << this->theKey << std::endl;
-	*this = theData;
-}
 
-
-JsonObject& JsonObject::operator=(const char* theData) {
-	std::cout << "THE KEY NAME: 0101: " << this->theKey << std::endl;
-	if (this->theType == ValueType::Object) {
-		JsonObject theObject{ ValueType::String };
-		*theObject.theValue.theString = theData;
-		this->theValues[this->theKey] = theObject;
-		return this->theValues[this->theKey];
-	}
-	return *this;
-}
-*/
 JsonObject& JsonObject::operator=(bool theData) {
-	
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Bool;
 		this->theKey = this->theKey;
 		this->theValue.theBool = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Bool;
 		this->theValue = this->theType;
 		this->theValue.theBool = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(double theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Double;
 		this->theKey = this->theKey;
 		this->theValue.theDouble = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theDouble << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Double;
 		this->theValue = this->theType;
 		this->theValue.theDouble = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theDouble << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(float theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Float;
 		this->theKey = this->theKey;
 		this->theValue.theFloat = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theFloat << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Float;
 		this->theValue = this->theType;
 		this->theValue.theFloat = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theFloat << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(uint64_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Uint64;
 		this->theKey = this->theKey;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theUint << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Uint64;
 		this->theValue = this->theType;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theUint << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(uint32_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Uint64;
 		this->theKey = this->theKey;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theUint << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Uint64;
 		this->theValue = this->theType;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theUint << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(uint16_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Uint64;
 		this->theKey = this->theKey;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int16_t)this->theType << "THE VALUE : " << theObject.theValue.theUint << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Uint64;
 		this->theValue = this->theType;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int16_t)this->theType << "THE VALUE : " << this->theValue.theUint << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(uint8_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Uint64;
 		this->theKey = this->theKey;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int8_t)this->theType << "THE VALUE : " << theObject.theValue.theUint << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Uint64;
 		this->theValue = this->theType;
 		this->theValue.theUint = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int8_t)this->theType << "THE VALUE : " << this->theValue.theUint << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(int64_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Int64;
 		this->theKey = this->theKey;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theInt << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Int64;
 		this->theValue = this->theType;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theInt << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(int32_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Int64;
 		this->theKey = this->theKey;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theInt << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Int64;
 		this->theValue = this->theType;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theInt << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(int16_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Int64;
 		this->theKey = this->theKey;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int16_t)this->theType << "THE VALUE : " << theObject.theValue.theInt << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Int64;
 		this->theValue = this->theType;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int16_t)this->theType << "THE VALUE : " << this->theValue.theInt << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject& JsonObject::operator=(int8_t theData) {
-
 	if (this->theType == ValueType::Object) {
 		JsonObject theObject{};
 		this->theType = ValueType::Int64;
 		this->theKey = this->theKey;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int8_t)this->theType << "THE VALUE : " << theObject.theValue.theInt << std::endl;
 		return *this;
 	}
 	else {
-
 		this->theType = ValueType::Int64;
 		this->theValue = this->theType;
 		this->theValue.theInt = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int8_t)this->theType << "THE VALUE : " << this->theValue.theInt << std::endl;
 		return *this;
 	}
-
 }
 
 JsonObject::operator std::string() {
@@ -463,7 +370,6 @@ JsonObject::operator std::string() {
 		if (doWeAddComma) {
 			theString += ",";
 		}
-
 		switch (value.theType) {
 		case ValueType::Object: {
 			if (value.theKey != "") {
@@ -503,49 +409,9 @@ JsonObject::operator std::string() {
 	}
 	return theString;
 }
+
 std::string JsonSerializer::getString(JsonObject theObject) {
-	std::string theString = theObject;/*
-	bool doWeAddComma{ false };
-	for (auto& [key, value] : theObject.theValues) {
-		if (doWeAddComma) {
-			theString += ",";
-		}
-		
-		switch (value.theType) {
-		case ValueType::Object: {
-			if (value.theKey != "") {
-				theString += "\"" + value.theKey + "\":";
-			}
-			theString += JsonSerializer{}.getString(value);
-			break;
-		}
-		case ValueType::Bool: {
-
-			if (value.theKey != "") {
-				theString += "\"" + value.theKey + "\":";
-			}
-			std::stringstream theStream{};
-			theStream << std::boolalpha << value.theValue.theBool;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::String: {
-
-			if (value.theKey != "") {
-				theString += "\"" + value.theKey + "\":";
-			}
-			theString += "\"";
-			theString += *value.theValue.theString;
-			theString += "\"";
-			break;
-		}
-		}
-		if (theObject.theType == ValueType::Object) {
-			theString += "}";
-		}		
-		
-		doWeAddComma = true;
-	}*/
+	std::string theString = theObject;	
 	theString += "}";
 	return theString;
 }
