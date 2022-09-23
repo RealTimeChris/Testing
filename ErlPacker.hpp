@@ -36,14 +36,15 @@
 enum class ValueType {
 	Null = 0,
 	Object = 1,
-	Array = 2,
-	Double = 3,
-	Float = 4,
-	String = 5,
-	Bool = 6,
-	Int64 = 7,
-	Uint64 = 8,
-	Unset = 9
+	Object_End = 2,
+	Array = 3,
+	Double = 4,
+	Float = 5,
+	String = 6,
+	Bool = 7,
+	Int64 = 8,
+	Uint64 = 9,
+	Unset = 10
 };
 
 struct JsonObject;
@@ -77,6 +78,7 @@ union JsonValue {
 	float theFloat;
 	int64_t theInt;
 	bool theBool;
+	std::string getString(ValueType);
 	~JsonValue();
 };
 
@@ -108,6 +110,7 @@ struct JsonObject : public JsonObjectBase {
 	JsonObject& operator=(std::string theData);
 	JsonObject& operator=(const char* theData);
 	JsonObject& operator[](const char* theKey);
+	operator std::string();
 };
 
 enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };

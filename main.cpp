@@ -178,7 +178,8 @@ JsonObject& JsonObject::operator[](const char* theKey) {
 		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
 		this->theValues[theKey] = theObject;
 		return this->theValues[theKey];
-	} else if (this->theKey == theKey) {
+	}
+	else if (this->theKey == theKey && this->theType == ValueType::Object) {
 		std::cout << "THE KEY NAME: 0202: " << theKey << std::endl;
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
@@ -243,8 +244,53 @@ JsonObject& JsonObject::operator=(bool theData) {
 	}
 
 }
+
+JsonObject::operator std::string() {
+	std::string theString{};
+	theString += "{";
+	bool doWeAddComma{ false };
+	for (auto& [key, value] : this->theValues) {
+		if (doWeAddComma) {
+			theString += ",";
+		}
+
+		switch (value.theType) {
+		case ValueType::Object: {
+			if (value.theKey != "") {
+				theString += "\"" + value.theKey + "\":";
+			}
+			theString += JsonSerializer{}.getString(value);
+			break;
+		}
+		case ValueType::Bool: {
+
+			if (value.theKey != "") {
+				theString += "\"" + value.theKey + "\":";
+			}
+			std::stringstream theStream{};
+			theStream << std::boolalpha << value.theValue.theBool;
+			theString += theStream.str();
+			break;
+		}
+		case ValueType::String: {
+
+			if (value.theKey != "") {
+				theString += "\"" + value.theKey + "\":";
+			}
+			theString += "\"";
+			theString += *value.theValue.theString;
+			theString += "\"";
+			break;
+		}case ValueType::Double: {
+
+		}
+		}
+		doWeAddComma = true;
+	}
+	return theString;
+}
 std::string JsonSerializer::getString(JsonObject theObject) {
-	std::string theString{ "{" };
+	std::string theString = theObject;/*
 	bool doWeAddComma{ false };
 	for (auto& [key, value] : theObject.theValues) {
 		if (doWeAddComma) {
@@ -254,13 +300,9 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 		switch (value.theType) {
 		case ValueType::Object: {
 			if (value.theKey != "") {
-				theString += "{";
 				theString += "\"" + value.theKey + "\":";
 			}
 			theString += JsonSerializer{}.getString(value);
-			if (value.theKey != "") {
-				theString += "}";
-			}
 			break;
 		}
 		case ValueType::Bool: {
@@ -284,10 +326,12 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 			break;
 		}
 		}
-
+		if (theObject.theType == ValueType::Object) {
+			theString += "}";
+		}		
 		
 		doWeAddComma = true;
-	}
+	}*/
 	theString += "}";
 	return theString;
 }
@@ -306,8 +350,12 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 	EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 		JsonObject theData{};
 		theData["d"] = true;
-		theData["23"] = true;
+		theData["23"]["TESTty"]["TEST_TWO"] = true;
+		theData["23"]["TEST"] = true;
+		theData["Teetertytot"] = "TESTING";
 		theData["test"] = "TESTING VALUES";
+		theData["TEST"] = false;
+		theData["23"]["TESTers"]["TESTINGiners"] = "TESTER322";
 		for (auto& value : this->permissions) {
 			
 			
