@@ -116,20 +116,41 @@ JsonObject::JsonObject(ValueType theType) noexcept {
 JsonObject::JsonObject(const JsonObject& theKey) {
 	*this = theKey;
 }
-
+/*
 JsonObject& JsonObject::operator=(const char* theData) {
-	if (this->theType == ValueType::Unset) {
-		this->theType = ValueType::String;
-		this->theValue.theBool = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE VALUE: " << this->theValue.theBool << std::endl;
-		return *this;
-	}
-	else {
+	if (this->theType == ValueType::Object) {
 		JsonObject theObject{ ValueType::String };
-		*theObject.theValue.theString = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE VALUE: " << theObject.theValue.theBool << std::endl;
+		*theObject.theValue.theString = std::string{ theData };
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
 		this->theValues[this->theKey] = theObject;
 		return this->theValues[this->theKey];
+	}
+	else {
+
+		this->theType = ValueType::String;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
+		return *this;
+	}
+}
+*/
+JsonObject& JsonObject::operator=(std::string theData) {
+	if (this->theType == ValueType::Object) {
+		JsonObject theObject{ ValueType::String };
+		*theObject.theValue.theString = std::string{ theData };
+		this->theType = ValueType::String;
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
+		this->theValues[this->theKey] = theObject;
+		return this->theValues[this->theKey];
+	}
+	else {
+
+		this->theType = ValueType::String;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
+		return *this;
 	}
 }
 
@@ -137,24 +158,28 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) {
 	for (auto& [key, value] : theKey.theValues) {
 		this->theValues[key] = value;
 	}
-	this->theKey = theKey.theKey;
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
+	this->theKey = theKey.theKey;
+	std::cout << "THE KEY NAME: 234234: " << theKey.theKey << std::endl;
+	std::cout << "THE KEY NAME: 234234: (BOOL) " << theKey.theValue.theBool << std::endl;
+	if (theKey.theValue.theString) {
+		std::cout << "THE KEY NAME: 234234 (STRING): " << theKey.theValue.theString << std::endl;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator[](const char* theKey) {
 	if (this->theKey == "") {
-		std::cout << "THE KEY NAME: 0101: " << theKey << std::endl;
-		this->theKey = theKey;
-		this->theType = ValueType::Object;
-		return *this;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
+		this->theValues[theKey] = theObject;
+		return this->theValues[theKey];
 	} else if (this->theKey == theKey) {
 		std::cout << "THE KEY NAME: 0202: " << theKey << std::endl;
 		return *this;
-	} else if (this->theValues.contains(theKey)){
-		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
-		return this->theValues[theKey];
 	} else if (!this->theValues.contains(theKey)) {
 		JsonObject theObject{};
 		theObject.theKey = theKey;
@@ -162,11 +187,13 @@ JsonObject& JsonObject::operator[](const char* theKey) {
 		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
 		this->theValues[theKey] = theObject;
 		return this->theValues[theKey];
-	}
-	else {
+	} else if (this->theValues.contains(theKey)){
+		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
+		return this->theValues[theKey];
+	} else {
 		std::cout << "THE KEY NAME: 030404: " << theKey << std::endl;
 		JsonObject theObject{};
-		theObject.theType = ValueType::Unset;
+		theObject.theType = ValueType::Object;
 		theObject.theKey = theKey;
 		this->theValues[theKey] = theObject;
 		return this->theValues[theKey];
@@ -197,55 +224,60 @@ JsonObject& JsonObject::operator=(const char* theData) {
 */
 JsonObject& JsonObject::operator=(bool theData) {
 	
-	if (this->theType == ValueType::Unset) {
-		this->theType = ValueType::Bool;
-		this->theValue.theBool = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE VALUE: " << this->theValue.theBool << std::endl;
-		return *this;
-	}
-	else {
+	if (this->theType == ValueType::Object) {
 		JsonObject theObject{ ValueType::Bool };
-		theObject.theValue.theBool = theData;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE VALUE: " << theObject.theValue.theBool << std::endl;
+		this->theType = ValueType::Bool;
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
 		this->theValues[this->theKey] = theObject;
 		return this->theValues[this->theKey];
 	}
+	else {
+
+		this->theType = ValueType::Bool;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
+		return *this;
+	}
+
 }
-
-	std::string JsonSerializer::getString(JsonObject theObject) {
-		std::string theString{};
-		bool doWeAddComma{ false };
-
-		if (theObject.theKey != "") {
-			theString += "{";
-			theString += "\"" + theObject.theKey + "\":";
+std::string JsonSerializer::getString(JsonObject theObject) {
+	std::string theString{};
+	bool doWeAddComma{ false };
+	for (auto& [key, value] : theObject.theValues) {
+		if (doWeAddComma) {
+			theString += ",";
 		}
-		for (auto& [key, value] : theObject.theValues) {
-			switch (value.theType) {
-			case ValueType::Object: {
-			
-				theString += JsonSerializer{}.getString(value);
-			
-				break;
+		
+		switch (value.theType) {
+		case ValueType::Object: {
+			if (value.theKey != "") {
+				theString += "{";
+				theString += "\"" + value.theKey + "\":";
 			}
-			case ValueType::Bool: {
-
-				if (value.theKey != "") {
-					theString += "\"" + value.theKey + "\":";
-				}
-				std::stringstream theStream{};
-				theStream << std::boolalpha << value.theValue.theBool;
-				theString += theStream.str();
-				break;
-			}
-			}
-
-			if (theObject.theKey != "") {
+			theString += JsonSerializer{}.getString(value);
+			if (value.theKey != "") {
 				theString += "}";
 			}
+			break;
 		}
-		return theString;
+		case ValueType::Bool: {
+
+			if (value.theKey != "") {
+				theString += "\"" + value.theKey + "\":";
+			}
+			std::stringstream theStream{};
+			theStream << std::boolalpha << value.theValue.theBool;
+			theString += theStream.str();
+			break;
+		}
+		}
+
+		
+		doWeAddComma = true;
 	}
+	return theString;
+}
 
 	/// For editing the permissions of a single Guild ApplicationCommand. \brief For editing the permissions of a single Guild ApplicationCommand.
 	struct EditGuildApplicationCommandPermissionsData {
@@ -262,6 +294,7 @@ JsonObject& JsonObject::operator=(bool theData) {
 		JsonObject theData{};
 		theData["d"]["test"]["RESULTS"] = true;
 		theData["d"]["test"]["RESULTS"] = false;
+		theData["d"]["test"]["TESTNEW"] = std::string{ "TEST" };
 		for (auto& value : this->permissions) {
 			
 			
