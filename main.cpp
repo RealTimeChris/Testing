@@ -116,40 +116,41 @@ JsonObject::JsonObject(ValueType theType) noexcept {
 JsonObject::JsonObject(const JsonObject& theKey) {
 	*this = theKey;
 }
-/*
+
 JsonObject& JsonObject::operator=(const char* theData) {
 	if (this->theType == ValueType::Object) {
-		JsonObject theObject{ ValueType::String };
-		*theObject.theValue.theString = std::string{ theData };
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
-		this->theValues[this->theKey] = theObject;
-		return this->theValues[this->theKey];
+		this->theType = ValueType::String;
+		this->theKey = this->theKey;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString<< std::endl;
+		return *this;
 	}
 	else {
 
 		this->theType = ValueType::String;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
 		return *this;
 	}
 }
-*/
+
 JsonObject& JsonObject::operator=(std::string theData) {
 	if (this->theType == ValueType::Object) {
-		JsonObject theObject{ ValueType::String };
-		*theObject.theValue.theString = std::string{ theData };
 		this->theType = ValueType::String;
-		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
-		this->theValues[this->theKey] = theObject;
-		return this->theValues[this->theKey];
+		this->theKey = this->theKey;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
+		return *this;
 	}
 	else {
 
 		this->theType = ValueType::String;
 		this->theValue = this->theType;
 		*this->theValue.theString = theData;
-		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << *this->theValue.theString << std::endl;
 		return *this;
 	}
 }
@@ -225,24 +226,25 @@ JsonObject& JsonObject::operator=(const char* theData) {
 JsonObject& JsonObject::operator=(bool theData) {
 	
 	if (this->theType == ValueType::Object) {
-		JsonObject theObject{ ValueType::Bool };
+		JsonObject theObject{};
 		this->theType = ValueType::Bool;
+		this->theKey = this->theKey;
+		this->theValue.theBool = theData;
 		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << theObject.theValue.theBool << std::endl;
-		this->theValues[this->theKey] = theObject;
-		return this->theValues[this->theKey];
+		return *this;
 	}
 	else {
 
 		this->theType = ValueType::Bool;
 		this->theValue = this->theType;
-		*this->theValue.theString = theData;
+		this->theValue.theBool = theData;
 		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE EVENT: " << (int32_t)this->theType << "THE VALUE : " << this->theValue.theBool << std::endl;
 		return *this;
 	}
 
 }
 std::string JsonSerializer::getString(JsonObject theObject) {
-	std::string theString{};
+	std::string theString{ "{" };
 	bool doWeAddComma{ false };
 	for (auto& [key, value] : theObject.theValues) {
 		if (doWeAddComma) {
@@ -271,11 +273,22 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 			theString += theStream.str();
 			break;
 		}
+		case ValueType::String: {
+
+			if (value.theKey != "") {
+				theString += "\"" + value.theKey + "\":";
+			}
+			theString += "\"";
+			theString += *value.theValue.theString;
+			theString += "\"";
+			break;
+		}
 		}
 
 		
 		doWeAddComma = true;
 	}
+	theString += "}";
 	return theString;
 }
 
@@ -292,9 +305,9 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 
 	EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 		JsonObject theData{};
-		theData["d"]["test"]["RESULTS"] = true;
-		theData["d"]["test"]["RESULTS"] = false;
-		theData["d"]["test"]["TESTNEW"] = std::string{ "TEST" };
+		theData["d"] = true;
+		theData["23"] = true;
+		theData["test"] = "TESTING VALUES";
 		for (auto& value : this->permissions) {
 			
 			

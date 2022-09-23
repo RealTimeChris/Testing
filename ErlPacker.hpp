@@ -106,7 +106,7 @@ struct JsonObject : public JsonObjectBase {
 	JsonObject(ValueType) noexcept;
 	JsonObject& operator=(bool theData);
 	JsonObject& operator=(std::string theData);
-	//JsonObject& operator=(const char* theData);
+	JsonObject& operator=(const char* theData);
 	JsonObject& operator[](const char* theKey);
 };
 
