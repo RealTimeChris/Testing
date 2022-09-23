@@ -1,18 +1,43 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
 
+JsonValue& JsonValue::operator=(const JsonValue&other){
+	if (other.theArray) {
+		this->theArray = std::make_unique<JsonArray>();
+		*this->theArray = *other.theArray;
+	} 
+	else if (other.theObject) {
+		this->theObject= std::make_unique<JsonObject>();
+		*this->theObject = *other.theObject;
+	}
+	else if (other.theString) {
+		this->theString = std::make_unique<std::string>();
+		*this->theString = *other.theString;
+	}
+	this->theBool = other.theBool;
+	this->theDouble = other.theDouble;
+	this->theFloat = other.theFloat;
+	this->theInt = other.theInt;
+	this->theUint = other.theUint;
+	return *this;
+}
+
+JsonValue::JsonValue(const JsonValue&other) {
+	*this = other;
+}
+
 JsonValue::JsonValue(std::string theData) noexcept {
-	this->theString = std::make_unique<std::string>().release();
+	this->theString = std::make_unique<std::string>();
 	*this->theString = theData;
 }
 
 JsonValue::JsonValue(JsonObject theData) noexcept {
-	this->theObject = std::make_unique<JsonObject>().release();
+	this->theObject = std::make_unique<JsonObject>();
 	*this->theObject = theData;
 }
 
 JsonValue::JsonValue(JsonArray theData) noexcept {
-	this->theArray = std::make_unique<JsonArray>().release();
+	this->theArray = std::make_unique<JsonArray>();
 	*this->theArray = theData;
 }
 
@@ -40,66 +65,96 @@ JsonValue::JsonValue(bool theData) noexcept {
 	this->theBool = theData;
 }
 
-JsonValue& JsonValue::operator=(ValueType theType) {
+JsonValue::JsonValue(ValueType theType) {
 	switch (theType) {
 	case ValueType::Bool: {
 		this->theBool = false;
+		break;
 	}
 	case ValueType::Double: {
 		this->theDouble = 0.0f;
+		break;
 	}
 	case ValueType::Float: {
 		this->theDouble = 0.0f;
+		break;
 	}
 	case ValueType::Uint64: {
 		this->theDouble = 1ull;
+		break;
 	}
 	case ValueType::Int64: {
 		this->theDouble = 1ll;
+		break;
 	}
 	case ValueType::String: {
-		this->theString = std::make_unique<std::string>().release();
+		this->theString = std::make_unique<std::string>();
+		break;
 	}
 	case ValueType::Null: {
 		this->theNull = nullptr;
+		break;
 	}
 	case ValueType::Array: {
-		this->theArray = std::make_unique<JsonArray>().release();
+		this->theArray = std::make_unique<JsonArray>();
+		break;
 	}
 	case ValueType::Object: {
-		this->theObject = std::make_unique<JsonObject>().release();
+		this->theObject = std::make_unique<JsonObject>();
+		break;
 	}
 	}
+}
+
+JsonValue::~JsonValue() {}
+
+JsonObject::JsonObject(ValueType theType) noexcept {
+	this->theValue = theType;
+	this->theType = theType;
+}
+
+JsonObject::JsonObject(const JsonObject& theKey) {
+	*this = theKey;
+}
+
+JsonObject& JsonObject::operator=(const JsonObject& theKey) {
+	for (auto& [key, value] : theKey.theValues) {
+		this->theValues[key] = value;
+	}
+	this->theKey = theKey.theKey;
+	this->theValue = theKey.theValue;
+	this->theType = theKey.theType;
 	return *this;
-}
-
-JsonValue::~JsonValue() {
-	if (this->theArray) {
-		delete this->theArray;
-	}
-	else if (this->theObject) {
-		delete this->theObject;
-	}
-	else if (this->theString) {
-		delete this->theString;
-	}
-}
-
-JsonValue::JsonValue(ValueType theType){
-	*this = theType;
-}
-
-JsonObject::JsonObject(const char* theKey)noexcept {
-	this->theKey = theKey;
 }
 
 JsonObject& JsonObject::operator[](const char* theKey) {
-	std::cout << "THE KEY NAME: 0202: " << theKey << std::endl;
 	if (this->theKey == "") {
+		std::cout << "THE KEY NAME: 0101: " << theKey << std::endl;
 		this->theKey = theKey;
 		this->theType = ValueType::Object;
+		return *this;
+	} else if (this->theKey == theKey) {
+		std::cout << "THE KEY NAME: 0202: " << theKey << std::endl;
+		return *this;
+	} else if (this->theValues.contains(theKey)){
+		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
+		return this->theValues[theKey];
+	} else if (!this->theValues.contains(theKey)) {
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		std::cout << "THE KEY NAME: 0303: " << theKey << std::endl;
+		this->theValues[theKey] = theObject;
+		return this->theValues[theKey];
 	}
-	return *this;
+	else {
+		std::cout << "THE KEY NAME: 030404: " << theKey << std::endl;
+		JsonObject theObject{};
+		theObject.theType = ValueType::Unset;
+		theObject.theKey = theKey;
+		this->theValues[theKey] = theObject;
+		return this->theValues[theKey];
+	}
 }
 /*
 JsonObject& JsonObject::operator=(JsonObject theData) {
@@ -113,13 +168,35 @@ JsonObject::JsonObject(bool theData) {
 }
 
 
-JsonObject& JsonObject::operator=(bool theData) {
-	//this->theType = ValueType::Bool;
-	//this->theValue.theBool = theData;
-	//std::cout << "THE KEY NAME: 0303: " << this->theKey << std::endl;
+JsonObject& JsonObject::operator=(const char* theData) {
+	std::cout << "THE KEY NAME: 0101: " << this->theKey << std::endl;
+	if (this->theType == ValueType::Object) {
+		JsonObject theObject{ ValueType::String };
+		*theObject.theValue.theString = theData;
+		this->theValues[this->theKey] = theObject;
+		return this->theValues[this->theKey];
+	}
 	return *this;
 }
 */
+JsonObject& JsonObject::operator=(bool theData) {
+	
+	if (this->theType == ValueType::Unset) {
+		this->theType = ValueType::Bool;
+		this->theValue.theBool = theData;
+		std::cout << "THE KEY NAME: 233434: " << this->theKey << "THE VALUE: " << this->theValue.theBool << std::endl;
+		return *this;
+	}
+	else {
+		JsonObject theObject{};
+		theObject.theType = ValueType::Bool;
+		theObject.theValue.theBool = theData;
+		std::cout << "THE KEY NAME: 344545: " << this->theKey << "THE VALUE: " << theObject.theValue.theBool << std::endl;
+		this->theValues[this->theKey] = theObject;
+		return this->theValues[this->theKey];
+	}
+}
+
 	std::string JsonSerializer::getString(JsonObject theObject) {
 		std::string theString{};
 		bool doWeAddComma{ false };
@@ -127,7 +204,6 @@ JsonObject& JsonObject::operator=(bool theData) {
 		if (theObject.theKey != "") {
 			theString += "{";
 			theString += "\"" + theObject.theKey + "\":";
-			theString += "{";
 		}
 		for (auto& [key, value] : theObject.theValues) {
 			switch (value.theType) {
@@ -169,7 +245,7 @@ JsonObject& JsonObject::operator=(bool theData) {
 
 	EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 		JsonObject theData{};
-		theData["d"] = "TEST";
+		theData["d"]["test"]["RESULTS"] = true;
 		for (auto& value : this->permissions) {
 			
 			

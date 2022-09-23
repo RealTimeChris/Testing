@@ -55,21 +55,22 @@ struct JsonArray {
 };
 
 union JsonValue {
-	JsonValue(bool);
-	JsonValue(nullptr_t);
-	JsonValue(std::string);
-	JsonValue(JsonArray);
-	JsonValue(JsonObject);
-	JsonValue(uint64_t);
-	JsonValue(int64_t);
-	JsonValue(double);
-	JsonValue(float);
-	JsonValue()noexcept = default;
-	JsonValue& operator=(ValueType theType);
+	JsonValue(std::string) noexcept;
+	JsonValue(JsonObject) noexcept;
+	JsonValue() noexcept = default;
+	JsonValue(nullptr_t) noexcept;
+	JsonValue(JsonArray) noexcept;
+	JsonValue(uint64_t) noexcept;
+	JsonValue(int64_t) noexcept;
+	JsonValue(double) noexcept;
+	JsonValue(float) noexcept;
+	JsonValue(bool) noexcept;
 	JsonValue(ValueType theType);
-	std::string* theString{};
-	JsonObject* theObject;
-	JsonArray* theArray;
+	JsonValue& operator=(const JsonValue&);
+	JsonValue(const JsonValue&);
+	std::unique_ptr<std::string> theString{};
+	std::unique_ptr<JsonObject> theObject;
+	std::unique_ptr<JsonArray> theArray;
 	nullptr_t theNull;
 	double theDouble;
 	uint64_t theUint;
@@ -81,7 +82,6 @@ union JsonValue {
 
 struct JsonObjectBase {
 	JsonObjectBase()noexcept = default;
-	JsonObjectBase(const char* theKey, ValueType theType);
 	ValueType theType{ ValueType::Null };
 	JsonValue theValue{};
 	std::string theKey{};
@@ -97,11 +97,15 @@ template<> struct std::hash<JsonObjectBase> {
 	}
 };
 
-struct JsonObject :public JsonObjectBase {
+struct JsonObject : public JsonObjectBase {
 	JsonObject()noexcept = default;
-	JsonObject(const char* theKey)noexcept;
+	JsonObject(const JsonObject& theKey);
+
+	JsonObject& operator=(const JsonObject& theKey);
 	std::unordered_map<std::string, JsonObject>theValues{};
-	//JsonObject& operator=(bool theData);
+	JsonObject(ValueType) noexcept;
+	JsonObject& operator=(bool theData);
+	//JsonObject& operator=(const char* theData);
 	//JsonObject& operator=(JsonObject theData);
 	//JsonObject(bool theData);
 	JsonObject& operator[](const char* theKey);
