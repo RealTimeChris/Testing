@@ -36,14 +36,15 @@
 enum class ValueType {
 	Null = 0,
 	Object = 1,
-	Array = 2,
-	Double = 3,
-	Float = 4,
-	String = 5,
-	Bool = 6,
-	Int64 = 7,
-	Uint64 = 8,
-	Unset = 9
+	Object_End = 2,
+	Array = 3,
+	Double = 4,
+	Float = 5,
+	String = 6,
+	Bool = 7,
+	Int64 = 8,
+	Uint64 = 9,
+	Unset = 10
 };
 
 struct JsonObject;
@@ -52,11 +53,9 @@ struct JsonObjectBase;
 
 struct JsonArray {
 	JsonArray() noexcept = default;
-
-	std::vector<JsonObject>theArrayValues{};
 };
 
-struct JsonValue {
+union JsonValue {
 	JsonValue(std::string) noexcept;
 	JsonValue(JsonObject) noexcept;
 	JsonValue() noexcept = default;
@@ -67,20 +66,18 @@ struct JsonValue {
 	JsonValue(double) noexcept;
 	JsonValue(float) noexcept;
 	JsonValue(bool) noexcept;
-	JsonValue& operator=(ValueType theType);
 	JsonValue(ValueType theType);
 	JsonValue& operator=(const JsonValue&);
 	JsonValue(const JsonValue&);
 	std::unique_ptr<std::string> theString{};
-	std::unique_ptr<JsonObject> theObject{};
-	std::unique_ptr<JsonArray> theArray{};
-	nullptr_t theNull{};
-	double theDouble{};
-	uint64_t theUint{};
-	float theFloat{};
-	int64_t theInt{};
-	bool theBool{};
-	ValueType theType{};
+	std::unique_ptr<JsonObject> theObject;
+	std::unique_ptr<JsonArray> theArray;
+	nullptr_t theNull;
+	double theDouble;
+	uint64_t theUint;
+	float theFloat;
+	int64_t theInt;
+	bool theBool;
 	std::string getString(ValueType);
 	~JsonValue();
 };
@@ -108,24 +105,12 @@ struct JsonObject : public JsonObjectBase {
 
 	JsonObject& operator=(const JsonObject& theKey);
 	std::unordered_map<std::string, JsonObject>theValues{};
-
 	JsonObject(ValueType) noexcept;
 	JsonObject& operator=(bool theData);
 	JsonObject& operator=(std::string theData);
 	JsonObject& operator=(const char* theData);
 	JsonObject& operator=(double theData);
-	JsonObject& operator=(float theData);
-	JsonObject& operator=(uint64_t theData);
-	JsonObject& operator=(int64_t theData);
-	JsonObject& operator=(uint32_t theData);
-	JsonObject& operator=(int32_t theData);
-	JsonObject& operator=(uint16_t theData);
-	JsonObject& operator=(int16_t theData);
-	JsonObject& operator=(uint8_t theData);
-	JsonObject& operator=(int8_t theData);
 	JsonObject& operator[](const char* theKey);
-	void pushBack(JsonArray&& theData);
-	void pushBack(JsonArray& theData);
 	operator std::string();
 };
 
