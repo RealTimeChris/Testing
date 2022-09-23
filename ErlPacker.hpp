@@ -109,6 +109,15 @@ struct JsonObject : public JsonObjectBase {
 	JsonObject& operator=(bool theData);
 	JsonObject& operator=(std::string theData);
 	JsonObject& operator=(const char* theData);
+	JsonObject& operator=(uint64_t theData);
+	JsonObject& operator=(uint32_t theData);
+	JsonObject& operator=(uint16_t theData);
+	JsonObject& operator=(uint8_t theData);
+	JsonObject& operator=(int64_t theData);
+	JsonObject& operator=(int32_t theData);
+	JsonObject& operator=(int16_t theData);
+	JsonObject& operator=(int8_t theData);
+	JsonObject& operator=(float theData);
 	JsonObject& operator=(double theData);
 	JsonObject& operator[](const char* theKey);
 	operator std::string();
