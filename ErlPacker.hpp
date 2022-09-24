@@ -58,7 +58,6 @@ struct JsonArray {
 union JsonValue {
 	JsonValue(std::string) noexcept;
 	JsonValue(JsonObject) noexcept;
-	JsonValue() noexcept = default;
 	JsonValue(nullptr_t) noexcept;
 	JsonValue(JsonArray) noexcept;
 	JsonValue(uint64_t) noexcept;
@@ -66,9 +65,10 @@ union JsonValue {
 	JsonValue(double) noexcept;
 	JsonValue(float) noexcept;
 	JsonValue(bool) noexcept;
-	JsonValue(ValueType theType);
+	JsonValue(const ValueType& theType);
+	JsonValue& operator=(const ValueType&);
+	JsonValue(const JsonValue& theType);
 	JsonValue& operator=(const JsonValue&);
-	JsonValue(const JsonValue&);
 	std::unique_ptr<std::string> theString{};
 	std::unique_ptr<JsonObject> theObject;
 	std::unique_ptr<JsonArray> theArray;
@@ -84,8 +84,8 @@ union JsonValue {
 
 struct JsonObjectBase {
 	JsonObjectBase()noexcept = default;
-	ValueType theType{ ValueType::Null };
-	JsonValue theValue{};
+	ValueType theType{ ValueType::Object };
+	JsonValue theValue{ ValueType::Unset };
 	std::string theKey{};
 };
 

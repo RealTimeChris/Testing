@@ -1,29 +1,75 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
 
-JsonValue& JsonValue::operator=(const JsonValue&other){
-	if (other.theArray) {
-		this->theArray = std::make_unique<JsonArray>();
-		*this->theArray = *other.theArray;
-	} 
-	else if (other.theObject) {
-		this->theObject= std::make_unique<JsonObject>();
-		*this->theObject = *other.theObject;
+JsonValue& JsonValue::operator=(const ValueType& theType) {
+	switch (theType) {
+	case ValueType::Bool: {
+		this->theBool = false;
+		break;
 	}
-	else if (other.theString) {
+	case ValueType::Double: {
+		this->theDouble = 0.0f;
+		break;
+	}
+	case ValueType::Float: {
+		this->theDouble = 0.0f;
+		break;
+	}
+	case ValueType::Uint64: {
+		this->theDouble = 1ull;
+		break;
+	}
+	case ValueType::Int64: {
+		this->theDouble = 1ll;
+		break;
+	}
+	case ValueType::String: {
 		this->theString = std::make_unique<std::string>();
-		*this->theString = *other.theString;
+		break;
 	}
-	this->theBool = other.theBool;
-	this->theDouble = other.theDouble;
-	this->theFloat = other.theFloat;
-	this->theInt = other.theInt;
-	this->theUint = other.theUint;
+	case ValueType::Null: {
+		this->theNull = nullptr;
+		break;
+	}
+	case ValueType::Array: {
+		this->theArray = std::make_unique<JsonArray>();
+		break;
+	}
+	case ValueType::Object: {
+		this->theObject = std::make_unique<JsonObject>();
+		break;
+	}
+	case ValueType::Unset: {
+		break;
+	}
+	}
 	return *this;
 }
 
-JsonValue::JsonValue(const JsonValue&other) {
-	*this = other;
+JsonValue::JsonValue(const ValueType& theType){
+	*this = theType;
+}
+
+JsonValue& JsonValue::operator=(const JsonValue& other) {
+	if (other.theArray) {
+		*this->theArray = *other.theArray;
+	}
+	else if (other.theObject) {
+		*this->theObject = *other.theObject;
+	}
+	else if (other.theString) {
+		*this->theString = *other.theString;
+	}
+	this->theDouble = other.theDouble;
+	this->theFloat = other.theFloat;
+	this->theBool = other.theBool;
+	this->theUint = other.theUint;
+	this->theInt = other.theInt;
+	return *this;
+}
+
+JsonValue::JsonValue(const JsonValue& theType){
+	*this = theType;
 }
 
 JsonValue::JsonValue(std::string theData) noexcept {
@@ -65,86 +111,11 @@ JsonValue::JsonValue(bool theData) noexcept {
 	this->theBool = theData;
 }
 
-JsonValue::JsonValue(ValueType theType) {
-	switch (theType) {
-	case ValueType::Bool: {
-		this->theBool = false;
-		break;
-	}
-	case ValueType::Double: {
-		this->theDouble = 0.0f;
-		break;
-	}
-	case ValueType::Float: {
-		this->theDouble = 0.0f;
-		break;
-	}
-	case ValueType::Uint64: {
-		this->theDouble = 1ull;
-		break;
-	}
-	case ValueType::Int64: {
-		this->theDouble = 1ll;
-		break;
-	}
-	case ValueType::String: {
-		this->theString = std::make_unique<std::string>();
-		break;
-	}
-	case ValueType::Null: {
-		this->theNull = nullptr;
-		break;
-	}
-	case ValueType::Array: {
-		this->theArray = std::make_unique<JsonArray>();
-		break;
-	}
-	case ValueType::Object: {
-		this->theObject = std::make_unique<JsonObject>();
-		break;
-	}
-	}
-}
-
 JsonValue::~JsonValue() {}
 
 JsonObject::JsonObject(ValueType theType) noexcept {
 	this->theValue = theType;
 	this->theType = theType;
-}
-
-JsonObject::JsonObject(const JsonObject& theKey) {
-	*this = theKey;
-}
-
-JsonObject& JsonObject::operator=(const char* theData) {
-	if (this->theType == ValueType::Object) {
-		this->theType = ValueType::String;
-		this->theValue = this->theType;
-		*this->theValue.theString = theData;
-		return *this;
-	}
-	else {
-		this->theType = ValueType::String;
-		this->theValue = this->theType;
-		*this->theValue.theString = theData;
-		return *this;
-	}
-}
-
-JsonObject& JsonObject::operator=(std::string theData) {
-	if (this->theType == ValueType::Object) {
-		this->theType = ValueType::String;
-		this->theValue = this->theType;
-		*this->theValue.theString = theData;
-		return *this;
-	}
-	else {
-		this->theType = ValueType::Bool;
-		this->theValue = this->theType;
-		*this->theValue.theString = theData;
-		return *this;
-	}
 }
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) {
@@ -157,6 +128,38 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) {
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
 	this->theKey = theKey.theKey;
+	return *this;
+}
+
+JsonObject::JsonObject(const JsonObject& theKey) {
+	*this = theKey;
+}
+
+JsonObject& JsonObject::operator=(const char* theData) {
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::String;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::String;
+		this->theValues[this->theKey].theValue = ValueType::String;
+		*this->theValues[this->theKey].theValue.theString = theData;
+	}
+	return *this;
+}
+
+JsonObject& JsonObject::operator=(std::string theData) {
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::String;
+		this->theValue = this->theType;
+		*this->theValue.theString = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::String;
+		this->theValues[this->theKey].theValue = ValueType::String;;
+		*this->theValues[this->theKey].theValue.theString = theData;
+	}
 	return *this;
 }
 
@@ -188,138 +191,254 @@ JsonObject& JsonObject::operator[](const char* theKey) {
 }
 
 JsonObject& JsonObject::operator=(bool theData) {
-	this->theType = ValueType::Bool;
-	this->theValue = this->theType;
-	this->theValue.theBool = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Bool;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Bool;
+		this->theValues[this->theKey].theValue = ValueType::Bool;
+		this->theValues[this->theKey].theValue.theBool = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(double theData) {
-	this->theType = ValueType::Double;
-	this->theValue = this->theType;
-	this->theValue.theDouble = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Double;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Double;
+		this->theValues[this->theKey].theValue = ValueType::Double;
+		this->theValues[this->theKey].theValue.theDouble= theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(float theData) {
-	this->theType = ValueType::Float;
-	this->theValue = this->theType;
-	this->theValue.theFloat = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Float;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Float;
+		this->theValues[this->theKey].theValue = ValueType::Float;
+		this->theValues[this->theKey].theValue.theFloat = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(uint64_t theData) {
-	this->theType = ValueType::Uint64;
-	this->theValue = this->theType;
-	this->theValue.theUint = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Uint64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Uint64;
+		this->theValues[this->theKey].theValue = ValueType::Uint64;
+		this->theValues[this->theKey].theValue.theUint = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(uint32_t theData) {
-	this->theType = ValueType::Uint64;
-	this->theValue = this->theType;
-	this->theValue.theUint = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Uint64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Uint64;
+		this->theValues[this->theKey].theValue = ValueType::Uint64;;
+		this->theValues[this->theKey].theValue.theUint = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(uint16_t theData) {
-	this->theType = ValueType::Uint64;
-	this->theValue = this->theType;
-	this->theValue.theUint = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Uint64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Uint64;
+		this->theValues[this->theKey].theValue = ValueType::Uint64;;
+		this->theValues[this->theKey].theValue.theUint = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(uint8_t theData) {
-	this->theType = ValueType::Uint64;
-	this->theValue = this->theType;
-	this->theValue.theUint = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Uint64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Uint64;
+		this->theValues[this->theKey].theValue = ValueType::Uint64;
+		this->theValues[this->theKey].theValue.theUint = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(int64_t theData) {
-	this->theType = ValueType::Int64;
-	this->theValue = this->theType;
-	this->theValue.theInt = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Int64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Int64;
+		this->theValues[this->theKey].theValue = ValueType::Int64;
+		this->theValues[this->theKey].theValue.theInt = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(int32_t theData) {
-	this->theType = ValueType::Int64;
-	this->theValue = this->theType;
-	this->theValue.theInt = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Int64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Int64;
+		this->theValues[this->theKey].theValue = ValueType::Int64;
+		this->theValues[this->theKey].theValue.theInt = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(int16_t theData) {
-	this->theType = ValueType::Int64;
-	this->theValue = this->theType;
-	this->theValue.theInt = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Int64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Int64;
+		this->theValues[this->theKey].theValue = ValueType::Int64;
+		this->theValues[this->theKey].theValue.theInt = theData;
+	}
 	return *this;
 }
 
 JsonObject& JsonObject::operator=(int8_t theData) {
-	this->theType = ValueType::Int64;
-	this->theValue = this->theType;
-	this->theValue.theInt = theData;
+	if (this->theType != ValueType::Object) {
+		this->theType = ValueType::Int64;
+		this->theValue = this->theType;
+		this->theValue.theUint = theData;
+	}
+	else {
+		this->theValues[this->theKey] = ValueType::Int64;
+		this->theValues[this->theKey].theValue = ValueType::Int64;
+		this->theValues[this->theKey].theValue.theInt = theData;
+	}
 	return *this;
 }
 
 void JsonObject::pushBack(const char* theKey, JsonObject& other) {
-	this->theValues[theKey] = JsonObject{};
-	this->theValues[theKey].theKey = theKey;
-	this->theValues[theKey].theType = ValueType::Array;
-	std::cout << "WERE HERE THIS IS IT! 0202" << std::endl;
-	if (other.theValues.size() > 0) {
-		for (auto& value : other.theValues) {
-			std::cout << "WERE HERE THIS IS IT! 0404" << std::endl;
-			this->theValues[theKey].theArrayValues.push_back(value.second);
+	if (!this->theValues.contains(theKey)) {
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theKey = theKey;
+		this->theValues[theKey].theType = ValueType::Array;
+		std::cout << "WERE HERE THIS IS IT! 0303" << std::endl;
+		if (other.theValues.size() > 0) {
+			for (auto& [key,value] : other.theValues) {
+				std::cout << "WERE HERE THIS IS IT! 0202" << std::endl;
+				this->theValues[theKey] .theArrayValues.emplace_back(value);
+			}
+		}
+		else if (other.theArrayValues.size()>0) {
+			for (auto& value: other.theArrayValues) {
+				std::cout << "WERE HERE THIS IS IT! 0101" << std::endl;
+				this->theValues[theKey].theArrayValues.emplace_back(value);
+			}
+		}
+		else {
+			this->theValues[theKey].theValue = other;
 		}
 	}
 	else {
-		this->theValues[theKey].theValue = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theKey = theKey;
+		this->theValues[theKey].theType = ValueType::Array;
+		std::cout << "WERE HERE THIS IS IT! 0404" << std::endl;
+		if (other.theValues.size() > 0) { 
+			for (auto& value : other.theValues) {
+				this->theArrayValues.push_back(value.second);
+			}
+		}
+		else {
+			this->theValues[theKey].theValue = other;
+		}
 	}
 };
 
 void JsonObject::pushBack(const char*theKey, JsonObject&& other) {
-	this->theValues[theKey] = JsonObject{};
-	this->theValues[theKey].theKey = theKey;
-	this->theValues[theKey].theType = ValueType::Array;
-	std::cout << "WERE HERE THIS IS IT! 0303" << std::endl;
-	if (other.theValues.size() > 0) {
-		for (auto& value : other.theValues) {
-			this->theArrayValues.push_back(value.second);
+	if (this->theValues.contains(theKey)) {
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theKey = theKey;
+		this->theValues[theKey].theType = ValueType::Array;
+		if (other.theValues.size() > 0) {
+			for (auto& value : other.theValues) {
+				this->theArrayValues.push_back(value.second);
+			}
 		}
-	}
-	else {
-		this->theValues[theKey].theValue = other;
+		else {
+			this->theValues[theKey].theValue = other;
+		}
 	}
 };
 
 JsonObject::operator std::string() {
 	std::string theString{};
-	theString += "{";
 	bool doWeAddComma{ false };
+	std::cout << "THE SIZE: 02 " << "THE KEY (REAL): " << this->theKey << ", THE TYPE: " << (int32_t)this->theType << std::endl;
+	if (this->theKey != "") {
+		theString += "\"" + this->theKey + "\":";
+	}
 	for (auto& [key, value] : this->theValues) {
 		if (doWeAddComma) {
 			theString += ",";
 		}
+		if (value.theKey != "") {
+			theString += "\"" + value.theKey + "\":";
+		}
 		switch (value.theType) {
 		case ValueType::Object: {
-			if (value.theKey != "") {
-				theString += "\"" + value.theKey + "\":";
-			}
-			theString += JsonSerializer{}.getString(value);
+			doWeAddComma = false;
+			theString += "{";
+			for (auto& [key, valueNew] : value.theValues) {
+				if (doWeAddComma) {
+					theString += ",";
+				}
+				theString += valueNew;
+				doWeAddComma = true;
+			}			
+			theString += "}";
 			break;
 		}
 		case ValueType::Array: {
+			doWeAddComma = false;
 			std::cout << "WERE HERE THIS IS IT! WITH THE ARRAY" << std::endl;
-			if (value.theKey != "") {
-				theString += "\"" + value.theKey + "\":";
-			}
+			theString += "[";
 			std::cout << "WERE HERE THIS IS IT! WITH THE ARRAY 0101: " << value.theArrayValues.size() << std::endl;
-			for (auto&valueNew:value.theArrayValues){
-				theString += JsonSerializer{}.getString(valueNew);
-			}			
+			for (auto& valueNew : value.theArrayValues) {
+				if (doWeAddComma) {
+					theString += ",";
+				}
+				theString += valueNew;
+				doWeAddComma = true;
+			}
+			theString += "]";
 			break;
 		}
 		case ValueType::Bool: {
@@ -367,7 +486,9 @@ JsonObject::operator std::string() {
 }
 
 std::string JsonSerializer::getString(JsonObject theObject) {
-	std::string theString = theObject;	
+	std::string theString{};
+	theString += "{";
+	theString += theObject;
 	theString += "}";
 	return theString;
 }
@@ -397,7 +518,7 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 	WebSocketIdentifyData::operator JsonObject() {
 		JsonObject theSerializer{};
 		theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
-		theSerializer["large_threshold"] = static_cast<uint32_t>(250);
+		theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 		
 		for (auto& value : this->presence.activities) {
 			JsonObject theSerializer02{};
@@ -406,7 +527,6 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 			}
 			theSerializer02["name"] = std::string{ value.name };
 			theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
-			std::cout << "THE SIZE: " << theSerializer02.theValues.size() << std::endl;
 			theSerializer.pushBack("activities", theSerializer02);
 		}/*
 		theSerializer.endArray();
@@ -462,12 +582,14 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 		try {
 			EditGuildApplicationCommandPermissionsData theDataBew{};
 			theDataBew.applicationId = 12312312323;
-			std::string theString = JsonSerializer{}.getString(theDataBew);
-			std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
-			std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
+			//std::string theString = JsonSerializer{}.getString(theDataBew);
+			//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
+			//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
 
 			WebSocketIdentifyData theDataReal{};
-			theDataReal.presence.activities.push_back(DiscordCoreAPI::ActivityData{});
+			DiscordCoreAPI::ActivityData theData{};
+			theData.name = "TESTING!";
+			theDataReal.presence.activities.push_back(theData);
 			theDataReal.botToken = "12312312323";
 			std::string theString02 = JsonSerializer{}.getString(theDataReal);
 			std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
