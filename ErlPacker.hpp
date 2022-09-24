@@ -47,101 +47,7 @@ enum class ValueType {
 	Unset = 10
 };
 
-struct JsonObject;
-
 struct JsonArray;
-
-struct JsonObject  {
-	std::unordered_map<std::string, JsonObject>theValues{};
-	ValueType theType{ ValueType::Object };
-	std::string theKey{};
-	void* theValue{};
-
-	JsonObject()noexcept = default;
-
-	JsonObject& operator=(const JsonObject& theKey);
-	JsonObject(const JsonObject& theKey);
-	
-	JsonObject& operator=(const ValueType& theType);
-	JsonObject(const ValueType& theType);
-
-	JsonObject& operator=(const JsonArray& theData);
-	JsonObject(const JsonArray& theData);
-
-	JsonObject& operator=(const char* theData);
-	JsonObject(const char* theData) noexcept;
-
-	JsonObject& operator=(std::string theData);
-	JsonObject(std::string) noexcept;
-
-	JsonObject& operator=(uint64_t theData);
-	JsonObject(uint64_t) noexcept;
-
-	JsonObject& operator=(uint32_t theData);
-	JsonObject(uint32_t) noexcept;
-	
-	JsonObject& operator=(uint16_t theData);
-	JsonObject(uint16_t) noexcept;
-
-	JsonObject& operator=(uint8_t theData);
-	JsonObject(uint8_t) noexcept;
-
-	JsonObject& operator=(int64_t theData);
-	JsonObject(int64_t) noexcept;
-	
-	JsonObject& operator=(int32_t theData);
-	JsonObject(int32_t) noexcept;
-	
-	JsonObject& operator=(int16_t theData);
-	JsonObject(int16_t) noexcept;
-	
-	JsonObject& operator=(int8_t theData);
-	JsonObject(int8_t) noexcept;
-
-	JsonObject& operator=(double theData);
-	JsonObject(double) noexcept;
-
-	JsonObject& operator=(float theData);
-	JsonObject(float) noexcept;
-
-	JsonObject& operator=(bool theData);
-	JsonObject(bool) noexcept;	
-
-	operator std::string();
-	
-	JsonObject& operator[](const char* theKey);
-
-	void pushBack(const char* theKey, std::string other);
-	void pushBack(const char* theKey, uint64_t other);
-	void pushBack(const char* theKey, uint32_t other);
-	void pushBack(const char* theKey, uint16_t other);
-	void pushBack(const char* theKey, uint8_t other);
-	void pushBack(const char* theKey, int64_t other);
-	void pushBack(const char* theKey, int32_t other);
-	void pushBack(const char* theKey, int16_t other);
-	void pushBack(const char* theKey, int8_t other);
-	void pushBack(const char* theKey, JsonObject other);
-};
-
-struct JsonArray:public JsonObject {
-	JsonArray() noexcept = default;
-};
-
-enum class JsonParseEvent : uint16_t {
-	Unset = 0 << 0,
-	Null_Value = 1 << 1,
-	Object_Start = 1 << 2,
-	Object_End = 1 << 3,
-	Array_Start = 1 << 4,
-	Array_End = 1 << 5,
-	String = 1 << 6,
-	Boolean = 1 << 7,
-	Number_Integer = 1 << 8,
-	Number_Integer_Small = 1 << 9,
-	Number_Integer_Large = 1 << 10,
-	Number_Float = 1 << 11,
-	Number_Double = 1 << 12
-};
 
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
@@ -186,6 +92,101 @@ struct EnumConverter {
 
 	void* thePtr{};
 	bool vectorType{ false };
+};
+
+struct JsonObject  {
+	std::unordered_map<std::string, JsonObject>theValues{};
+	ValueType theType{ ValueType::Object };
+	std::string theKey{};
+	void* theValue{};
+
+	JsonObject()noexcept = default;
+
+	JsonObject& operator=(EnumConverter theData) noexcept;
+	JsonObject(EnumConverter) noexcept;
+
+	JsonObject& operator=(const JsonObject& theKey) noexcept;
+	JsonObject(const JsonObject& theKey) noexcept;
+	
+	JsonObject& operator=(const ValueType& theType) noexcept;
+	JsonObject(const ValueType& theType) noexcept;
+
+	JsonObject& operator=(const JsonArray& theData) noexcept;
+	JsonObject(const JsonArray& theData) noexcept;
+
+	JsonObject& operator=(const char* theData) noexcept;
+	JsonObject(const char* theData) noexcept;
+
+	JsonObject& operator=(std::string theData) noexcept;
+	JsonObject(std::string) noexcept;
+
+	JsonObject& operator=(uint64_t theData) noexcept;
+	JsonObject(uint64_t) noexcept;
+
+	JsonObject& operator=(uint32_t theData) noexcept;
+	JsonObject(uint32_t) noexcept;
+	
+	JsonObject& operator=(uint16_t theData) noexcept;
+	JsonObject(uint16_t) noexcept;
+
+	JsonObject& operator=(uint8_t theData) noexcept;
+	JsonObject(uint8_t) noexcept;
+
+	JsonObject& operator=(int64_t theData) noexcept;
+	JsonObject(int64_t) noexcept;
+	
+	JsonObject& operator=(int32_t theData) noexcept;
+	JsonObject(int32_t) noexcept;
+	
+	JsonObject& operator=(int16_t theData) noexcept;
+	JsonObject(int16_t) noexcept;
+	
+	JsonObject& operator=(int8_t theData) noexcept;
+	JsonObject(int8_t) noexcept;
+
+	JsonObject& operator=(double theData) noexcept;
+	JsonObject(double) noexcept;
+
+	JsonObject& operator=(float theData) noexcept;
+	JsonObject(float) noexcept;
+
+	JsonObject& operator=(bool theData) noexcept;
+	JsonObject(bool) noexcept;	
+
+	operator std::string() noexcept;
+	
+	JsonObject& operator[](const char* theKey) noexcept;
+
+	void pushBack(const char* theKey, std::string other) noexcept;
+	void pushBack(const char* theKey, uint64_t other) noexcept;
+	void pushBack(const char* theKey, uint32_t other) noexcept;
+	void pushBack(const char* theKey, uint16_t other) noexcept;
+	void pushBack(const char* theKey, uint8_t other) noexcept;
+	void pushBack(const char* theKey, int64_t other) noexcept;
+	void pushBack(const char* theKey, int32_t other) noexcept;
+	void pushBack(const char* theKey, int16_t other) noexcept;
+	void pushBack(const char* theKey, int8_t other) noexcept;
+	void pushBack(const char* theKey, JsonObject other) noexcept;
+};
+
+struct JsonArray:public JsonObject {
+	JsonArray() noexcept = default;
+};
+
+enum class JsonParseEvent : uint16_t {
+	Unset = 0 << 0,
+	Null_Value = 1 << 1,
+	Object_Start = 1 << 2,
+	Object_End = 1 << 3,
+	Array_Start = 1 << 4,
+	Array_End = 1 << 5,
+	String = 1 << 6,
+	Boolean = 1 << 7,
+	Number_Integer = 1 << 8,
+	Number_Integer_Small = 1 << 9,
+	Number_Integer_Large = 1 << 10,
+	Number_Float = 1 << 11,
+	Number_Double = 1 << 12
 };
 
 class JsonSerializer {
