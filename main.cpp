@@ -540,115 +540,221 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 	return theObject;
 }
 
-	/// For editing the permissions of a single Guild ApplicationCommand. \brief For editing the permissions of a single Guild ApplicationCommand.
-	struct EditGuildApplicationCommandPermissionsData {
-		std::vector<DiscordCoreAPI::ApplicationCommandPermissionData> permissions{};///< A vector of ApplicationCommand permissions.
-		std::string commandName{};///< The command name which you would like to edit the permissions of.
-		DiscordCoreAPI::Snowflake applicationId{};///< The current application's Id (The Bot's User Id).
-		uint64_t commandId{};///< The command id which you would like to edit the permissions of.
-		DiscordCoreAPI::Snowflake guildId{};///< The Guild id of the Guild for which you would like to edit the command permissions.
+/// For editing the permissions of a single Guild ApplicationCommand. \brief For editing the permissions of a single Guild ApplicationCommand.
+struct EditGuildApplicationCommandPermissionsData {
+	std::vector<DiscordCoreAPI::ApplicationCommandPermissionData> permissions{};///< A vector of ApplicationCommand permissions.
+	std::string commandName{};///< The command name which you would like to edit the permissions of.
+	DiscordCoreAPI::Snowflake applicationId{};///< The current application's Id (The Bot's User Id).
+	uint64_t commandId{};///< The command id which you would like to edit the permissions of.
+	DiscordCoreAPI::Snowflake guildId{};///< The Guild id of the Guild for which you would like to edit the command permissions.
 
-		operator JsonObject();
-	};
+	operator JsonObject();
+};
 
-	struct WebSocketIdentifyData {
-		DiscordCoreInternal::UpdatePresenceData presence{};
-		int32_t largeThreshold{ 250 };
-		int32_t numberOfShards{};
-		int32_t currentShard{};
-		std::string botToken{};
-		int64_t intents{};
+struct WebSocketIdentifyData {
+	DiscordCoreInternal::UpdatePresenceData presence{};
+	int32_t largeThreshold{ 250 };
+	int32_t numberOfShards{};
+	int32_t currentShard{};
+	std::string botToken{};
+	int64_t intents{};
 
-		operator JsonObject();
-	};
+	operator JsonObject();
+};
 
-	WebSocketIdentifyData::operator JsonObject() {
-		JsonObject theSerializer{};
-		std::unordered_map<std::string, std::string> theMap{};
-		std::vector<std::string> theMapTwo{};
-		theMapTwo.push_back("THE_VALUE");
-		theMap["TEST"] = "TESTvalue";
-		theMap["TEST_TWO"] = "TESTvalue";
-		theSerializer["test_Map"] = theMapTwo;
-		theSerializer["test_Map_Two"] = theMap;
-		theSerializer["test_Map_Three"] = theMap;
-		theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
-		theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
-		
-		for (auto& value : this->presence.activities) {
-			JsonObject theSerializer02{};
-			if (value.url != "") {
-				theSerializer02["url"] = std::string{ value.url };
+/// Allowable mentions for a Message. \brief Allowable mentions for a Message.
+class AllowedMentionsData {
+public:
+	std::vector<std::string> parse{};///< A vector of allowed mention types to parse from the content.
+	std::vector<std::string> roles{};///< Array of role_ids to mention (Max size of 100)
+	std::vector<std::string> users{};///< Array of user_ids to mention (Max size of 100)
+	bool repliedUser{ false };///< For replies, whether to mention the author of the Message being replied to (default false).
+
+
+	operator JsonObject();
+};
+
+AllowedMentionsData::operator JsonObject() {
+	JsonObject theData{ "allowed_mentions" };
+	for (auto& value : this->parse) {
+		theData.pushBack("parse", value);
+	}
+	for (auto& value : this->roles) {
+		theData.pushBack("roles", value);
+	}
+	for (auto& value : this->users) {
+		theData.pushBack("users", value);
+	}
+	return theData;
+}
+
+/// Interaction ApplicationCommand callback data. \brief Interaction ApplicationCommand callback data.
+struct InteractionCallbackData {
+	std::vector<DiscordCoreAPI::ApplicationCommandOptionChoiceData> choices{};///< Autocomplete choices(max of 25 choices).
+	std::vector<DiscordCoreAPI::AttachmentData> attachments{};///< Array of partial attachment objects attachment objects with filename and description.
+	std::vector<DiscordCoreAPI::ActionRowData> components{};///< Message components.
+	AllowedMentionsData allowedMentions{};///< Allowed mentions data.
+	std::vector<DiscordCoreAPI::EmbedData> embeds{};///< Message embeds.
+	std::vector<DiscordCoreAPI::File> files{};///< Files for uploading.
+	std::string customId{};///< A developer-defined identifier for the component, max 100 characters.
+	std::string content{};///< Message content.
+	std::string title{};///< The title of the popup modal.
+	int32_t flags{ 0 };///< Flags.
+	bool tts{ false };///< Is it TTS?
+	operator JsonObject();
+};
+
+struct InteractionResponseData {
+
+	InteractionResponseData() noexcept = default;
+
+	operator JsonObject();
+
+	InteractionCallbackData data{};///< Interaction ApplicationCommand callback data.
+	DiscordCoreAPI::InteractionCallbackType type{};///< Interaction callback type.
+};
+
+
+
+InteractionResponseData::operator JsonObject() {
+	JsonObject theData{};
+	theData["type"] = static_cast<uint8_t>(this->type);
+	if (this->data.attachments.size() > 0) {
+		for (auto& value : this->data.attachments) {
+			//theData["data"].pushBack("attachments", JsonObject{ value });
+		}
+	}
+	for (auto& value : this->data.components) {
+		//theData["data"].pushBack("components", JsonObject{ value });
+	}
+	theData["data"]["allowed_mentions"] = JsonObject{ this->data.allowedMentions };
+	if (this->data.choices.size() > 0) {
+		for (auto& value : this->data.choices) {
+			JsonObject theValue{};
+			theValue["name"] = value.name;
+			theValue["name_localizations"] = value.nameLocalizations;
+			switch (value.type) {
+			case DiscordCoreAPI::JsonType::Boolean: {
+				theValue["value"] = value.valueBool;
+				break;
 			}
-			theSerializer02["name"] = std::string{ value.name };
-			theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
-			theSerializer["d"].pushBack("activities", theSerializer02);
-			theSerializer["d"].pushBack("activities", theSerializer02);
-			theSerializer["TEST_ENUM"] = DiscordCoreAPI::ChannelType::Guild_Directory;
+			case DiscordCoreAPI::JsonType::String: {
+				theValue["value"] = value.valueStringReal;
+				break;
+			}
+			case DiscordCoreAPI::JsonType::Float: {
+				theValue["value"] = value.valueFloat;
+				break;
+			}
+			case DiscordCoreAPI::JsonType::Integer: {
+				theValue["value"] = value.valueInt;
+				break;
+			}
+			}
+			theData["data"].pushBack("choices", theValue);
 		}
-		theSerializer["d"]["afk"] = this->presence.afk;
-		if (this->presence.since != 0) {
-			theSerializer["since"] = this->presence.since;
-		}
+	}
+	for (auto& value : this->data.embeds) {
+		//theData["data"].pushBack("embeds", value);
+	}
+	if (this->data.customId != "") {
+		theData["data"]["custom_id"] = this->data.customId;
+	}
+	if (this->data.content != "") {
+		theData["data"]["content"] = this->data.content;
+	}
+	if (this->data.title != "") {
+		theData["data"]["title"] = this->data.title;
+	}
+	theData["data"]["flags"] = this->data.flags;
+	theData["data"]["tts"] = this->data.tts;
+	return theData;
+}
 
-		theSerializer["d"]["status"] = this->presence.status;
-		theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-		theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+WebSocketIdentifyData::operator JsonObject() {
+	JsonObject theSerializer{};
+	std::unordered_map<std::string, std::string> theMap{};
+	std::vector<std::string> theMapTwo{};
+	theMapTwo.push_back("THE_VALUE");
+	theMap["TEST"] = "TESTvalue";
+	theMap["TEST_TWO"] = "TESTvalue";
+	theSerializer["test_Map"] = theMapTwo;
+	theSerializer["test_Map_Two"] = theMap;
+	theSerializer["test_Map_Three"] = theMap;
+	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
+
+	for (auto& value : this->presence.activities) {
+		JsonObject theSerializer02{};
+		if (value.url != "") {
+			theSerializer02["url"] = std::string{ value.url };
+		}
+		theSerializer02["name"] = std::string{ value.name };
+		theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer["d"].pushBack("activities", theSerializer02);
+		theSerializer["d"].pushBack("activities", theSerializer02);
+		theSerializer["TEST_ENUM"] = DiscordCoreAPI::ChannelType::Guild_Directory;
+	}
+	theSerializer["d"]["afk"] = this->presence.afk;
+	if (this->presence.since != 0) {
+		theSerializer["since"] = this->presence.since;
+	}
+
+	theSerializer["d"]["status"] = this->presence.status;
+	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
 #ifdef _WIN32
-		theSerializer["d"]["properties"]["os"] = "Windows";
+	theSerializer["d"]["properties"]["os"] = "Windows";
 #else
-		theSerializer["d"]["properties"]["os"] = "Linux";
+	theSerializer["d"]["properties"]["os"] = "Linux";
 #endif
-		theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
-		theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
-		theSerializer["d"]["token"] = this->botToken;
-		theSerializer["op"] = static_cast<uint32_t>(2);
-		return theSerializer;
+	theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
+	theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
+	theSerializer["d"]["token"] = this->botToken;
+	theSerializer["op"] = static_cast<uint32_t>(2);
+	return theSerializer;
+}
+
+EditGuildApplicationCommandPermissionsData::operator JsonObject() {
+	JsonObject theData{};
+	theData["d"] = true;
+	theData["23"]["TESTty"]["TEST_TWO"] = true;
+	theData["23"]["TEST"] = true;
+	theData["Teetertytot"] = "TESTING";
+	theData["test"] = "TESTING VALUES";
+	theData["TEST"] = false;
+	theData["tee"]["TESTerasds"]["TESTINGiners"] = double{ 4.423f };
+	for (auto& value : this->permissions) {
+
+
+		//newData["d"]["type"] = static_cast<uint8_t>(value.type);
+		//auto theString = std::to_string(value.id);
+		//newData["d"]["id"] = theString;
 	}
+	//std::cout << "THE STRING: " << theData.getString() << std::endl;
 
-	EditGuildApplicationCommandPermissionsData::operator JsonObject() {
-		JsonObject theData{};
-		theData["d"] = true;
-		theData["23"]["TESTty"]["TEST_TWO"] = true;
-		theData["23"]["TEST"] = true;
-		theData["Teetertytot"] = "TESTING";
-		theData["test"] = "TESTING VALUES";
-		theData["TEST"] = false;
-		theData["tee"]["TESTerasds"]["TESTINGiners"] = double{ 4.423f };
-		for (auto& value : this->permissions) {
-			
-			
-			//newData["d"]["type"] = static_cast<uint8_t>(value.type);
-			//auto theString = std::to_string(value.id);
-			//newData["d"]["id"] = theString;
-		}
-		//std::cout << "THE STRING: " << theData.getString() << std::endl;
-		
-		return theData;
+	return theData;
+}
+
+
+int32_t main() noexcept {
+	try {
+		EditGuildApplicationCommandPermissionsData theDataBew{};
+		theDataBew.applicationId = 12312312323;
+		//std::string theString = JsonSerializer{}.getString(theDataBew);
+		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
+		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
+
+		InteractionResponseData theDataReal{};
+		theDataReal.data.allowedMentions.roles.push_back("TESTING");
+		std::string theString02 = JsonSerializer{}.getString(theDataReal);
+		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
+		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
+
+		std::this_thread::sleep_for(std::chrono::seconds{ 3 });
+
 	}
+	catch (...) { DiscordCoreAPI::reportException("main()"); };
 
-
-    int32_t main() noexcept {
-		try {
-			EditGuildApplicationCommandPermissionsData theDataBew{};
-			theDataBew.applicationId = 12312312323;
-			//std::string theString = JsonSerializer{}.getString(theDataBew);
-			//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
-			//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
-
-			WebSocketIdentifyData theDataReal{};
-			DiscordCoreAPI::ActivityData theData{};
-			theData.name = "TESTING!";
-			theDataReal.presence.activities.push_back(theData);
-			theDataReal.botToken = "12312312323";
-			std::string theString02 = JsonSerializer{}.getString(theDataReal);
-			std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
-			std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
-
-			std::this_thread::sleep_for(std::chrono::seconds{ 3 });
-
-        }
-        catch (...) { DiscordCoreAPI::reportException("main()"); };
-
-        return 0;
-    }
+	return 0;
+}
