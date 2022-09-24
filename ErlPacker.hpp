@@ -58,6 +58,14 @@ struct EnumConverter {
 		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
 	};
 
+	EnumConverter& operator=(EnumConverter&&);
+
+	EnumConverter(EnumConverter&&);
+
+	EnumConverter& operator=(EnumConverter&);
+
+	EnumConverter(EnumConverter&);
+
 	template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> other) {
 		this->thePtr = new std::vector<uint64_t>{};
 		for (auto& value : other) {
@@ -87,10 +95,12 @@ struct EnumConverter {
 	}
 
 	~EnumConverter() {
-		delete this->thePtr;
+		if (this->thePtr) {
+			//delete this->thePtr;
+		}
 	}
 
-	void* thePtr{};
+	void* thePtr{ nullptr };
 	bool vectorType{ false };
 };
 
