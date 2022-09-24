@@ -339,8 +339,6 @@ JsonObject& JsonObject::operator=(int8_t theData) {
 }
 
 void JsonObject::pushBack(const char* theKey, JsonObject& other) {
-	this->theKey = theKey;
-	this->theType = ValueType::Array;
 	std::cout << "WERE HERE THIS IS IT! 0101" << std::endl;
 	if (other.theValues.size() > 0) {
 		std::cout << "WERE HERE THIS IS IT! 0303" << std::endl;
@@ -357,8 +355,6 @@ void JsonObject::pushBack(const char* theKey, JsonObject& other) {
 };
 
 void JsonObject::pushBack(const char*theKey, JsonObject&& other) {
-	this->theKey = theKey;
-	this->theType = ValueType::Array;
 	std::cout << "WERE HERE THIS IS IT! 0202" << std::endl;
 	if (other.theValues.size() > 0) {
 		for (auto& value : other.theValues) {
