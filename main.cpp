@@ -46,25 +46,25 @@ JsonObject& JsonObject::operator=(const ValueType& theType) noexcept {
 	return *this;
 }
 
-EnumConverter& EnumConverter::operator=(EnumConverter&& other) {
+EnumConverter& EnumConverter::operator=(EnumConverter&& other) noexcept {
 	this->thePtr = other.thePtr;
 	other.thePtr = nullptr;
 	this->vectorType = other.vectorType;
 	return *this;
 }
 
-EnumConverter::EnumConverter(EnumConverter&& other) {
+EnumConverter::EnumConverter(EnumConverter&& other) noexcept {
 	*this = other;
 }
 
-EnumConverter& EnumConverter::operator=(EnumConverter&other){
+EnumConverter& EnumConverter::operator=(EnumConverter&other) noexcept {
 	this->thePtr = other.thePtr;
 	other.thePtr = nullptr;
 	this->vectorType = other.vectorType;
 	return *this;
 }
 
-EnumConverter::EnumConverter(EnumConverter&other){
+EnumConverter::EnumConverter(EnumConverter&other) noexcept {
 	*this = other;
 }
 
@@ -74,11 +74,12 @@ JsonObject::JsonObject(const ValueType& theType) noexcept {
 
 JsonObject& JsonObject::operator=(EnumConverter theData) noexcept{
 	this->theType = ValueType::Uint64;
+	EnumConverter theConverter{ theData };
 	JsonObject theObject{ theData };
 	theObject.theKey = this->theKey;
 	theObject.theType = this->theType;
 	*this = theObject;
-	*static_cast<EnumConverter*>(this->theValue) = static_cast<EnumConverter>(theData);
+	*static_cast<uint64_t*>(this->theValue) = static_cast<uint64_t>(theConverter);
 	return *this;
 }
 
@@ -515,7 +516,7 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 			theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
 			theSerializer["d"].pushBack("activities", theSerializer02);
 			theSerializer["d"].pushBack("activities", theSerializer02);
-			theSerializer["TEST_ENUM"] = DiscordCoreAPI::ChannelType::Group_Dm;
+			theSerializer["TEST_ENUM"] = DiscordCoreAPI::ChannelType::Guild_Directory;
 		}
 		theSerializer["d"]["afk"] = this->presence.afk;
 		if (this->presence.since != 0) {

@@ -55,16 +55,17 @@ concept IsEnum = std::is_enum<TheType>::value;
 struct EnumConverter {
 	template<IsEnum EnumType> EnumConverter(EnumType other) {
 		this->thePtr = new uint64_t{};
+		std::cout << "WERE HERE THIS IST I!" << static_cast<uint64_t>(other)<<std::endl;
 		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
 	};
 
-	EnumConverter& operator=(EnumConverter&&);
+	EnumConverter& operator=(EnumConverter&&) noexcept;
 
-	EnumConverter(EnumConverter&&);
+	EnumConverter(EnumConverter&&) noexcept;
 
-	EnumConverter& operator=(EnumConverter&);
+	EnumConverter& operator=(EnumConverter&) noexcept;
 
-	EnumConverter(EnumConverter&);
+	EnumConverter(EnumConverter&) noexcept;
 
 	template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> other) {
 		this->thePtr = new std::vector<uint64_t>{};
@@ -96,7 +97,7 @@ struct EnumConverter {
 
 	~EnumConverter() {
 		if (this->thePtr) {
-			//delete this->thePtr;
+			delete this->thePtr;
 		}
 	}
 
