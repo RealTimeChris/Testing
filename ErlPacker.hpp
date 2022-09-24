@@ -184,28 +184,10 @@ struct JsonArray:public JsonObject {
 	JsonArray() noexcept = default;
 };
 
-enum class JsonParseEvent : uint16_t {
-	Unset = 0 << 0,
-	Null_Value = 1 << 1,
-	Object_Start = 1 << 2,
-	Object_End = 1 << 3,
-	Array_Start = 1 << 4,
-	Array_End = 1 << 5,
-	String = 1 << 6,
-	Boolean = 1 << 7,
-	Number_Integer = 1 << 8,
-	Number_Integer_Small = 1 << 9,
-	Number_Integer_Large = 1 << 10,
-	Number_Float = 1 << 11,
-	Number_Double = 1 << 12
-};
-
 class JsonSerializer {
 public:
 	std::string getString(JsonObject theData);
 };
-
-
 
 	struct ErlPackError : public std::runtime_error {
 	public:
