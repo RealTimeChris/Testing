@@ -162,13 +162,14 @@ struct JsonObject  {
 	JsonObject(float) noexcept;
 
 	JsonObject& operator=(bool theData) noexcept;
-	JsonObject(bool) noexcept;	
-
-	operator std::string() noexcept;
+	JsonObject(bool) noexcept;
 	
 	JsonObject& operator[](const char* theKey) noexcept;
 
+	operator std::string() noexcept;
+
 	void pushBack(const char* theKey, std::string other) noexcept;
+	void pushBack(const char* theKey, JsonObject other) noexcept;
 	void pushBack(const char* theKey, uint64_t other) noexcept;
 	void pushBack(const char* theKey, uint32_t other) noexcept;
 	void pushBack(const char* theKey, uint16_t other) noexcept;
@@ -177,7 +178,6 @@ struct JsonObject  {
 	void pushBack(const char* theKey, int32_t other) noexcept;
 	void pushBack(const char* theKey, int16_t other) noexcept;
 	void pushBack(const char* theKey, int8_t other) noexcept;
-	void pushBack(const char* theKey, JsonObject other) noexcept;
 };
 
 struct JsonArray:public JsonObject {
