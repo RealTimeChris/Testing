@@ -49,83 +49,83 @@ enum class ValueType {
 
 struct JsonObject;
 
-struct JsonObjectBase;
+struct JsonArray;
 
-struct JsonArray {
-	JsonArray() noexcept = default;
-	std::vector<JsonObject> theValues{};
-};
-
-union JsonValue {
-	JsonValue(std::string) noexcept;
-	JsonValue(JsonObject) noexcept;
-	JsonValue(nullptr_t) noexcept;
-	JsonValue(JsonArray) noexcept;
-	JsonValue(uint64_t) noexcept;
-	JsonValue(int64_t) noexcept;
-	JsonValue(double) noexcept;
-	JsonValue(float) noexcept;
-	JsonValue(bool) noexcept;
-	JsonValue(const ValueType& theType);
-	JsonValue& operator=(const ValueType&);
-	std::unique_ptr<JsonObject> theObject{ nullptr };
-	std::string theString;
-	JsonArray theArray;
-	nullptr_t theNull;
-	double theDouble;
-	uint64_t theUint;
-	float theFloat;
-	int64_t theInt;
-	bool theBool;
-	std::string getString(ValueType);
-	~JsonValue();
-};
-
-struct JsonObjectBase {
-	JsonObjectBase()noexcept = default;
+struct JsonObject  {
+	std::unordered_map<std::string, JsonObject>theValues{};
 	ValueType theType{ ValueType::Object };
-	JsonValue theValue{ ValueType::Unset };
 	std::string theKey{};
-};
+	void* theValue{};
 
-inline bool operator==(const JsonObjectBase& lhs, const JsonObjectBase& rhs) {
-	return lhs.theKey == rhs.theKey;
-}
-
-template<> struct std::hash<JsonObjectBase> {
-	std::size_t operator()(JsonObjectBase& object)const noexcept {
-		return stoull(object.theKey);
-	}
-};
-
-struct JsonObject : public JsonObjectBase {
 	JsonObject()noexcept = default;
-	JsonObject(const JsonObject& theKey);
 
 	JsonObject& operator=(const JsonObject& theKey);
-	std::unordered_map<std::string, JsonObject>theValues{};
-	std::vector<JsonObject>theArrayValues{};
-	JsonObject(ValueType) noexcept;
-	JsonObject& operator=(bool theData);
-	JsonObject& operator=(std::string theData);
+	JsonObject(const JsonObject& theKey);
+	
+	JsonObject& operator=(const ValueType& theType);
+	JsonObject(const ValueType& theType);
+
+	JsonObject& operator=(const JsonArray& theData);
+	JsonObject(const JsonArray& theData);
+
 	JsonObject& operator=(const char* theData);
+	JsonObject(const char* theData) noexcept;
+
+	JsonObject& operator=(std::string theData);
+	JsonObject(std::string) noexcept;
+
 	JsonObject& operator=(uint64_t theData);
+	JsonObject(uint64_t) noexcept;
+
 	JsonObject& operator=(uint32_t theData);
+	JsonObject(uint32_t) noexcept;
+	
 	JsonObject& operator=(uint16_t theData);
+	JsonObject(uint16_t) noexcept;
+
 	JsonObject& operator=(uint8_t theData);
+	JsonObject(uint8_t) noexcept;
+
 	JsonObject& operator=(int64_t theData);
+	JsonObject(int64_t) noexcept;
+	
 	JsonObject& operator=(int32_t theData);
+	JsonObject(int32_t) noexcept;
+	
 	JsonObject& operator=(int16_t theData);
+	JsonObject(int16_t) noexcept;
+	
 	JsonObject& operator=(int8_t theData);
-	JsonObject& operator=(float theData);
+	JsonObject(int8_t) noexcept;
+
 	JsonObject& operator=(double theData);
-	JsonObject& operator[](const char* theKey);
+	JsonObject(double) noexcept;
+
+	JsonObject& operator=(float theData);
+	JsonObject(float) noexcept;
+
+	JsonObject& operator=(bool theData);
+	JsonObject(bool) noexcept;	
+
 	operator std::string();
-	void pushBack(const char* theKey, JsonObject&& other);
-	void pushBack(const char* theKey, JsonObject& other);
+	
+	JsonObject& operator[](const char* theKey);
+
+	void pushBack(const char* theKey, std::string other);
+	void pushBack(const char* theKey, uint64_t other);
+	void pushBack(const char* theKey, uint32_t other);
+	void pushBack(const char* theKey, uint16_t other);
+	void pushBack(const char* theKey, uint8_t other);
+	void pushBack(const char* theKey, int64_t other);
+	void pushBack(const char* theKey, int32_t other);
+	void pushBack(const char* theKey, int16_t other);
+	void pushBack(const char* theKey, int8_t other);
+	void pushBack(const char* theKey, JsonObject other);
 };
 
-enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };
+struct JsonArray:public JsonObject {
+	JsonArray() noexcept = default;
+};
 
 enum class JsonParseEvent : uint16_t {
 	Unset = 0 << 0,
@@ -188,11 +188,8 @@ struct EnumConverter {
 	bool vectorType{ false };
 };
 
-class JsonSerializer;
-
 class JsonSerializer {
 public:
-
 	std::string getString(JsonObject theData);
 };
 
