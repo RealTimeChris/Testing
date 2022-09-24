@@ -50,25 +50,6 @@ JsonValue::JsonValue(const ValueType& theType){
 	*this = theType;
 }
 
-JsonValue& JsonValue::operator=(const JsonValue& other) {	
-	this->theObject = std::make_unique< JsonObject>();
-	if (other.theObject) {
-		*this->theObject = *other.theObject;
-	}
-	this->theString = other.theString;
-	this->theDouble = other.theDouble;
-	this->theArray = other.theArray;
-	this->theFloat = other.theFloat;
-	this->theBool = other.theBool;
-	this->theUint = other.theUint;
-	this->theInt = other.theInt;
-	return *this;
-}
-
-JsonValue::JsonValue(const JsonValue& theType){
-	*this = theType;
-}
-
 JsonValue::JsonValue(std::string theData) noexcept {
 	this->theString = theData;
 }
@@ -120,7 +101,8 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) {
 	for (auto& value : theKey.theArrayValues) {
 		this->theArrayValues.push_back(value);
 	}
-	this->theValue = theKey.theValue;
+	JsonValue theValue{ theKey };
+	this->theValue = std::move(theValue);
 	this->theType = theKey.theType;
 	this->theKey = theKey.theKey;
 	return *this;
@@ -356,7 +338,7 @@ void JsonObject::pushBack(const char* theKey, JsonObject& other) {
 				}
 			}
 			else {
-				this->theValues[theKey].theValue = other;
+				this->theValues[theKey] = other;
 			}
 		}
 		else {
