@@ -564,6 +564,14 @@ std::string JsonSerializer::getString(JsonObject theObject) {
 
 	WebSocketIdentifyData::operator JsonObject() {
 		JsonObject theSerializer{};
+		std::unordered_map<std::string, std::string> theMap{};
+		std::vector<std::string> theMapTwo{};
+		theMapTwo.push_back("THE_VALUE");
+		theMap["TEST"] = "TESTvalue";
+		theMap["TEST_TWO"] = "TESTvalue";
+		theSerializer["test_Map"] = theMapTwo;
+		theSerializer["test_Map_Two"] = theMap;
+		theSerializer["test_Map_Three"] = theMap;
 		theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 		theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 		

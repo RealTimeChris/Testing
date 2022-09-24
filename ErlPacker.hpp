@@ -113,6 +113,39 @@ struct JsonObject  {
 
 	JsonObject()noexcept = default;
 
+	template<typename ObjectType>
+	JsonObject& operator=(std::vector<ObjectType>theData) noexcept {
+		this->theType = ValueType::Array;
+		int32_t theIndex{};
+		for (auto& value : theData) {
+			this->theValues[std::to_string(theIndex)] = value;
+		}
+		theIndex++;
+		return *this;
+	}
+
+	template<typename ObjectType>
+	JsonObject(std::vector<ObjectType>theData) noexcept {
+		*this = theData;
+	}
+
+	template<typename KeyType,typename ObjectType>
+	JsonObject& operator=(std::unordered_map<KeyType,ObjectType>theData) noexcept {
+		int32_t theIndex{};
+		for (auto& [key,value] : theData) {
+			this->theValues[key] = value;
+			this->theValues[key].theType = ValueType::String;
+			this->theValues[key].theKey = key;
+		}
+		theIndex++;
+		return *this;
+	}
+
+	template<typename KeyType, typename ObjectType>
+	JsonObject(std::unordered_map<KeyType, ObjectType>theData) noexcept {
+		*this = theData;
+	}
+
 	JsonObject& operator=(EnumConverter theData) noexcept;
 	JsonObject(EnumConverter) noexcept;
 
