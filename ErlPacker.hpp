@@ -105,6 +105,7 @@ struct JsonObject : public JsonObjectBase {
 
 	JsonObject& operator=(const JsonObject& theKey);
 	std::unordered_map<std::string, JsonObject>theValues{};
+	std::vector<JsonObject>theArrayValues{};
 	JsonObject(ValueType) noexcept;
 	JsonObject& operator=(bool theData);
 	JsonObject& operator=(std::string theData);
@@ -121,6 +122,8 @@ struct JsonObject : public JsonObjectBase {
 	JsonObject& operator=(double theData);
 	JsonObject& operator[](const char* theKey);
 	operator std::string();
+	void pushBack(const char* theKey, JsonObject&& other);
+	void pushBack(const char* theKey, JsonObject& other);
 };
 
 enum class JsonParserState { Starting_Object = 0, Adding_Object_Elements = 1, Starting_Array = 2, Adding_Array_Elements = 3 };
