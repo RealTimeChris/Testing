@@ -1,7 +1,7 @@
 # Set this value...
-set(VCPKG_ROOT_DIR "")
+set(VCPKG_ROOT_DIR "C:/vcpkg")
 # OR this value...
-set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/CMake/DiscordCoreAPI/share/discordcoreapi")
+set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/Cmake/DiscordCoreAPI/share/discordcoreapi")
 # AND these values.
 set(FFMPEG_INCLUDE_DIR "C:/Vcpkg/installed/x64-windows/include")
 set(FFMPEG_RELEASE_ROOT "C:/Vcpkg/installed/x64-windows/lib")
@@ -13,9 +13,6 @@ set(OPENSSL_DEBUG_ROOT "C:/Vcpkg/installed/x64-windows/debug/lib")
 set(OPUS_INCLUDE_DIR "C:/Vcpkg/installed/x64-windows/include")
 set(OPUS_RELEASE_ROOT "C:/Vcpkg/installed/x64-windows/lib")
 set(OPUS_DEBUG_ROOT "C:/Vcpkg/installed/x64-windows/debug/lib")
-set(SIMDJSON_INCLUDE_DIR "C:/Vcpkg/installed/x64-windows/include")
-set(SIMDJSON_RELEASE_ROOT "C:/Vcpkg/installed/x64-windows/lib")
-set(SIMDJSON_DEBUG_ROOT "C:/Vcpkg/installed/x64-windows/debug/lib")
 set(SODIUM_INCLUDE_DIR "C:/Vcpkg/installed/x64-windows/include")
 set(SODIUM_RELEASE_ROOT "C:/Vcpkg/installed/x64-windows/lib")
 set(SODIUM_DEBUG_ROOT "C:/Vcpkg/installed/x64-windows/debug/lib")
@@ -89,7 +86,7 @@ find_package(NLOHMANN MODULE REQUIRED)
 find_package(OPENSSL MODULE REQUIRED)
 find_package(OPUS MODULE REQUIRED)
 find_package(SODIUM MODULE REQUIRED)
-find_package(simdjson MODULE REQUIRED)
+find_package(simdjson CONFIG REQUIRED)
 find_package(DiscordCoreAPI CONFIG REQUIRED)
 
 add_subdirectory(Executable)

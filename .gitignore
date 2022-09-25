@@ -1,4 +1,3 @@
-main.cpp
-Build/
-.vs/
-Output Files/
+/out
+/.vs
+out/install/x64-debug/Debug/libsodium.dll
