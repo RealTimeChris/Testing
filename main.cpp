@@ -588,13 +588,143 @@ AllowedMentionsData::operator JsonObject() {
 	return theData;
 }
 
+/// Embed field data. \brief Embed field data.
+struct EmbedFieldData {
+	bool Inline{ false };///< Is the field inline with the rest of them?
+	std::string value{};///< The text on the field.
+	std::string name{};///< The title of the field.
+
+	EmbedFieldData() noexcept = default;
+
+	operator JsonObject();
+
+	virtual ~EmbedFieldData() noexcept = default;
+};
+
+/// Embed data. \brief Embed data.
+class EmbedData {
+public:
+	std::vector<EmbedFieldData> fields{};///< Array of embed fields.
+	DiscordCoreAPI::EmbedThumbnailData thumbnail{};///< Embed thumbnail data.
+	DiscordCoreAPI::ColorValue hexColorValue{ 0 };///< Hex color value of the embed.
+	DiscordCoreAPI::EmbedProviderData provider{};///< Embed provider data.
+	std::string description{};///< Description of the embed.
+	DiscordCoreAPI::EmbedFooterData footer{};///< Embed footer data.
+	DiscordCoreAPI::EmbedAuthorData author{};///< Embed author data.
+	std::string timestamp{};///< Timestamp to be placed on the embed.
+	DiscordCoreAPI::EmbedImageData image{};///< Embed image data.
+	DiscordCoreAPI::EmbedVideoData video{};///< Embed video data.
+	std::string title{};///< Title of the embed.
+	std::string type{};///< Type of the embed.
+	std::string url{};///< Url for the embed.
+
+	EmbedData() noexcept = default;
+
+	operator JsonObject();
+
+	/// Sets the author's name and avatar for the embed. \brief Sets the author's name and avatar for the embed.
+	/// \param authorName The author's name.
+	/// \param authorAvatarUrl The url to their avatar.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setAuthor(const std::string& authorName, const std::string& authorAvatarUrl = "");
+
+	/// Sets the footer's values for the embed. \brief Sets the footer's values for the embed.
+	/// \param footerText The footer's text.
+	/// \param footerIconUrlText Url to the footer's icon.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setFooter(const std::string& footerText, const std::string& footerIconUrlText = "");
+
+	/// Sets the timestamp on the embed. \brief Sets the timestamp on the embed.
+	/// \param timeStamp The timestamp to be set.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setTimeStamp(const std::string& timeStamp);
+
+	/// Adds a field to the embed. \brief Adds a field to the embed.
+	/// \param name The title of the embed field.
+	/// \param value The contents of the embed field.
+	/// \param Inline Is it inline with the rest of the fields on the embed?
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& addField(const std::string& name, const std::string& value, bool Inline = true);
+
+	/// Sets the description (the main contents) of the embed. \brief Sets the description (the main contents) of the embed.
+	/// \param descriptionNew The contents of the description to set.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setDescription(const std::string& descriptionNew);
+
+	/// Sets the color of the embed, by applying a hex-color value. \brief Sets the color of the embed, by applying a hex-color value.
+	/// \param hexColorValueNew A string containing a hex-number value (Between 0x00 0xFFFFFF).
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setColor(const std::string& hexColorValueNew);
+
+	/// Sets the thumbnail of the embed. \brief Sets the thumbnail of the embed.
+	/// \param thumbnailUrl The url to the thumbnail to be used.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setThumbnail(const std::string& thumbnailUrl);
+
+	/// Sets the title of the embed. \brief Sets the title of the embed.
+	/// \param titleNew A string containing the desired title.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setTitle(const std::string& titleNew);
+
+	/// Sets the image of the embed. \brief Sets the image of the embed.
+	/// \param imageUrl The url of the image to be set on the embed.
+	/// \returns EmbedData& A reference to this embed.
+	EmbedData& setImage(const std::string& imageUrl);
+
+	virtual ~EmbedData() noexcept = default;
+};
+
+EmbedFieldData::operator JsonObject() {
+	JsonObject theData{};
+	theData["inline"] = this->Inline;
+	theData["value"] = this->value;
+	theData["name"] = this->name;
+	return theData;
+}
+
+EmbedData::operator JsonObject() {
+	JsonObject theData{};
+	for (auto& value2 : this->fields) {
+		theData.pushBack("fields", value2);
+	}
+	std::string realColorVal = std::to_string(this->hexColorValue.getIntColorValue());
+	theData["footer"]["proxy_icon_url"] = this->footer.proxyIconUrl;
+	theData["footer"]["icon_url"] = this->footer.iconUrl;
+	theData["footer"]["text"] = this->footer.text;
+	theData["author"]["proxy_icon_url"] = this->author.proxyIconUrl;
+	theData["author"]["icon_url"] = this->author.iconUrl;
+	theData["author"]["name"] = this->author.name;
+	theData["author"]["url"] = this->author.url;
+	theData["thumbnail"]["proxy_url"] = this->thumbnail.proxyUrl;
+	theData["thumbnail"]["height"] = this->thumbnail.height;
+	theData["thumbnail"]["width"] = this->thumbnail.width;
+	theData["thumbnail"]["url"] = this->thumbnail.url;
+	theData["image"]["proxy_url"] = this->image.proxyUrl;
+	theData["image"]["height"] = this->image.height;
+	theData["image"]["width"] = this->image.width;
+	theData["image"]["url"] = this->image.url;
+	theData["video"]["proxy_url"] = this->video.proxyUrl;
+	theData["video"]["height"] = this->video.height;
+	theData["video"]["url"] = this->video.url;
+	theData["video"]["width"] = this->video.width;
+	theData["provider"]["name"] = this->provider.name;
+	theData["provider"]["url"] = this->provider.url;
+	theData["description"] = this->description;
+	theData["timestamp"] = this->timestamp;
+	theData["title"] = this->title;
+	theData["color"] = realColorVal;
+	theData["type"] = this->type;
+	theData["url"] = this->url;
+	return theData;
+}
+
 /// Interaction ApplicationCommand callback data. \brief Interaction ApplicationCommand callback data.
 struct InteractionCallbackData {
 	std::vector<DiscordCoreAPI::ApplicationCommandOptionChoiceData> choices{};///< Autocomplete choices(max of 25 choices).
 	std::vector<DiscordCoreAPI::AttachmentData> attachments{};///< Array of partial attachment objects attachment objects with filename and description.
 	std::vector<DiscordCoreAPI::ActionRowData> components{};///< Message components.
 	AllowedMentionsData allowedMentions{};///< Allowed mentions data.
-	std::vector<DiscordCoreAPI::EmbedData> embeds{};///< Message embeds.
+	std::vector<EmbedData> embeds{};///< Message embeds.
 	std::vector<DiscordCoreAPI::File> files{};///< Files for uploading.
 	std::string customId{};///< A developer-defined identifier for the component, max 100 characters.
 	std::string content{};///< Message content.
@@ -621,11 +751,11 @@ InteractionResponseData::operator JsonObject() {
 	theData["type"] = static_cast<uint8_t>(this->type);
 	if (this->data.attachments.size() > 0) {
 		for (auto& value : this->data.attachments) {
-			//theData["data"].pushBack("attachments", JsonObject{ value });
+			theData["data"].pushBack("attachments", JsonObject{ value });
 		}
 	}
 	for (auto& value : this->data.components) {
-		//theData["data"].pushBack("components", JsonObject{ value });
+		theData["data"].pushBack("components", JsonObject{ value });
 	}
 	theData["data"]["allowed_mentions"]["roles"] = this->data.allowedMentions.roles;
 	if (this->data.choices.size() > 0) {
@@ -655,7 +785,7 @@ InteractionResponseData::operator JsonObject() {
 		}
 	}
 	for (auto& value : this->data.embeds) {
-		//theData["data"].pushBack("embeds", value);
+		theData["data"].pushBack("embeds", JsonObject{ value });
 	}
 	if (this->data.customId != "") {
 		theData["data"]["custom_id"] = this->data.customId;
@@ -671,6 +801,7 @@ InteractionResponseData::operator JsonObject() {
 	return theData;
 }
 
+/*
 WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{};
 	std::unordered_map<std::string, std::string> theMap{};
@@ -735,7 +866,7 @@ EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 
 	return theData;
 }
-
+*/
 
 int32_t main() noexcept {
 	try {
@@ -747,6 +878,14 @@ int32_t main() noexcept {
 
 		InteractionResponseData theDataReal{};
 		theDataReal.data.allowedMentions.roles.push_back("TESTING");
+		EmbedData theData{};
+		theData.description = "TESTING";
+		EmbedFieldData theDataNew{};
+		theDataNew.Inline = false;
+		theDataNew.name = "TESTY";
+		theDataNew.value = "TESTING HERE";
+		theData.fields.push_back(theDataNew);
+		theDataReal.data.embeds.push_back(theData);
 		std::string theString02 = JsonSerializer{}.getString(theDataReal);
 		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
 		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
