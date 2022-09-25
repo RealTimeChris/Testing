@@ -33,18 +33,7 @@
 #include <stdint.h>
 #include <set>
 
-enum class ValueType {
-	Null = 0,
-	Object = 1,
-	Array = 3,
-	Double = 4,
-	Float = 5,
-	String = 6,
-	Bool = 7,
-	Int64 = 8,
-	Uint64 = 9,
-	Unset = 10
-};
+enum class ValueType { Null = 0, Object = 1, Array = 3, Double = 4, Float = 5, String = 6, Bool = 7, Int64 = 8, Uint64 = 9, Unset = 10 };
 
 struct JsonArray;
 
@@ -54,7 +43,7 @@ concept IsEnum = std::is_enum<TheType>::value;
 struct EnumConverter {
 	template<IsEnum EnumType> EnumConverter(EnumType other) {
 		this->thePtr = new uint64_t{};
-		std::cout << "WERE HERE THIS IST I!" << static_cast<uint64_t>(other)<<std::endl;
+		std::cout << "WERE HERE THIS IST I!" << static_cast<uint64_t>(other) << std::endl;
 		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
 	};
 
@@ -68,7 +57,7 @@ struct EnumConverter {
 
 	template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> other) {
 		this->thePtr = new std::vector<uint64_t>{};
-		for (auto& value : other) {
+		for (auto& value: other) {
 			static_cast<std::vector<uint64_t>*>(this->thePtr)->emplace_back(static_cast<uint64_t>(value));
 		}
 		this->vectorType = true;
@@ -81,7 +70,7 @@ struct EnumConverter {
 
 	operator std::vector<uint64_t>() {
 		std::vector<uint64_t> theObject{};
-		for (auto& value : *static_cast<std::vector<uint64_t>*>(this->thePtr)) {
+		for (auto& value: *static_cast<std::vector<uint64_t>*>(this->thePtr)) {
 			theObject.emplace_back(value);
 		}
 
@@ -104,34 +93,31 @@ struct EnumConverter {
 	bool vectorType{ false };
 };
 
-struct JsonObject  {
-	std::unordered_map<std::string, JsonObject>theValues{};
+struct JsonObject {
+	std::unordered_map<std::string, JsonObject> theValues{};
 	ValueType theType{ ValueType::Object };
 	std::string theKey{};
 	void* theValue{};
 
-	JsonObject()noexcept = default;
+	JsonObject() noexcept = default;
 
-	template<typename ObjectType>
-	JsonObject& operator=(std::vector<ObjectType>theData) noexcept {
+	template<typename ObjectType> JsonObject& operator=(std::vector<ObjectType> theData) noexcept {
 		this->theType = ValueType::Array;
 		int32_t theIndex{};
-		for (auto& value : theData) {
+		for (auto& value: theData) {
 			this->theValues[std::to_string(theIndex)] = value;
 		}
 		theIndex++;
 		return *this;
 	}
 
-	template<typename ObjectType>
-	JsonObject(std::vector<ObjectType>theData) noexcept {
+	template<typename ObjectType> JsonObject(std::vector<ObjectType> theData) noexcept {
 		*this = theData;
 	}
 
-	template<typename KeyType,typename ObjectType>
-	JsonObject& operator=(std::unordered_map<KeyType,ObjectType>theData) noexcept {
+	template<typename KeyType, typename ObjectType> JsonObject& operator=(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		int32_t theIndex{};
-		for (auto& [key,value] : theData) {
+		for (auto& [key, value]: theData) {
 			this->theValues[key] = value;
 			this->theValues[key].theType = ValueType::String;
 			this->theValues[key].theKey = key;
@@ -140,8 +126,7 @@ struct JsonObject  {
 		return *this;
 	}
 
-	template<typename KeyType, typename ObjectType>
-	JsonObject(std::unordered_map<KeyType, ObjectType>theData) noexcept {
+	template<typename KeyType, typename ObjectType> JsonObject(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
 	}
 
@@ -150,12 +135,15 @@ struct JsonObject  {
 
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
 	JsonObject(const JsonObject& theKey) noexcept;
-	
+
 	JsonObject& operator=(const ValueType& theType) noexcept;
 	JsonObject(const ValueType& theType) noexcept;
 
 	JsonObject& operator=(const JsonArray& theData) noexcept;
 	JsonObject(const JsonArray& theData) noexcept;
+
+	JsonObject& operator=(std::nullptr_t theData) noexcept;
+	JsonObject(std::nullptr_t) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
@@ -168,7 +156,7 @@ struct JsonObject  {
 
 	JsonObject& operator=(uint32_t theData) noexcept;
 	JsonObject(uint32_t) noexcept;
-	
+
 	JsonObject& operator=(uint16_t theData) noexcept;
 	JsonObject(uint16_t) noexcept;
 
@@ -177,13 +165,13 @@ struct JsonObject  {
 
 	JsonObject& operator=(int64_t theData) noexcept;
 	JsonObject(int64_t) noexcept;
-	
+
 	JsonObject& operator=(int32_t theData) noexcept;
 	JsonObject(int32_t) noexcept;
-	
+
 	JsonObject& operator=(int16_t theData) noexcept;
 	JsonObject(int16_t) noexcept;
-	
+
 	JsonObject& operator=(int8_t theData) noexcept;
 	JsonObject(int8_t) noexcept;
 
@@ -195,7 +183,7 @@ struct JsonObject  {
 
 	JsonObject& operator=(bool theData) noexcept;
 	JsonObject(bool) noexcept;
-	
+
 	JsonObject& operator[](const char* theKey) noexcept;
 
 	operator std::string() noexcept;
@@ -212,13 +200,8 @@ struct JsonObject  {
 	void pushBack(const char* theKey, int8_t other) noexcept;
 };
 
-struct JsonArray:public JsonObject {
+struct JsonArray : public JsonObject {
 	JsonArray() noexcept = default;
-};
-
-class JsonSerializer {
-public:
-	std::string getString(JsonObject theData);
 };
 
 	struct ErlPackError : public std::runtime_error {
