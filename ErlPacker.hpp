@@ -55,7 +55,7 @@ concept IsEnum = std::is_enum<TheType>::value;
 struct EnumConverter {
 	template<IsEnum EnumType> EnumConverter(EnumType other) {
 		this->thePtr = new uint64_t{};
-		std::cout << "WERE HERE THIS IST I!" << static_cast<uint64_t>(other) << std::endl;
+		std::cout << "WERE HERE THIS IST I!" << static_cast<uint64_t>(other)<<std::endl;
 		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
 	};
 
@@ -105,26 +105,14 @@ struct EnumConverter {
 	bool vectorType{ false };
 };
 
-struct JsonObject;
-
-struct ObjectType {
+struct JsonObject  {
 	std::unordered_map<std::string, JsonObject>theValues{};
 	ValueType theType{ ValueType::Object };
 	std::string theKey{};
-	void createPtr(ValueType) noexcept;
 	void* theValue{};
-};
 
-struct JsonObject  {
-	bool areWeTopLevel{ false };
-	struct JsonValue {
-		ObjectType theObject{};
-	};
-	JsonValue  theValue{};
-	
-	JsonObject(const char* keyName, ValueType theType);
-	JsonObject(std::source_location)noexcept;
-	/*
+	JsonObject()noexcept = default;
+
 	template<typename ObjectType>
 	JsonObject& operator=(std::vector<ObjectType>theData) noexcept {
 		this->theType = ValueType::Array;
@@ -157,29 +145,31 @@ struct JsonObject  {
 	JsonObject(std::unordered_map<KeyType, ObjectType>theData) noexcept {
 		*this = theData;
 	}
-	
+
 	JsonObject& operator=(EnumConverter theData) noexcept;
 	JsonObject(EnumConverter) noexcept;
-	*/
+
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
 	JsonObject(const JsonObject& theKey) noexcept;
+	
+	JsonObject& operator=(const ValueType& theType) noexcept;
+	JsonObject(const ValueType& theType) noexcept;
 
-	/*
 	JsonObject& operator=(const JsonArray& theData) noexcept;
 	JsonObject(const JsonArray& theData) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
-	*/
-	void operator=(std::string theData) noexcept;
 
-	void operator=(uint64_t theData) noexcept;
-	/*
+	JsonObject& operator=(std::string theData) noexcept;
+	JsonObject(std::string) noexcept;
+
+	JsonObject& operator=(uint64_t theData) noexcept;
+	JsonObject(uint64_t) noexcept;
+
 	JsonObject& operator=(uint32_t theData) noexcept;
 	JsonObject(uint32_t) noexcept;
-	*/
-	void operator=(std::nullptr_t theData) noexcept;
-	/*
+	
 	JsonObject& operator=(uint16_t theData) noexcept;
 	JsonObject(uint16_t) noexcept;
 
@@ -206,13 +196,13 @@ struct JsonObject  {
 
 	JsonObject& operator=(bool theData) noexcept;
 	JsonObject(bool) noexcept;
-	*/
+	
 	JsonObject& operator[](const char* theKey) noexcept;
 
 	operator std::string() noexcept;
-	void pushBack(const char* theKey, JsonObject other) noexcept;
-	/*
+
 	void pushBack(const char* theKey, std::string other) noexcept;
+	void pushBack(const char* theKey, JsonObject other) noexcept;
 	void pushBack(const char* theKey, uint64_t other) noexcept;
 	void pushBack(const char* theKey, uint32_t other) noexcept;
 	void pushBack(const char* theKey, uint16_t other) noexcept;
@@ -221,12 +211,10 @@ struct JsonObject  {
 	void pushBack(const char* theKey, int32_t other) noexcept;
 	void pushBack(const char* theKey, int16_t other) noexcept;
 	void pushBack(const char* theKey, int8_t other) noexcept;
-	*/
 };
 
-struct JsonArray {
+struct JsonArray:public JsonObject {
 	JsonArray() noexcept = default;
-	JsonObject::JsonValue theValue{};
 };
 
 class JsonSerializer {
