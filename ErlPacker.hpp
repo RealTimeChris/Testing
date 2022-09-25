@@ -36,7 +36,6 @@
 enum class ValueType {
 	Null = 0,
 	Object = 1,
-	Object_End = 2,
 	Array = 3,
 	Double = 4,
 	Float = 5,

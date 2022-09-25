@@ -627,7 +627,7 @@ InteractionResponseData::operator JsonObject() {
 	for (auto& value : this->data.components) {
 		//theData["data"].pushBack("components", JsonObject{ value });
 	}
-	theData["data"]["allowed_mentions"] = JsonObject{ this->data.allowedMentions };
+	theData["data"]["allowed_mentions"]["roles"] = this->data.allowedMentions.roles;
 	if (this->data.choices.size() > 0) {
 		for (auto& value : this->data.choices) {
 			JsonObject theValue{};
