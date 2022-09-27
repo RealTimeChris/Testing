@@ -1,6 +1,20 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
 
+
+
+std::array<char, 1024 *1024> theArray{};
+int32_t theOffset{};
+
+void* operator new(size_t theSize) {
+	theOffset += theSize;
+	return theArray.data() + ((theOffset - theSize) % theArray.size());
+};
+
+void operator delete(void* const block) noexcept {
+
+}
+
 EnumConverter& EnumConverter::operator=(EnumConverter& other) noexcept {
 	this->thePtr = other.thePtr;
 	other.thePtr = nullptr;
