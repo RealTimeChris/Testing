@@ -33,9 +33,11 @@
 #include <stdint.h>
 #include <set>
 
-enum class ValueType { Null = 0, Object = 1, Array = 3, Double = 4, Float = 5, String = 6, Bool = 7, Int64 = 8, Uint64 = 9, Unset = 10 };
+enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Double = 4, Float = 5, String = 6, Bool = 7, Int64 = 8, Uint64 = 9, Unset = 10 };
 
 struct JsonArray;
+
+struct JsonObject;
 
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
@@ -43,7 +45,6 @@ concept IsEnum = std::is_enum<TheType>::value;
 struct EnumConverter {
 	template<IsEnum EnumType> EnumConverter(EnumType other) {
 		this->thePtr = new uint64_t{};
-		std::cout << "WERE HERE THIS IST I!" << static_cast<uint64_t>(other) << std::endl;
 		*static_cast<uint64_t*>(this->thePtr) = static_cast<uint64_t>(other);
 	};
 
@@ -68,26 +69,11 @@ struct EnumConverter {
 		*this = other;
 	};
 
-	operator std::vector<uint64_t>() {
-		std::vector<uint64_t> theObject{};
-		for (auto& value: *static_cast<std::vector<uint64_t>*>(this->thePtr)) {
-			theObject.emplace_back(value);
-		}
+	operator std::vector<uint64_t>();
 
-		return theObject;
-	}
+	explicit operator uint64_t();
 
-	explicit operator uint64_t() {
-		uint64_t theObject{};
-		theObject = *static_cast<uint64_t*>(this->thePtr);
-		return theObject;
-	}
-
-	~EnumConverter() {
-		if (this->thePtr) {
-			delete this->thePtr;
-		}
-	}
+	~EnumConverter();
 
 	void* thePtr{ nullptr };
 	bool vectorType{ false };
@@ -106,8 +92,9 @@ struct JsonObject {
 		int32_t theIndex{};
 		for (auto& value: theData) {
 			this->theValues[std::to_string(theIndex)] = value;
+
+			theIndex++;
 		}
-		theIndex++;
 		return *this;
 	}
 
@@ -117,11 +104,14 @@ struct JsonObject {
 
 	template<typename KeyType, typename ObjectType> JsonObject& operator=(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		int32_t theIndex{};
+		this->theType = ValueType::Object;
+		this->theValues[this->theKey] = JsonObject{};
+		this->theValues[this->theKey].theType = ValueType::Array;
 		for (auto& [key, value]: theData) {
-			this->theValues[key] = value;
-			this->theValues[key].theType = ValueType::String;
-			this->theValues[key].theKey = key;
+			this->theValues[this->theKey].theValues[key] = value;
+			this->theValues[this->theKey].theValues[key].theKey = key;
 		}
+		std::cout << "THE KEY: " << this->theKey << std::endl;
 		theIndex++;
 		return *this;
 	}
@@ -133,23 +123,22 @@ struct JsonObject {
 	JsonObject& operator=(EnumConverter theData) noexcept;
 	JsonObject(EnumConverter) noexcept;
 
-	JsonObject& operator=(const JsonObject& theKey) noexcept;
-	JsonObject(const JsonObject& theKey) noexcept;
-
-	JsonObject& operator=(const ValueType& theType) noexcept;
-	JsonObject(const ValueType& theType) noexcept;
-
 	JsonObject& operator=(const JsonArray& theData) noexcept;
 	JsonObject(const JsonArray& theData) noexcept;
 
-	JsonObject& operator=(std::nullptr_t theData) noexcept;
-	JsonObject(std::nullptr_t) noexcept;
+	JsonObject& operator=(const JsonObject& theKey) noexcept;
+	JsonObject(const JsonObject& theKey) noexcept;
+
+	JsonObject(const char*, const JsonObject& theKey) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
 
 	JsonObject& operator=(std::string theData) noexcept;
 	JsonObject(std::string) noexcept;
+
+	JsonObject& operator=(ValueType theType) noexcept;
+	JsonObject(ValueType theType) noexcept;
 
 	JsonObject& operator=(uint64_t theData) noexcept;
 	JsonObject(uint64_t) noexcept;
