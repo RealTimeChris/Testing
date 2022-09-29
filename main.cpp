@@ -954,8 +954,7 @@ EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 template<typename ObjectType> class TSUnorderedSet {
   public:
 	TSUnorderedSet() noexcept {
-		this->theArray = this->theAllocator.allocate(1);
-		this->allocTraits.construct(this->theAllocator, this->theArray);
+		this->theArray = new ObjectType[1];
 	};
 
 	bool contains(ObjectType& theObject) {
@@ -972,16 +971,14 @@ template<typename ObjectType> class TSUnorderedSet {
 		if (!this->contains(theObject)) {
 			std::unique_lock theLock{ this->theMutex };
 			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
-				auto thePtr = this->theAllocator.allocate(this->currentlyAllocatedSize * 2);
-				for (size_t x = 0; x < this->currentlyAllocatedSize * 2; ++x) {
-					this->allocTraits.construct(this->theAllocator, thePtr + x);
+				auto thePtr = new ObjectType[this->currentlyAllocatedSize * 2];
+				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+					thePtr[x] = this->theArray[x];
 				}
-				for (size_t x = 0; x < this->currentlyAllocatedSize; ++x) {
-					this->allocTraits.destroy(this->theAllocator, this->theArray + x);
-				}
-				this->theAllocator.deallocate(this->theArray, this->currentlyAllocatedSize);
+				delete[] this->theArray;
 				this->theArray = thePtr;
 				this->currentlyAllocatedSize *= 2;
+				std::cout << "CURRENTLY ALLOCATED SIZE: " << this->currentlyAllocatedSize << std::endl;
 			}
 			this->theArray[this->currentlyUsedAllocations] = std::move(theObject);
 			this->currentlyUsedAllocations++;
@@ -994,27 +991,81 @@ template<typename ObjectType> class TSUnorderedSet {
 		}
 	}
 
+	ObjectType* begin() {
+		return this->theArray;
+	}
+
+	ObjectType* end() {
+		return this->theArray + this->currentlyUsedAllocations;
+	}
+
+	void erase(ObjectType&& theObject) {
+		size_t theIndex{};
+		if (this->contains(theObject)) {
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				if (this->theArray[x] == theObject) {
+					theIndex = x;
+				}
+			}
+
+			auto thePtr = new ObjectType[this->currentlyAllocatedSize];
+			size_t theOffset{};
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				thePtr[x - theOffset] = this->theArray[x];
+				if (x == theIndex) {
+					theOffset++;
+				}
+			}
+
+			this->currentlyUsedAllocations--;
+			delete[] this->theArray;
+			this->theArray = thePtr;
+		}
+	}
+
+	void erase(ObjectType& theObject) {
+		size_t theIndex{};
+		if (this->contains(theObject)) {
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				if (this->theArray[x] == theObject) {
+					theIndex = x;
+				}
+			}
+
+			auto thePtr = new ObjectType[this->currentlyAllocatedSize];
+			size_t theOffset{};
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				thePtr[x - theOffset] = this->theArray[x];
+				if (x == theIndex) {
+					theOffset++;
+				}
+			}
+
+			this->currentlyUsedAllocations--;
+			delete[] this->theArray;
+			this->theArray = thePtr;
+		}
+	}
+
 	void emplace(ObjectType& theObject) {
 		if (!this->contains(theObject)) {
 			std::unique_lock theLock{ this->theMutex };
 			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
-				auto thePtr = this->theAllocator.allocate(this->currentlyAllocatedSize * 2);
-				for (size_t x = 0; x < this->currentlyAllocatedSize * 2; ++x) {
-					this->allocTraits.construct(this->theAllocator, thePtr + x);
+				auto thePtr = new ObjectType[this->currentlyAllocatedSize * 2];
+				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+					thePtr[x] = this->theArray[x];
 				}
-				for (size_t x = 0; x < this->currentlyAllocatedSize; ++x) {
-					this->allocTraits.destroy(this->theAllocator, this->theArray + x);
-				}
-				this->theAllocator.deallocate(this->theArray, this->currentlyAllocatedSize);
+				delete[] this->theArray;
 				this->theArray = thePtr;
 				this->currentlyAllocatedSize *= 2;
+				std::cout << "CURRENTLY ALLOCATED SIZE: " << this->currentlyAllocatedSize << std::endl;
 			}
-			this->theArray[this->currentlyUsedAllocations] = std::move(theObject);
+			this->theArray[this->currentlyUsedAllocations] = theObject;
 			this->currentlyUsedAllocations++;
 		} else {
 			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
 				if (this->theArray[x] == theObject) {
-					this->theArray[x] = std::move(theObject);
+					this->theArray[x] = theObject;
 				}
 			}
 		}
@@ -1043,8 +1094,13 @@ int32_t main() noexcept {
 		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
 		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
 		TSUnorderedSet<std::string> theSet{};
-		for (size_t x = 0; x < 1024 * 1024; ++x) {
-			theSet.emplace(std::string{ std::to_string(x) });
+		for (size_t x = 0; x < 128; ++x) {
+			theSet.emplace(std::string{ "TEST: " + std::to_string(x) });
+		}
+		int32_t theIntReal{ 115 };
+		theSet.erase(std::string{ "TEST: " } + std::to_string(theIntReal));
+		for (auto& value: theSet) {
+			std::cout << "THE VALUE: " << value << std::endl;
 		}
 		std::cout << "THE USED SIZE: " << theSet.size() << std::endl;
 		InteractionResponseData theDataReal{};
