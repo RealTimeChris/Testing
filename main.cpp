@@ -953,9 +953,7 @@ EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 
 template<typename ObjectType> class TSUnorderedSet {
   public:
-	TSUnorderedSet() noexcept {
-		this->theArray = new ObjectType[1];
-	};
+	TSUnorderedSet() noexcept {};
 
 	bool contains(ObjectType& theObject) {
 		std::shared_lock theLock{ this->theMutex };
@@ -970,12 +968,53 @@ template<typename ObjectType> class TSUnorderedSet {
 	void emplace(ObjectType&& theObject) {
 		if (!this->contains(theObject)) {
 			std::unique_lock theLock{ this->theMutex };
-			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
-				auto thePtr = new ObjectType[this->currentlyAllocatedSize * 2];
+			using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
+			if (this->currentlyAllocatedSize <= this->currentlyUsedAllocations + 1) {
+				auto thePtr = traits_t::allocate(this->theAllocator, this->currentlyAllocatedSize * 2);
 				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-					thePtr[x] = this->theArray[x];
+					std::cout << "CURRENTLY ALLOCATED SIZE 0000: " << this->currentlyAllocatedSize << std::endl;
+					std::cout << "CURRENTLY USED ALLOCATIONS 0000: " << this->currentlyUsedAllocations << std::endl;
+					std::cout << "THE VALUE: " << this->theArray[x] << std::endl;
+					traits_t::construct(this->theAllocator, thePtr + x, this->theArray[x]);
 				}
-				delete[] this->theArray;
+
+				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+					std::cout << "CURRENTLY ALLOCATED SIZE 0101: " << this->currentlyAllocatedSize << std::endl;
+					std::cout << "CURRENTLY USED ALLOCATIONS 0101: " << this->currentlyUsedAllocations << std::endl;
+					traits_t::destroy(this->theAllocator, this->theArray + x);
+				}
+				traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
+				this->theArray = thePtr;
+				this->currentlyAllocatedSize *= 2;
+				std::cout << "CURRENTLY ALLOCATED SIZE 0202: " << this->currentlyAllocatedSize << std::endl;
+				std::cout << "CURRENTLY USED ALLOCATIONS 0202: " << this->currentlyUsedAllocations << std::endl;
+			}
+			traits_t::construct(this->theAllocator, this->theArray + this->currentlyUsedAllocations, std::move(theObject));
+			this->currentlyUsedAllocations++;
+		} else {
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				if (this->theArray[x] == theObject) {
+					this->theArray[x] = std::move(theObject);
+				}
+			}
+		}
+	}
+
+	void emplace(ObjectType& theObject) {
+		if (!this->contains(theObject)) {
+			std::unique_lock theLock{ this->theMutex };
+			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
+				using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
+
+				auto thePtr = traits_t::allocate(this->theAllocator, this->currentlyUsedAllocations * 2);
+				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+					traits_t::construct(this->theAllocator, thePtr, this->theArray[x]);
+				}
+
+				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+					traits_t::destroy(this->theAllocator, this->theArray + x);
+				}
+				traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
 				this->theArray = thePtr;
 				this->currentlyAllocatedSize *= 2;
 				std::cout << "CURRENTLY ALLOCATED SIZE: " << this->currentlyAllocatedSize << std::endl;
@@ -1006,7 +1045,7 @@ template<typename ObjectType> class TSUnorderedSet {
 				if (this->theArray[x] == theObject) {
 					theIndex = x;
 				}
-			}
+			}using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
 
 			auto thePtr = new ObjectType[this->currentlyAllocatedSize];
 			size_t theOffset{};
@@ -1018,7 +1057,7 @@ template<typename ObjectType> class TSUnorderedSet {
 			}
 
 			this->currentlyUsedAllocations--;
-			delete[] this->theArray;
+			traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
 			this->theArray = thePtr;
 		}
 	}
@@ -1031,6 +1070,7 @@ template<typename ObjectType> class TSUnorderedSet {
 					theIndex = x;
 				}
 			}
+			using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
 
 			auto thePtr = new ObjectType[this->currentlyAllocatedSize];
 			size_t theOffset{};
@@ -1042,32 +1082,8 @@ template<typename ObjectType> class TSUnorderedSet {
 			}
 
 			this->currentlyUsedAllocations--;
-			delete[] this->theArray;
+			traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
 			this->theArray = thePtr;
-		}
-	}
-
-	void emplace(ObjectType& theObject) {
-		if (!this->contains(theObject)) {
-			std::unique_lock theLock{ this->theMutex };
-			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
-				auto thePtr = new ObjectType[this->currentlyAllocatedSize * 2];
-				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-					thePtr[x] = this->theArray[x];
-				}
-				delete[] this->theArray;
-				this->theArray = thePtr;
-				this->currentlyAllocatedSize *= 2;
-				std::cout << "CURRENTLY ALLOCATED SIZE: " << this->currentlyAllocatedSize << std::endl;
-			}
-			this->theArray[this->currentlyUsedAllocations] = theObject;
-			this->currentlyUsedAllocations++;
-		} else {
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				if (this->theArray[x] == theObject) {
-					this->theArray[x] = theObject;
-				}
-			}
 		}
 	}
 
