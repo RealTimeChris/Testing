@@ -1,6 +1,6 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
-
+#include <memory>
 
 
 EnumConverter& EnumConverter::operator=(EnumConverter& other) noexcept {
@@ -951,6 +951,90 @@ EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 }
 */
 
+template<typename ObjectType> class TSUnorderedSet {
+  public:
+	TSUnorderedSet() noexcept {
+		this->theArray = this->theAllocator.allocate(1);
+		this->allocTraits.construct(this->theAllocator, this->theArray);
+	};
+
+	bool contains(ObjectType& theObject) {
+		std::shared_lock theLock{ this->theMutex };
+		for (size_t x = 0; x < currentlyUsedAllocations; ++x) {
+			if (this->theArray[x] == theObject) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void emplace(ObjectType&& theObject) {
+		if (!this->contains(theObject)) {
+			std::unique_lock theLock{ this->theMutex };
+			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
+				auto thePtr = this->theAllocator.allocate(this->currentlyAllocatedSize * 2);
+				for (size_t x = 0; x < this->currentlyAllocatedSize * 2; ++x) {
+					this->allocTraits.construct(this->theAllocator, thePtr + x);
+				}
+				for (size_t x = 0; x < this->currentlyAllocatedSize; ++x) {
+					this->allocTraits.destroy(this->theAllocator, this->theArray + x);
+				}
+				this->theAllocator.deallocate(this->theArray, this->currentlyAllocatedSize);
+				this->theArray = thePtr;
+				this->currentlyAllocatedSize *= 2;
+			}
+			this->theArray[this->currentlyUsedAllocations] = std::move(theObject);
+			this->currentlyUsedAllocations++;
+		} else {
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				if (this->theArray[x] == theObject) {
+					this->theArray[x] = std::move(theObject);
+				}
+			}
+		}
+	}
+
+	void emplace(ObjectType& theObject) {
+		if (!this->contains(theObject)) {
+			std::unique_lock theLock{ this->theMutex };
+			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
+				auto thePtr = this->theAllocator.allocate(this->currentlyAllocatedSize * 2);
+				for (size_t x = 0; x < this->currentlyAllocatedSize * 2; ++x) {
+					this->allocTraits.construct(this->theAllocator, thePtr + x);
+				}
+				for (size_t x = 0; x < this->currentlyAllocatedSize; ++x) {
+					this->allocTraits.destroy(this->theAllocator, this->theArray + x);
+				}
+				this->theAllocator.deallocate(this->theArray, this->currentlyAllocatedSize);
+				this->theArray = thePtr;
+				this->currentlyAllocatedSize *= 2;
+			}
+			this->theArray[this->currentlyUsedAllocations] = std::move(theObject);
+			this->currentlyUsedAllocations++;
+		} else {
+			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
+				if (this->theArray[x] == theObject) {
+					this->theArray[x] = std::move(theObject);
+				}
+			}
+		}
+	}
+
+	size_t size() {
+		return this->currentlyUsedAllocations;
+	}
+
+	~TSUnorderedSet() {}
+
+  protected:
+	std::allocator_traits<std::allocator<ObjectType>> allocTraits{};
+	std::allocator<ObjectType> theAllocator{};
+	size_t currentlyUsedAllocations{ 0 };
+	size_t currentlyAllocatedSize{ 1 };
+	ObjectType* theArray{ nullptr };
+	std::shared_mutex theMutex{};
+};
+
 int32_t main() noexcept {
 	try {
 		EditGuildApplicationCommandPermissionsData theDataBew{};
@@ -958,7 +1042,11 @@ int32_t main() noexcept {
 		//std::string theString = JsonSerializer{}.getString(theDataBew);
 		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
 		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
-
+		TSUnorderedSet<std::string> theSet{};
+		for (size_t x = 0; x < 1024 * 1024; ++x) {
+			theSet.emplace(std::string{ std::to_string(x) });
+		}
+		std::cout << "THE USED SIZE: " << theSet.size() << std::endl;
 		InteractionResponseData theDataReal{};
 		theDataReal.data.allowedMentions.roles.push_back("TESTING");
 		EmbedData theData{};
