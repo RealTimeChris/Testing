@@ -79,11 +79,18 @@ struct EnumConverter {
 	bool vectorType{ false };
 };
 
-struct JsonObject {
-	std::unordered_map<std::string, std::unique_ptr<JsonObject>> theValues{};
+struct JsonObject;
+
+class JsonObjectBase {
+  public:
+	std::unordered_map<std::string, JsonObject> theValues{};
 	ValueType theType{ ValueType::Object };
 	std::string theKey{};
 	void* theValue{};
+};
+
+class JsonObject : public JsonObjectBase {
+  public:
 
 	JsonObject() noexcept = default;
 
@@ -91,9 +98,7 @@ struct JsonObject {
 		this->theType = ValueType::Array;
 		int32_t theIndex{};
 		for (auto& value: theData) {
-			this->theValues[std::to_string(theIndex)] = std::make_unique<JsonObject>();
-			*this->theValues[std::to_string(theIndex)] = value;
-
+			this->theValues[std::to_string(theIndex)] = value;
 			theIndex++;
 		}
 		return *this;
@@ -105,14 +110,15 @@ struct JsonObject {
 
 	template<typename KeyType, typename ObjectType> JsonObject& operator=(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		int32_t theIndex{};
-		this->theType = ValueType::Object;
-		this->theValues[this->theKey] = std::make_unique<JsonObject>();
-		this->theValues[this->theKey]->theType = ValueType::Array;
+		this->theType = ValueType::Array;
+
 		for (auto& [key, value]: theData) {
-			this->theValues[this->theKey]->theValues[key] = std::make_unique<JsonObject>();
-			*this->theValues[this->theKey]->theValues[key] = value;
-			this->theValues[this->theKey]->theValues[key]->theKey = key;
-			std::cout << "THE FINAL KEY: " << key << std::endl;
+			this->theValues[key] = JsonObject{};
+			this->theValues[key].theType = ValueType::Object;
+			this->theValues[key].theValues[key] = JsonObject{};
+			this->theValues[key].theValues[key] = value;
+			this->theValues[key].theValues[key].theType = ValueType::String;
+			this->theValues[key].theValues[key].theKey = key;
 		}
 		theIndex++;
 		return *this;
@@ -131,7 +137,7 @@ struct JsonObject {
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
 	JsonObject(const JsonObject& theKey) noexcept;
 
-	JsonObject(const char*, JsonObject& theKey) noexcept;
+	JsonObject(const char*, const JsonObject& theKey) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;

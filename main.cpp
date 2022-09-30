@@ -68,9 +68,7 @@ JsonObject::JsonObject(EnumConverter theData) noexcept {
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	for (auto& [key, value]: theKey.theValues) {
-		this->theValues[key] = std::make_unique<JsonObject>();
-		std::cout << "THE KEY REALER: 0202 " << value->theKey << std::endl;
-		*this->theValues[key] = *value;
+		this->theValues[key] = value;
 	}
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
@@ -146,7 +144,7 @@ JsonObject& JsonObject::operator=(ValueType theType) noexcept {
 	return *this;
 }
 
-JsonObject::JsonObject(const char* theKey, JsonObject& theData) noexcept {
+JsonObject::JsonObject(const char* theKey, const JsonObject& theData) noexcept {
 	*this = theData;
 	this->theKey = theKey;
 }
@@ -156,8 +154,7 @@ JsonObject& JsonObject::operator=(const JsonArray& theData) noexcept {
 	this->theType = theData.theType;
 	this->theValue = theData.theValue;
 	for (auto& [key, value]: theData.theValues) {
-		this->theValues[key] = std::make_unique<JsonObject>();
-		*this->theValues[key] = *value;
+		this->theValues[key] = value;
 	}
 	return *this;
 }
@@ -369,28 +366,24 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 		JsonObject theObject{};
 		theObject.theKey = theKey;
 		theObject.theType = ValueType::Object;
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		*this->theValues[theKey] = theObject;
-		std::cout << "THE KEY: " << theKey << std::endl;
-		return *this->theValues[theKey];
+		this->theValues[theKey] = theObject;
+		return this->theValues[theKey];
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
 		JsonObject theObject{};
 		theObject.theKey = theKey;
 		theObject.theType = ValueType::Object;
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		*this->theValues[theKey] = theObject;
-		return *this->theValues[theKey];
+		this->theValues[theKey] = theObject;
+		return this->theValues[theKey];
 	} else if (this->theValues.contains(theKey)) {
-		return *this->theValues[theKey];
+		return this->theValues[theKey];
 	} else {
 		JsonObject theObject{};
 		theObject.theType = ValueType::Object;
 		theObject.theKey = theKey;
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		*this->theValues[theKey] = theObject;
-		return *this->theValues[theKey];
+		this->theValues[theKey] = theObject;
+		return this->theValues[theKey];
 	}
 }
 
@@ -399,17 +392,15 @@ JsonObject::operator std::string() noexcept {
 	if (this->theKey != "") {
 		theString += "\"" + this->theKey + "\":";
 	}
-	std::cout << "THE FAKE KEY: " << this->theKey << std::endl;
 	switch (this->theType) {
 		case ValueType::Object: {
 			bool doWeAddComma{ false };
 			theString += "{";
 			for (auto& [key, valueNew]: this->theValues) {
-				std::cout << "THE FAKE KEY: " << key << std::endl;
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += valueNew->operator std::string();
+				theString += valueNew;
 				doWeAddComma = true;
 			}
 			theString += "}";
@@ -422,7 +413,7 @@ JsonObject::operator std::string() noexcept {
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += valueNew->operator std::string();
+				theString += valueNew;
 				doWeAddComma = true;
 			}
 			theString += "]";
@@ -470,154 +461,133 @@ JsonObject::operator std::string() noexcept {
 
 void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = std::move(theKey);
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = std::move(other);
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = std::move(other);
 	}
 };
 
 void JsonObject::pushBack(const char* theKey, uint64_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, uint32_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, uint16_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, uint8_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, int64_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, int32_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, int16_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, int8_t other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
-		this->theValues[theKey]->theKey = theKey;
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey] = JsonObject{};
+		this->theValues[theKey].theType = ValueType::Array;
+		this->theValues[theKey].theKey = theKey;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	} else {
-		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		size_t theSize = this->theValues[theKey].theValues.size();
+		this->theValues[theKey].theValues[std::to_string(theSize)] = other;
 	}
 }
-
 
 
 /// For editing the permissions of a single Guild ApplicationCommand. \brief For editing the permissions of a single Guild ApplicationCommand.
@@ -766,7 +736,7 @@ EmbedFieldData::operator const JsonObject() {
 EmbedData::operator JsonObject() {
 	JsonObject theData{};
 	for (auto& value2 : this->fields) {
-		theData.pushBack("fields", static_cast<JsonObject>(value2));
+		theData.pushBack("fields", value2);
 	}
 	std::string realColorVal = std::to_string(this->hexColorValue.getIntColorValue());
 	theData["footer"]["proxy_icon_url"] = this->footer.proxyIconUrl;
@@ -840,7 +810,7 @@ InteractionResponseData::operator JsonObject() {
 	for (auto& value : this->data.components) {
 		//theData["data"].pushBack("components",  value );
 	}
-	theData["data"]["allowed_mentions"] = this->data.allowedMentions;
+	theData["data"]["allowed_mentions"] = JsonObject{ this->data.allowedMentions.operator JsonObject() };
 	if (this->data.choices.size() > 0) {
 		for (auto& value : this->data.choices) {
 			JsonObject theValue{};
@@ -868,7 +838,7 @@ InteractionResponseData::operator JsonObject() {
 		}
 	}
 	for (auto& value : this->data.embeds) {
-		theData["data"].pushBack("embeds", JsonObject{ value });
+		theData["data"].pushBack("embeds", value);
 	}
 	if (this->data.customId != "") {
 		theData["data"]["custom_id"] = this->data.customId;
@@ -884,17 +854,10 @@ InteractionResponseData::operator JsonObject() {
 	return theData;
 }
 
-/*
+
 WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{};
 	std::unordered_map<std::string, std::string> theMap{};
-	std::vector<std::string> theMapTwo{};
-	theMapTwo.push_back("THE_VALUE");
-	theMap["TEST"] = "TESTvalue";
-	theMap["TEST_TWO"] = "TESTvalue";
-	theSerializer["test_Map"] = theMapTwo;
-	theSerializer["test_Map_Two"] = theMap;
-	theSerializer["test_Map_Three"] = theMap;
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 
@@ -907,7 +870,6 @@ WebSocketIdentifyData::operator JsonObject() {
 		theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		theSerializer["d"].pushBack("activities", theSerializer02);
 		theSerializer["d"].pushBack("activities", theSerializer02);
-		theSerializer["TEST_ENUM"] = DiscordCoreAPI::ChannelType::Guild_Directory;
 	}
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
@@ -949,187 +911,18 @@ EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 
 	return theData;
 }
-*/
 
-template<typename ObjectType> class TSUnorderedSet {
-  public:
-	TSUnorderedSet() noexcept {};
 
-	bool contains(ObjectType& theObject) {
-		std::shared_lock theLock{ this->theMutex };
-		for (size_t x = 0; x < currentlyUsedAllocations; ++x) {
-			if (this->theArray[x] == theObject) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	void emplace(ObjectType&& theObject) {
-		if (!this->contains(theObject)) {
-			std::unique_lock theLock{ this->theMutex };
-			using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
-			if (this->currentlyAllocatedSize <= this->currentlyUsedAllocations + 1) {
-				auto thePtr = traits_t::allocate(this->theAllocator, this->currentlyAllocatedSize * 2);
-				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-					std::cout << "CURRENTLY ALLOCATED SIZE 0000: " << this->currentlyAllocatedSize << std::endl;
-					std::cout << "CURRENTLY USED ALLOCATIONS 0000: " << this->currentlyUsedAllocations << std::endl;
-					std::cout << "THE VALUE: " << this->theArray[x] << std::endl;
-					traits_t::construct(this->theAllocator, thePtr + x, this->theArray[x]);
-				}
-
-				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-					std::cout << "CURRENTLY ALLOCATED SIZE 0101: " << this->currentlyAllocatedSize << std::endl;
-					std::cout << "CURRENTLY USED ALLOCATIONS 0101: " << this->currentlyUsedAllocations << std::endl;
-					traits_t::destroy(this->theAllocator, this->theArray + x);
-				}
-				traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
-				this->theArray = thePtr;
-				this->currentlyAllocatedSize *= 2;
-				std::cout << "CURRENTLY ALLOCATED SIZE 0202: " << this->currentlyAllocatedSize << std::endl;
-				std::cout << "CURRENTLY USED ALLOCATIONS 0202: " << this->currentlyUsedAllocations << std::endl;
-			}
-			traits_t::construct(this->theAllocator, this->theArray + this->currentlyUsedAllocations, std::move(theObject));
-			this->currentlyUsedAllocations++;
-		} else {
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				if (this->theArray[x] == theObject) {
-					this->theArray[x] = std::move(theObject);
-				}
-			}
-		}
-	}
-
-	void emplace(ObjectType& theObject) {
-		if (!this->contains(theObject)) {
-			std::unique_lock theLock{ this->theMutex };
-			if (this->currentlyAllocatedSize < this->currentlyUsedAllocations + 1) {
-				using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
-
-				auto thePtr = traits_t::allocate(this->theAllocator, this->currentlyUsedAllocations * 2);
-				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-					traits_t::construct(this->theAllocator, thePtr, this->theArray[x]);
-				}
-
-				for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-					traits_t::destroy(this->theAllocator, this->theArray + x);
-				}
-				traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
-				this->theArray = thePtr;
-				this->currentlyAllocatedSize *= 2;
-				std::cout << "CURRENTLY ALLOCATED SIZE: " << this->currentlyAllocatedSize << std::endl;
-			}
-			this->theArray[this->currentlyUsedAllocations] = std::move(theObject);
-			this->currentlyUsedAllocations++;
-		} else {
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				if (this->theArray[x] == theObject) {
-					this->theArray[x] = std::move(theObject);
-				}
-			}
-		}
-	}
-
-	ObjectType* begin() {
-		return this->theArray;
-	}
-
-	ObjectType* end() {
-		return this->theArray + this->currentlyUsedAllocations;
-	}
-
-	void erase(ObjectType&& theObject) {
-		size_t theIndex{};
-		if (this->contains(theObject)) {
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				if (this->theArray[x] == theObject) {
-					theIndex = x;
-				}
-			}using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
-
-			auto thePtr = new ObjectType[this->currentlyAllocatedSize];
-			size_t theOffset{};
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				thePtr[x - theOffset] = this->theArray[x];
-				if (x == theIndex) {
-					theOffset++;
-				}
-			}
-
-			this->currentlyUsedAllocations--;
-			traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
-			this->theArray = thePtr;
-		}
-	}
-
-	void erase(ObjectType& theObject) {
-		size_t theIndex{};
-		if (this->contains(theObject)) {
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				if (this->theArray[x] == theObject) {
-					theIndex = x;
-				}
-			}
-			using traits_t = std::allocator_traits<decltype(this->theAllocator)>;
-
-			auto thePtr = new ObjectType[this->currentlyAllocatedSize];
-			size_t theOffset{};
-			for (size_t x = 0; x < this->currentlyUsedAllocations; ++x) {
-				thePtr[x - theOffset] = this->theArray[x];
-				if (x == theIndex) {
-					theOffset++;
-				}
-			}
-
-			this->currentlyUsedAllocations--;
-			traits_t::deallocate(this->theAllocator, this->theArray, this->currentlyAllocatedSize);
-			this->theArray = thePtr;
-		}
-	}
-
-	size_t size() {
-		return this->currentlyUsedAllocations;
-	}
-
-	~TSUnorderedSet() {}
-
-  protected:
-	std::allocator_traits<std::allocator<ObjectType>> allocTraits{};
-	std::allocator<ObjectType> theAllocator{};
-	size_t currentlyUsedAllocations{ 0 };
-	size_t currentlyAllocatedSize{ 1 };
-	ObjectType* theArray{ nullptr };
-	std::shared_mutex theMutex{};
-};
 
 int32_t main() noexcept {
 	try {
-		EditGuildApplicationCommandPermissionsData theDataBew{};
-		theDataBew.applicationId = 12312312323;
+		WebSocketIdentifyData theDataBew{};
+		theDataBew.numberOfShards = 0;
+		theDataBew.currentShard = 23;
 		//std::string theString = JsonSerializer{}.getString(theDataBew);
 		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
-		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString).dump() << std::endl;
-		TSUnorderedSet<std::string> theSet{};
-		for (size_t x = 0; x < 128; ++x) {
-			theSet.emplace(std::string{ "TEST: " + std::to_string(x) });
-		}
-		int32_t theIntReal{ 115 };
-		theSet.erase(std::string{ "TEST: " } + std::to_string(theIntReal));
-		for (auto& value: theSet) {
-			std::cout << "THE VALUE: " << value << std::endl;
-		}
-		std::cout << "THE USED SIZE: " << theSet.size() << std::endl;
-		InteractionResponseData theDataReal{};
-		theDataReal.data.allowedMentions.roles.push_back("TESTING");
-		EmbedData theData{};
-		theData.description = "TESTING";
-		EmbedFieldData theDataNew{};
-		theDataNew.Inline = false;
-		theDataNew.name = "TESTY";
-		theDataNew.value = "TESTING HERE";
-		theData.fields.push_back(theDataNew);
-		theDataReal.data.embeds.push_back(theData);
-		std::string theString02 = theDataReal.operator JsonObject();
+		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
+		std::string theString02 = theDataBew.operator JsonObject();
 		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
 		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
 
