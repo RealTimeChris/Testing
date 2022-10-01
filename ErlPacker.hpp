@@ -33,7 +33,7 @@
 #include <stdint.h>
 #include <set>
 
-enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4,  String = 5, Bool = 6, Int64 = 7, Uint64 = 8, Unset = 9 };
+enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8, Unset = 9 };
 
 struct JsonArray;
 
@@ -77,11 +77,8 @@ struct EnumConverter {
 	bool vectorType{ false };
 };
 
-struct JsonArray;
-
 class JsonObject {
   public:
-
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
 	using StringType = std::string;
 	using ObjectType = JsonObject;
@@ -89,14 +86,13 @@ class JsonObject {
 	using UintType = uint64_t;
 	using FloatType = double;
 	using IntType = int64_t;
-	using BoolType = bool;	
-	
+	using BoolType = bool;
+
 	std::unordered_map<std::string, std::unique_ptr<ObjectType>> theValues{};
 	ValueType theType{ ValueType::Object };
 	bool areWeStarting{ true };
 	bool areWeTopLevel{ true };
 	std::string theKey{};
-	
 
 	union JsonValue {
 		ObjectType* object;
@@ -111,7 +107,7 @@ class JsonObject {
 		JsonValue& operator=(const char* theData) noexcept;
 
 		JsonValue& operator=(const std::string theData) noexcept;
-		
+
 		JsonValue& operator=(uint64_t theData) noexcept;
 
 		JsonValue& operator=(uint32_t theData) noexcept;
@@ -119,19 +115,19 @@ class JsonObject {
 		JsonValue& operator=(uint16_t theData) noexcept;
 
 		JsonValue& operator=(uint8_t theData) noexcept;
-		
+
 		JsonValue& operator=(int64_t theData) noexcept;
-		
+
 		JsonValue& operator=(int32_t theData) noexcept;
-		
+
 		JsonValue& operator=(int16_t theData) noexcept;
-		
+
 		JsonValue& operator=(int8_t theData) noexcept;
-		
+
 		JsonValue& operator=(double theData) noexcept;
-		
+
 		JsonValue& operator=(float theData) noexcept;
-		
+
 		JsonValue& operator=(bool theData) noexcept;
 
 		JsonValue& operator=(ValueType t) noexcept;
@@ -182,7 +178,6 @@ class JsonObject {
 		};
 		std::unique_ptr<ObjectType, decltype(deleter)> object(std::allocator_traits<AllocatorType<ObjectType>>::allocate(allocator, 1), deleter);
 		std::allocator_traits<AllocatorType<ObjectType>>::construct(allocator, object.get(), std::forward<Args>(args)...);
-		assert(object != nullptr);
 		return object.release();
 	}
 
@@ -229,7 +224,6 @@ class JsonObject {
 	JsonObject& operator=(const JsonArray& theData) noexcept;
 	JsonObject(const JsonArray& theData) noexcept;
 
-	JsonObject& operator=(const JsonValue& theKey) noexcept;
 	JsonObject(const JsonValue& theKey) noexcept;
 
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
@@ -296,12 +290,11 @@ class JsonObject {
 	void pushBack(const char* theKey, int8_t other) noexcept;
 };
 
-class  JsonArray : public JsonObject {
+class JsonArray : public JsonObject {
   public:
 	JsonArray() noexcept = default;
 	~JsonArray() noexcept = default;
 };
-
 	struct ErlPackError : public std::runtime_error {
 	public:
 		explicit ErlPackError(const std::string& message);
