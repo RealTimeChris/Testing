@@ -23,7 +23,7 @@ set(SODIUM_DEBUG_ROOT "C:/Vcpkg/installed/x64-windows/debug/lib")
 set(CMAKE_INSTALL_PREFIX)
 
 cmake_minimum_required(VERSION 3.20)
-set(PROJECT_NAME "MBot-MusicHouse")
+set(PROJECT_NAME "Testing")
 set(PRODUCT_VERSION "1.0.0.9")
 set(DESCRIPTION "A Discord bot, written in C++, using the DiscordCoreAPI Discord bot library.")
 project(

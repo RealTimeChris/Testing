@@ -1,16 +1,4 @@
-﻿include(GenerateProductVersion)
-generate_product_version(
-	PRODUCT_INFO
-	NAME "${PROJECT_NAME}"
-	ICON "${CMAKE_SOURCE_DIR}/Chris 01.ico"
-	ORIGINAL_FILENAME "${PROJECT_NAME}-Cpp.exe"
-	VERSION_MAJOR "1"
-	VERSION_MINOR "0"
-	VERSION_PATCH "0"
-	VERSION_REVISION "9"
-)
-
-add_executable(
+﻿add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
 	"${PRODUCT_INFO}"
