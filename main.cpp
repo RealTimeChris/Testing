@@ -67,6 +67,7 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(const JsonValue& other) 
 	this->numberDouble = other.numberDouble;
 	this->numberInt = other.numberInt;
 	this->numberUint = other.numberUint;
+	this->theKey = other.theKey;
 	return *this;
 }
 
@@ -342,7 +343,7 @@ JsonObject::operator std::string() noexcept {
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += *valueNew;
+				theString += valueNew->theValue.operator std::string();
 				doWeAddComma = true;
 			}
 			theString += "}";
@@ -355,7 +356,7 @@ JsonObject::operator std::string() noexcept {
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += *valueNew;
+				theString += valueNew->theValue.operator std::string();
 				doWeAddComma = true;
 			}
 			theString += "]";
@@ -363,26 +364,94 @@ JsonObject::operator std::string() noexcept {
 		}
 		case ValueType::Bool: {
 			std::stringstream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
+			theStream << std::boolalpha << this->theValue.operator std::string();
 			theString += theStream.str();
 			break;
 		}
 		case ValueType::String: {
 			theString += "\"";
-			theString += *this->theValue.string;
+			theString += this->theValue.operator std::string();
 			theString += "\"";
 			break;
 		}
 		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
+			theString += this->theValue.operator std::string();
 			break;
 		}
 		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
+			theString += this->theValue.operator std::string();
 			break;
 		}
 		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
+			theString += this->theValue.operator std::string();
+			break;
+		}
+		case ValueType::Null: {
+			theString += "null";
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theString += "[]";
+			break;
+		}
+	}
+	return theString;
+}
+
+JsonObject::JsonValue::operator std::string() noexcept {
+	std::string theString{};
+	if (this->theKey != "") {
+		theString += "\"" + this->theKey + "\":";
+	}
+	switch (this->theType) {
+		case ValueType::Object: {
+			bool doWeAddComma{ false };
+			theString += "{";
+			for (auto& [key, valueNew]: this->object->theValues) {
+				if (doWeAddComma) {
+					theString += ",";
+				}
+				theString += *valueNew;
+				doWeAddComma = true;
+			}
+			theString += "}";
+			break;
+		}
+		case ValueType::Array: {
+			bool doWeAddComma{ false };
+			theString += "[";
+			for (auto& valueNew: this->array->theValues) {
+				if (doWeAddComma) {
+					theString += ",";
+				}
+				theString += valueNew;
+				doWeAddComma = true;
+			}
+			theString += "]";
+			break;
+		}
+		case ValueType::Bool: {
+			std::stringstream theStream{};
+			theStream << std::boolalpha << this->boolean;
+			theString += theStream.str();
+			break;
+		}
+		case ValueType::String: {
+			theString += "\"";
+			theString += *this->string;
+			theString += "\"";
+			break;
+		}
+		case ValueType::Float: {
+			theString += std::to_string(this->numberDouble);
+			break;
+		}
+		case ValueType::Uint64: {
+			theString += std::to_string(this->numberUint);
+			break;
+		}
+		case ValueType::Int64: {
+			theString += std::to_string(this->numberInt);
 			break;
 		}
 		case ValueType::Null: {

@@ -100,8 +100,10 @@ class JsonObject {
 	ValueType theType{ ValueType::Object };
 	std::string theKey{};
 	struct JsonValue {
+		operator std::string() noexcept;
 		JsonValue& operator=(const JsonValue& other);
 		JsonValue(const JsonValue& other);
+		std::string theKey{};
 		ValueType theType{};
 		ObjectType* object{};
 		ArrayType* array{};
