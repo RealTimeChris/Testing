@@ -50,6 +50,173 @@ EnumConverter::~EnumConverter() {
 	}
 }
 
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(const char* theData) noexcept {
+	this->string = JsonObject::create<StringType>();
+	*this->string = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(const std::string theData) noexcept {
+	this->string = JsonObject::create<StringType>();
+	*this->string = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(uint64_t theData) noexcept {
+	this->numberUint = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(uint32_t theData) noexcept {
+	this->numberUint = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(uint16_t theData) noexcept {
+	this->numberUint = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(uint8_t theData) noexcept {
+	this->numberUint = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(int64_t theData) noexcept {
+	this->numberInt = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(int32_t theData) noexcept {
+	this->numberInt = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(int16_t theData) noexcept {
+	this->numberInt = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(int8_t theData) noexcept {
+	this->numberInt = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(double theData) noexcept {
+	this->numberDouble = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(float theData) noexcept {
+	this->numberDouble = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(bool theData) noexcept {
+	this->boolean = theData;
+	return *this;
+}
+
+JsonObject::JsonValue::JsonValue(const char* theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(const std::string theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(uint64_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(uint32_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(uint16_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(uint8_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(int64_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(int32_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(int16_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(int8_t theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(double theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(float theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(bool theData) noexcept {
+	*this = theData;
+}
+
+JsonObject::JsonValue::JsonValue(ValueType t) noexcept { 
+	*this = t;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(ValueType t) noexcept { 
+	switch (t) {
+		case ValueType::Object: {
+			this->object = create<ObjectType>();
+			break;
+		}
+
+		case ValueType::Array: {
+			this->array = create<ArrayType>();
+			break;
+		}
+
+		case ValueType::String: {
+			this->string = create<StringType>("");
+			break;
+		}
+
+		case ValueType::Bool: {
+			this->boolean = static_cast<BoolType>(false);
+			break;
+		}
+
+		case ValueType::Int64: {
+			this->numberInt = static_cast<IntType>(0);
+			break;
+		}
+
+		case ValueType::Uint64: {
+			this->numberUint = static_cast<UintType>(0);
+			break;
+		}
+
+		case ValueType::Float: {
+			this->numberDouble = static_cast<FloatType>(0.0);
+			break;
+		}
+
+		case ValueType::Null: {
+			break;
+		}
+	}
+	return *this;
+}
+
 JsonObject& JsonObject::operator=(const JsonArray& theData) noexcept {
 	this->theKey = theData.theKey;
 	this->theType = theData.theType;
@@ -64,16 +231,17 @@ JsonObject& JsonObject::operator=(const JsonArray& theData) noexcept {
 JsonObject::JsonObject(const JsonArray& theData) noexcept {
 	*this = theData;
 }
+
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	for (auto& [key, value]: theKey.theValues) {
-		this->theValues[key] = std::make_unique<JsonObject>();
-		*this->theValues[key] = *value;
+		this->theValues[key] = std::make_unique<JsonObject>(*value);
 	}
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
 	if (this->theKey == "") {
 		this->theKey = theKey.theKey;
 	}
+	std::cout << "THE KEY: " << this->theKey << std::endl;
 	return *this;
 }
 
@@ -81,38 +249,47 @@ JsonObject::JsonObject(const JsonObject& theKey) noexcept {
 	*this = theKey;
 }
 
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(const JsonValue& other) {
+JsonObject::JsonObject::JsonValue& JsonObject::JsonValue::operator=(const JsonObject::JsonValue& other) noexcept {
 	//std::cout << "THE KEY REAL: " << ( int32_t )other.theType << std::endl;
 	//std::cout << "THE VALUE REAL: " << ( int32_t )other.numberUint << std::endl;
 	//std::cout << "THE VALUE REAL: " << ( int32_t )other.numberInt << std::endl;
-	switch (other.theType) {
-		case ValueType::Array: {
-			this->array = JsonObject::create<JsonArray>();
-			*this->array = *other.array;
-			break;
-		}
-		case ValueType::Object: {
-			this->object = JsonObject::create<JsonObject>();
-			*this->object = *other.object;
-			break;
-		}
-		case ValueType::String: {
-			this->string = JsonObject::create<StringType>();
-			*this->string = *other.string;
-			break;
-		}
+	if (other.array) {
+		this->array = JsonObject::create<JsonArray>();
+		*this->array = *other.array;
+	} else if (other.object) {
+		this->object = JsonObject::create<JsonObject>();
+		*this->object = *other.object;
+	}
+	else if(other.string){
+		this->string = JsonObject::create<StringType>();
+		*this->string = *other.string;
 	}
 	this->boolean = other.boolean;
 	this->numberDouble = other.numberDouble;
 	this->numberInt = other.numberInt;
 	this->numberUint = other.numberUint;
-	this->theType = other.theType;
 	return *this;
 }
 
-JsonObject::JsonValue::JsonValue(const JsonValue& other) {
+JsonObject::JsonObject(const JsonObject::JsonValue& other) noexcept {
 	*this = other;
 }
+
+JsonObject& JsonObject::operator=(const JsonObject::JsonValue& theData) noexcept {
+	if (theData.array) {
+		this->theValue = *theData.array;
+	} else if (theData.object) {
+		this->theValue = *theData.object;
+	} else if (theData.string) {
+		this->theValue = *theData.string;
+	}
+	this->theValue.boolean = theData.boolean;
+	this->theValue.numberDouble = theData.numberDouble;
+	this->theValue.numberInt = theData.numberInt;
+	this->theValue.numberUint = theData.numberUint;
+	return *this;
+}
+
 
 size_t JsonObject::size() {
 	return this->theValues.size();
@@ -123,208 +300,202 @@ JsonObject::JsonObject(const char* theKey, const JsonObject& theData) noexcept {
 	this->theKey = theKey;
 }
 
-JsonObject& JsonObject::operator=(const JsonValue& theKey) noexcept {
-	this->theValue = theKey;
-	return *this;
-}
-JsonObject::JsonObject(const JsonValue& theKey) noexcept {
-	*this = theKey;
-}
-
 
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
-	this->theType = ValueType::String;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	*static_cast<std::string*>(this->theValue.string) = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::String;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(const char* theData) noexcept {
-	this->theValue = ValueType::String;
-	*static_cast<std::string*>(this->theValue.string) = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(std::string theData) noexcept {
-	this->theType = ValueType::String;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	*static_cast<std::string*>(this->theValue.string) = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::String;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(std::string theData) noexcept {
-	this->theValue = ValueType::String;
-	*static_cast<std::string*>(this->theValue.string) = theData;
+	*this = theData;
 }
 
 
 
 JsonObject& JsonObject::operator=(uint64_t theData) noexcept {
-	this->theType = ValueType::Uint64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberUint = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Uint64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(uint64_t theData) noexcept {
-	this->theValue = new uint64_t{};
-	this->theValue.numberUint = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(uint32_t theData) noexcept {
-	this->theType = ValueType::Uint64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberUint = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Uint64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(uint32_t theData) noexcept {
-	this->theValue = new uint32_t{};
-	this->theValue.numberUint = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(uint16_t theData) noexcept {
-	this->theType = ValueType::Uint64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberUint = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Uint64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(uint16_t theData) noexcept {
-	this->theValue = new uint16_t{};
-	this->theValue.numberUint = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(uint8_t theData) noexcept {
-	this->theType = ValueType::Uint64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberUint = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Uint64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(uint8_t theData) noexcept {
-	this->theValue = new uint8_t{};
-	this->theValue.numberInt = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(int64_t theData) noexcept {
-	this->theType = ValueType::Int64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberInt = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Int64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(int64_t theData) noexcept {
-	this->theValue = new uint64_t{};
-	this->theValue.numberInt = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(int32_t theData) noexcept {
-	this->theType = ValueType::Int64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberInt = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Int64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(int32_t theData) noexcept {
-	this->theValue = new uint32_t{};
-	this->theValue.numberInt = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(int16_t theData) noexcept {
-	this->theType = ValueType::Int64;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberInt = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Int64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(int16_t theData) noexcept {
-	this->theValue = new uint16_t{};
-	this->theValue.numberInt = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(int8_t theData) noexcept {
-	this->theType = ValueType::Int64;
-	*this = this->theType;
-	this->theValue.numberInt = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Int64;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(int8_t theData) noexcept {
-	this->theValue = new uint8_t{};
-	this->theValue.numberInt = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(double theData) noexcept {
-	this->theType = ValueType::Float;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberDouble = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Float;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(double theData) noexcept {
-	this->theValue = new double{};
-	this->theValue.numberDouble = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(float theData) noexcept {
-	this->theType = ValueType::Float;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.numberDouble = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Float;
+	}
 	return *this;
 }
 
 JsonObject::JsonObject(float theData) noexcept {
-	this->theValue = new float{};
-	this->theValue.numberDouble = theData;
+	this->theValue = theData;
 }
 
 JsonObject& JsonObject::operator=(bool theData) noexcept {
-	this->theType = ValueType::Bool;
-	JsonObject theObject{ theData };
-	theObject.theKey = this->theKey;
-	theObject.theType = this->theType;
-	*this = theObject;
-	this->theValue.boolean = theData;
+	if (this->theValues.size() > 0) {
+		this->theValues.end().operator*().second = std::make_unique<JsonObject>();
+		this->theValues.end().operator*().second->theValue = theData;
+	} else {
+		this->theValue = theData;
+		this->theType = ValueType::Bool;
+	}
 	return *this;
 }
 
-
 JsonObject::JsonObject(bool theData) noexcept {
-	this->theValue = new bool{};
-	this->theValue.boolean = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator[](const char* theKey) noexcept {
@@ -332,10 +503,12 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 		this->theKey = theKey;
 		this->theType = ValueType::Object;
 		this->theValue = ValueType::Object;
+		this->theValue.object->theKey = theKey;
 		return *this;
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
+		this->theType = ValueType::Object;
 		this->theValues[theKey] = std::make_unique<JsonObject>();
 		this->theValues[theKey]->theKey = theKey;
 		this->theValues[theKey]->theType = ValueType::Object;
@@ -359,15 +532,18 @@ JsonObject::operator std::string() noexcept {
 	if (this->theKey != "") {
 		theString += "\"" + this->theKey + "\":";
 	}
+	if (this->theType == ValueType::Object) {
+		theString += "{";
+	}
 	switch (this->theType) {
 		case ValueType::Object: {
 			bool doWeAddComma{ false };
-			theString += "{";
+			
 			for (auto& [key, valueNew]: this->theValues) {
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += *valueNew;
+				theString += valueNew->operator std::string();
 				doWeAddComma = true;
 			}
 			theString += "}";
@@ -487,12 +663,10 @@ void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -502,12 +676,10 @@ void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 };
 
@@ -517,12 +689,10 @@ void JsonObject::pushBack(const char* theKey, uint64_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -532,12 +702,10 @@ void JsonObject::pushBack(const char* theKey, uint32_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -547,12 +715,10 @@ void JsonObject::pushBack(const char* theKey, uint16_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -562,12 +728,10 @@ void JsonObject::pushBack(const char* theKey, uint8_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -577,12 +741,10 @@ void JsonObject::pushBack(const char* theKey, int64_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -592,12 +754,10 @@ void JsonObject::pushBack(const char* theKey, int32_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -607,12 +767,10 @@ void JsonObject::pushBack(const char* theKey, int16_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -622,12 +780,10 @@ void JsonObject::pushBack(const char* theKey, int8_t other) noexcept {
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
 		size_t theSize = this->theValues[theKey]->theValues.size();
-		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>();
-		*this->theValues[theKey]->theValues[std::to_string(theSize)] = other;
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 }
 
@@ -899,7 +1055,7 @@ InteractionResponseData::operator JsonObject() {
 WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{ ValueType::Object };
 	std::unordered_map<std::string, std::string> theMap{};
-	theSerializer["d"];
+	//theSerializer["d"];
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
