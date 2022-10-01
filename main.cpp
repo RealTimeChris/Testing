@@ -50,22 +50,24 @@ EnumConverter::~EnumConverter() {
 	}
 }
 
-JsonArray& JsonArray::operator=(const JsonArray& theData) noexcept {
+JsonObject& JsonObject::operator=(const JsonArray& theData) noexcept {
 	this->theKey = theData.theKey;
-	this->theValue = theData.theValue;
 	this->theType = theData.theType;
+	this->theValue = theData.theValue;
 	for (auto& [key, value]: theData.theValues) {
-		this->theValues[key] = std::make_unique<JsonObject>(*value);
+		this->theValues[key] = std::make_unique<JsonObject>();
+		*this->theValues[key] = *value;
 	}
 	return *this;
 }
-JsonArray::JsonArray(const JsonArray& theData) noexcept {
+
+JsonObject::JsonObject(const JsonArray& theData) noexcept {
 	*this = theData;
 }
-
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	for (auto& [key, value]: theKey.theValues) {
-		this->theValues[key] = std::make_unique<JsonObject>(*value);
+		this->theValues[key] = std::make_unique<JsonObject>();
+		*this->theValues[key] = *value;
 	}
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
@@ -111,21 +113,10 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(const JsonValue& other) 
 JsonObject::JsonValue::JsonValue(const JsonValue& other) {
 	*this = other;
 }
-	*this = theObject;
 
 size_t JsonObject::size() {
 	return this->theValues.size();
 }
-size_t JsonArray::size() {
-	return this->theValues.size();
-}
-void JsonObject::clear() {
-	this->theValues.clear();
-}
-void JsonArray::clear() {
-	this->theValues.clear();
-}
-
 
 JsonObject::JsonObject(const char* theKey, const JsonObject& theData) noexcept {
 	*this = theData;
@@ -140,19 +131,6 @@ JsonObject::JsonObject(const JsonValue& theKey) noexcept {
 	*this = theKey;
 }
 
-JsonObject& JsonObject::operator=(const JsonArray& theData) noexcept {
-	this->theKey = theData.theKey;
-	this->theType = theData.theType;
-	this->theValue = theData.theValue;
-	for (auto& [key, value]: theData.theValues) {
-		this->theValues[key] = std::make_unique<JsonObject>(*value);
-	}
-	return *this;
-}
-
-JsonObject::JsonObject(const JsonArray& theData) noexcept {
-	*this = theData;
-}
 
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
 	this->theType = ValueType::String;

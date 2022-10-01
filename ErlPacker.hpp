@@ -366,18 +366,10 @@ class JsonObject {
 	void pushBack(const char* theKey, int8_t other) noexcept;
 };
 
-struct JsonArray : public JsonObject {
+class  JsonArray : public JsonObject {
+  public:
 	JsonArray() noexcept = default;
-	JsonArray& operator=(const JsonArray& theData) noexcept;
-	JsonArray(const JsonArray& theData) noexcept;
-	size_t size();
-	auto begin() {
-		return this->theValues.begin();
-	}
-	auto end() {
-		return this->theValues.end();
-	}
-	void clear();
+	~JsonArray() noexcept = default;
 };
 
 	struct ErlPackError : public std::runtime_error {
