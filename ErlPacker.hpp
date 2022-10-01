@@ -93,7 +93,10 @@ class JsonObject {
 	
 	std::unordered_map<std::string, std::unique_ptr<ObjectType>> theValues{};
 	ValueType theType{ ValueType::Object };
+	bool areWeStarting{ true };
 	std::string theKey{};
+	
+
 	struct JsonValue {
 		JsonValue& operator=(const JsonValue& other);
 		JsonValue(const JsonValue& other);
@@ -106,7 +109,74 @@ class JsonObject {
 		UintType numberUint{};
 		FloatType numberDouble{};
 		JsonValue() noexcept = default;
+
+		JsonValue(const char* theData) noexcept;
+
+		JsonValue(const std::string theData) noexcept {
+			*this = ValueType::String;
+			*this->string = theData;
+		}
+
+		JsonValue(uint64_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
+
+		JsonValue(uint32_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
+
+		JsonValue(uint16_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
+
+		JsonValue(uint8_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
+
+		JsonValue(int64_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
+
+		JsonValue(int32_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
+
+		JsonValue(int16_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
+
+		JsonValue(int8_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
+
+		JsonValue(double theData) noexcept {
+			*this = ValueType::Float;
+			this->numberDouble = theData;
+		}
+
+		JsonValue(float theData) noexcept {
+			*this = ValueType::Float;
+			this->numberDouble = theData;
+		}
+
+		JsonValue(bool theData) noexcept {
+			*this = ValueType::Bool;
+			this->boolean = theData;
+		}
+
 		JsonValue(ValueType t) {
+			*this = t;
+		}
+
+		JsonValue& operator=(ValueType t) {
 			switch (t) {
 				case ValueType::Object: {
 					this->theType = ValueType::Object;
@@ -156,6 +226,7 @@ class JsonObject {
 					break;
 				}
 			}
+			return *this;
 		}
 
 		void destroy(ValueType t);
@@ -276,6 +347,8 @@ class JsonObject {
 
 	size_t size();
 
+	std::string getString(bool areWeStarting);
+
 	operator std::string() noexcept;
 
 	void pushBack(const char* theKey, std::string other) noexcept;
@@ -292,10 +365,9 @@ class JsonObject {
 
 struct JsonArray : public JsonObject {
 	JsonArray() noexcept = default;
+	JsonArray& operator=(const JsonArray& theData) noexcept;
+	JsonArray(const JsonArray& theData) noexcept;
 	size_t size();
-	std::vector<JsonObject> theValues{};
-	ValueType theType{ ValueType::Object };
-	std::string theKey{};
 	auto begin() {
 		return this->theValues.begin();
 	}
