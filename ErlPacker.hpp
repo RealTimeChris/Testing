@@ -110,7 +110,10 @@ class JsonObject {
 		FloatType numberDouble{};
 		JsonValue() noexcept = default;
 
-		JsonValue(const char* theData) noexcept;
+		JsonValue(const char* theData) noexcept {
+			*this = ValueType::String;
+			*this->string = theData;
+		}
 
 		JsonValue(const std::string theData) noexcept {
 			*this = ValueType::String;

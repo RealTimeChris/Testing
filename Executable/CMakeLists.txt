@@ -15,11 +15,8 @@ add_executable(
 	"../main.cpp"
 	"${PRODUCT_INFO}"
 )
-target_sources(
-	"${PROJECT_NAME}"
-PUBLIC "../ErlPacker.cpp"
-)
-if (DEFINED ENV{EnableASAN})
+
+if (DEFINED ENV{EnableASAN} AND ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
 		target_link_options("${PROJECT_NAME}" PUBLIC "/incremental:no" "/Debug")	
@@ -32,12 +29,7 @@ endif()
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	DiscordCoreAPI::DiscordCoreAPI
-	simdjson::simdjson
 )
-
-target_include_directories(
-"${PROJECT_NAME}" PUBLIC
-	"C:/vcpkg/installed/x64-windows/include")
 
 set_target_properties(
 	"${PROJECT_NAME}" PROPERTIES 

@@ -114,7 +114,7 @@ JsonObject::JsonObject(EnumConverter theData) noexcept : theValue(ValueType::Uin
 }
 */
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
-	std::cout << "THE KEY: " << theKey.theKey << std::endl;
+	//std::cout << "THE KEY: " << theKey.theKey << std::endl;
 	for (auto& [key, value]: theKey.theValues) {
 		this->theValues[key] = std::make_unique<JsonObject>(*value);
 		*this->theValues[key] = *std::make_unique<JsonObject>(*value);
@@ -179,7 +179,6 @@ JsonObject::JsonObject(const char* theData) noexcept : theValue(ValueType::Strin
 
 JsonObject& JsonObject::operator=(const JsonValue& theKey) noexcept {
 	this->theValue = theKey;
-	this->theType = theKey.theType;
 	return *this;
 }
 
@@ -349,29 +348,20 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 
 }
 
-std::string JsonObject::getString(bool areWeStarting) {
+JsonObject::operator std::string() noexcept {
 	std::string theString{};
-	if (areWeStarting) {
-		theString += "{";
-		std::cout << "THE KEY: " << this->theKey << std::endl;
-		areWeStarting = false;
+	if (this->theKey != "") {
+		theString += "\"" + this->theKey + "\":";
 	}
-	if (this->theType != ValueType::Object) {
-		if (this->theKey != "") {
-			theString += "\"" + this->theKey + "\":";
-		}
-	}
-
 	switch (this->theType) {
 		case ValueType::Object: {
 			bool doWeAddComma{ false };
-			theString += "\"" + this->theKey + "\":{";
+			theString += "{";
 			for (auto& [key, valueNew]: this->theValues) {
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += valueNew->getString(areWeStarting);
-
+				theString += *valueNew;
 				doWeAddComma = true;
 			}
 			theString += "}";
@@ -384,7 +374,7 @@ std::string JsonObject::getString(bool areWeStarting) {
 				if (doWeAddComma) {
 					theString += ",";
 				}
-				theString += valueNew->getString(areWeStarting);
+				theString += *valueNew;
 				doWeAddComma = true;
 			}
 			theString += "]";
@@ -392,27 +382,26 @@ std::string JsonObject::getString(bool areWeStarting) {
 		}
 		case ValueType::Bool: {
 			std::stringstream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
+			theStream << std::boolalpha << static_cast<bool>(this->theValue.boolean);
 			theString += theStream.str();
 			break;
 		}
 		case ValueType::String: {
 			theString += "\"";
-			theString += *this->theValue.string;
+			theString += *static_cast<std::string*>(this->theValue.string);
 			theString += "\"";
 			break;
 		}
 		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
+			theString += static_cast<double>(this->theValue.numberDouble);
 			break;
 		}
 		case ValueType::Uint64: {
-			std::cout << "THE VALUE REALESTER: " << ( int32_t )this->theValue.numberInt << ", THE REALESTER KEY: " << this->theKey << std::endl;
-			theString += std::to_string(this->theValue.numberUint);
+			theString += std::to_string(static_cast<uint64_t>(this->theValue.numberUint));
 			break;
 		}
 		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
+			theString += std::to_string(static_cast<int64_t>(this->theValue.numberInt));
 			break;
 		}
 		case ValueType::Null: {
@@ -425,9 +414,6 @@ std::string JsonObject::getString(bool areWeStarting) {
 		}
 	}
 	return theString;
-}
-JsonObject::operator std::string() noexcept {
-	return this->getString(this->areWeStarting);
 }
 
 void JsonObject::JsonValue::destroy(ValueType t) {
