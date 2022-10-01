@@ -162,7 +162,7 @@ JsonObject& JsonObject::operator=(const JsonValue& theKey) noexcept {
 	return *this;
 }
 
-JsonObject::JsonObject(const JsonValue& theKey) noexcept : theValue(ValueType::Object) {
+JsonObject::JsonObject(const JsonValue& theKey) noexcept {
 	*this = theKey;
 }
 
@@ -301,26 +301,22 @@ JsonObject::JsonObject(bool theData) noexcept : theValue(ValueType::Bool) {
 
 JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 	if (this->theKey == "") {
-		std::cout << "THE KEY REAL 0101: " << theKey << std::endl;
-		this->theValue = JsonValue{ ValueType::Object };
-		this->theValue.object->theKey = theKey;
-		this->theKey = theKey;
-		return *this->theValue.object;
+		JsonObject theObject{ ValueType::Object };
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		this->theValues[theKey] = std::make_unique<JsonObject>(theObject);
+		return *this->theValues[theKey];
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
-		std::cout << "THE KEY REAL 0202: " << theKey << std::endl;
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
-		std::cout << "THE KEY REAL 0303: " << theKey << std::endl;
 		JsonObject theObject{ ValueType::Object };
 		theObject.theKey = theKey;
 		theObject.theType = ValueType::Object;
 		this->theValues[theKey] = std::make_unique<JsonObject>(theObject);
 		return *this->theValues[theKey];
 	} else if (this->theValues.contains(theKey)) {
-		std::cout << "THE KEY REAL 0404: " << theKey << std::endl;
 		return *this->theValues[theKey];
 	} else {
-		std::cout << "THE KEY REAL 0505: " << theKey << std::endl;
 		JsonObject theObject{ ValueType::Object };
 		theObject.theType = ValueType::Object;
 		theObject.theKey = theKey;
