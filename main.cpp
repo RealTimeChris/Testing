@@ -402,7 +402,8 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 	if (this->theKey == "") {
 		this->theKey = theKey;
 		this->theType = ValueType::Object;
-		return *this;
+		this->theValue = ValueType::Object;
+		return *this->theValue.object;
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
@@ -410,23 +411,14 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 		this->theValues[theKey] = std::make_unique<JsonObject>();
 		this->theValues[theKey]->theKey = theKey;
 		return *this->theValues[theKey];
-	} else if (this->theValues.contains(theKey)) {
-		return *this->theValues[theKey];
 	} else {
-		this->theType = ValueType::Object;
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theKey = theKey;
-		this->theValues[theKey]->theType = ValueType::Object;
+		std::cout << "WERE HERE THIS IS IT!" << theKey << std::endl;
 		return *this->theValues[theKey];
 	}
 }
 
 JsonObject::operator std::string() noexcept {
 	std::string theString{};
-	if (this->areWeStarting) {
-		this->areWeStarting = false;
-		theString += "{\"" + this->theKey + "\":";
-	}
 	switch (this->theType) {
 		case ValueType::Object: {
 			bool doWeAddComma{ false };
@@ -491,9 +483,6 @@ JsonObject::operator std::string() noexcept {
 			theString += "[]";
 			break;
 		}
-	}
-	if (this->areWeTopLevel) {
-		theString += "}";
 	}
 	return theString;
 }
@@ -632,17 +621,6 @@ void JsonObject::pushBack(const char* theKey, int8_t other) noexcept {
 	}
 }
 
-/// For editing the permissions of a single Guild ApplicationCommand. \brief For editing the permissions of a single Guild ApplicationCommand.
-struct EditGuildApplicationCommandPermissionsData {
-	std::vector<DiscordCoreAPI::ApplicationCommandPermissionData> permissions{};///< A vector of ApplicationCommand permissions.
-	std::string commandName{};///< The command name which you would like to edit the permissions of.
-	DiscordCoreAPI::Snowflake applicationId{};///< The current application's Id (The Bot's User Id).
-	uint64_t commandId{};///< The command id which you would like to edit the permissions of.
-	DiscordCoreAPI::Snowflake guildId{};///< The Guild id of the Guild for which you would like to edit the command permissions.
-
-	operator JsonObject();
-};
-
 struct WebSocketIdentifyData {
 	DiscordCoreInternal::UpdatePresenceData presence{};
 	int32_t largeThreshold{ 250 };
@@ -654,254 +632,13 @@ struct WebSocketIdentifyData {
 	operator JsonObject();
 };
 
-/// Allowable mentions for a Message. \brief Allowable mentions for a Message.
-class AllowedMentionsData {
-public:
-	std::vector<std::string> parse{};///< A vector of allowed mention types to parse from the content.
-	std::vector<std::string> roles{};///< Array of role_ids to mention (Max size of 100)
-	std::vector<std::string> users{};///< Array of user_ids to mention (Max size of 100)
-	bool repliedUser{ false };///< For replies, whether to mention the author of the Message being replied to (default false).
-
-
-	operator JsonObject();
-};
-
-AllowedMentionsData::operator JsonObject() {
-	JsonObject theData{ "allowed_mentions" };
-	for (auto& value : this->parse) {
-		theData.pushBack("parse", value);
-	}
-	for (auto& value : this->roles) {
-		theData.pushBack("roles", value);
-	}
-	for (auto& value : this->users) {
-		theData.pushBack("users", value);
-	}
-	return theData;
-}
-
-/// Embed field data. \brief Embed field data.
-struct EmbedFieldData {
-	bool Inline{ false };///< Is the field inline with the rest of them?
-	std::string value{};///< The text on the field.
-	std::string name{};///< The title of the field.
-	EmbedFieldData() noexcept = default;
-
-	operator const JsonObject();
-
-	virtual ~EmbedFieldData() noexcept = default;
-};
-
-/// Embed data. \brief Embed data.
-class EmbedData {
-public:
-	std::vector<EmbedFieldData> fields{};///< Array of embed fields.
-	DiscordCoreAPI::EmbedThumbnailData thumbnail{};///< Embed thumbnail data.
-	DiscordCoreAPI::ColorValue hexColorValue{ 0 };///< Hex color value of the embed.
-	DiscordCoreAPI::EmbedProviderData provider{};///< Embed provider data.
-	std::string description{};///< Description of the embed.
-	DiscordCoreAPI::EmbedFooterData footer{};///< Embed footer data.
-	DiscordCoreAPI::EmbedAuthorData author{};///< Embed author data.
-	std::string timestamp{};///< Timestamp to be placed on the embed.
-	DiscordCoreAPI::EmbedImageData image{};///< Embed image data.
-	DiscordCoreAPI::EmbedVideoData video{};///< Embed video data.
-	std::vector<std::string> theObjectVector{ "TESTING", "TESTING02" };
-	std ::unordered_map<std::string, std::string> theRoles{ { "TESTING", "TESTING02" }, { "TESTING23", "TESTING34" } };
-	std::string title{};///< Title of the embed.
-	std::string theType{};///< Type of the embed.
-	std::string url{};///< Url for the embed.
-
-	EmbedData() noexcept = default;
-
-	operator JsonObject();
-
-	/// Sets the author's name and avatar for the embed. \brief Sets the author's name and avatar for the embed.
-	/// \param authorName The author's name.
-	/// \param authorAvatarUrl The url to their avatar.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setAuthor(const std::string& authorName, const std::string& authorAvatarUrl = "");
-
-	/// Sets the footer's values for the embed. \brief Sets the footer's values for the embed.
-	/// \param footerText The footer's text.
-	/// \param footerIconUrlText Url to the footer's icon.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setFooter(const std::string& footerText, const std::string& footerIconUrlText = "");
-
-	/// Sets the timestamp on the embed. \brief Sets the timestamp on the embed.
-	/// \param timeStamp The timestamp to be set.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setTimeStamp(const std::string& timeStamp);
-
-	/// Adds a field to the embed. \brief Adds a field to the embed.
-	/// \param name The title of the embed field.
-	/// \param value The contents of the embed field.
-	/// \param Inline Is it inline with the rest of the fields on the embed?
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& addField(const std::string& name, const std::string& value, bool Inline = true);
-
-	/// Sets the description (the main contents) of the embed. \brief Sets the description (the main contents) of the embed.
-	/// \param descriptionNew The contents of the description to set.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setDescription(const std::string& descriptionNew);
-
-	/// Sets the color of the embed, by applying a hex-color value. \brief Sets the color of the embed, by applying a hex-color value.
-	/// \param hexColorValueNew A string containing a hex-number value (Between 0x00 0xFFFFFF).
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setColor(const std::string& hexColorValueNew);
-
-	/// Sets the thumbnail of the embed. \brief Sets the thumbnail of the embed.
-	/// \param thumbnailUrl The url to the thumbnail to be used.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setThumbnail(const std::string& thumbnailUrl);
-
-	/// Sets the title of the embed. \brief Sets the title of the embed.
-	/// \param titleNew A string containing the desired title.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setTitle(const std::string& titleNew);
-
-	/// Sets the image of the embed. \brief Sets the image of the embed.
-	/// \param imageUrl The url of the image to be set on the embed.
-	/// \returns EmbedData& A reference to this embed.
-	EmbedData& setImage(const std::string& imageUrl);
-
-	virtual ~EmbedData() noexcept = default;
-};
-
-EmbedFieldData::operator const JsonObject() {
-	JsonObject theData{};
-	theData["inline"] = this->Inline;
-	theData["value"] = this->value;
-	theData["name"] = this->name;
-	return theData;
-}
-
-EmbedData::operator JsonObject() {
-	JsonObject theData{};
-	for (auto& value2 : this->fields) {
-		theData.pushBack("fields", value2);
-	}
-	std::string realColorVal = std::to_string(this->hexColorValue.getIntColorValue());
-	theData["footer"]["proxy_icon_url"] = this->footer.proxyIconUrl;
-	theData["footer"]["icon_url"] = this->footer.iconUrl;
-	theData["roles"] = this->theRoles;
-	theData["channels"] = this->theObjectVector;
-	theData["footer"]["text"] = this->footer.text;
-	theData["author"]["proxy_icon_url"] = this->author.proxyIconUrl;
-	theData["author"]["icon_url"] = this->author.iconUrl;
-	theData["author"]["name"] = this->author.name;
-	theData["author"]["url"] = this->author.url;
-	theData["thumbnail"]["proxy_url"] = this->thumbnail.proxyUrl;
-	theData["thumbnail"]["height"] = this->thumbnail.height;
-	theData["thumbnail"]["width"] = this->thumbnail.width;
-	theData["thumbnail"]["url"] = this->thumbnail.url;
-	theData["image"]["proxy_url"] = this->image.proxyUrl;
-	theData["image"]["height"] = this->image.height;
-	theData["image"]["width"] = this->image.width;
-	theData["image"]["url"] = this->image.url;
-	theData["video"]["proxy_url"] = this->video.proxyUrl;
-	theData["video"]["height"] = this->video.height;
-	theData["video"]["url"] = this->video.url;
-	theData["video"]["width"] = this->video.width;
-	theData["provider"]["name"] = this->provider.name;
-	theData["provider"]["url"] = this->provider.url;
-	theData["description"] = this->description;
-	theData["timestamp"] = this->timestamp;
-	theData["title"] = this->title;
-	theData["color"] = realColorVal;
-	theData["theType"] = this->theType;
-	theData["url"] = this->url;
-	return theData;
-}
-
-/// Interaction ApplicationCommand callback data. \brief Interaction ApplicationCommand callback data.
-struct InteractionCallbackData {
-	std::vector<DiscordCoreAPI::ApplicationCommandOptionChoiceData> choices{};///< Autocomplete choices(max of 25 choices).
-	std::vector<DiscordCoreAPI::AttachmentData> attachments{};///< Array of partial attachment objects attachment objects with filename and description.
-	std::vector<DiscordCoreAPI::ActionRowData> components{};///< Message components.
-	AllowedMentionsData allowedMentions{};///< Allowed mentions data.
-	std::vector<EmbedData> embeds{};///< Message embeds.
-	std::vector<DiscordCoreAPI::File> files{};///< Files for uploading.
-	std::string customId{};///< A developer-defined identifier for the component, max 100 characters.
-	std::string content{};///< Message content.
-	std::string title{};///< The title of the popup modal.
-	int32_t flags{ 0 };///< Flags.
-	bool tts{ false };///< Is it TTS?
-	operator JsonObject();
-};
-
-struct InteractionResponseData {
-
-	InteractionResponseData() noexcept = default;
-
-	operator JsonObject();
-
-	InteractionCallbackData data{};///< Interaction ApplicationCommand callback data.
-	DiscordCoreAPI::InteractionCallbackType theType{};///< Interaction callback theType.
-};
-
-
-
-InteractionResponseData::operator JsonObject() {
-	JsonObject theData{};
-	theData["theType"] = static_cast<uint8_t>(this->theType);
-	if (this->data.attachments.size() > 0) {
-		for (auto& value : this->data.attachments) {
-			// theData["data"].pushBack("attachments", value );
-		}
-	}
-	for (auto& value : this->data.components) {
-		//theData["data"].pushBack("components",  value );
-	}
-	theData["data"]["allowed_mentions"] = JsonObject{ this->data.allowedMentions.operator JsonObject() };
-	if (this->data.choices.size() > 0) {
-		for (auto& value : this->data.choices) {
-			JsonObject theValue{};
-			theValue["name"] = value.name;
-			theValue["name_localizations"] = value.nameLocalizations;
-			switch (value.type) {
-			case DiscordCoreAPI::JsonType::Boolean: {
-				theValue["value"] = value.valueBool;
-				break;
-			}
-			case DiscordCoreAPI::JsonType::String: {
-				theValue["value"] = value.valueStringReal;
-				break;
-			}
-			case DiscordCoreAPI::JsonType::Float: {
-				theValue["value"] = value.valueFloat;
-				break;
-			}
-			case DiscordCoreAPI::JsonType::Integer: {
-				theValue["value"] = value.valueInt;
-				break;
-			}
-			}
-			theData["data"].pushBack("choices", theValue);
-		}
-	}
-	for (auto& value : this->data.embeds) {
-		theData["data"].pushBack("embeds", value);
-	}
-	if (this->data.customId != "") {
-		theData["data"]["custom_id"] = this->data.customId;
-	}
-	if (this->data.content != "") {
-		theData["data"]["content"] = this->data.content;
-	}
-	if (this->data.title != "") {
-		theData["data"]["title"] = this->data.title;
-	}
-	theData["data"]["flags"] = this->data.flags;
-	theData["data"]["tts"] = this->data.tts;
-	return theData;
-}
-
-
 WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{};
 	std::unordered_map<std::string, std::string> theMap{};
+	theSerializer["d"];
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
+	/*
 	
 	for (auto& value : this->presence.activities) {
 		JsonObject theSerializer02{ "" };
@@ -930,33 +667,12 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
 	theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
 	theSerializer["d"]["token"] = this->botToken;
+	*/
 	theSerializer["op"] = static_cast<uint32_t>(2);
 	
 	return theSerializer;
 
 }
-EditGuildApplicationCommandPermissionsData::operator JsonObject() {
-	JsonObject theData{};
-	theData["d"] = true;
-	theData["23"]["TESTty"]["TEST_TWO"] = true;
-	theData["23"]["TEST"] = true;
-	theData["Teetertytot"] = "TESTING";
-	theData["test"] = "TESTING VALUES";
-	theData["TEST"] = false;
-	theData["tee"]["TESTerasds"]["TESTINGiners"] = double{ 4.423f };
-	for (auto& value : this->permissions) {
-
-
-		//newData["d"]["theType"] = static_cast<uint8_t>(value.theType);
-		//auto theString = std::to_string(value.id);
-		//newData["d"]["id"] = theString;
-	}
-	//std::cout << "THE STRING: " << theData.getString() << std::endl;
-
-	return theData;
-}
-
-
 
 int32_t main() noexcept {
 	try {
