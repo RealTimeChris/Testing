@@ -98,17 +98,14 @@ class JsonObject {
 	std::string theKey{};
 	
 
-	struct JsonValue {
-		JsonValue& operator=(const JsonValue& other) noexcept;
-		JsonValue(const JsonValue& other) noexcept;
-		ValueType theType{};
-		ObjectType* object{};
-		ArrayType* array{};
-		StringType* string{};
-		BoolType boolean{};
-		IntType numberInt{};
-		UintType numberUint{};
-		FloatType numberDouble{};
+	union JsonValue {
+		ObjectType* object;
+		ArrayType* array;
+		StringType* string;
+		BoolType boolean;
+		IntType numberInt;
+		UintType numberUint;
+		FloatType numberDouble;
 		JsonValue() noexcept = default;
 
 		JsonValue& operator=(const char* theData) noexcept;
@@ -137,6 +134,8 @@ class JsonObject {
 		
 		JsonValue& operator=(bool theData) noexcept;
 
+		JsonValue& operator=(ValueType t) noexcept;
+
 		JsonValue(const char* theData) noexcept;
 
 		JsonValue(const std::string theData) noexcept;
@@ -164,10 +163,6 @@ class JsonObject {
 		JsonValue(bool theData) noexcept;
 
 		JsonValue(ValueType t) noexcept;
-
-		JsonValue& operator=(ValueType t) noexcept;
-
-		void destroy(ValueType t);
 	};
 
 	auto begin() {
