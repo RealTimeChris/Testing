@@ -296,9 +296,11 @@ class JsonObject {
 };
 
 struct JsonArray : public JsonObject {
-	JsonArray() noexcept = default; 
+	JsonArray() noexcept = default;
 	size_t size();
 	std::vector<JsonObject> theValues{};
+	ValueType theType{ ValueType::Object };
+	std::string theKey{};
 	auto begin() {
 		return this->theValues.begin();
 	}
