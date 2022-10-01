@@ -285,7 +285,7 @@ class JsonObject {
 
 	size_t size();
 
-	std::string getString(bool areWeStarting);
+	~JsonObject() noexcept;
 
 	operator std::string() noexcept;
 

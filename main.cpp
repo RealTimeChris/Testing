@@ -182,12 +182,12 @@ JsonObject::JsonValue::JsonValue(bool theData) noexcept {
 	*this = theData;
 }
 
-JsonObject::JsonValue::JsonValue(ValueType t) noexcept { 
-	*this = t;
+JsonObject::JsonValue::JsonValue(ValueType theType) noexcept { 
+	*this = theType;
 }
 
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(ValueType t) noexcept { 
-	switch (t) {
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(ValueType theType) noexcept { 
+	switch (theType) {
 		case ValueType::Object: {
 			this->theType = ValueType::Object;
 			this->object = create<ObjectType>();
@@ -259,9 +259,7 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	}
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
-	if (this->theKey == "") {
-		this->theKey = theKey.theKey;
-	}
+	this->theKey = theKey.theKey;
 	std::cout << "THE KEY: " << this->theKey << std::endl;
 	return *this;
 }
@@ -547,12 +545,14 @@ JsonObject::JsonObject(bool theData) noexcept {
 
 JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 	if (this->theKey == "") {
+		std::cout << "THE MISSING KEY 0101: " << theKey << std::endl;
 		this->theKey = theKey;
 		this->theType = ValueType::Object;
 		return *this;
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
 		return *this;
 	} else if (!this->theValues.contains(theKey)) {
+		std::cout << "THE MISSING KEY: " << theKey << std::endl;
 		this->theType = ValueType::Object;
 		this->theValues[theKey] = std::make_unique<JsonObject>();
 		this->theValues[theKey]->theKey = theKey;
@@ -646,70 +646,88 @@ JsonObject::operator std::string() noexcept {
 	return theString;
 }
 
-void JsonObject::JsonValue::destroy(ValueType t) {
-	if (t == ValueType::Array || t == ValueType::Object) {
-		/*
-		std::unordered_map<std::string, JsonObject> stack{};
-		if (t == ValueType::Array) {
-			stack.reserve(array->size());
-			std::move(array->begin(), array->end(), std::back_inserter(stack));
+JsonObject::JsonValue::JsonValue(const JsonObject::JsonValue& theData) noexcept {
+	*this = theData;
+}
+
+
+void JsonObject::clear() {
+	this->theValues.clear();
+}
+
+JsonObject::~JsonObject() noexcept {}
+
+void JsonObject::JsonValue::destroy(ValueType theType) {
+	if (theType == ValueType::Array || theType == ValueType::Object) {
+		std::vector<JsonValue> stack{};
+
+		if (theType == ValueType::Array) {
+			for (auto& [key, value]: this->array->theValues) {
+				stack.push_back(value->theValue);
+			}
 		} else {
-			stack.reserve(object->size());
-			for (auto&& it: *object) {
-				stack.emplace(std::move(*it.second));
+			for (auto&& it: this->object->theValues) {
+				stack.push_back(std::move(it.second->theValue));
 			}
 		}
 
 		while (!stack.empty()) {
-			JsonObject current_item(std::move(stack.end().operator*().second));
+			// move the last item to local variable to be processed
+			JsonValue current_item(std::move(stack.back()));
 			stack.pop_back();
 
-			if (current_item.theType == ValueType::Array) {
-				std::move(current_item.theValue.array->begin(), current_item.theValue.array->end(), std::back_inserter(stack));
-
-				current_item.theValue.array->clear();
-			} else if (current_item.theType == ValueType::Object) {
-				for (auto&& it: *current_item.theValue.object) {
-					stack.push_back(std::move(*it.second));
+			// if current_item is array/object, move
+			// its children to the stack to be processed later
+			if (current_item.theType==ValueType::Array) {
+				for (auto& [key, value]: current_item.array->theValues) {
+					stack.push_back(value->theValue);
 				}
 
-				current_item.theValue.object->clear();
+				current_item.array->clear();
+			} else if (current_item.theType==ValueType::Object) {
+				for (auto&& it: *current_item.object) {
+					stack.push_back(std::move(it.second->theValue));
+				}
+
+				current_item.object->clear();
 			}
-		}*/
-	}
 
-	switch (t) {
-		case ValueType::Object: {
-			AllocatorType<ObjectType> alloc;
-			std::allocator_traits<decltype(alloc)>::destroy(alloc, object);
-			std::allocator_traits<decltype(alloc)>::deallocate(alloc, object, 1);
-			break;
+			// it's now safe that current_item get destructed
+			// since it doesn't have any children
 		}
+		switch (theType) {
+			case ValueType::Object: {
+				AllocatorType<ObjectType> alloc{};
+				std::allocator_traits<decltype(alloc)>::destroy(alloc, this->object);
+				std::allocator_traits<decltype(alloc)>::deallocate(alloc, this->object, 1);
+				break;
+			}
 
-		case ValueType::Array: {
-			AllocatorType<ArrayType> alloc;
-			std::allocator_traits<decltype(alloc)>::destroy(alloc, array);
-			std::allocator_traits<decltype(alloc)>::deallocate(alloc, array, 1);
-			break;
-		}
+			case ValueType::Array: {
+				AllocatorType<ArrayType> alloc{};
+				std::allocator_traits<decltype(alloc)>::destroy(alloc, array);
+				std::allocator_traits<decltype(alloc)>::deallocate(alloc, array, 1);
+				break;
+			}
 
-		case ValueType::String: {
-			AllocatorType<StringType> alloc;
-			std::allocator_traits<decltype(alloc)>::destroy(alloc, string);
-			std::allocator_traits<decltype(alloc)>::deallocate(alloc, string, 1);
-			break;
-		}
-		default: {
-			break;
+			case ValueType::String: {
+				AllocatorType<StringType> alloc{};
+				std::allocator_traits<decltype(alloc)>::destroy(alloc, string);
+				std::allocator_traits<decltype(alloc)>::deallocate(alloc, string, 1);
+				break;
+			}
+			default: {
+				break;
+			}
 		}
 	}
 }
 
 void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		this->theValues[theKey] = std::make_unique<JsonObject>();
-		this->theValues[theKey]->theType = ValueType::Array;
+		this->theValues[theKey] = std::make_unique<JsonObject>(other);
 		this->theValues[theKey]->theKey = theKey;
+		this->theValues[theKey]->theValue = other;
 		size_t theSize = this->theValues[theKey]->theValues.size();
 		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
@@ -723,10 +741,8 @@ void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
 		this->theValues[theKey] = std::make_unique<JsonObject>();
 		this->theValues[theKey]->theType = ValueType::Array;
 		this->theValues[theKey]->theKey = theKey;
-		for (auto& [key, value]: other.theValues) {
-			std::cout << "THE KEY FINAL: " << key << std::endl;
-			this->theValues[theKey]->theValues[key] = std::move(value);
-		}
+		auto theSize = this->theValues[theKey]->theValues.size();
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(std::move(other));
 	} else {
 		for (auto& [key, value]: other.theValues) {
 			this->theValues[theKey]->theValues[key] = std::move(value);
@@ -914,7 +930,7 @@ public:
 	std::vector<std::string> theObjectVector{ "TESTING", "TESTING02" };
 	std ::unordered_map<std::string, std::string> theRoles{ { "TESTING", "TESTING02" }, { "TESTING23", "TESTING34" } };
 	std::string title{};///< Title of the embed.
-	std::string type{};///< Type of the embed.
+	std::string theType{};///< Type of the embed.
 	std::string url{};///< Url for the embed.
 
 	EmbedData() noexcept = default;
@@ -1014,7 +1030,7 @@ EmbedData::operator JsonObject() {
 	theData["timestamp"] = this->timestamp;
 	theData["title"] = this->title;
 	theData["color"] = realColorVal;
-	theData["type"] = this->type;
+	theData["theType"] = this->theType;
 	theData["url"] = this->url;
 	return theData;
 }
@@ -1042,14 +1058,14 @@ struct InteractionResponseData {
 	operator JsonObject();
 
 	InteractionCallbackData data{};///< Interaction ApplicationCommand callback data.
-	DiscordCoreAPI::InteractionCallbackType type{};///< Interaction callback type.
+	DiscordCoreAPI::InteractionCallbackType theType{};///< Interaction callback theType.
 };
 
 
 
 InteractionResponseData::operator JsonObject() {
 	JsonObject theData{ ValueType::Object };
-	theData["type"] = static_cast<uint8_t>(this->type);
+	theData["theType"] = static_cast<uint8_t>(this->theType);
 	if (this->data.attachments.size() > 0) {
 		for (auto& value : this->data.attachments) {
 			// theData["data"].pushBack("attachments", value );
@@ -1106,7 +1122,6 @@ InteractionResponseData::operator JsonObject() {
 WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{};
 	std::unordered_map<std::string, std::string> theMap{};
-	//theSerializer["d"];
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
@@ -1115,9 +1130,10 @@ WebSocketIdentifyData::operator JsonObject() {
 		if (value.url != "") {
 			theSerializer02["url"] = std::string{ value.url };
 		}
+		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		theSerializer02["name"] = "TESTING";
-		theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		theSerializer["d"].pushBack("activities", theSerializer02);
+		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
 	}
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
@@ -1152,7 +1168,7 @@ EditGuildApplicationCommandPermissionsData::operator JsonObject() {
 	for (auto& value : this->permissions) {
 
 
-		//newData["d"]["type"] = static_cast<uint8_t>(value.type);
+		//newData["d"]["theType"] = static_cast<uint8_t>(value.theType);
 		//auto theString = std::to_string(value.id);
 		//newData["d"]["id"] = theString;
 	}
