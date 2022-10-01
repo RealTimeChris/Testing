@@ -350,17 +350,29 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 
 JsonObject::operator std::string() noexcept {
 	std::string theString{};
-	if (this->theKey != "") {
-		theString += "\"" + this->theKey + "\":";
+	if (this->theType == ValueType::Object) {
+		if (this->areWeStarting) {
+			theString += "{\"" + this->theKey + "\":";
+			this->areWeStarting = false;
+		} else {
+			theString += "\"" + this->theKey + "\":{";
+		}
+		std::cout << "THE KEY IS: " << this->theKey << std::endl;
+	} else {
+		if (this->theKey != "") {
+			theString += "\"" + this->theKey + "\":";
+		}
 	}
+	
+	
 	switch (this->theType) {
 		case ValueType::Object: {
 			bool doWeAddComma{ false };
-			theString += "{";
 			for (auto& [key, valueNew]: this->theValues) {
 				if (doWeAddComma) {
 					theString += ",";
 				}
+				valueNew->areWeStarting = this->areWeStarting;
 				theString += *valueNew;
 				doWeAddComma = true;
 			}
@@ -374,6 +386,7 @@ JsonObject::operator std::string() noexcept {
 				if (doWeAddComma) {
 					theString += ",";
 				}
+				valueNew->areWeStarting = this->areWeStarting;
 				theString += *valueNew;
 				doWeAddComma = true;
 			}
