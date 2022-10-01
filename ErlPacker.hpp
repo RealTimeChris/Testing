@@ -37,8 +37,6 @@ enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4,
 
 struct JsonArray;
 
-struct JsonObject;
-
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
 
@@ -85,18 +83,15 @@ class JsonObject {
   public:
 
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
-	using ArrayType = JsonArray;
 	using StringType = std::string;
 	using ObjectType = JsonObject;
-	using BoolType = bool;
-	using IntType = int64_t;
+	using ArrayType = JsonArray;
 	using UintType = uint64_t;
 	using FloatType = double;
-
-	/// @brief a type for an array
-	/// @sa https://json.nlohmann.me/api/basic_json/ArrayType/
-	using ArrayType = JsonArray;
-	std::unordered_map<std::string, std::unique_ptr<JsonObject>> theValues{};
+	using IntType = int64_t;
+	using BoolType = bool;	
+	
+	std::unordered_map<std::string, std::unique_ptr<ObjectType>> theValues{};
 	ValueType theType{ ValueType::Object };
 	std::string theKey{};
 	struct JsonValue {
@@ -115,13 +110,13 @@ class JsonObject {
 			switch (t) {
 				case ValueType::Object: {
 					this->theType = ValueType::Object;
-					object = create<JsonObject>();
+					object = create<ObjectType>();
 					break;
 				}
 
 				case ValueType::Array: {
 					this->theType = ValueType::Array;
-					array = create<JsonArray>();
+					array = create<ArrayType>();
 					break;
 				}
 
