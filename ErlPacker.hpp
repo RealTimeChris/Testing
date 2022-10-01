@@ -223,8 +223,8 @@ class JsonObject {
 		*this = theData;
 	}
 
-	//JsonObject& operator=(EnumConverter theData) noexcept;
-	//JsonObject(EnumConverter) noexcept;
+	JsonObject& operator=(EnumConverter theData) noexcept;
+	JsonObject(EnumConverter) noexcept;
 
 	JsonObject& operator=(const JsonArray& theData) noexcept;
 	JsonObject(const JsonArray& theData) noexcept;

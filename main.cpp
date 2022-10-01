@@ -50,6 +50,15 @@ EnumConverter::~EnumConverter() {
 	}
 }
 
+JsonObject& JsonObject::operator=(EnumConverter theData) noexcept {
+	this->theValue = uint64_t{ theData };
+	return *this;
+}
+
+JsonObject::JsonObject(EnumConverter theData) noexcept {
+	*this = theData;
+}
+
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(const char* theData) noexcept {
 	this->string = JsonObject::create<StringType>();
 	*this->string = theData;
@@ -580,7 +589,6 @@ JsonObject::operator std::string() noexcept {
 	return theString;
 }
 
-
 void JsonObject::clear() {
 	this->theValues.clear();
 }
@@ -851,7 +859,7 @@ public:
 };
 
 EmbedFieldData::operator const JsonObject() {
-	JsonObject theData{ ValueType::Object };
+	JsonObject theData{};
 	theData["inline"] = this->Inline;
 	theData["value"] = this->value;
 	theData["name"] = this->name;
@@ -859,7 +867,7 @@ EmbedFieldData::operator const JsonObject() {
 }
 
 EmbedData::operator JsonObject() {
-	JsonObject theData{ ValueType::Object };
+	JsonObject theData{};
 	for (auto& value2 : this->fields) {
 		theData.pushBack("fields", value2);
 	}
@@ -925,7 +933,7 @@ struct InteractionResponseData {
 
 
 InteractionResponseData::operator JsonObject() {
-	JsonObject theData{ ValueType::Object };
+	JsonObject theData{};
 	theData["theType"] = static_cast<uint8_t>(this->theType);
 	if (this->data.attachments.size() > 0) {
 		for (auto& value : this->data.attachments) {
@@ -938,7 +946,7 @@ InteractionResponseData::operator JsonObject() {
 	theData["data"]["allowed_mentions"] = JsonObject{ this->data.allowedMentions.operator JsonObject() };
 	if (this->data.choices.size() > 0) {
 		for (auto& value : this->data.choices) {
-			JsonObject theValue{ ValueType::Object };
+			JsonObject theValue{};
 			theValue["name"] = value.name;
 			theValue["name_localizations"] = value.nameLocalizations;
 			switch (value.type) {
@@ -1019,7 +1027,7 @@ WebSocketIdentifyData::operator JsonObject() {
 
 }
 EditGuildApplicationCommandPermissionsData::operator JsonObject() {
-	JsonObject theData{ ValueType::Object };
+	JsonObject theData{};
 	theData["d"] = true;
 	theData["23"]["TESTty"]["TEST_TWO"] = true;
 	theData["23"]["TEST"] = true;
