@@ -166,7 +166,7 @@ JsonObject::JsonObject(const JsonValue& theKey) noexcept {
 
 JsonObject& JsonObject::operator=(const std::string theData) noexcept {
 	this->theType = ValueType::String;
-	*this = JsonValue{ ValueType::String };
+	this->theValue = JsonValue{ ValueType::String };
 	*this->theValue.string = theData;
 	return *this;
 }
@@ -472,12 +472,16 @@ void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 
 void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
 	if (!this->theValues.contains(theKey)) {
-		std::cout << "WERE HERE THIS IS IT!" << std::endl;
-		this->theValues[theKey] = std::make_unique<JsonArray>();
-		size_t theSize{ 0 };
+		std::cout << "WERE HERE THISIS IT!" << std::endl;
+		this->theValues[theKey] = std::make_unique<JsonObject>();
+		this->theValues[theKey]->theType = ValueType::Array;
+		this->theValues[theKey]->theKey = theKey;
+		size_t theSize = this->theValues[theKey]->theValues.size();
 		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	} else {
-		
+		std::cout << "WERE HERE THISIS IT! 0101" << std::endl;
+		size_t theSize = this->theValues[theKey]->theValues.size();
+		this->theValues[theKey]->theValues[std::to_string(theSize)] = std::make_unique<JsonObject>(other);
 	}
 };
 
@@ -865,7 +869,6 @@ WebSocketIdentifyData::operator JsonObject() {
 		theSerializer02["name"] = std::string{ value.name };
 		theSerializer02["type"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		theSerializer["d"].pushBack("activities", theSerializer02);
-		theSerializer["d"].pushBack("activities", theSerializer02);
 	}
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
@@ -916,6 +919,9 @@ int32_t main() noexcept {
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
+		DiscordCoreAPI::ActivityData theData{};
+		theData.name = "TESTING";
+		theDataBew.presence.activities.push_back(theData);
 		//std::string theString = JsonSerializer{}.getString(theDataBew);
 		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
 		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
