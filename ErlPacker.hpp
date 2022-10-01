@@ -98,8 +98,9 @@ class JsonObject {
 	
 
 	struct JsonValue {
-		JsonValue& operator=(const JsonValue& other) noexcept;
-		JsonValue(const JsonValue& other) noexcept;
+		JsonValue& operator=(const JsonValue& other);
+		JsonValue(const JsonValue& other);
+		ValueType theType{};
 		ObjectType* object{};
 		ArrayType* array{};
 		StringType* string{};
@@ -109,61 +110,127 @@ class JsonObject {
 		FloatType numberDouble{};
 		JsonValue() noexcept = default;
 
-		JsonValue& operator=(const char* theData) noexcept;
+		JsonValue(const char* theData) noexcept {
+			*this = ValueType::String;
+			*this->string = theData;
+		}
 
-		JsonValue& operator=(const std::string theData) noexcept;
-		
-		JsonValue& operator=(uint64_t theData) noexcept;
+		JsonValue(const std::string theData) noexcept {
+			*this = ValueType::String;
+			*this->string = theData;
+		}
 
-		JsonValue& operator=(uint32_t theData) noexcept;
+		JsonValue(uint64_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
 
-		JsonValue& operator=(uint16_t theData) noexcept;
+		JsonValue(uint32_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
 
-		JsonValue& operator=(uint8_t theData) noexcept;
-		
-		JsonValue& operator=(int64_t theData) noexcept;
-		
-		JsonValue& operator=(int32_t theData) noexcept;
-		
-		JsonValue& operator=(int16_t theData) noexcept;
-		
-		JsonValue& operator=(int8_t theData) noexcept;
-		
-		JsonValue& operator=(double theData) noexcept;
-		
-		JsonValue& operator=(float theData) noexcept;
-		
-		JsonValue& operator=(bool theData) noexcept;
+		JsonValue(uint16_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
 
-		JsonValue(const char* theData) noexcept;
+		JsonValue(uint8_t theData) noexcept {
+			*this = ValueType::Uint64;
+			this->numberUint = theData;
+		}
 
-		JsonValue(const std::string theData) noexcept;
+		JsonValue(int64_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
 
-		JsonValue(uint64_t theData) noexcept;
+		JsonValue(int32_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
 
-		JsonValue(uint32_t theData) noexcept;
+		JsonValue(int16_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
 
-		JsonValue(uint16_t theData) noexcept;
+		JsonValue(int8_t theData) noexcept {
+			*this = ValueType::Int64;
+			this->numberInt = theData;
+		}
 
-		JsonValue(uint8_t theData) noexcept;
+		JsonValue(double theData) noexcept {
+			*this = ValueType::Float;
+			this->numberDouble = theData;
+		}
 
-		JsonValue(int64_t theData) noexcept;
+		JsonValue(float theData) noexcept {
+			*this = ValueType::Float;
+			this->numberDouble = theData;
+		}
 
-		JsonValue(int32_t theData) noexcept;
+		JsonValue(bool theData) noexcept {
+			*this = ValueType::Bool;
+			this->boolean = theData;
+		}
 
-		JsonValue(int16_t theData) noexcept;
+		JsonValue(ValueType t) {
+			*this = t;
+		}
 
-		JsonValue(int8_t theData) noexcept;
+		JsonValue& operator=(ValueType t) {
+			switch (t) {
+				case ValueType::Object: {
+					this->theType = ValueType::Object;
+					object = create<ObjectType>();
+					break;
+				}
 
-		JsonValue(double theData) noexcept;
+				case ValueType::Array: {
+					this->theType = ValueType::Array;
+					array = create<ArrayType>();
+					break;
+				}
 
-		JsonValue(float theData) noexcept;
+				case ValueType::String: {
+					this->theType = ValueType::String;
+					string = create<StringType>("");
+					break;
+				}
 
-		JsonValue(bool theData) noexcept;
+				case ValueType::Bool: {
+					this->theType = ValueType::Bool;
+					boolean = static_cast<BoolType>(false);
+					break;
+				}
 
-		JsonValue(ValueType t) noexcept;
+				case ValueType::Int64: {
+					this->theType = ValueType::Int64;
+					numberInt = static_cast<IntType>(0);
+					break;
+				}
 
-		JsonValue& operator=(ValueType t) noexcept;
+				case ValueType::Uint64: {
+					this->theType = ValueType::Uint64;
+					numberUint = static_cast<UintType>(0);
+					break;
+				}
+
+				case ValueType::Float: {
+					this->theType = ValueType::Float;
+					numberDouble = static_cast<FloatType>(0.0);
+					break;
+				}
+
+				case ValueType::Null: {
+					this->theType = ValueType::Null;
+					object = nullptr;
+					break;
+				}
+			}
+			return *this;
+		}
 
 		void destroy(ValueType t);
 	};
