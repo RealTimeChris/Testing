@@ -52,16 +52,22 @@ EnumConverter::~EnumConverter() {
 
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(const JsonValue& other) {
 	std::cout << "THE KEY REAL: " << ( int32_t )other.theType << std::endl;
-	if (other.array) {
-		this->array = JsonObject::create<JsonArray>();
-		*this->array = *other.array;
-	}
-	else if (other.object) {
-		this->object = JsonObject::create<JsonObject>();
-		*this->object = *other.object;
-	} else if (other.string) {
-		this->string = JsonObject::create<StringType>();
-		*this->string = *other.string;
+	switch (other.theType) {
+		case ValueType::Array: {
+			this->array = JsonObject::create<JsonArray>();
+			*this->array = *other.array;
+			break;
+		}
+		case ValueType::Object: {
+			this->object = JsonObject::create<JsonObject>();
+			*this->object = *other.object;
+			break;
+		}
+		case ValueType::String: {
+			this->string = JsonObject::create<StringType>();
+			*this->string = *other.string;
+			break;
+		}
 	}
 	this->boolean = other.boolean;
 	this->numberDouble = other.numberDouble;
