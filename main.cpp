@@ -397,7 +397,12 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 		return *this;
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
 		std::cout << "WERE HERE THIS IS IT!0404: " << theKey << std::endl;
-		return *this;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		theObject.theValue = ValueType::Object;
+		this->theValue.object->emplace(theKey, theObject);
+		return this->theValue.object->at(theKey);
 	} else if (!this->theValue.object->contains(theKey)) {
 		std::cout << "WERE HERE THIS IS IT!0505: " << theKey << std::endl;
 		JsonObject theObject{};
@@ -517,13 +522,16 @@ std::string JsonObject::dump(const JsonObject& theData,std::string& theString, c
 
 JsonObject::operator std::string() noexcept {
 	std::string theString{};
-	if (this->theKey != "") {
+	
+	/* if (this->theKey != "") {
 		theString += "{\"" + this->theKey + "\":";
-	}
+	}*/
 	theString = this->dump(*this, theString, 0, 0);
+	/*
 	if (this->theKey != "") {
 		theString += "}";
 	}
+	*/
 	return theString;
 }
 
