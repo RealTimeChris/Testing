@@ -38,9 +38,6 @@ enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4,
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
 
-template<typename TheType>
-concept IsString = std::same_as<TheType, std::string>;
-
 struct EnumConverter {
 	template<IsEnum EnumType> EnumConverter(EnumType other) {
 		this->thePtr = new uint64_t{};
@@ -51,9 +48,9 @@ struct EnumConverter {
 
 	EnumConverter(EnumConverter&&) noexcept;
 
-	EnumConverter& operator=(EnumConverter&) noexcept = delete;
+	EnumConverter& operator=(EnumConverter&) noexcept;
 
-	EnumConverter(EnumConverter&) noexcept = delete;
+	EnumConverter(EnumConverter&) noexcept;
 
 	template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> other) {
 		this->thePtr = new std::vector<uint64_t>{};
@@ -74,43 +71,42 @@ struct EnumConverter {
 
 	~EnumConverter();
 
-  protected:
-	bool vectorType{ false };
 	void* thePtr{ nullptr };
+	bool vectorType{ false };
 };
 
 class JsonObject {
   public:
+	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
+	using StringType = std::string;
 	using ObjectType = std::map<std::string, JsonObject, std::less<>, std::allocator<std::pair<const std::string, JsonObject>>>;
 	using ArrayType = std::vector<JsonObject>;
-	using StringType = std::string;
 	using UintType = uint64_t;
 	using FloatType = double;
 	using IntType = int64_t;
 	using BoolType = bool;
+	std::string theString{};
 
+	void dump(const JsonObject& theData, std::string& theString);
+	JsonObject() noexcept = default;
 	ValueType theType{ ValueType::Null };
+	bool areWeStarting{ true };
+	bool areWeTopLevel{ true };
+	std::string theKey{};
 
 	union JsonValue {
-		FloatType numberDouble;
-		UintType numberUint;
 		ObjectType* object;
-		StringType* string;
-		IntType numberInt;
 		ArrayType* array;
+		StringType* string;
 		BoolType boolean;
-
-		JsonValue& operator=(JsonValue&&) noexcept = delete;
-
-		JsonValue(JsonValue&&) noexcept = delete;
-
-		JsonValue& operator=(const JsonValue&) noexcept = delete;
-
-		JsonValue(const JsonValue&) noexcept = delete;
-
-		JsonValue& operator=(const StringType theData) noexcept;
+		IntType numberInt;
+		UintType numberUint;
+		FloatType numberDouble;
+		JsonValue() noexcept = default;
 
 		JsonValue& operator=(const char* theData) noexcept;
+
+		JsonValue& operator=(const std::string theData) noexcept;
 
 		JsonValue& operator=(uint64_t theData) noexcept;
 
@@ -135,21 +131,54 @@ class JsonObject {
 		JsonValue& operator=(bool theData) noexcept;
 
 		JsonValue& operator=(ValueType t) noexcept;
-		JsonValue(ValueType t) noexcept;
 
-		void destroy(ValueType theType);
+		JsonValue(const char* theData) noexcept;
+
+		JsonValue(const std::string theData) noexcept;
+
+		JsonValue(uint64_t theData) noexcept;
+
+		JsonValue(uint32_t theData) noexcept;
+
+		JsonValue(uint16_t theData) noexcept;
+
+		JsonValue(uint8_t theData) noexcept;
+
+		JsonValue(int64_t theData) noexcept;
+
+		JsonValue(int32_t theData) noexcept;
+
+		JsonValue(int16_t theData) noexcept;
+
+		JsonValue(int8_t theData) noexcept;
+
+		JsonValue(double theData) noexcept;
+
+		JsonValue(float theData) noexcept;
+
+		JsonValue(bool theData) noexcept;
+
+		JsonValue(ValueType t) noexcept;
 	};
 
-	JsonValue theValue{ ValueType::Null };
+	JsonValue theValue;
 
-	JsonObject() noexcept = default;
+	template<typename ObjectType, typename... Args> static ObjectType* create(Args&&... args) {
+		std::allocator<ObjectType> allocator{};
 
+		auto deleter = [&](ObjectType* obj) {
+			std::allocator_traits<AllocatorType<ObjectType>>::deallocate(allocator, obj, 1);
+		};
+		std::unique_ptr<ObjectType, decltype(deleter)> object(std::allocator_traits<AllocatorType<ObjectType>>::allocate(allocator, 1), deleter);
+		std::allocator_traits<AllocatorType<ObjectType>>::construct(allocator, object.get(), std::forward<Args>(args)...);
+		return object.release();
+	}
+	/*
 	template<typename ObjectType> JsonObject& operator=(std::vector<ObjectType> theData) noexcept {
 		this->theType = ValueType::Array;
 		int32_t theIndex{};
 		for (auto& value: theData) {
-			this->theValue = ValueType::Array;
-			this->theValue.array->push_back(JsonObject{ value });
+			this->theValues[std::to_string(theIndex)] = std::make_unique<JsonObject>(value);
 			theIndex++;
 		}
 		return *this;
@@ -159,21 +188,26 @@ class JsonObject {
 		*this = theData;
 	}
 
-	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(std::unordered_map<KeyType, ObjectType> theData) noexcept {
+	template<typename KeyType, typename ObjectType> JsonObject& operator=(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		int32_t theIndex{};
 		this->theType = ValueType::Array;
 
 		for (auto& [key, value]: theData) {
-			this->theValue = ValueType::Object;
-			this->theValue.object->at(key) = JsonObject{ value };
+			this->theValues[key] = std::make_unique<JsonObject>();
+			this->theValues[key]->theType = ValueType::Object;
+			this->theValues[key]->theValues[key] = std::make_unique<JsonObject>(value);
+			this->theValues[key]->theValues[key]->theType = ValueType::String;
+			this->theValues[key]->theValues[key]->theKey = key;
 		}
 		theIndex++;
 		return *this;
 	}
-
-	template<IsString KeyType, IsString ObjectType> JsonObject(std::unordered_map<KeyType, ObjectType> theData) noexcept {
+	*/
+	template<typename KeyType, typename ObjectType> JsonObject(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
 	};
+
+	JsonObject(const char*, ValueType) noexcept;
 
 	JsonObject& operator=(EnumConverter theData) noexcept;
 	JsonObject(EnumConverter) noexcept;
@@ -181,11 +215,11 @@ class JsonObject {
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
 	JsonObject(const JsonObject& theKey) noexcept;
 
-	JsonObject& operator=(const StringType theData) noexcept;
-	JsonObject(const StringType) noexcept;
-
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
+
+	JsonObject& operator=(const std::string theData) noexcept;
+	JsonObject(const std::string) noexcept;
 
 	JsonObject& operator=(uint64_t theData) noexcept;
 	JsonObject(uint64_t) noexcept;
@@ -220,25 +254,16 @@ class JsonObject {
 	JsonObject& operator=(bool theData) noexcept;
 	JsonObject(bool) noexcept;
 
-	JsonObject(const char*, ValueType) noexcept;
-
-	JsonObject& operator=(ValueType) noexcept;
-
-	JsonObject& operator[](size_t idx) const;
 	JsonObject& operator[](size_t idx);
+	JsonObject& operator[](size_t idx) const;
 
-	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
+	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 
 	operator std::string() noexcept;
 
-	void dump(const JsonObject& theData, std::string& theString);
-
-	void pushBack(JsonObject other) noexcept;
-
-	~JsonObject() noexcept;
+	void pushBack(const char* theKey, JsonObject other) noexcept;
 };
-
 
 	struct ErlPackError : public std::runtime_error {
 	public:
