@@ -81,15 +81,17 @@ class JsonObject {
   public:
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
 	using StringType = std::string;
-	using ObjectType = JsonObject;
-	using ArrayType = JsonArray;
+	using ObjectType = std::map<std::string, JsonObject, std::less<>, std::allocator<std::pair<const std::string, JsonObject>>>;
+	using ArrayType = std::vector<JsonObject>;
 	using UintType = uint64_t;
 	using FloatType = double;
 	using IntType = int64_t;
 	using BoolType = bool;
+	std::string theString{};
 
-	std::unordered_map<std::string, std::unique_ptr<ObjectType>> theValues{};
-	ValueType theType{ ValueType::Object };
+	std::string dump(const JsonObject& theData, std::string& theString, const unsigned int indent_step, const unsigned int current_indent = 0);
+	JsonObject() noexcept = default;
+	ValueType theType{ ValueType::Null };
 	bool areWeStarting{ true };
 	bool areWeTopLevel{ true };
 	std::string theKey{};
@@ -161,13 +163,6 @@ class JsonObject {
 		JsonValue(ValueType t) noexcept;
 	};
 
-	auto begin() {
-		return this->theValues.begin();
-	}
-	auto end() {
-		return this->theValues.end();
-	}
-
 	JsonValue theValue;
 
 	template<typename ObjectType, typename... Args> static ObjectType* create(Args&&... args) {
@@ -180,11 +175,7 @@ class JsonObject {
 		std::allocator_traits<AllocatorType<ObjectType>>::construct(allocator, object.get(), std::forward<Args>(args)...);
 		return object.release();
 	}
-
-	JsonObject() noexcept = default;
-
-	void clear();
-
+	/*
 	template<typename ObjectType> JsonObject& operator=(std::vector<ObjectType> theData) noexcept {
 		this->theType = ValueType::Array;
 		int32_t theIndex{};
@@ -213,7 +204,7 @@ class JsonObject {
 		theIndex++;
 		return *this;
 	}
-
+	*/
 	template<typename KeyType, typename ObjectType> JsonObject(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
 	}
@@ -272,10 +263,6 @@ class JsonObject {
 
 	JsonObject& operator[](const char* theKey) noexcept;
 
-	size_t size();
-
-	~JsonObject() noexcept;
-
 	operator std::string() noexcept;
 
 	void pushBack(const char* theKey, std::string other) noexcept;
@@ -289,6 +276,52 @@ class JsonObject {
 	void pushBack(const char* theKey, int16_t other) noexcept;
 	void pushBack(const char* theKey, int8_t other) noexcept;
 };
+
+bool operator==(const JsonObject::JsonValue&lhs, const JsonObject::JsonValue&rhs) {
+	if (lhs.string && rhs.string) {
+		if (lhs.string == rhs.string) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (lhs.array && rhs.array) {
+		if (lhs.array== rhs.array) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (lhs.object && rhs.object) {
+		if (lhs.object == rhs.object) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (lhs.boolean && rhs.boolean) {
+		if (lhs.boolean == rhs.boolean) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (lhs.numberDouble && rhs.numberDouble) {
+		if (lhs.numberDouble == rhs.numberDouble) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (lhs.numberInt && rhs.numberInt) {
+		if (lhs.numberInt== rhs.numberInt) {
+			return true;
+		} else {
+			return false;
+		}
+	} else if (lhs.numberUint && rhs.numberUint) {
+		if (lhs.numberUint == rhs.numberUint) {
+			return true;
+		} else {
+			return false;
+		}
+	} 
+}
 
 class JsonArray : public JsonObject {
   public:
