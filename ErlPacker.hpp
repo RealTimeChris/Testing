@@ -35,8 +35,6 @@
 
 enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8, Unset = 9 };
 
-struct JsonArray;
-
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
 
@@ -207,20 +205,15 @@ class JsonObject {
 	*/
 	template<typename KeyType, typename ObjectType> JsonObject(std::unordered_map<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
-	}
+	};
+
+	JsonObject(const char*, ValueType) noexcept;
 
 	JsonObject& operator=(EnumConverter theData) noexcept;
 	JsonObject(EnumConverter) noexcept;
 
-	JsonObject& operator=(const JsonArray& theData) noexcept;
-	JsonObject(const JsonArray& theData) noexcept;
-
-	JsonObject(const JsonValue& theKey) noexcept;
-
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
 	JsonObject(const JsonObject& theKey) noexcept;
-
-	JsonObject(const char*, const JsonObject& theKey) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
@@ -323,11 +316,6 @@ bool operator==(const JsonObject::JsonValue&lhs, const JsonObject::JsonValue&rhs
 	} 
 }
 
-class JsonArray : public JsonObject {
-  public:
-	JsonArray() noexcept = default;
-	~JsonArray() noexcept = default;
-};
 	struct ErlPackError : public std::runtime_error {
 	public:
 		explicit ErlPackError(const std::string& message);

@@ -48,6 +48,12 @@ EnumConverter::~EnumConverter() {
 	}
 }
 
+JsonObject::JsonObject(const char*theKey, ValueType theType) noexcept {
+	this->theKey = theKey;
+	this->theType = theType;
+	this->theValue = this->theType;
+}
+
 JsonObject& JsonObject::operator=(EnumConverter theData) noexcept {
 	this->theValue = uint64_t{ theData };
 	this->theValue.numberUint = uint64_t{ theData };
@@ -226,47 +232,32 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(ValueType theType) noexc
 	return *this;
 }
 
-JsonObject& JsonObject::operator=(const JsonArray& theData) noexcept {
-	this->theString = theData.theString;
-	this->theValue = theData.theValue;
-	this->theType = theData.theType;
-	this->theKey = theData.theKey;
-	return *this;
-}
-
-JsonObject::JsonObject(const JsonArray& theData) noexcept {
-	*this = theData;
-}
-
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
+	this->theValue = theKey.theValue;
 	if (theKey.theType == ValueType::Object) {
-		this->theValue = ValueType::Object; 
+		this->theValue = ValueType::Object;
 		for (auto& [key, value]: *theKey.theValue.object) {
 			this->theValue.object->emplace(key, std::move(value));
 		}
-	} else if (theKey.theType == ValueType::Array) {
+	}
+	else if (theKey.theType == ValueType::Array) {
 		this->theValue = ValueType::Array;
 		for (auto& value: *theKey.theValue.array) {
 			this->theValue.array->emplace_back(std::move(value));
 		}
 	}
+	if (this->theType != ValueType::Object) {
+		this->theType = theKey.theType;
+	}
+	if (this->theKey == "") {
+		this->theKey = theKey.theKey;
+	}
 	this->theString = theKey.theString;
-	this->theValue = theKey.theValue;
-	this->theType = theKey.theType;
-	this->theKey = theKey.theKey;
 	return *this;
 }
 
 JsonObject::JsonObject(const JsonObject& theKey) noexcept {
 	*this = theKey;
-}
-
-JsonObject::JsonObject(const JsonObject::JsonValue& other) noexcept {
-	this->theValue = other;
-}
-
-JsonObject::JsonObject(const char* theKey, const JsonObject& theData) noexcept {
-	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
@@ -400,7 +391,7 @@ JsonObject::JsonObject(bool theData) noexcept {
 }
 
 JsonObject& JsonObject::operator[](const char* theKey) noexcept {
-	if (this->theKey == "" && this->theType == ValueType::Null) {
+	if (this->theKey == "" || this->theType != ValueType::Object) {
 		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
 		this->theKey = theKey;
 		this->theType = ValueType::Object;
@@ -649,7 +640,7 @@ struct WebSocketIdentifyData {
 };
 
 WebSocketIdentifyData::operator JsonObject() {
-	JsonObject theSerializer{};
+	JsonObject theSerializer{ "d", ValueType::Object };
 	std::unordered_map<std::string, std::string> theMap{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
