@@ -400,32 +400,44 @@ JsonObject::JsonObject(bool theData) noexcept {
 }
 
 JsonObject& JsonObject::operator[](const char* theKey) noexcept {
-	if (this->theKey == "") {
+	if (this->theKey == "" && this->theType == ValueType::Null) {
+		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
 		this->theKey = theKey;
-		std::cout << "THE OBJECT SIZE 0101: " << theKey<<std::endl; 
 		this->theType = ValueType::Object;
 		this->theValue = ValueType::Object;
-		if (!this->theValue.object->contains(theKey)) {
-			std::cout << "THE OBJECT SIZE 0202: " << theKey<<std::endl; 
-			this->theType = ValueType::Object;
-			this->theValue = ValueType::Object;
-			this->theValue.object->emplace(theKey, *this);
-			this->theValue.object->at(theKey).theKey = theKey;
-			return this->theValue.object->at(theKey);
-		} else if (this->theValue.object->contains(theKey)) {
-			std::cout << "THE OBJECT SIZE 0303: " << theKey<<std::endl; 
-			return *this;
-		}
 		return *this;
 	} else if (this->theKey == theKey && this->theType == ValueType::Object) {
-		std::cout << "THE OBJECT SIZE 0404: " << theKey<<std::endl; 
-		return *this;
-	}  else {
-		std::cout << "THE OBJECT SIZE 0505: " << theKey<<std::endl; 
-		this->theType = ValueType::Object;
-		this->theValue = ValueType::Object;
-		this->theKey = theKey;
-		return *this;
+		std::cout << "WERE HERE THIS IS IT!0404: " << theKey << std::endl;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		theObject.theValue = ValueType::Object;
+		this->theValue.object->emplace(theKey, theObject);
+		return this->theValue.object->at(theKey);
+	} else if (!this->theValue.object->contains(theKey)) {
+		std::cout << "WERE HERE THIS IS IT!0505: " << theKey << std::endl;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		theObject.theValue = ValueType::Object;
+		this->theValue.object->emplace(theKey, theObject);
+		return this->theValue.object->at(theKey);
+	} else if (this->theValue.object->contains(theKey)) {
+		std::cout << "WERE HERE THIS IS IT!: " << theKey << std::endl;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Null;
+		theObject.theValue = ValueType::Null;
+		this->theValue.object->emplace(theKey, theObject);
+		return this->theValue.object->at(theKey);
+	} else {
+		std::cout << "WERE HERE THIS IS IT!0303: " << theKey << std::endl;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Object;
+		theObject.theValue = ValueType::Object;
+		this->theValue.object->emplace(theKey, theObject);
+		return this->theValue.object->at(theKey);
 	}
 }
 
@@ -544,14 +556,12 @@ void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 }
 
 void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
-	if (this->theKey == "" || this->theType != ValueType::Array && other.theType == ValueType::Object) {
-		std::cout << "WERE HERE THIS IS IT!TWICE: " << theKey << std::endl;
+	if (this->theKey == "" || this->theType != ValueType::Array) {
+		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
 		this->theKey = theKey;
 		this->theType = ValueType::Array;
 		this->theValue = ValueType::Array;
-		for (auto& [key, value]: *other.theValue.object){
-			this->theValue.array->push_back(value);
-		}
+		this->theValue.array->push_back(other);
 	}
 };
 
@@ -650,9 +660,9 @@ WebSocketIdentifyData::operator JsonObject() {
 		if (value.url != "") {
 			theSerializer02["url"] = std::string{ value.url };
 		}
-		theSerializer02["url"]["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		theSerializer02["url"]["name"] = "TESTING";
-		theSerializer02["url"]["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer02["name"] = "TESTING";
+		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		//theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
 		theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
 	}
@@ -673,7 +683,7 @@ WebSocketIdentifyData::operator JsonObject() {
 	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
 	theSerializer["d"]["token"] = this->botToken;
 	
-	//theSerializer["op"] = static_cast<uint32_t>(2);
+	theSerializer["op"] = static_cast<uint32_t>(2);
 	
 	return theSerializer;
 
