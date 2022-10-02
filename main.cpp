@@ -239,6 +239,17 @@ JsonObject::JsonObject(const JsonArray& theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
+	if (theKey.theType == ValueType::Object) {
+		this->theValue = ValueType::Object; 
+		for (auto& [key, value]: *theKey.theValue.object) {
+			this->theValue.object->emplace(key, std::move(value));
+		}
+	} else if (theKey.theType == ValueType::Array) {
+		this->theValue = ValueType::Array;
+		for (auto& value: *theKey.theValue.array) {
+			this->theValue.array->emplace_back(std::move(value));
+		}
+	}
 	this->theString = theKey.theString;
 	this->theValue = theKey.theValue;
 	this->theType = theKey.theType;
@@ -545,9 +556,10 @@ void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 }
 
 void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
+	if (this->theKey == "" || this->theType != ValueType::Array) {
+		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
+		this->theKey = theKey;
+		this->theType = ValueType::Array;
 		this->theValue = ValueType::Array;
 		this->theValue.array->push_back(other);
 	}
@@ -644,15 +656,15 @@ WebSocketIdentifyData::operator JsonObject() {
 	
 	
 	for (auto& value : this->presence.activities) {
-		JsonObject theSerializer02{ "" };
+		JsonObject theSerializer02{};
 		if (value.url != "") {
 			theSerializer02["url"] = std::string{ value.url };
 		}
-		//theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		//theSerializer02["name"] = "TESTING";
-		//theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer02["name"] = "TESTING";
+		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		//theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
-		//theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
+		theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
 	}
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
