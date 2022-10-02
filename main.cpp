@@ -389,7 +389,7 @@ JsonObject::JsonObject(bool theData) noexcept {
 }
 
 JsonObject& JsonObject::operator[](const char* theKey) noexcept {
-	if (this->theKey == "") {
+	if (this->theKey == "" && this->theType == ValueType::Null) {
 		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
 		this->theKey = theKey;
 		this->theType = ValueType::Object;
@@ -408,9 +408,14 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 		return this->theValue.object->at(theKey);
 	} else if (this->theValue.object->contains(theKey)) {
 		std::cout << "WERE HERE THIS IS IT!: " << theKey << std::endl;
+		JsonObject theObject{};
+		theObject.theKey = theKey;
+		theObject.theType = ValueType::Null;
+		theObject.theValue = ValueType::Null;
+		this->theValue.object->emplace(theKey, theObject);
 		return this->theValue.object->at(theKey);
 	} else {
-		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
+		std::cout << "WERE HERE THIS IS IT!0303: " << theKey << std::endl;
 		JsonObject theObject{};
 		theObject.theKey = theKey;
 		theObject.theType = ValueType::Object;
@@ -430,7 +435,7 @@ std::string JsonObject::dump(const JsonObject& theData,std::string& theString, c
 			}
 
 			theString += '{';
-			theString += "\"" + theData.theKey + "\":{";
+			//theString += "\"" + theData.theKey + "\":{";
 		
 			size_t theIndex{};
 			for (auto iterator = theData.theValue.object->cbegin(); iterator != theData.theValue.object->cend(); ++iterator) {
@@ -448,7 +453,7 @@ std::string JsonObject::dump(const JsonObject& theData,std::string& theString, c
 			std::cout << "THE STRING: " << theString << std::endl;
 			std::cout << "THE STRING: " << theString << std::endl;
 			theString += '}';
-			theString += '}';
+			//theString += '}';
 			break;
 			} case ValueType::Array: {
 			if (theData.theValue.array->empty()) {
@@ -512,7 +517,13 @@ std::string JsonObject::dump(const JsonObject& theData,std::string& theString, c
 
 JsonObject::operator std::string() noexcept {
 	std::string theString{};
+	if (this->theKey != "") {
+		theString += "{\"" + this->theKey + "\":";
+	}
 	theString = this->dump(*this, theString, 0, 0);
+	if (this->theKey != "") {
+		theString += "}";
+	}
 	return theString;
 }
 
@@ -641,19 +652,18 @@ WebSocketIdentifyData::operator JsonObject() {
 	}
 	
 	theSerializer["d"]["status"] = this->presence.status;
-	//theSerializer["d"]["properties"] = "DiscordCoreAPI";
-	//theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-	//theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
 #ifdef _WIN32
-	//theSerializer["d"]["properties"]["os"] = "Windows";
+	theSerializer["d"]["properties"]["os"] = "Windows";
 #else
 	theSerializer["d"]["properties"]["os"] = "Linux";
 #endif
 	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
 	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
-	//theSerializer["d"]["token"] = this->botToken;
+	theSerializer["d"]["token"] = this->botToken;
 	
-	//theSerializer["op"] = static_cast<uint32_t>(2);
+	theSerializer["op"] = static_cast<uint32_t>(2);
 	
 	return theSerializer;
 
