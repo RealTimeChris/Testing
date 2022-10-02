@@ -87,7 +87,7 @@ class JsonObject {
 	using BoolType = bool;
 	std::string theString{};
 
-	std::string dump(const JsonObject& theData, std::string& theString, const unsigned int indent_step, const unsigned int current_indent = 0);
+	void dump(const JsonObject& theData, std::string& theString);
 	JsonObject() noexcept = default;
 	ValueType theType{ ValueType::Null };
 	bool areWeStarting{ true };
@@ -262,63 +262,8 @@ class JsonObject {
 
 	operator std::string() noexcept;
 
-	void pushBack(const char* theKey, std::string other) noexcept;
 	void pushBack(const char* theKey, JsonObject other) noexcept;
-	void pushBack(const char* theKey, uint64_t other) noexcept;
-	void pushBack(const char* theKey, uint32_t other) noexcept;
-	void pushBack(const char* theKey, uint16_t other) noexcept;
-	void pushBack(const char* theKey, uint8_t other) noexcept;
-	void pushBack(const char* theKey, int64_t other) noexcept;
-	void pushBack(const char* theKey, int32_t other) noexcept;
-	void pushBack(const char* theKey, int16_t other) noexcept;
-	void pushBack(const char* theKey, int8_t other) noexcept;
 };
-
-bool operator==(const JsonObject::JsonValue&lhs, const JsonObject::JsonValue&rhs) {
-	if (lhs.string && rhs.string) {
-		if (lhs.string == rhs.string) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (lhs.array && rhs.array) {
-		if (lhs.array== rhs.array) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (lhs.object && rhs.object) {
-		if (lhs.object == rhs.object) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (lhs.boolean && rhs.boolean) {
-		if (lhs.boolean == rhs.boolean) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (lhs.numberDouble && rhs.numberDouble) {
-		if (lhs.numberDouble == rhs.numberDouble) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (lhs.numberInt && rhs.numberInt) {
-		if (lhs.numberInt== rhs.numberInt) {
-			return true;
-		} else {
-			return false;
-		}
-	} else if (lhs.numberUint && rhs.numberUint) {
-		if (lhs.numberUint == rhs.numberUint) {
-			return true;
-		} else {
-			return false;
-		}
-	} 
-}
 
 	struct ErlPackError : public std::runtime_error {
 	public:

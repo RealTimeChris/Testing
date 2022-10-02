@@ -403,7 +403,6 @@ JsonObject& JsonObject::operator[](size_t index) {
 
 		return this->theValue.array->operator[](index);
 	}
-	
 }
 
 JsonObject& JsonObject::operator[](size_t index) const {
@@ -411,57 +410,45 @@ JsonObject& JsonObject::operator[](size_t index) const {
 }
 
 JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
-	// implicitly convert null value to an empty object
-	if (this->theType==ValueType::Null) {
+	if (this->theType == ValueType::Null) {
 		this->theType = ValueType::Object;
 		this->theValue = ValueType::Object;
 	}
 
-	// operator[] only works for objects
 	if (this->theType==ValueType::Object) {
-		std::cout << "WERE HERE THIS IS IT!" << std::endl;
 		auto result = this->theValue.object->emplace(std::move(key), JsonObject{});
 		return result.first->second;
 	}
 }
-JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
 
-	// operator[] only works for objects
+JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(std::move(key), nullptr);
+		auto result = this->theValue.object->emplace(key, nullptr);
 		return result.first->second;
 	}
 }
 
-std::string JsonObject::dump(const JsonObject& theData,std::string& theString, const unsigned int indentationLevel, const unsigned int current_indent) {
+void JsonObject::dump(const JsonObject& theData,std::string& theString) {
 	switch (theData.theType) {
 		case ValueType::Object: {
-			std::cout << "THE OBJECT SIZE: " << theData.theValue.object->size() << std::endl; 
 			if (theData.theValue.object->empty()) {
-				
 				theString += "{}";
 			}
 
 			theString += '{';
-			//theString += "\"" + theData.theKey + "\":{";
 		
 			size_t theIndex{};
 			for (auto iterator = theData.theValue.object->cbegin(); iterator != theData.theValue.object->cend(); ++iterator) {
 				theString += '\"';
 				theString += iterator->first;
 				theString += "\":";
-				dump(iterator->second, theString, indentationLevel, current_indent);
+				dump(iterator->second, theString);
 				if (theIndex < theData.theValue.object->size() - 1) {
 					theString += ',';
 				}
-					
-				std::cout << "THE STRING: " << theString << std::endl;
 				theIndex++;
 			}
-			std::cout << "THE STRING: " << theString << std::endl;
-			std::cout << "THE STRING: " << theString << std::endl;
 			theString += '}';
-			//theString += '}';
 			break;
 			} case ValueType::Array: {
 			if (theData.theValue.array->empty()) {
@@ -470,21 +457,16 @@ std::string JsonObject::dump(const JsonObject& theData,std::string& theString, c
 			}
 
 			theString += '[';
-
-			// first n-1 elements
+			
 			for (auto iterator = theData.theValue.array->cbegin(); iterator != theData.theValue.array->cend() - 1; ++iterator) {
-				dump(*iterator, theString, current_indent);
+				dump(*iterator, theString);
 				theString += ',';
 			}
 
-			// last element
-			assert(!theData.theValue.array->empty());
-			dump(theData.theValue.array->back(), theString, indentationLevel, current_indent);
+			dump(theData.theValue.array->back(), theString);
 
 			theString += ']';
 			break;
-
-			
 		}
 
 		case ValueType::String:{
@@ -520,127 +502,33 @@ std::string JsonObject::dump(const JsonObject& theData,std::string& theString, c
 			break;
 		}
 	}
-	return theString;
+	return;
 }
 
 JsonObject::operator std::string() noexcept {
 	std::string theString{};
-	
-	/* if (this->theKey != "") {
-		theString += "{\"" + this->theKey + "\":";
-	}*/
-	theString = this->dump(*this, theString, 0, 0);
-	/*
-	if (this->theKey != "") {
-		theString += "}";
-	}
-	*/
+	this->dump(*this, theString);
 	return theString;
 }
 
-void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
 void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
-	if (this->theKey == "") {
-		this->theKey = theKey;
+	if (this->theType == ValueType::Null) {
 		this->theType = ValueType::Array;
 		this->theValue = ValueType::Array;
-		if (other.theType == ValueType::Object) {
-			for (auto& [key, value]: *other.theValue.object) {
-				this->theValue.array->push_back(value);
-			}
-		}
-	} else {
-		this->theType = ValueType::Object;
-		this->theValue = ValueType::Object;
+	} else if (this->theType == ValueType::Object) {
 		this->theValue.object->emplace(theKey, ValueType::Array);
-		this->theValue.object->at(theKey).theValue = ValueType::Array;
-		this->theValue.object->at(theKey).theKey = theKey;
-		this->theKey = theKey;
-		other.theKey = theKey;
-		std::cout << "WERE HERE THIS IS IT!TWICE TWICE: " << theKey << std::endl;
-		this->theValue.object->at(theKey).theValue.array->push_back(other.theValue.object);
+		this->theValue.object->at(theKey).theValue.array->push_back(other);
+	}
+
+	if (this->theType == ValueType::Array) {
+		size_t index = this->theValue.array->size();
+		if (index >= this->theValue.array->size()) {
+			this->theValue.array->resize(index + 1);
+		}
+
+		this->theValue.array->operator[](index) = other;
 	}
 };
-
-void JsonObject::pushBack(const char* theKey, uint64_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, uint32_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, uint16_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, uint8_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, int64_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, int32_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, int16_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
-
-void JsonObject::pushBack(const char* theKey, int8_t other) noexcept {
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->push_back(other);
-	} else {
-		this->theValue = ValueType::Array;
-		this->theValue.array->push_back(other);
-	}
-}
 
 struct WebSocketIdentifyData {
 	DiscordCoreInternal::UpdatePresenceData presence{};
@@ -659,7 +547,7 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
-	JsonObject theSerializer01{ "activities", ValueType::Array };
+	JsonObject theSerializer01{};
 	for (auto& value : this->presence.activities) {
 		JsonObject theSerializer02{ };
 		if (value.url != "") {
@@ -668,9 +556,9 @@ WebSocketIdentifyData::operator JsonObject() {
 		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		theSerializer02["name"] = "TESTING";
 		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		theSerializer01["activities"][0] = theSerializer02;
+		theSerializer01.pushBack("activities", theSerializer02);
 	}
-	theSerializer["presences"] = theSerializer01;
+	theSerializer["d"]["presences"]["activities"] = theSerializer01;
 	
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
