@@ -254,7 +254,11 @@ class JsonObject {
 	JsonObject& operator=(bool theData) noexcept;
 	JsonObject(bool) noexcept;
 
-	JsonObject& operator[](const char* theKey) noexcept;
+	JsonObject& operator[](size_t idx);
+	JsonObject& operator[](size_t idx) const;
+
+	JsonObject& operator[](typename ObjectType::key_type key);
+	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 
 	operator std::string() noexcept;
 

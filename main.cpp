@@ -390,7 +390,7 @@ JsonObject::JsonObject(bool theData) noexcept {
 	*this = theData;
 }
 
-JsonObject& JsonObject::operator[](const char* theKey) noexcept {
+JsonObject& JsonObject::operator[](typename ObjectType::key_type theKey) noexcept {
 	if (this->theKey == "" || this->theType != ValueType::Object) {
 		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
 		this->theKey = theKey;
@@ -429,6 +429,36 @@ JsonObject& JsonObject::operator[](const char* theKey) noexcept {
 		theObject.theValue = ValueType::Object;
 		this->theValue.object->emplace(theKey, theObject);
 		return this->theValue.object->at(theKey);
+	}
+}
+
+JsonObject& JsonObject::operator[](size_t index) {
+	return this->theValue.array->operator[](index);
+}
+
+JsonObject& JsonObject::operator[](size_t index) const {
+	return this->theValue.array->operator[](index);
+}
+
+JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
+	// implicitly convert null value to an empty object
+	if (this->theType==ValueType::Null) {
+		this->theType = ValueType::Object;
+		this->theValue = ValueType::Object;
+	}
+
+	// operator[] only works for objects
+	if (this->theType==ValueType::Object) {
+		auto result = this->theValue.object->emplace(std::move(key), nullptr);
+		return result.first->second;
+	}
+}
+JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
+
+	// operator[] only works for objects
+	if (this->theType == ValueType::Object) {
+		auto result = this->theValue.object->emplace(std::move(key), nullptr);
+		return result.first->second;
 	}
 }
 
@@ -547,12 +577,22 @@ void JsonObject::pushBack(const char* theKey, std::string other) noexcept {
 }
 
 void JsonObject::pushBack(const char* theKey, JsonObject other) noexcept {
-	if (this->theKey == "" || this->theType != ValueType::Array) {
-		std::cout << "WERE HERE THIS IS IT!0202: " << theKey << std::endl;
+	if (this->theKey == "") {
 		this->theKey = theKey;
 		this->theType = ValueType::Array;
 		this->theValue = ValueType::Array;
 		this->theValue.array->push_back(other);
+	} else {
+		this->theType = ValueType::Array;
+		this->theValue = ValueType::Array;
+		this->theKey = theKey;
+		std::cout << "WERE HERE THIS IS IT!TWICE TWICE: " << theKey << std::endl;
+		if (other.theType == ValueType::Object) {
+			for (auto& [key, value]: *other.theValue.object) {
+				
+				this->theValue.array->push_back(value);
+			}
+		}
 	}
 };
 
@@ -654,7 +694,7 @@ WebSocketIdentifyData::operator JsonObject() {
 		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
 		theSerializer02["name"] = "TESTING";
 		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		//theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
+		theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
 		theSerializer["d"]["presences"].pushBack("activities", theSerializer02);
 	}
 	theSerializer["d"]["afk"] = this->presence.afk;
