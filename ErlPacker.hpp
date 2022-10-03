@@ -90,8 +90,7 @@ class JsonObject {
 	using BoolType = bool;
 
 	ValueType theType{ ValueType::Null };
-	mutable size_t currentlyUsedSpace{};
-	mutable StringType theString{};
+	StringType theString{};
 	StringType theKey{};
 
 	union JsonValue {
@@ -233,9 +232,9 @@ class JsonObject {
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
-	operator std::string_view() const noexcept;
+	operator std::string() noexcept;
 
-	operator std::string_view() noexcept;
+	operator std::string() const noexcept;
 
 	void pushBack(JsonObject other) noexcept;
 
