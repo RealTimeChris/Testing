@@ -268,134 +268,140 @@ class JsonObject {
 	~JsonObject() noexcept;
 };
 
-	struct ErlPackError : public std::runtime_error {
-	public:
-		explicit ErlPackError(const std::string& message);
-	};
+struct ErlPackError : public std::runtime_error {
+  public:
+	explicit ErlPackError(const String& message);
+};
 
-	constexpr uint8_t formatVersion{ 131 };
+constexpr Uint8 formatVersion{ 131 };
 
-	enum class ETFTokenType : uint8_t {
-		New_Float_Ext = 70,
-		Small_Integer_Ext = 97,
-		Integer_Ext = 98,
-		Float_Ext = 99,
-		Atom_Ext = 100,
-		Small_Tuple_Ext = 104,
-		Large_Tuple_Ext = 105,
-		Nil_Ext = 106,
-		String_Ext = 107,
-		List_Ext = 108,
-		Binary_Ext = 109,
-		Small_Big_Ext = 110,
-		Large_Big_Ext = 111,
-		Small_Atom_Ext = 115,
-		Map_Ext = 116,
-		Atom_Utf8_Ext = 118
-	};
+enum class ETFTokenType : Uint8 {
+	New_Float_Ext = 70,
+	Small_Integer_Ext = 97,
+	Integer_Ext = 98,
+	Float_Ext = 99,
+	Atom_Ext = 100,
+	Small_Tuple_Ext = 104,
+	Large_Tuple_Ext = 105,
+	Nil_Ext = 106,
+	String_Ext = 107,
+	List_Ext = 108,
+	Binary_Ext = 109,
+	Small_Big_Ext = 110,
+	Large_Big_Ext = 111,
+	Small_Atom_Ext = 115,
+	Map_Ext = 116,
+	Atom_Utf8_Ext = 118
+};
 
-	class ErlPacker {
-	public:
-		ErlPacker() noexcept {};
+class ErlPacker {
+  public:
+	ErlPacker() noexcept {};
 
-		std::string parseJsonToEtf(std::string&);
+	String parseJsonToEtf(String&& dataToParse);
 
-		std::string& parseEtfToJson(std::string_view dataToParse);
-		~ErlPacker() {};
-	protected:
-		std::string comparisongStringFalse{ "false" };
-		std::string comparisongStringNil{ "nil" };
-		std::string falseString{ "false" };
-		std::string nilString{ "nil" };
-		std::string bufferString{};
-		std::string_view buffer{};
-		uint64_t offSet{};
-		uint64_t size{};
+	String& parseEtfToJson(StringView dataToParse);
 
-		void singleValueJsonToETF(simdjson::ondemand::value jsonData);
+	~ErlPacker(){};
 
-		void writeString(simdjson::ondemand::value jsonData);
+  protected:
+	String comparisongStringFalse{ "false" };
+	String comparisongStringNil{ "nil" };
+	String falseString{ "false" };
+	String nilString{ "nil" };
+	String bufferString{};
+	StringView buffer{};
+	Uint64 offSet{};
+	Uint64 size{};
 
-		void writeNumber(simdjson::ondemand::value jsonData);
+	void singleValueJsonToETF(simdjson::ondemand::value jsonData);
 
-		void writeBool(simdjson::ondemand::value jsonData);
+	void writeObject(simdjson::ondemand::value jsonData);
 
-		void writeToBuffer(const std::string&);
+	void writeString(simdjson::ondemand::value jsonData);
 
-		void appendVersion();
+	void writeNumber(simdjson::ondemand::value jsonData);
 
-		void appendSmallIntegerExt(uint8_t);
+	void writeArray(simdjson::ondemand::value jsonData);
 
-		void appendIntegerExt(uint32_t);
+	void writeBool(simdjson::ondemand::value jsonData);
 
-		void appendNewFloatExt(double);
+	void writeToBuffer(const String&);
 
-		void appendNilExt();
+	void appendBinaryExt(const String&, Uint32);
 
-		void appendNil();
+	void appendUnsignedLongLong(Uint64);
 
-		void appendFalse();
+	void appendSmallIntegerExt(Uint8);
 
-		void appendTrue();
+	void appendIntegerExt(Uint32);
 
-		void appendUnsignedLongLong(uint64_t);
+	void appendListHeader(Uint32);
 
-		void appendBinaryExt(const std::string&, uint32_t);
+	void appendMapHeader(Uint32);
 
-		void appendListHeader(uint32_t);
+	void appendNewFloatExt(Double);
 
-		void appendMapHeader(uint32_t);
+	void appendVersion();
 
-		template<typename ReturnType> ReturnType readBits() {
-			if (this->offSet + sizeof(ReturnType) > this->size) {
-				throw ErlPackError{ "ErlPacker::readBits() Error: readBits() past end of the buffer.\n\n" };
-			}
-			const ReturnType newValue = *reinterpret_cast<const ReturnType*>(this->buffer.data() + this->offSet);
-			this->offSet += sizeof(ReturnType);
-			return DiscordCoreAPI::reverseByteOrder<const ReturnType>(newValue);
+	void appendNilExt();
+
+	void appendFalse();
+
+	void appendTrue();
+
+	void appendNil();
+
+	template<typename ReturnType> ReturnType readBits() {
+		if (this->offSet + sizeof(ReturnType) > this->size) {
+			throw ErlPackError{ "ErlPacker::readBits() Error: readBits() past end of the buffer.\n\n" };
 		}
+		const ReturnType newValue = *reinterpret_cast<const ReturnType*>(this->buffer.data() + this->offSet);
+		this->offSet += sizeof(ReturnType);
+		return reverseByteOrder<const ReturnType>(newValue);
+	}
 
-		const char* readString(uint32_t length);
+	Uint64 readString(Uint32 length);
 
-		std::string singleValueETFToJson();
+	String processAtom(const char* atom, Uint32 length);
 
-		std::string parseSmallIntegerExt();
+	String singleValueETFToJson();
 
-		std::string parseBigint(uint32_t);
+	String parseSmallIntegerExt();
 
-		std::string parseIntegerExt();
+	String parseBigint(Uint32);
 
-		std::string parseNewFloatExt();
+	String parseArray(Uint32);
 
-		std::string parseFloatExt();
+	String parseTuple(Uint32);
 
-		std::string processAtom(const char* atom, uint32_t length);
+	String parseSmallTupleExt();
 
-		std::string parseTuple(uint32_t);
+	String parseLargeTupleExt();
 
-		std::string parseSmallTupleExt();
+	String parseSmallAtomExt();
 
-		std::string parseLargeTupleExt();
+	String parseStringAsList();
 
-		std::string parseNilExt();
+	String parseNewFloatExt();
 
-		std::string parseStringAsList();
+	String parseSmallBigExt();
 
-		std::string parseListExt();
+	String parseLargeBigExt();
 
-		std::string parseBinaryExt();
+	String parseAtomUtf8Ext();
 
-		std::string parseSmallBigExt();
+	String parseIntegerExt();
 
-		std::string parseLargeBigExt();
+	String parseBinaryExt();
 
-		std::string parseArray(uint32_t);
+	String parseFloatExt();
 
-		std::string parseSmallAtomExt();
+	String parseListExt();
 
-		std::string parseMapExt();
+	String parseNilExt();
 
-		std::string parseAtomUtf8Ext();
-	};
+	String parseMapExt();
+};
 
 #endif // !ERL_PACKER
