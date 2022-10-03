@@ -428,162 +428,189 @@ JsonObject::~JsonObject() noexcept {
 	this->theValue.destroy(this->theType);
 }
 
-JsonObject::operator std::string() noexcept {
-	std::string theString{};
-	switch (this->theType) {
-		case ValueType::Object: {
-			if (this->theValue.object->empty()) {
-				theString += "{}";
-			}
-
-			theString += '{';
-
-			size_t theIndex{};
-			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += iterator->first;
-				theString += "\":";
-				theString += static_cast<std::string>(iterator->second);
-				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-			theString += '}';
-			break;
+void writeToString(const char* theData, size_t& currentlyUsedSpace, size_t theLength, std::string& theString) {
+	if (theString.size() < currentlyUsedSpace + theLength) {
+		if (theString.size() == 0) {
+			theString.resize(512);
 		}
-		case ValueType::Array: {
-			if (this->theValue.array->empty()) {
-				theString += "[]";
-				break;
-			}
-
-			theString += '[';
-
-			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += *iterator;
-				theString += ',';
-			}
-
-			theString += this->theValue.array->back();
-
-			theString += ']';
-			break;
-		}
-
-		case ValueType::String: {
-			theString += '\"';
-			theString += *this->theValue.string;
-			theString += '\"';
-			break;
-		}
-		case ValueType::Bool: {
-			std::stringstream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
-			break;
-		}
-		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
-			break;
-		}
-		case ValueType::Null: {
-			theString += "null";
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theString += "[]";
-			break;
-		}
+		theString.resize(theString.size() * 2);
 	}
-	return theString;
+	memcpy(theString.data() + currentlyUsedSpace, theData, theLength);
+	currentlyUsedSpace += theLength;
 }
 
-JsonObject::operator std::string() const noexcept {
-	std::string theString{};
+JsonObject::operator std::string_view() noexcept {
 	switch (this->theType) {
 		case ValueType::Object: {
 			if (this->theValue.object->empty()) {
-				theString += "{}";
+				writeToString("{}", this->currentlyUsedSpace, 2, this->theString);
 			}
-
-			theString += '{';
-
+			writeToString("{", this->currentlyUsedSpace, 1, this->theString);
 			size_t theIndex{};
 			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += iterator->first;
-				theString += "\":";
-				theString += static_cast<std::string>(iterator->second);
+				writeToString("\"", this->currentlyUsedSpace, 1, this->theString);
+				std::string_view theView = iterator->first;
+				writeToString(theView.data(), this->currentlyUsedSpace, theView.size(), this->theString);
+				writeToString("\":", this->currentlyUsedSpace, 2, this->theString);
+				auto theViewNew = static_cast<std::string_view>(iterator->second);
+				writeToString(theViewNew.data(), this->currentlyUsedSpace, theViewNew.size(), this->theString);
 				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
+					writeToString(",", this->currentlyUsedSpace, 1, this->theString);
 				}
 				theIndex++;
 			}
-			theString += '}';
+			writeToString("}", this->currentlyUsedSpace, 1, this->theString);
 			break;
 		}
 		case ValueType::Array: {
 			if (this->theValue.array->empty()) {
-				theString += "[]";
+				writeToString("[]", this->currentlyUsedSpace, 2, this->theString);
 				break;
 			}
 
-			theString += '[';
+			writeToString("[", this->currentlyUsedSpace, 1, this->theString);
 
 			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += *iterator;
-				theString += ',';
+				auto theString = std::string_view{ *iterator };
+				writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+				writeToString(",", this->currentlyUsedSpace, 1, this->theString);
 			}
 
-			theString += this->theValue.array->back();
+			auto theString = std::string_view{ this->theValue.array->back() };
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 
-			theString += ']';
+			writeToString("]", this->currentlyUsedSpace, 1, this->theString);
 			break;
 		}
 
 		case ValueType::String: {
-			theString += '\"';
-			theString += *this->theValue.string;
-			theString += '\"';
+			writeToString("\"", this->currentlyUsedSpace, 1, this->theString);
+			auto theString = *this->theValue.string;
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			writeToString("\"", this->currentlyUsedSpace, 1, this->theString);
 			break;
 		}
 		case ValueType::Bool: {
 			std::stringstream theStream{};
 			theStream << std::boolalpha << this->theValue.boolean;
 			theString += theStream.str();
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 			break;
 		}
 		case ValueType::Float: {
 			theString += std::to_string(this->theValue.numberDouble);
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 			break;
 		}
 		case ValueType::Uint64: {
 			theString += std::to_string(this->theValue.numberUint);
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 			break;
 		}
 		case ValueType::Int64: {
 			theString += std::to_string(this->theValue.numberInt);
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 			break;
 		}
 		case ValueType::Null: {
 			theString += "null";
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 			break;
 		}
 		case ValueType::Null_Ext: {
 			theString += "[]";
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
 			break;
 		}
 	}
-	return theString;
+	return std::string_view{ this->theString.data(), this->currentlyUsedSpace };
+}
+
+JsonObject::operator std::string_view() const noexcept {
+	switch (this->theType) {
+		case ValueType::Object: {
+			if (this->theValue.object->empty()) {
+				writeToString("{}", this->currentlyUsedSpace, 2, this->theString);
+			}
+			writeToString("{", this->currentlyUsedSpace, 1, this->theString);
+			size_t theIndex{};
+			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
+				writeToString("\"", this->currentlyUsedSpace, 1, this->theString);
+				std::string_view theView{ iterator->first };
+				writeToString(theView.data(), this->currentlyUsedSpace, theView.size(), this->theString);
+				writeToString("\":", this->currentlyUsedSpace, 2, this->theString);
+				auto theViewNew = static_cast<std::string_view>(iterator->second);
+				writeToString(theViewNew.data(), this->currentlyUsedSpace, theViewNew.size(), this->theString);
+				if (theIndex < this->theValue.object->size() - 1) {
+					writeToString(",", this->currentlyUsedSpace, 1, this->theString);
+				}
+				theIndex++;
+			}
+			writeToString("}", this->currentlyUsedSpace, 1, this->theString);
+			break;
+		}
+		case ValueType::Array: {
+			if (this->theValue.array->empty()) {
+				writeToString("[]", this->currentlyUsedSpace, 2, this->theString);
+				break;
+			}
+
+			writeToString("[", this->currentlyUsedSpace, 1, this->theString);
+
+			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
+				auto theString = std::string_view{ *iterator };
+				writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+				writeToString(",", this->currentlyUsedSpace, 1, this->theString);
+			}
+
+			auto theString = std::string_view{ this->theValue.array->back() };
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+
+			writeToString("]", this->currentlyUsedSpace, 1, this->theString);
+			break;
+		}
+
+		case ValueType::String: {
+			writeToString("\"", this->currentlyUsedSpace, 1, this->theString);
+			auto theString = *this->theValue.string;
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			writeToString("\"", this->currentlyUsedSpace, 1, this->theString);
+			break;
+		}
+		case ValueType::Bool: {
+			std::stringstream theStream{};
+			theStream << std::boolalpha << this->theValue.boolean;
+			theString += theStream.str();
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			break;
+		}
+		case ValueType::Float: {
+			theString += std::to_string(this->theValue.numberDouble);
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			break;
+		}
+		case ValueType::Uint64: {
+			theString += std::to_string(this->theValue.numberUint);
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			break;
+		}
+		case ValueType::Int64: {
+			theString += std::to_string(this->theValue.numberInt);
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			break;
+		}
+		case ValueType::Null: {
+			theString += "null";
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theString += "[]";
+			writeToString(theString.data(), this->currentlyUsedSpace, theString.size(), this->theString);
+			break;
+		}
+	}
+	return std::string_view{ this->theString.data(), this->currentlyUsedSpace };
 }
 
 struct WebSocketIdentifyData {
@@ -632,30 +659,102 @@ WebSocketIdentifyData::operator std::string() {
 	theSerializer["d"]["token"] = this->botToken;
 	
 	theSerializer["op"] = static_cast<uint32_t>(2);
-	
-	return theSerializer;
+	return std::string{ theSerializer };
 
+}
+
+struct WebSocketIdentifyDataTwo {
+	DiscordCoreInternal::UpdatePresenceData presence{};
+	int32_t largeThreshold{ 250 };
+	int32_t numberOfShards{};
+	int32_t currentShard{};
+	std::string botToken{};
+	int64_t intents{};
+
+	operator std::string();
+};
+
+WebSocketIdentifyDataTwo::operator std::string() {
+	nlohmann::json theSerializer{};
+	std::unordered_map<std::string, std::string> theMap{};
+	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
+
+	for (auto& value: this->presence.activities) {
+		nlohmann::json theSerializer02{};
+		if (value.url != "") {
+			theSerializer02["url"] = std::string{ value.url };
+		}
+		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer02["name"] = "TESTING";
+		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer["d"]["presence"]["activities"].push_back(theSerializer02);
+	}
+
+	theSerializer["d"]["afk"] = this->presence.afk;
+	if (this->presence.since != 0) {
+		theSerializer["since"] = this->presence.since;
+	}
+
+	theSerializer["d"]["status"] = this->presence.status;
+	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+#ifdef _WIN32
+	theSerializer["d"]["properties"]["os"] = "Windows";
+#else
+	theSerializer["d"]["properties"]["os"] = "Linux";
+#endif
+	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
+	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
+	theSerializer["d"]["token"] = this->botToken;
+
+	theSerializer["op"] = static_cast<uint32_t>(2);
+
+	return theSerializer.dump();
 }
 
 int32_t main() noexcept {
 	try {
+		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{ 1 } };
+		WebSocketIdentifyDataTwo theDataBewTwo{};
+		DiscordCoreAPI::ActivityData theData{};
+		std::vector<std::string> theResults01{};
+		theData.name = "TESTING";
+		theDataBewTwo.numberOfShards = 0;
+		theDataBewTwo.currentShard = 23;
+		theDataBewTwo.presence.activities.push_back(theData);
+		std::vector<std::string> theResults02{};
+		theStopWatch.resetTimer();
+		for (int32_t x = 0; x < 64 * 64; ++x) {
+			theResults01.push_back(theDataBewTwo);
+		}
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		DiscordCoreAPI::ActivityData theData{};
-		theData.name = "TESTING";
+
 		theDataBew.presence.activities.push_back(theData);
-		//std::string theString = JsonSerializer{}.getString(theDataBew);
-		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
+
+
+		theStopWatch.resetTimer();
+		for (int32_t x = 0; x < 64 * 64; ++x) {
+			theResults01.push_back(theDataBew);
+		}
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+
+
+		//std::string this->theString = JsonSerializer{}.getString(theDataBew);
+		//std::cout << "THE FINAL STRING: 0101 " << this->theString << std::endl;
 		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
 		std::string theString02 = std::string{ theDataBew };
 		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
 		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
-
 		std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
-	}
-	catch (...) { DiscordCoreAPI::reportException("main()"); };
+	} catch (...) {
+		DiscordCoreAPI::reportException("main()");
+	};
 
 	return 0;
 }
