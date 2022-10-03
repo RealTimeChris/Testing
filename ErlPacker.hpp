@@ -234,7 +234,7 @@ class JsonObject {
 
 	operator std::string() noexcept;
 
-	void dump(const JsonObject& theData, std::string& theString);
+	operator std::string() const noexcept;
 
 	void pushBack(JsonObject other) noexcept;
 
