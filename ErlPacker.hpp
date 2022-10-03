@@ -33,7 +33,7 @@
 #include <stdint.h>
 #include <set>
 
-enum class ValueType { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8, Unset = 9 };
+enum class ValueType : DiscordCoreAPI::Int8 { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8, Unset = 9 };
 
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
@@ -90,8 +90,6 @@ class JsonObject {
 	using BoolType = bool;
 
 	ValueType theType{ ValueType::Null };
-	StringType theString{};
-	StringType theKey{};
 
 	union JsonValue {
 		FloatType numberDouble;
@@ -110,7 +108,9 @@ class JsonObject {
 
 		JsonValue(const JsonValue&) noexcept = delete;
 
-		JsonValue& operator=(const StringType theData) noexcept;
+		JsonValue& operator=(const StringType& theData) noexcept;
+
+		JsonValue& operator=(StringType&& theData) noexcept;
 
 		JsonValue& operator=(const char* theData) noexcept;
 
@@ -183,8 +183,14 @@ class JsonObject {
 	JsonObject& operator=(const JsonObject& theKey) noexcept;
 	JsonObject(const JsonObject& theKey) noexcept;
 
-	JsonObject& operator=(const StringType theData) noexcept;
-	JsonObject(const StringType) noexcept;
+	JsonObject& operator=(JsonObject&& theKey) noexcept;
+	JsonObject(JsonObject&& theKey) noexcept;
+
+	JsonObject& operator=(const StringType& theData) noexcept;
+	JsonObject(const StringType&) noexcept;
+
+	JsonObject& operator=(StringType&& theData) noexcept;
+	JsonObject(StringType&&) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
@@ -235,8 +241,8 @@ class JsonObject {
 	operator std::string() noexcept;
 
 	operator std::string() const noexcept;
-
-	void pushBack(JsonObject other) noexcept;
+	void pushBack(JsonObject& other) noexcept;
+	void pushBack(JsonObject&& other) noexcept;
 
 	~JsonObject() noexcept;
 };

@@ -36,9 +36,15 @@ EnumConverter::~EnumConverter() {
 	}
 }
 
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(const StringType theData) noexcept {
-	*this = ValueType::String;
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(const StringType& theData) noexcept {
+	this->string = new StringType{};
 	*this->string = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(StringType&& theData) noexcept {
+	this->string = new StringType{};
+	*this->string = std::move(theData);
 	return *this;
 }
 
@@ -216,8 +222,6 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 			break;
 		}
 	}
-	this->theKey = theKey.theKey;
-	this->theString = theKey.theString;
 	this->theType = theKey.theType;
 	return *this;
 }
@@ -226,14 +230,76 @@ JsonObject::JsonObject(const JsonObject& theKey) noexcept {
 	*this = theKey;
 }
 
-JsonObject& JsonObject::operator=(const std::string theData) noexcept {
+JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
+	if (this->theType != ValueType::Null) {
+		this->theValue.destroy(this->theType);
+	}
+	switch (theKey.theType) {
+		case ValueType::Object: {
+			this->theValue = ValueType::Object;
+			for (auto& [key, value]: *theKey.theValue.object) {
+				this->theValue.object->emplace(key, std::move(value));
+			}
+			break;
+		}
+		case ValueType::Array: {
+			this->theValue = ValueType::Array;
+			for (auto& value: *theKey.theValue.array) {
+				this->theValue.array->emplace_back(std::move(value));
+			}
+			break;
+		}
+		case ValueType::String: {
+			this->theValue = ValueType::String;
+			*this->theValue.string = std::move(*theKey.theValue.string);
+			break;
+		}
+		case ValueType::Bool: {
+			this->theValue.boolean = theKey.theValue.boolean;
+			break;
+		}
+		case ValueType::Int64: {
+			this->theValue.numberInt = theKey.theValue.numberInt;
+			break;
+		}
+		case ValueType::Uint64: {
+			this->theValue.numberUint = theKey.theValue.numberUint;
+			break;
+		}
+		case ValueType::Float: {
+			this->theValue.numberDouble = theKey.theValue.numberDouble;
+			break;
+		}
+		case ValueType::Null: {
+			break;
+		}
+	}
+	this->theType = theKey.theType;
+	return *this;
+}
+
+JsonObject::JsonObject(JsonObject&& theKey) noexcept {
+	*this = std::move(theKey);
+}
+
+JsonObject& JsonObject::operator=(const std::string& theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::String;
 	return *this;
 }
 
-JsonObject::JsonObject(const std::string theData) noexcept {
+JsonObject::JsonObject(const std::string& theData) noexcept {
 	*this = theData;
+}
+
+JsonObject& JsonObject::operator=(std::string&& theData) noexcept {
+	this->theValue = std::move(theData);
+	this->theType = ValueType::String;
+	return *this;
+}
+
+JsonObject::JsonObject(std::string&& theData) noexcept {
+	*this = std::move(theData);
 }
 
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
@@ -357,7 +423,6 @@ JsonObject::JsonObject(bool theData) noexcept {
 }
 
 JsonObject::JsonObject(const char* theKey, ValueType theType) noexcept {
-	this->theKey = theKey;
 	this->theType = theType;
 	this->theValue = this->theType;
 }
@@ -409,18 +474,25 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
 }
 
-void JsonObject::pushBack(JsonObject other) noexcept {
+void JsonObject::pushBack(JsonObject& other) noexcept {
 	if (this->theType == ValueType::Null) {
 		this->theType = ValueType::Array;
 		this->theValue = ValueType::Array;
-		this->theKey = theKey;
-	} else if (this->theType == ValueType::Object) {
-		this->theValue.object->emplace(theKey, ValueType::Array);
-		this->theValue.object->at(theKey).theValue.array->emplace_back(other);
+	} 
+
+	if (this->theType == ValueType::Array) {
+		this->theValue.array->emplace_back(std::move(other));
+	}
+};
+
+void JsonObject::pushBack(JsonObject&& other) noexcept {
+	if (this->theType == ValueType::Null) {
+		this->theType = ValueType::Array;
+		this->theValue = ValueType::Array;
 	}
 
 	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(other);
+		this->theValue.array->emplace_back(std::move(other));
 	}
 };
 
@@ -441,9 +513,9 @@ JsonObject::operator std::string() noexcept {
 			size_t theIndex{};
 			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
 				theString += '\"';
-				theString += iterator->first;
+				theString += std::move(iterator->first);
 				theString += "\":";
-				theString += static_cast<std::string>(iterator->second);
+				theString += std::move(iterator->second);
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -461,7 +533,7 @@ JsonObject::operator std::string() noexcept {
 			theString += '[';
 
 			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += *iterator;
+				theString += std::move(*iterator);
 				theString += ',';
 			}
 
@@ -473,7 +545,7 @@ JsonObject::operator std::string() noexcept {
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += *this->theValue.string;
+			theString += std::move(*this->theValue.string);
 			theString += '\"';
 			break;
 		}
@@ -520,9 +592,9 @@ JsonObject::operator std::string() const noexcept {
 			size_t theIndex{};
 			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
 				theString += '\"';
-				theString += iterator->first;
+				theString += std::move(iterator->first);
 				theString += "\":";
-				theString += static_cast<std::string>(iterator->second);
+				theString += std::move(iterator->second);
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -540,7 +612,7 @@ JsonObject::operator std::string() const noexcept {
 			theString += '[';
 
 			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += *iterator;
+				theString += std::move(*iterator);
 				theString += ',';
 			}
 
@@ -552,7 +624,7 @@ JsonObject::operator std::string() const noexcept {
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += *this->theValue.string;
+			theString += std::move(*this->theValue.string);
 			theString += '\"';
 			break;
 		}
@@ -636,26 +708,98 @@ WebSocketIdentifyData::operator std::string() {
 	return theSerializer;
 
 }
+struct WebSocketIdentifyDataTwo {
+	DiscordCoreInternal::UpdatePresenceData presence{};
+	int32_t largeThreshold{ 250 };
+	int32_t numberOfShards{};
+	int32_t currentShard{};
+	std::string botToken{};
+	int64_t intents{};
+
+	operator std::string();
+};
+
+WebSocketIdentifyDataTwo::operator std::string() {
+	nlohmann::json theSerializer{};
+	std::unordered_map<std::string, std::string> theMap{};
+	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
+
+	for (auto& value: this->presence.activities) {
+		nlohmann::json theSerializer02{};
+		if (value.url != "") {
+			theSerializer02["url"] = std::string{ value.url };
+		}
+		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer02["name"] = "TESTING";
+		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
+		theSerializer["d"]["presence"]["activities"].push_back(theSerializer02);
+	}
+
+	theSerializer["d"]["afk"] = this->presence.afk;
+	if (this->presence.since != 0) {
+		theSerializer["since"] = this->presence.since;
+	}
+
+	theSerializer["d"]["status"] = this->presence.status;
+	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+#ifdef _WIN32
+	theSerializer["d"]["properties"]["os"] = "Windows";
+#else
+	theSerializer["d"]["properties"]["os"] = "Linux";
+#endif
+	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
+	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
+	theSerializer["d"]["token"] = this->botToken;
+
+	theSerializer["op"] = static_cast<uint32_t>(2);
+
+	return theSerializer.dump();
+}
 
 int32_t main() noexcept {
 	try {
+		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{ 1 } };
+		WebSocketIdentifyDataTwo theDataBewTwo{};
+		DiscordCoreAPI::ActivityData theData{};
+		std::vector<std::string> theResults01{};
+		theData.name = "TESTING";
+		theDataBewTwo.numberOfShards = 0;
+		theDataBewTwo.currentShard = 23;
+		theDataBewTwo.presence.activities.push_back(theData);
+		std::vector<std::string> theResults02{};
+		theStopWatch.resetTimer();
+		for (int32_t x = 0; x < 128 * 128; ++x) {
+			theResults01.push_back(theDataBewTwo);
+		}
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		DiscordCoreAPI::ActivityData theData{};
-		theData.name = "TESTING";
+
 		theDataBew.presence.activities.push_back(theData);
-		//std::string theString = JsonSerializer{}.getString(theDataBew);
-		//std::cout << "THE FINAL STRING: 0101 " << theString << std::endl;
+
+
+		theStopWatch.resetTimer();
+		for (int32_t x = 0; x < 128 * 128; ++x) {
+			theResults01.push_back(theDataBew);
+		}
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+
+
+		//std::string this->theString = JsonSerializer{}.getString(theDataBew);
+		//std::cout << "THE FINAL STRING: 0101 " << this->theString << std::endl;
 		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
 		std::string theString02 = std::string{ theDataBew };
 		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
 		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
-
 		std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
-	}
-	catch (...) { DiscordCoreAPI::reportException("main()"); };
+	} catch (...) {
+		DiscordCoreAPI::reportException("main()");
+	};
 
 	return 0;
 }
