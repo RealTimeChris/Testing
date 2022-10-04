@@ -515,7 +515,7 @@ JsonObject::operator String() noexcept {
 				theString += '\"';
 				theString += std::move(iterator->first);
 				theString += "\":";
-				theString += std::move(iterator->second);
+				theString += static_cast<std::string>(std::move(iterator->second));
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -533,11 +533,11 @@ JsonObject::operator String() noexcept {
 			theString += '[';
 
 			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += std::move(*iterator);
+				theString += static_cast<std::string>(std::move(*iterator));
 				theString += ',';
 			}
 
-			theString += this->theValue.array->back();
+			theString += static_cast<std::string>(this->theValue.array->back());
 
 			theString += ']';
 			break;
@@ -594,7 +594,7 @@ JsonObject::operator String() const noexcept {
 				theString += '\"';
 				theString += std::move(iterator->first);
 				theString += "\":";
-				theString += std::move(iterator->second);
+				theString += static_cast<std::string>(std::move(iterator->second));
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -612,11 +612,11 @@ JsonObject::operator String() const noexcept {
 			theString += '[';
 
 			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += std::move(*iterator);
+				theString += static_cast<std::string>(std::move(*iterator));
 				theString += ',';
 			}
 
-			theString += this->theValue.array->back();
+			theString += static_cast<std::string>(this->theValue.array->back());
 
 			theString += ']';
 			break;
@@ -666,10 +666,10 @@ struct WebSocketIdentifyData {
 	std::string botToken{};
 	int64_t intents{};
 
-	operator std::string();
+	operator JsonObject();
 };
 
-WebSocketIdentifyData::operator std::string() {
+WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{ "d", ValueType::Object };
 	std::unordered_map<std::string, std::string> theMap{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
@@ -762,6 +762,7 @@ int32_t main() noexcept {
 	try {
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{ 1 } };
 		WebSocketIdentifyDataTwo theDataBewTwo{};
+		ErlPacker thePacker{};
 		DiscordCoreAPI::ActivityData theData{};
 		std::vector<std::string> theResults01{};
 		theData.name = "TESTING";
@@ -778,13 +779,14 @@ int32_t main() noexcept {
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
+		std::cout << "THE RESULT: " << thePacker.parseJsonToEtf(theDataBew) << std::endl;
 
 		theDataBew.presence.activities.push_back(theData);
 
 
 		theStopWatch.resetTimer();
 		for (int32_t x = 0; x < 128 * 128; ++x) {
-			theResults01.push_back(theDataBew);
+			theResults01.push_back(std::string{ static_cast<std::string>(theDataBew.operator JsonObject()) });
 		}
 		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
 
@@ -792,7 +794,7 @@ int32_t main() noexcept {
 		//std::string this->theString = JsonSerializer{}.getString(theDataBew);
 		//std::cout << "THE FINAL STRING: 0101 " << this->theString << std::endl;
 		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
-		std::string theString02 = std::string{ theDataBew };
+		std::string theString02 = std::string{ static_cast<std::string>(theDataBew.operator JsonObject()) };
 		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
 		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
 		std::this_thread::sleep_for(std::chrono::seconds{ 3 });

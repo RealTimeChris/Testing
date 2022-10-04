@@ -259,9 +259,9 @@ class JsonObject {
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
-	operator String() noexcept;
+	explicit operator String() noexcept;
 
-	operator String() const noexcept;
+	explicit operator String() const noexcept;
 	void pushBack(JsonObject& other) noexcept;
 	void pushBack(JsonObject&& other) noexcept;
 
@@ -298,7 +298,7 @@ class ErlPacker {
   public:
 	ErlPacker() noexcept {};
 
-	String parseJsonToEtf(String&& dataToParse);
+	String& parseJsonToEtf(JsonObject&& dataToParse);
 
 	String& parseEtfToJson(StringView dataToParse);
 
@@ -314,17 +314,21 @@ class ErlPacker {
 	Uint64 offSet{};
 	Uint64 size{};
 
-	void singleValueJsonToETF(simdjson::ondemand::value jsonData);
+	void singleValueJsonToETF(JsonObject dataToParse);
 
-	void writeObject(simdjson::ondemand::value jsonData);
+	void writeObject(JsonObject::ObjectType jsonData);
 
-	void writeString(simdjson::ondemand::value jsonData);
+	void writeString(JsonObject::StringType jsonData);
 
-	void writeNumber(simdjson::ondemand::value jsonData);
+	void writeInt(JsonObject::IntType jsonData);
 
-	void writeArray(simdjson::ondemand::value jsonData);
+	void writeUint(JsonObject::UintType jsonData);
 
-	void writeBool(simdjson::ondemand::value jsonData);
+	void writeFloat(JsonObject::FloatType jsonData);
+
+	void writeArray(JsonObject::ArrayType jsonData);
+
+	void writeBool(JsonObject ::BoolType jsonData);
 
 	void writeToBuffer(const String&);
 
@@ -358,7 +362,7 @@ class ErlPacker {
 		}
 		const ReturnType newValue = *reinterpret_cast<const ReturnType*>(this->buffer.data() + this->offSet);
 		this->offSet += sizeof(ReturnType);
-		return reverseByteOrder<const ReturnType>(newValue);
+		return DiscordCoreAPI::reverseByteOrder<const ReturnType>(newValue);
 	}
 
 	Uint64 readString(Uint32 length);

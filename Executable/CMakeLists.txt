@@ -19,6 +19,8 @@ target_link_libraries(
 	DiscordCoreAPI::DiscordCoreAPI
 )
 
+target_sources("${PROJECT_NAME}" PUBLIC "${CMAKE_SOURCE_DIR}/ErlPacker.cpp")
+
 set_target_properties(
 	"${PROJECT_NAME}" PROPERTIES 
 	OUTPUT_NAME "${PROJECT_NAME}-Cpp"
