@@ -665,102 +665,8 @@ JsonObject::~JsonObject() noexcept {
 	this->theValue.destroy(this->theType);
 }
 
-void JsonSerializer::writeToString(const char*theStringNew, size_t theLength) {
-	if (this->theString.size() < theLength) {
-		this->theString.resize(this->theString.size() + theLength);
-	}
-	memcpy(this->theString.data() + this->currentlyUsedSpace, theStringNew, theLength);
-	this->currentlyUsedSpace += theLength;
-}
-
-void JsonSerializer::setFreshString(JsonObject& theObjectNew) {
-	this->theData = theObjectNew;
-	this->currentlyUsedSpace = 0;
-}
-
-
-
-StringView JsonSerializer::getString() {
-	switch (this->theType) {
-		case ValueType::Object: {
-			if (this->theValue.object->empty()) {
-				theString += "{}";
-			}
-
-			theString += '{';
-
-			Uint64 theIndex{};
-			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += iterator->first;
-				theString += "\":";
-				theString += iterator->second;
-				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-			theString += '}';
-			break;
-		}
-		case ValueType::Array: {
-			if (this->theValue.array->empty()) {
-				theString += "[]";
-				break;
-			}
-
-			theString += '[';
-
-			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += *iterator;
-				theString += ',';
-			}
-
-			theString += this->theValue.array->back();
-
-			theString += ']';
-			break;
-		}
-
-		case ValueType::String: {
-			theString += '\"';
-			theString += std::move(*this->theValue.string);
-			theString += '\"';
-			break;
-		}
-		case ValueType::Bool: {
-			std::stringstream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
-			break;
-		}
-		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
-			break;
-		}
-		case ValueType::Null: {
-			theString += "null";
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theString += "[]";
-			break;
-		}
-	}
-	return theString;
-}
-
 struct WebSocketIdentifyData {
 	DiscordCoreInternal::UpdatePresenceData presence{};
-	JsonSerializer theSerializer{};
 	int32_t largeThreshold{ 250 };
 	int32_t numberOfShards{};
 	int32_t currentShard{};
@@ -772,6 +678,7 @@ struct WebSocketIdentifyData {
 
 WebSocketIdentifyData::operator String() {
 	std::unordered_map<std::string, std::string> theMap{};
+	JsonObject theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
@@ -805,7 +712,7 @@ WebSocketIdentifyData::operator String() {
 	
 	theSerializer["op"] = static_cast<uint32_t>(2);
 	
-	return static_cast<String>(theSerializer.getString());
+	return static_cast<String>(theSerializer);
 
 }
 struct WebSocketIdentifyDataTwo {

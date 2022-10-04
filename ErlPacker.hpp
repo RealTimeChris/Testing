@@ -62,7 +62,7 @@ concept IsEnum = std::is_enum<TheType>::value;
 template<typename TheType>
 concept IsString = std::same_as<TheType, String>;
 
-struct EnumConverter {
+struct DiscordCoreAPI_Dll EnumConverter {
 	template<IsEnum EnumType> EnumConverter(EnumType other) {
 		this->thePtr = new Uint64{};
 		*static_cast<Uint64*>(this->thePtr) = static_cast<Uint64>(other);
@@ -100,7 +100,7 @@ struct EnumConverter {
 	void* thePtr{ nullptr };
 };
 
-class JsonObject {
+class DiscordCoreAPI_Dll JsonObject {
   public:
 	using ObjectType = std::map<String, JsonObject, std::less<>, std::allocator<std::pair<const String, JsonObject>>>;
 	using ArrayType = std::vector<JsonObject>;
@@ -112,7 +112,7 @@ class JsonObject {
 
 	ValueType theType{ ValueType::Null };
 
-	union JsonValue {
+	union DiscordCoreAPI_Dll JsonValue {
 		FloatType numberDouble;
 		UintType numberUint;
 		ObjectType* object;
@@ -267,20 +267,6 @@ class JsonObject {
 	~JsonObject() noexcept;
 };
 
-class JsonSerializer : public JsonObject {
-  public:
-	StringView getString();
-
-	void setFreshString(JsonObject&);
-
-  protected:
-	JsonObject& theData{ this->refObject };
-	size_t currentlyUsedSpace{};
-	std::string theString{};
-	JsonObject refObject{};
-	void writeToString(const char*, size_t theLength);
-
-};
 struct ErlPackError : public std::runtime_error {
   public:
 	explicit ErlPackError(const String& message);
@@ -311,7 +297,7 @@ class ErlPacker {
   public:
 	ErlPacker() noexcept {};
 
-	String& parseJsonToEtf(JsonObject&& dataToParse);
+	String& parseJsonToEtf(DiscordCoreAPI::JsonObject&& dataToParse);
 
 	String& parseEtfToJson(StringView dataToParse);
 
@@ -327,29 +313,29 @@ class ErlPacker {
 	Uint64 offSet{};
 	Uint64 size{};
 
-	void singleValueJsonToETF(JsonObject dataToParse);
+	void singleValueJsonToETF(DiscordCoreAPI::JsonObject&& dataToParse);
 
-	void writeObject(JsonObject::ObjectType jsonData);
+	void writeObject(DiscordCoreAPI::JsonObject::ObjectType&& jsonData);
 
-	void writeString(JsonObject::StringType jsonData);
+	void writeString(DiscordCoreAPI::JsonObject::StringType&& jsonData);
+
+	void writeInt(DiscordCoreAPI::JsonObject::IntType jsonData);
+
+	void writeUint(DiscordCoreAPI::JsonObject::UintType jsonData);
+
+	void writeFloat(DiscordCoreAPI::JsonObject::FloatType jsonData);
+
+	void writeArray(DiscordCoreAPI::JsonObject::ArrayType&& jsonData);
+
+	void writeBool(DiscordCoreAPI::JsonObject::BoolType jsonData);
 
 	void writeNullExt();
 
 	void writeNull();
 
-	void writeInt(JsonObject::IntType jsonData);
+	void writeToBuffer(String&&);
 
-	void writeUint(JsonObject::UintType jsonData);
-
-	void writeFloat(JsonObject::FloatType jsonData);
-
-	void writeArray(JsonObject::ArrayType jsonData);
-
-	void writeBool(JsonObject ::BoolType jsonData);
-
-	void writeToBuffer(const String&);
-
-	void appendBinaryExt(const String&, Uint32);
+	void appendBinaryExt(String&&, Uint32);
 
 	void appendUnsignedLongLong(Uint64);
 
