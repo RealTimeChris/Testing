@@ -201,17 +201,17 @@ class JsonObject {
 	JsonObject& operator=(EnumConverter theData) noexcept;
 	JsonObject(EnumConverter) noexcept;
 
-	JsonObject& operator=(const JsonObject& theKey) noexcept;
-	JsonObject(const JsonObject& theKey) noexcept;
-
 	JsonObject& operator=(JsonObject&& theKey) noexcept;
 	JsonObject(JsonObject&& theKey) noexcept;
 
-	JsonObject& operator=(const StringType& theData) noexcept;
-	JsonObject(const StringType&) noexcept;
+	JsonObject& operator=(const JsonObject& theKey) noexcept;
+	JsonObject(const JsonObject& theKey) noexcept;
 
 	JsonObject& operator=(StringType&& theData) noexcept;
 	JsonObject(StringType&&) noexcept;
+
+	JsonObject& operator=(const StringType& theData) noexcept;
+	JsonObject(const StringType&) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
 	JsonObject(const char* theData) noexcept;
@@ -249,8 +249,6 @@ class JsonObject {
 	JsonObject& operator=(Bool theData) noexcept;
 	JsonObject(Bool) noexcept;
 
-	JsonObject(const char*, ValueType) noexcept;
-
 	JsonObject& operator=(ValueType) noexcept;
 
 	JsonObject& operator[](Uint64 idx) const;
@@ -259,11 +257,12 @@ class JsonObject {
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
+	operator String() const noexcept;
+
 	operator String() noexcept;
 
-	operator String() const noexcept;
-	void pushBack(JsonObject& other) noexcept;
 	void pushBack(JsonObject&& other) noexcept;
+	void pushBack(JsonObject& other) noexcept;
 
 	~JsonObject() noexcept;
 };

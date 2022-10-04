@@ -142,6 +142,9 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(ValueType theType) noexc
 		case ValueType::Null: {
 			break;
 		}
+		default: {
+			break;
+		}
 	}
 	return *this;
 }
@@ -176,58 +179,6 @@ JsonObject& JsonObject::operator=(EnumConverter theData) noexcept {
 
 JsonObject::JsonObject(EnumConverter theData) noexcept {
 	*this = std::move(theData);
-}
-
-JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
-	if (this->theType != ValueType::Null) {
-		this->theValue.destroy(this->theType);
-	}
-	switch (theKey.theType) {
-		case ValueType::Object: {
-			this->theValue = ValueType::Object;
-			for (auto& [key, value]: *theKey.theValue.object) {
-				this->theValue.object->emplace(key, std::move(value));
-			}
-			break;
-		}
-		case ValueType::Array: {
-			this->theValue = ValueType::Array;
-			for (auto& value: *theKey.theValue.array) {
-				this->theValue.array->emplace_back(std::move(value));
-			}
-			break;
-		}
-		case ValueType::String: {
-			this->theValue = ValueType::String;
-			*this->theValue.string = *theKey.theValue.string;
-			break;
-		}
-		case ValueType::Bool: {
-			this->theValue.boolean = theKey.theValue.boolean;
-			break;
-		}
-		case ValueType::Int64: {
-			this->theValue.numberInt = theKey.theValue.numberInt;
-			break;
-		}
-		case ValueType::Uint64: {
-			this->theValue.numberUint = theKey.theValue.numberUint;
-			break;
-		}
-		case ValueType::Float: {
-			this->theValue.numberDouble = theKey.theValue.numberDouble;
-			break;
-		}
-		case ValueType::Null: {
-			break;
-		}
-	}
-	this->theType = theKey.theType;
-	return *this;
-}
-
-JsonObject::JsonObject(const JsonObject& theKey) noexcept {
-	*this = theKey;
 }
 
 JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
@@ -282,14 +233,59 @@ JsonObject::JsonObject(JsonObject&& theKey) noexcept {
 	*this = std::move(theKey);
 }
 
-JsonObject& JsonObject::operator=(const String& theData) noexcept {
-	this->theValue = theData;
-	this->theType = ValueType::String;
+JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
+	if (this->theType != ValueType::Null) {
+		this->theValue.destroy(this->theType);
+	}
+	switch (theKey.theType) {
+		case ValueType::Object: {
+			this->theValue = ValueType::Object;
+			for (auto& [key, value]: *theKey.theValue.object) {
+				this->theValue.object->emplace(key, std::move(value));
+			}
+			break;
+		}
+		case ValueType::Array: {
+			this->theValue = ValueType::Array;
+			for (auto& value: *theKey.theValue.array) {
+				this->theValue.array->emplace_back(std::move(value));
+			}
+			break;
+		}
+		case ValueType::String: {
+			this->theValue = ValueType::String;
+			*this->theValue.string = *theKey.theValue.string;
+			break;
+		}
+		case ValueType::Bool: {
+			this->theValue.boolean = theKey.theValue.boolean;
+			break;
+		}
+		case ValueType::Int64: {
+			this->theValue.numberInt = theKey.theValue.numberInt;
+			break;
+		}
+		case ValueType::Uint64: {
+			this->theValue.numberUint = theKey.theValue.numberUint;
+			break;
+		}
+		case ValueType::Float: {
+			this->theValue.numberDouble = theKey.theValue.numberDouble;
+			break;
+		}
+		case ValueType::Null: {
+			break;
+		}
+		default: {
+			break;
+		}
+	}
+	this->theType = theKey.theType;
 	return *this;
 }
 
-JsonObject::JsonObject(const String& theData) noexcept {
-	*this = theData;
+JsonObject::JsonObject(const JsonObject& theKey) noexcept {
+	*this = theKey;
 }
 
 JsonObject& JsonObject::operator=(String&& theData) noexcept {
@@ -300,6 +296,16 @@ JsonObject& JsonObject::operator=(String&& theData) noexcept {
 
 JsonObject::JsonObject(String&& theData) noexcept {
 	*this = std::move(theData);
+}
+
+JsonObject& JsonObject::operator=(const String& theData) noexcept {
+	this->theValue = theData;
+	this->theType = ValueType::String;
+	return *this;
+}
+
+JsonObject::JsonObject(const String& theData) noexcept {
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
@@ -422,11 +428,6 @@ JsonObject::JsonObject(Bool theData) noexcept {
 	*this = theData;
 }
 
-JsonObject::JsonObject(const char* theKey, ValueType theType) noexcept {
-	this->theType = theType;
-	this->theValue = this->theType;
-}
-
 JsonObject& JsonObject::operator=(ValueType theType) noexcept {
 	this->theValue = theType;
 	this->theType = theType;
@@ -474,17 +475,6 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
 }
 
-void JsonObject::pushBack(JsonObject& other) noexcept {
-	if (this->theType == ValueType::Null) {
-		this->theType = ValueType::Array;
-		this->theValue = ValueType::Array;
-	}
-
-	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(std::move(other));
-	}
-};
-
 void JsonObject::pushBack(JsonObject&& other) noexcept {
 	if (this->theType == ValueType::Null) {
 		this->theType = ValueType::Array;
@@ -494,89 +484,17 @@ void JsonObject::pushBack(JsonObject&& other) noexcept {
 	if (this->theType == ValueType::Array) {
 		this->theValue.array->emplace_back(std::move(other));
 	}
-};
-
-JsonObject::~JsonObject() noexcept {
-	this->theValue.destroy(this->theType);
 }
 
-JsonObject::operator String() noexcept {
-	String theString{};
-	switch (this->theType) {
-		case ValueType::Object: {
-			if (this->theValue.object->empty()) {
-				theString += "{}";
-			}
-
-			theString += '{';
-
-			Uint64 theIndex{};
-			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += std::move(iterator->first);
-				theString += "\":";
-				theString += static_cast<std::string>(std::move(iterator->second));
-				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-			theString += '}';
-			break;
-		}
-		case ValueType::Array: {
-			if (this->theValue.array->empty()) {
-				theString += "[]";
-				break;
-			}
-
-			theString += '[';
-
-			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += static_cast<std::string>(std::move(*iterator));
-				theString += ',';
-			}
-
-			theString += static_cast<std::string>(this->theValue.array->back());
-
-			theString += ']';
-			break;
-		}
-
-		case ValueType::String: {
-			theString += '\"';
-			theString += std::move(*this->theValue.string);
-			theString += '\"';
-			break;
-		}
-		case ValueType::Bool: {
-			std::stringstream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
-			break;
-		}
-		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
-			break;
-		}
-		case ValueType::Null: {
-			theString += "null";
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theString += "[]";
-			break;
-		}
+void JsonObject::pushBack(JsonObject& other) noexcept {
+	if (this->theType == ValueType::Null) {
+		this->theType = ValueType::Array;
+		this->theValue = ValueType::Array;
 	}
-	return theString;
+
+	if (this->theType == ValueType::Array) {
+		this->theValue.array->emplace_back(std::move(other));
+	}
 }
 
 JsonObject::operator String() const noexcept {
@@ -592,9 +510,9 @@ JsonObject::operator String() const noexcept {
 			Uint64 theIndex{};
 			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
 				theString += '\"';
-				theString += std::move(iterator->first);
+				theString += iterator->first;
 				theString += "\":";
-				theString += static_cast<std::string>(std::move(iterator->second));
+				theString += iterator->second;
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -612,11 +530,11 @@ JsonObject::operator String() const noexcept {
 			theString += '[';
 
 			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += static_cast<std::string>(std::move(*iterator));
+				theString += *iterator;
 				theString += ',';
 			}
 
-			theString += static_cast<std::string>(this->theValue.array->back());
+			theString += this->theValue.array->back();
 
 			theString += ']';
 			break;
@@ -656,6 +574,89 @@ JsonObject::operator String() const noexcept {
 		}
 	}
 	return theString;
+}
+
+JsonObject::operator String() noexcept {
+	String theString{};
+	switch (this->theType) {
+		case ValueType::Object: {
+			if (this->theValue.object->empty()) {
+				theString += "{}";
+			}
+
+			theString += '{';
+
+			Uint64 theIndex{};
+			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
+				theString += '\"';
+				theString += iterator->first;
+				theString += "\":";
+				theString += iterator->second;
+				if (theIndex < this->theValue.object->size() - 1) {
+					theString += ',';
+				}
+				theIndex++;
+			}
+			theString += '}';
+			break;
+		}
+		case ValueType::Array: {
+			if (this->theValue.array->empty()) {
+				theString += "[]";
+				break;
+			}
+
+			theString += '[';
+
+			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
+				theString += *iterator;
+				theString += ',';
+			}
+
+			theString += this->theValue.array->back();
+
+			theString += ']';
+			break;
+		}
+
+		case ValueType::String: {
+			theString += '\"';
+			theString += std::move(*this->theValue.string);
+			theString += '\"';
+			break;
+		}
+		case ValueType::Bool: {
+			std::stringstream theStream{};
+			theStream << std::boolalpha << this->theValue.boolean;
+			theString += theStream.str();
+			break;
+		}
+		case ValueType::Float: {
+			theString += std::to_string(this->theValue.numberDouble);
+			break;
+		}
+		case ValueType::Uint64: {
+			theString += std::to_string(this->theValue.numberUint);
+			break;
+		}
+		case ValueType::Int64: {
+			theString += std::to_string(this->theValue.numberInt);
+			break;
+		}
+		case ValueType::Null: {
+			theString += "null";
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theString += "[]";
+			break;
+		}
+	}
+	return theString;
+}
+
+JsonObject::~JsonObject() noexcept {
+	this->theValue.destroy(this->theType);
 }
 
 struct WebSocketIdentifyData {
@@ -760,45 +761,19 @@ WebSocketIdentifyDataTwo::operator std::string() {
 
 int32_t main() noexcept {
 	try {
-		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{ 1 } };
-		WebSocketIdentifyDataTwo theDataBewTwo{};
 		ErlPacker thePacker{};
-		DiscordCoreAPI::ActivityData theData{};
-		std::vector<std::string> theResults01{};
-		theData.name = "TESTING";
-		theDataBewTwo.numberOfShards = 0;
-		theDataBewTwo.currentShard = 23;
-		theDataBewTwo.presence.activities.push_back(theData);
-		std::vector<std::string> theResults02{};
-		theStopWatch.resetTimer();
-		for (int32_t x = 0; x < 128 * 128; ++x) {
-			theResults01.push_back(theDataBewTwo);
-		}
-		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
-
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
+		DiscordCoreAPI::ActivityData theData{};
+		theData.name = "TESTING";
+		theDataBew.presence.activities.push_back(theData);
 		auto theResult = thePacker.parseJsonToEtf(theDataBew);
 		std::cout << "THE RESULT: " << theResult << std::endl;
-		std::cout << "THE RESULT: " << thePacker.parseEtfToJson(theResult) << std::endl;
-
-		theDataBew.presence.activities.push_back(theData);
-
-
-		theStopWatch.resetTimer();
-		for (int32_t x = 0; x < 128 * 128; ++x) {
-			theResults01.push_back(std::string{ static_cast<std::string>(theDataBew.operator JsonObject()) });
-		}
-		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
-
-
-		//std::string this->theString = JsonSerializer{}.getString(theDataBew);
-		//std::cout << "THE FINAL STRING: 0101 " << this->theString << std::endl;
-		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
-		std::string theString02 = std::string{ static_cast<std::string>(theDataBew.operator JsonObject()) };
-		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
-		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
+		theResult = thePacker.parseEtfToJson(theResult);
+		std::cout << "THE RESULT: " << thePacker.parseJsonToEtf(theResult) << std::endl;
+		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theResult).dump() << std::endl;
+		
 		std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
 	} catch (...) {
