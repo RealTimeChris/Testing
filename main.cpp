@@ -761,19 +761,45 @@ WebSocketIdentifyDataTwo::operator std::string() {
 
 int32_t main() noexcept {
 	try {
+		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{ 1 } };
+		WebSocketIdentifyDataTwo theDataBewTwo{};
 		ErlPacker thePacker{};
+		DiscordCoreAPI::ActivityData theData{};
+		std::vector<std::string> theResults01{};
+		theData.name = "TESTING";
+		theDataBewTwo.numberOfShards = 0;
+		theDataBewTwo.currentShard = 23;
+		theDataBewTwo.presence.activities.push_back(theData);
+		std::vector<std::string> theResults02{};
+		theStopWatch.resetTimer();
+		for (int32_t x = 0; x < 128 * 128; ++x) {
+			theResults01.push_back(theDataBewTwo);
+		}
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		DiscordCoreAPI::ActivityData theData{};
-		theData.name = "TESTING";
-		theDataBew.presence.activities.push_back(theData);
 		auto theResult = thePacker.parseJsonToEtf(theDataBew);
 		std::cout << "THE RESULT: " << theResult << std::endl;
-		theResult = thePacker.parseEtfToJson(theResult);
-		std::cout << "THE RESULT: " << thePacker.parseJsonToEtf(theResult) << std::endl;
-		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theResult).dump() << std::endl;
-		
+		std::cout << "THE RESULT: " << thePacker.parseEtfToJson(theResult) << std::endl;
+
+		theDataBew.presence.activities.push_back(theData);
+
+
+		theStopWatch.resetTimer();
+		for (int32_t x = 0; x < 128 * 128; ++x) {
+			theResults01.push_back(std::string{ static_cast<std::string>(theDataBew.operator JsonObject()) });
+		}
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+
+
+		//std::string this->theString = JsonSerializer{}.getString(theDataBew);
+		//std::cout << "THE FINAL STRING: 0101 " << this->theString << std::endl;
+		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
+		std::string theString02 = std::string{ static_cast<std::string>(theDataBew.operator JsonObject()) };
+		std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
+		std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
 		std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
 	} catch (...) {
