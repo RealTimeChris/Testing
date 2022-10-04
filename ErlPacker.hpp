@@ -267,6 +267,20 @@ class JsonObject {
 	~JsonObject() noexcept;
 };
 
+class JsonSerializer : public JsonObject {
+  public:
+	StringView getString();
+
+	void setFreshString(JsonObject&);
+
+  protected:
+	JsonObject& theData{ this->refObject };
+	size_t currentlyUsedSpace{};
+	std::string theString{};
+	JsonObject refObject{};
+	void writeToString(const char*, size_t theLength);
+
+};
 struct ErlPackError : public std::runtime_error {
   public:
 	explicit ErlPackError(const String& message);
