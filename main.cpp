@@ -671,7 +671,7 @@ struct WebSocketIdentifyData {
 };
 
 WebSocketIdentifyData::operator JsonObject() {
-	JsonObject theSerializer{ "d", ValueType::Object };
+	JsonObject theSerializer{};
 	std::unordered_map<std::string, std::string> theMap{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
