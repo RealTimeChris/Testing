@@ -60,46 +60,49 @@ void ErlPacker::singleValueJsonToETF(JsonObject jsonData) {
 	switch (jsonData.theType) {
 		case ValueType::Array: {
 			this->writeArray(*jsonData.theValue.array);
-			std::cout << "ARRAY TIME!" << std::endl;
 			break;
 		}
 		case ValueType::Object: {
 			this->writeObject(*jsonData.theValue.object);
-			std::cout << "OBJECT TIME!" << std::endl;
 			break;
 		}
 		case ValueType::Bool: {
 			this->writeBool(jsonData.theValue.boolean);
-			std::cout << "BOOL TIME!" << std::endl;
 			break;
 		}
 		case ValueType::Float: {
 			this->writeFloat(jsonData.theValue.numberDouble);
-			std::cout << "FLOAT TIME!" << std::endl;
 			break;
 		}
 		case ValueType::Int64: {
 			this->writeInt(jsonData.theValue.numberInt);
-			std::cout << "INT TIME!" << std::endl;
 			break;
 		}
 		case ValueType::Uint64: {
 			this->writeBool(jsonData.theValue.numberUint);
-			std::cout << "UINT TIME!" << std::endl;
 			break;
 		}
 		case ValueType::String: {
 			this->writeString(*jsonData.theValue.string);
-			std::cout << "STRING TIME!" << std::endl;
 			break;
 		}
 		case ValueType::Null: {
+			this->writeNull();
 			break;
 		}
 		case ValueType::Null_Ext: {
+			this->writeNullExt();
 			break;
 		}
 	}
+}
+
+void ErlPacker::writeNullExt() {
+	this->writeToBuffer("[]");
+}
+
+void ErlPacker::writeNull() {
+	this->writeToBuffer("null");
 }
 
 void ErlPacker::writeObject(JsonObject::ObjectType jsonData) {

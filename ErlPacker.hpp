@@ -259,9 +259,9 @@ class JsonObject {
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
-	explicit operator String() noexcept;
+	operator String() noexcept;
 
-	explicit operator String() const noexcept;
+	operator String() const noexcept;
 	void pushBack(JsonObject& other) noexcept;
 	void pushBack(JsonObject&& other) noexcept;
 
@@ -319,6 +319,10 @@ class ErlPacker {
 	void writeObject(JsonObject::ObjectType jsonData);
 
 	void writeString(JsonObject::StringType jsonData);
+
+	void writeNullExt();
+
+	void writeNull();
 
 	void writeInt(JsonObject::IntType jsonData);
 

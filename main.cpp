@@ -779,7 +779,9 @@ int32_t main() noexcept {
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		std::cout << "THE RESULT: " << thePacker.parseJsonToEtf(theDataBew) << std::endl;
+		auto theResult = thePacker.parseJsonToEtf(theDataBew);
+		std::cout << "THE RESULT: " << theResult << std::endl;
+		std::cout << "THE RESULT: " << thePacker.parseEtfToJson(theResult) << std::endl;
 
 		theDataBew.presence.activities.push_back(theData);
 
