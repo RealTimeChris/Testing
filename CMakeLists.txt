@@ -2,7 +2,6 @@
 set(VCPKG_ROOT_DIR "")
 # OR this value...
 if (DEFINED ENV{EnableASAN})
-message("WERE HERE THIS IS IT!")
 	set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/CMake/DiscordCoreAPI/ASAN/share/discordcoreapi")
 else()
 	set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/CMake/DiscordCoreAPI/share/discordcoreapi")
