@@ -672,7 +672,7 @@ JsonObject::~JsonObject() noexcept {
 }
 
 struct WebSocketIdentifyData {
-	//DiscordCoreInternal::UpdatePresenceData presence{};
+	DiscordCoreInternal::UpdatePresenceData presence{};
 	int32_t largeThreshold{ 250 };
 	int32_t numberOfShards{};
 	int32_t currentShard{};
@@ -683,28 +683,27 @@ struct WebSocketIdentifyData {
 };
 
 WebSocketIdentifyData::operator String() {
-	std::unordered_map<std::string, std::string> theMap{};
 	JsonObject theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
-	//for (auto& value : this->presence.activities) {
-	//JsonObject theSerializer02{ };
-	//		if (value.url != "") {
-	//theSerializer02["url"] = std::string{ value.url };
-	//		}
-	//		theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
-	//		theSerializer02["name"] = "TESTING";
-	//		theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
-	//		theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	//}
+	for (auto& value : this->presence.activities) {
+		JsonObject theSerializer02{ };
+			if (value.url != "") {
+			theSerializer02["url"] = std::string{ value.url };
+			}
+			theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
+			theSerializer02["name"] = "TESTING";
+			theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
+			theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	}
 	
-	//theSerializer["d"]["afk"] = this->presence.afk;
-	//if (this->presence.since != 0) {
-	//		theSerializer["since"] = this->presence.since;
-	//}
+	theSerializer["d"]["afk"] = this->presence.afk;
+	if (this->presence.since != 0) {
+			theSerializer["since"] = this->presence.since;
+	}
 	
-	//theSerializer["d"]["status"] = this->presence.status;
+	theSerializer["d"]["status"] = this->presence.status;
 	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
 	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
 #ifdef _WIN32
@@ -712,8 +711,8 @@ WebSocketIdentifyData::operator String() {
 #else
 	theSerializer["d"]["properties"]["os"] = "Linux";
 #endif
-	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
-	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
+	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->currentShard));
+	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
 	theSerializer["d"]["token"] = this->botToken;
 	
 	theSerializer["op"] = static_cast<uint32_t>(2);
@@ -721,113 +720,6 @@ WebSocketIdentifyData::operator String() {
 	return static_cast<String>(theSerializer);
 
 }
-struct WebSocketIdentifyDataTwo {
-	//DiscordCoreInternal::UpdatePresenceData presence{};
-	int32_t largeThreshold{ 250 };
-	int32_t numberOfShards{};
-	int32_t currentShard{};
-	std::string botToken{};
-	int64_t intents{};
-
-	operator std::string();
-};
-
-WebSocketIdentifyDataTwo::operator std::string() {
-	/*
-	//nlohmann::json theSerializer{};
-	//	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
-	//theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
-
-	for (auto& value: this->presence.activities) {
-		//		nlohmann::json theSerializer02{};
-		if (value.url != "") {
-			//			theSerializer02["url"] = std::string{ value.url };
-		}
-		//theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		//theSerializer02["name"] = "TESTING";
-		//theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
-		//theSerializer["d"]["presence"]["activities"].push_back(theSerializer02);
-	}
-
-	//theSerializer["d"]["afk"] = this->presence.afk;
-	if (this->presence.since != 0) {
-		//		theSerializer["since"] = this->presence.since;
-	}
-
-	//theSerializer["d"]["status"] = this->presence.status;
-	//theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-	//theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
-#ifdef _WIN32
-	//theSerializer["d"]["properties"]["os"] = "Windows";
-#else
-	//theSerializer["d"]["properties"]["os"] = "Linux";
-#endif
-	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->currentShard));
-	//theSerializer["d"].pushBack("shard", static_cast<uint32_t>(this->numberOfShards));
-	//theSerializer["d"]["token"] = this->botToken;
-
-	//theSerializer["op"] = static_cast<uint32_t>(2);
-	*/
-	return std::string{};
-}
-
-union myUnion {
-	std::unique_ptr<float> upFloat;
-	std::unique_ptr<int> upInt;
-
-	myUnion() {
-		new (&upFloat) std::unique_ptr<float>{};
-	}
-	~myUnion() {
-	}
-};
-
-class myStruct {
-  public:
-	~myStruct() {
-		destroy();
-	}
-
-	void destroy() {
-		switch (type) {
-			case unionType::f:
-				num.upFloat.~unique_ptr<float>();
-				break;
-			case unionType::i:
-				num.upInt.~unique_ptr<int>();
-				break;
-		}
-	}
-
-	void set(std::unique_ptr<int> p) {
-		destroy();
-		new (&num.upInt) std::unique_ptr<int>{ std::move(p) };
-		type = unionType::i;
-	}
-	void set(std::unique_ptr<float> p) {
-		destroy();
-		new (&num.upFloat) std::unique_ptr<float>{ std::move(p) };
-		type = unionType::f;
-	}
-
-  public:
-	enum class unionType { f, i } type = unionType::f;// match the default constructor of enum
-	myUnion num;
-};
-
-/*
-int main() {
-	myStruct aStruct, bStruct;
-
-	aStruct.set(std::make_unique<float>(3.14f));
-	
-
-	std::cout << "aStruct float = " << *aStruct.num.upFloat << std::endl;
-	aStruct.set(std::make_unique<int>(3));
-	std::cout << "aStruct int = " << *aStruct.num.upInt << std::endl;
-	return 0;
-}
-*/
 
 int32_t main() noexcept {
 	try {
@@ -848,19 +740,19 @@ int32_t main() noexcept {
 		std::vector<std::string> theResults02{};
 		theStopWatch.resetTimer();
 		for (int32_t x = 0; x < 128 * 128; ++x) {
-			//theResults01.push_back(theDataBewTwo);
+			theResults01.push_back(theDataBewTwo);
 		}
 		std::cout << "THE TIME 01: " << theObject.operator DiscordCoreAPI::String() << std::endl;
 
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		//theDataBewTwo.presence.activities.push_back(theData);
-		//theStopWatch.resetTimer();
+		theDataBewTwo.presence.activities.push_back(theData);
+		theStopWatch.resetTimer();
 		for (int32_t x = 0; x < 128 * 128; ++x) {
-			//theResults01.push_back(theDataBewTwo);
+			theResults01.push_back(theDataBewTwo);
 		}
-		//std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
 		{
 			JsonObject theObject{};
 			theObject["testing"] = "TESTING";
@@ -870,32 +762,17 @@ int32_t main() noexcept {
 			}
 			std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
 		}
-		//std::cout << "THE RESULT: " << theDataBewTwo.operator DiscordCoreAPI::String() << std::endl;
+		std::cout << "THE RESULT: " << theDataBewTwo.operator DiscordCoreAPI::String() << std::endl;
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
-		//auto theResult = thePacker.parseJsonToEtf(theDataBew.operator DiscordCoreAPI::String());
-		//		std::cout << "THE RESULT: " << theDataBewTwo.operator DiscordCoreAPI::String() << std::endl;
-		//std::cout << "THE RESULT: " << thePacker.parseEtfToJson(theResult) << std::endl;
+		auto theResult = thePacker.parseJsonToEtf(theDataBew.operator DiscordCoreAPI::String());
+				std::cout << "THE RESULT: " << theDataBewTwo.operator DiscordCoreAPI::String() << std::endl;
+		std::cout << "THE RESULT: " << thePacker.parseEtfToJson(theResult) << std::endl;
 
-		//theDataBew.presence.activities.push_back(theData);
+		theDataBew.presence.activities.push_back(theData);
 
-
-		//theStopWatch.resetTimer();
-		for (int32_t x = 0; x < 128 * 128; ++x) {
-			//theResults01.push_back(static_cast<std::string>(theDataBew));
-		}
-		//std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
-
-
-		//std::string this->theString = JsonSerializer{}.getString(theDataBew);
-		//std::cout << "THE FINAL STRING: 0101 " << this->theString << std::endl;
-		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::jsoWebSocketIdentifyData
-		//std::string theString02 = static_cast<std::string>(theDataBew);
-		//std::cout << "THE FINAL STRING: 0101 " << theString02 << std::endl;
-		//std::cout << "THE FINAL STRING (PARSED): " << nlohmann::json::parse(theString02).dump() << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds{ 3 });
 
 	} catch (...) {
-		//DiscordCoreAPI::reportException("main()");
+		DiscordCoreAPI::reportException("main()");
 	};
 
 	return 0;

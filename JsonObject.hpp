@@ -38,8 +38,7 @@ template<typename TheType>
 concept IsString = std::same_as<TheType, String>;
 
 struct EnumConverter {
-
-	template<IsEnum EnumType> EnumConverter&operator=(EnumType other) {
+	template<IsEnum EnumType> EnumConverter& operator=(EnumType other) {
 		this->theUint = static_cast<Uint64>(other);
 		return *this;
 	};
@@ -77,7 +76,7 @@ struct EnumConverter {
 
 	bool isItAVector() noexcept;
 
-  protected:	
+  protected:
 	std::vector<Uint64> theVector{};
 	Bool vectorType{ false };
 	Uint64 theUint{};
