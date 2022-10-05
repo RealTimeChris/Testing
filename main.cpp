@@ -150,7 +150,7 @@ JsonObject& JsonObject::operator=(const EnumConverter& theData) noexcept {
 }
 
 JsonObject::JsonObject(const EnumConverter& theData) noexcept {
-	*this = std::move(theData);
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
