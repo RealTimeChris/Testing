@@ -4,7 +4,7 @@
 	"${PRODUCT_INFO}"
 )
 
-if (DEFINED ENV{EnableASAN} AND ENV{EnableASAN})
+if (DEFINED ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
 		target_link_options("${PROJECT_NAME}" PUBLIC "/incremental:no" "/Debug")	

@@ -1,7 +1,12 @@
 # Set this value...
 set(VCPKG_ROOT_DIR "")
 # OR this value...
-set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/CMake/DiscordCoreAPI/share/discordcoreapi")
+if (DEFINED ENV{EnableASAN})
+message("WERE HERE THIS IS IT!")
+	set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/CMake/DiscordCoreAPI/ASAN/share/discordcoreapi")
+else()
+	set(CMAKE_CONFIG_FILE_DIR "C:/Users/Chris/CMake/DiscordCoreAPI/share/discordcoreapi")
+endif()
 # AND these values.
 set(FFMPEG_INCLUDE_DIR "C:/Vcpkg/installed/x64-windows/include")
 set(FFMPEG_RELEASE_ROOT "C:/Vcpkg/installed/x64-windows/lib")

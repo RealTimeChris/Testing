@@ -8,34 +8,7 @@
 #include <sstream>
 #include <thread>
 
-using AtomicUint64 = std::atomic_uint64_t;
-using AtomicUint32 = std::atomic_uint32_t;
-using AtomicInt64 = std::atomic_int64_t;
-using AtomicInt32 = std::atomic_int32_t;
-using AtomicBool = std::atomic_bool;
-using StringStream = std::stringstream;
-using StringView = std::string_view;
-using String = std::string;
-using Uint64 = uint64_t;
-using Uint32 = uint32_t;
-using Uint16 = uint16_t;
-using Uint8 = uint8_t;
-using Int64 = int64_t;
-using Int32 = int32_t;
-using Int16 = int16_t;
-using Int8 = int8_t;
-using Float = float;
-using Double = double;
-using Snowflake = Uint64;
-using Bool = bool;
 
-enum class ValueType : Int8 { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8 };
-
-template<typename TheType>
-concept IsEnum = std::is_enum<TheType>::value;
-
-template<typename TheType>
-concept IsString = std::same_as<TheType, String>;
 
 
 /*
