@@ -611,6 +611,47 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
 }
 
+JsonObject& JsonSerializer::operator[](Uint64 index) const {
+	return this->theValue.theValue.array->operator[](index);
+}
+
+JsonObject& JsonSerializer::operator[](Uint64 index) {
+	if (this->theType == ValueType::Null) {
+		this->theValue.set(std::make_unique<JsonObject::ArrayType>());
+		this->theType = ValueType::Array;
+	}
+
+	if (this->theType == ValueType::Array) {
+		if (index >= this->theValue.theValue.array->size()) {
+			this->theValue.theValue.array->resize(index + 1);
+		}
+
+		return this->theValue.theValue.array->operator[](index);
+	}
+	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
+}
+
+JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key) const {
+	if (this->theType == ValueType::Object) {
+		auto result = this->theValue.theValue.object->emplace(key, ValueType::Null);
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
+JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
+	if (this->theType == ValueType::Null) {
+		this->theValue.set(std::make_unique<JsonObject::ObjectType>());
+		this->theType = ValueType::Object;
+	}
+
+	if (this->theType == ValueType::Object) {
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{});
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
 void JsonObject::pushBack(JsonObject&& other) noexcept {
 	if (this->theType == ValueType::Null) {
 		this->set(std::make_unique<ArrayType>());
@@ -633,7 +674,8 @@ void JsonObject::pushBack(JsonObject& other) noexcept {
 	}
 }
 
-void JsonObject::convertToString(String& theString) {
+JsonObject::operator String() noexcept {
+	std::string theString{};
 	switch (this->theType) {
 		case ValueType::Object: {
 			if (this->theValue.object->empty()) {
@@ -645,10 +687,9 @@ void JsonObject::convertToString(String& theString) {
 			Uint64 theIndex{};
 			for (auto [key, value]: *this->theValue.object) {
 				theString += '\"';
-				theString += key;
+				theString += std::move(key);
 				theString += "\":";
-				value.theCurrentStringMemory = { theString.data() + theString.size() };
-				value.convertToString(theString);
+				theString += std::move(value);
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -667,8 +708,7 @@ void JsonObject::convertToString(String& theString) {
 
 			Uint64 theIndex{};
 			for (auto value: *this->theValue.array) {
-				value.theCurrentStringMemory = { theString.data() + theString.size() };
-				value.convertToString(theString);
+				theString += std::move(value);
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -712,30 +752,24 @@ void JsonObject::convertToString(String& theString) {
 			break;
 		}
 	}
-	*this->theString = theString;
-	return;
+	return theString;
 }
 
-JsonObject::operator String() noexcept {
-	this->convertToString(*this->theString);
-	return *this->theString;
-}
-
-void JsonObject::set(std::unique_ptr<String> p) {
+void JsonObject::set(std::unique_ptr<String> pointer) {
 	destroy();
-	new (&this->theValue.string) std::unique_ptr<String>{ std::move(p) };
+	new (&this->theValue.string) std::unique_ptr<String>{ std::move(pointer) };
 	this->theType = ValueType::String;
 }
 
-void JsonObject::set(std::unique_ptr<ArrayType> p) {
+void JsonObject::set(std::unique_ptr<ArrayType> pointer) {
 	destroy();
-	new (&this->theValue.string) std::unique_ptr<ArrayType>{ std::move(p) };
+	new (&this->theValue.string) std::unique_ptr<ArrayType>{ std::move(pointer) };
 	this->theType = ValueType::Array;
 }
 
-void JsonObject::set(std::unique_ptr<ObjectType> p) {
+void JsonObject::set(std::unique_ptr<ObjectType> pointer) {
 	destroy();
-	new (&this->theValue.string) std::unique_ptr<ObjectType>{ std::move(p) };
+	new (&this->theValue.string) std::unique_ptr<ObjectType>{ std::move(pointer) };
 	this->theType = ValueType::Object;
 }
 
@@ -770,8 +804,9 @@ struct UpdatePresenceData {
 
 UpdatePresenceData ::operator JsonObject() {
 	JsonObject theData{};
-	theData["TEST"] = this->afk;
+	theData["status"] = this->status;
 	theData["since"] = this->since;
+	theData["afk"] = this->afk;
 	return theData;
 }
 
@@ -811,13 +846,14 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->currentShard));
 	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
 	theSerializer["d"]["token"] = this->botToken;
-	JsonSerializer theSerializer03{ std::move(theSerializer) };
+	//JsonSerializer theSerializer03{ theSerializer };
+	//theSerializer03["d"]["intents"] = 23;
 	theSerializer["op"] = static_cast<uint32_t>(2);
-	for (auto it = theSerializer03.begin(), end = theSerializer03.end(); it != end; ++it) {
-		if (it != end) {
-			std::cout << "THE CURRENT STRING: " << *it->theString << std::endl;
-		}
-	}
+	//for (auto it = theSerializer03.begin(), end = theSerializer03.end(); it != end; ++it) {
+	//if (it != end) {
+	//std::cout << "THE CURRENT STRING: " << static_cast<String>(*it) << std::endl;
+	//		}
+	//}
 	
 	return theSerializer;
 
@@ -834,19 +870,28 @@ int32_t main() noexcept {
 		theData.name = "TESTING";
 		theDataBewTwo.numberOfShards = 0;
 		theDataBewTwo.currentShard = 23;
+		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
+		theStopWatch.resetTimer();
 		{
+			JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
+			
 			std::vector<std::string> theResults02{};
-			for (int32_t x = 0; x < 1; ++x) {
-				theResults02.push_back(theDataBewTwo.operator JsonObject());
+			for (int32_t x = 0; x < 128 * 128; ++x) {
+				theSerializer["d"]["intents"] = x;
+				theResults02.push_back(*theSerializer.begin());
+			}
+			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
+			for (auto& value: theResults02) {
+				std::cout << value << std::endl;
 			}
 		}
+		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
 		
 
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		std::cout << static_cast<String>(theDataBew.operator JsonObject()) << std::endl;
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
 
 

@@ -106,8 +106,6 @@ class JsonObject {
 	JsonObject() noexcept = default;
 
 	ValueType theType{ ValueType::Null };
-	StringView theCurrentStringMemory{};
-	std::unique_ptr<String> theString{ std::make_unique<String>() };
 
 	union JsonValue {
 		std::unique_ptr<ObjectType> object;
@@ -168,8 +166,6 @@ class JsonObject {
 	};
 
 	JsonValue theValue{};
-
-	void convertToString(String& theString);
 
 	template<typename ObjectType> JsonObject& operator=(std::vector<ObjectType> theData) noexcept {
 		this->set(std::make_unique<ArrayType>());
@@ -331,28 +327,24 @@ class PrimitiveIterator {
 
 	  using DifferenceType = std::ptrdiff_t;
 
-	constexpr DifferenceType get_value() const noexcept {
-		return iterator;
+	constexpr DifferenceType getValue() const noexcept {
+		return this->iterator;
 	}
 
-	/// set iterator to a defined beginning
-	void set_begin() noexcept {
-		iterator = beginValue;
+	void setBegin() noexcept {
+		this->iterator = beginValue;
 	}
 
-	/// set iterator to a defined past the end
-	void set_end() noexcept {
-		iterator = endValue;
+	void setEnd() noexcept {
+		this->iterator = endValue;
 	}
 
-	/// return whether the iterator can be dereferenced
-	constexpr bool is_begin() const noexcept {
-		return iterator == beginValue;
+	constexpr bool isBegin() const noexcept {
+		return this->iterator == beginValue;
 	}
 
-	/// return whether the iterator is at end
-	constexpr bool is_end() const noexcept {
-		return iterator == endValue;
+	constexpr bool isEnd() const noexcept {
+		return this->iterator == endValue;
 	}
 
 	friend constexpr bool operator==(PrimitiveIterator lhs, PrimitiveIterator rhs) noexcept {
@@ -374,36 +366,34 @@ class PrimitiveIterator {
 	}
 
 	PrimitiveIterator& operator++() noexcept {
-		++iterator;
+		++this->iterator;
 		return *this;
 	}
 
-	PrimitiveIterator operator++(int) & noexcept// NOLINT(cert-dcl21-cpp)
-	{
+	PrimitiveIterator operator++(int) & noexcept {
 		auto result = *this;
-		++iterator;
+		++this->iterator;
 		return result;
 	}
 
 	PrimitiveIterator& operator--() noexcept {
-		--iterator;
+		--this->iterator;
 		return *this;
 	}
 
-	PrimitiveIterator operator--(int) & noexcept// NOLINT(cert-dcl21-cpp)
-	{
+	PrimitiveIterator operator--(int) & noexcept {
 		auto result = *this;
-		--iterator;
+		--this->iterator;
 		return result;
 	}
 
 	PrimitiveIterator& operator+=(DifferenceType n) noexcept {
-		iterator += n;
+		this->iterator += n;
 		return *this;
 	}
 
 	PrimitiveIterator& operator-=(DifferenceType n) noexcept {
-		iterator -= n;
+		this->iterator -= n;
 		return *this;
 	}
 
@@ -416,19 +406,18 @@ class PrimitiveIterator {
 
 
 template<typename JsonObjectType> struct InternalIterator {
-	/// iterator for JSON objects
+
 	typename JsonObjectType::ObjectType::iterator objectIterator{};
-	/// iterator for JSON arrays
+
 	typename JsonObjectType::ArrayType::iterator arrayIterator{};
-	/// generic iterator for all other types
+
 	PrimitiveIterator primitiveIterator{};
 };
 
 class JsonIterator {
+  public:
 	using ObjectType = typename JsonObject::ObjectType;
 	using ArrayType = typename JsonObject::ArrayType;
-
-  public:
 	using iterator_category = std::bidirectional_iterator_tag;
 	using ValueTypeReal = typename JsonObject::JsonValue;
 	using DifferenceType = typename JsonObject::DifferenceType;
@@ -436,20 +425,22 @@ class JsonIterator {
 	using Reference = typename std::conditional<std::is_const<JsonObject>::value, typename JsonObject::ConstReference, typename JsonObject::Reference>::type;
 
 	JsonIterator() = default;
-	~JsonIterator() = default;
-	JsonIterator(JsonIterator&&) noexcept = default;
+	
 	JsonIterator& operator=(JsonIterator&&) noexcept = default;
+	JsonIterator(JsonIterator&&) noexcept = default;
+	
+	~JsonIterator() = default;
 
 
 	explicit JsonIterator(Pointer objectNew) noexcept : object(objectNew) {
 		switch (objectNew->theType) {
 			case ValueType::Object: {
-				iterator.objectIterator = typename ObjectType::iterator();
+				this->iterator.objectIterator = typename ObjectType::iterator();
 				break;
 			}
 
 			case ValueType::Array: {
-				iterator.arrayIterator = typename ArrayType::iterator();
+				this->iterator.arrayIterator = typename ArrayType::iterator();
 				break;
 			}
 
@@ -460,38 +451,33 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				iterator.primitiveIterator = PrimitiveIterator();
+				this->iterator.primitiveIterator = PrimitiveIterator();
 				break;
 			}
 		}
 	}
 
+	JsonIterator(const JsonIterator& otherNew) noexcept : object(otherNew.object), iterator(otherNew.iterator) {}
 
-	JsonIterator(const JsonIterator& otherNew) noexcept : object(otherNew.object), iterator(otherNew.iterator) {
-	}
-
-
-	JsonIterator& operator=(const JsonIterator& otherNew) noexcept// NOLINT(cert-oop54-cpp)
-	{
+	JsonIterator& operator=(const JsonIterator& otherNew) noexcept {
 		object = otherNew.object;
-		iterator = otherNew.iterator;
+		this->iterator = otherNew.iterator;
 		return *this;
 	}
-	void set_begin() noexcept {
-		switch (object->theType) {
+	void setBegin() noexcept {
+		switch (this->object->theType) {
 			case ValueType::Object: {
-				iterator.objectIterator = object->theValue.object->begin();
+				this->iterator.objectIterator = object->theValue.object->begin();
 				break;
 			}
 
 			case ValueType::Array: {
-				iterator.arrayIterator = object->theValue.array->begin();
+				this->iterator.arrayIterator = object->theValue.array->begin();
 				break;
 			}
 
 			case ValueType::Null: {
-				// set to end so begin()==end() is true: null is empty
-				iterator.primitiveIterator.set_end();
+				this->iterator.primitiveIterator.setEnd();
 				break;
 			}
 
@@ -501,25 +487,21 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				iterator.primitiveIterator.set_begin();
+				this->iterator.primitiveIterator.setBegin();
 				break;
 			}
 		}
 	}
 
-	/*!
-    @brief set the iterator past the last value
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
-	void set_end() noexcept {
-		switch (object->theType) {
+	void setEnd() noexcept {
+		switch (this->object->theType) {
 			case ValueType::Object: {
-				iterator.objectIterator = object->theValue.object->end();
+				this->iterator.objectIterator = object->theValue.object->end();
 				break;
 			}
 
 			case ValueType::Array: {
-				iterator.arrayIterator = object->theValue.array->end();
+				this->iterator.arrayIterator = object->theValue.array->end();
 				break;
 			}
 
@@ -530,25 +512,20 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				iterator.primitiveIterator.set_end();
+				this->iterator.primitiveIterator.setEnd();
 				break;
 			}
 		}
 	}
-
-  public:
-	/*!
-    @brief return a Reference to the value pointed to by the iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
+	
 	Reference operator*() const {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object: {
-				return iterator.objectIterator->second;
+				return this->iterator.objectIterator->second;
 			}
 
 			case ValueType::Array: {
-				return *iterator.arrayIterator;
+				return *this->iterator.arrayIterator;
 			}
 
 			case ValueType::Null:
@@ -560,7 +537,7 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				if (iterator.primitiveIterator.is_begin()) {
+				if (this->iterator.primitiveIterator.isBegin()) {
 					return *object;
 				}
 
@@ -569,18 +546,14 @@ class JsonIterator {
 		}
 	}
 
-	/*!
-    @brief dereference the iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	Pointer operator->() const {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object: {
-				return &(iterator.objectIterator->second);
+				return &(this->iterator.objectIterator->second);
 			}
 
 			case ValueType::Array: {
-				return &*iterator.arrayIterator;
+				return &*this->iterator.arrayIterator;
 			}
 
 			case ValueType::Null:
@@ -590,7 +563,7 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				if (iterator.primitiveIterator.is_begin()) {
+				if (this->iterator.primitiveIterator.isBegin()) {
 					return object;
 				}
 
@@ -599,10 +572,6 @@ class JsonIterator {
 		}
 	}
 
-	/*!
-    @brief post-increment (it++)
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator operator++(int) &// NOLINT(cert-dcl21-cpp)
 	{
 		auto result = *this;
@@ -610,19 +579,15 @@ class JsonIterator {
 		return result;
 	}
 
-	/*!
-    @brief pre-increment (++it)
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator& operator++() {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object: {
-				std::advance(iterator.objectIterator, 1);
+				std::advance(this->iterator.objectIterator, 1);
 				break;
 			}
 
 			case ValueType::Array: {
-				std::advance(iterator.arrayIterator, 1);
+				std::advance(this->iterator.arrayIterator, 1);
 				break;
 			}
 
@@ -633,7 +598,7 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				++iterator.primitiveIterator;
+				++this->iterator.primitiveIterator;
 				break;
 			}
 		}
@@ -641,30 +606,21 @@ class JsonIterator {
 		return *this;
 	}
 
-	/*!
-    @brief post-decrement (it--)
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
-	JsonIterator operator--(int) &// NOLINT(cert-dcl21-cpp)
-	{
+	JsonIterator operator--(int) & {
 		auto result = *this;
 		--(*this);
 		return result;
 	}
 
-	/*!
-    @brief pre-decrement (--it)
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator& operator--() {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object: {
-				std::advance(iterator.objectIterator, -1);
+				std::advance(this->iterator.objectIterator, -1);
 				break;
 			}
 
 			case ValueType::Array: {
-				std::advance(iterator.arrayIterator, -1);
+				std::advance(this->iterator.arrayIterator, -1);
 				break;
 			}
 
@@ -675,7 +631,7 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				--iterator.primitiveIterator;
+				--this->iterator.primitiveIterator;
 				break;
 			}
 		}
@@ -683,18 +639,14 @@ class JsonIterator {
 		return *this;
 	}
 
-	/*!
-    @brief comparison: equal
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
-	template<typename IterImpl, std::enable_if_t<(std::is_same<IterImpl, JsonIterator>::value || std::is_same<IterImpl, IterImpl>::value), std::nullptr_t> = nullptr>
-	bool operator==(const IterImpl& other) const {
-		switch (object->theType) {
+	template<typename Iterator, std::enable_if_t<(std::is_same<Iterator, JsonIterator>::value || std::is_same<Iterator, Iterator>::value), std::nullptr_t> = nullptr>
+	bool operator==(const Iterator& other) const {
+		switch (this->object->theType) {
 			case ValueType::Object:
-				return (iterator.objectIterator == other.iterator.objectIterator);
+				return (this->iterator.objectIterator == other.iterator.objectIterator);
 
 			case ValueType::Array:
-				return (iterator.arrayIterator == other.iterator.arrayIterator);
+				return (this->iterator.arrayIterator == other.iterator.arrayIterator);
 
 			case ValueType::Null:
 			case ValueType::String:
@@ -703,30 +655,22 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default:
-				return (iterator.primitiveIterator == other.iterator.primitiveIterator);
+				return (this->iterator.primitiveIterator == other.iterator.primitiveIterator);
 		}
 	}
 
-	/*!
-    @brief comparison: not equal
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
-	template<typename IterImpl, std::enable_if_t<(std::is_same<IterImpl, JsonIterator>::value || std::is_same<IterImpl, IterImpl>::value), std::nullptr_t> = nullptr>
-	bool operator!=(const IterImpl& other) const {
+	template<typename Iterator, std::enable_if_t<(std::is_same<Iterator, JsonIterator>::value || std::is_same<Iterator, Iterator>::value), std::nullptr_t> = nullptr>
+	bool operator!=(const Iterator& other) const {
 		return !operator==(other);
 	}
 
-	/*!
-    @brief comparison: smaller
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	bool operator<(const JsonIterator& other) const {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object:
 				throw std::runtime_error{ "Cannot compare order of object iterators." };
 
 			case ValueType::Array:
-				return (iterator.arrayIterator < other.iterator.arrayIterator);
+				return (this->iterator.arrayIterator < other.iterator.arrayIterator);
 
 			case ValueType::Null:
 			case ValueType::String:
@@ -735,47 +679,31 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default:
-				return (iterator.primitiveIterator < other.iterator.primitiveIterator);
+				return (this->iterator.primitiveIterator < other.iterator.primitiveIterator);
 		}
 	}
 
-	/*!
-    @brief comparison: less than or equal
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	bool operator<=(const JsonIterator& other) const {
 		return !other.operator<(*this);
 	}
 
-	/*!
-    @brief comparison: greater than
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	bool operator>(const JsonIterator& other) const {
 		return !operator<=(other);
 	}
 
-	/*!
-    @brief comparison: greater than or equal
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	bool operator>=(const JsonIterator& other) const {
 		return !operator<(other);
 	}
 
-	/*!
-    @brief add to iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator& operator+=(DifferenceType i) {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object: {
 				throw std::runtime_error{ "Cannot use offsets with object iterators." };
 			}
 
 
 			case ValueType::Array: {
-				std::advance(iterator.arrayIterator, i);
+				std::advance(this->iterator.arrayIterator, i);
 				break;
 			}
 
@@ -786,7 +714,7 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				iterator.primitiveIterator += i;
+				this->iterator.primitiveIterator += i;
 				break;
 			}
 		}
@@ -794,55 +722,35 @@ class JsonIterator {
 		return *this;
 	}
 
-	/*!
-    @brief subtract from iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator& operator-=(DifferenceType i) {
 		return operator+=(-i);
 	}
 
-	/*!
-    @brief add to iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator operator+(DifferenceType i) const {
 		auto result = *this;
 		result += i;
 		return result;
 	}
 
-	/*!
-    @brief addition of distance and iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	friend JsonIterator operator+(DifferenceType i, const JsonIterator& it) {
 		auto result = it;
 		result += i;
 		return result;
 	}
 
-	/*!
-    @brief subtract from iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	JsonIterator operator-(DifferenceType i) const {
 		auto result = *this;
 		result -= i;
 		return result;
 	}
 
-	/*!
-    @brief return difference
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	DifferenceType operator-(const JsonIterator& other) const {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object: {
 				throw std::runtime_error{ "Cannot use offsets with object iterators." };
 			}
 			case ValueType::Array: {
-				return iterator.arrayIterator - other.iterator.arrayIterator;
+				return this->iterator.arrayIterator - other.iterator.arrayIterator;
 			}
 			case ValueType::Null:
 			case ValueType::String:
@@ -851,21 +759,17 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default:
-				return iterator.primitiveIterator - other.iterator.primitiveIterator;
+				return this->iterator.primitiveIterator - other.iterator.primitiveIterator;
 		}
 	}
 
-	/*!
-    @brief access to successor
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	Reference operator[](DifferenceType n) const {
-		switch (object->theType) {
+		switch (this->object->theType) {
 			case ValueType::Object:
 				throw std::runtime_error{ "Cannot use operator[] for object iterators." };
 
 			case ValueType::Array:
-				return *std::next(iterator.arrayIterator, n);
+				return *std::next(this->iterator.arrayIterator, n);
 
 			case ValueType::Null:
 				throw std::runtime_error{ "Cannot get value." };
@@ -876,7 +780,7 @@ class JsonIterator {
 			case ValueType::Uint64:
 			case ValueType::Float:
 			default: {
-				if (iterator.primitiveIterator.get_value() == -n) {
+				if (this->iterator.primitiveIterator.getValue() == -n) {
 					return *object;
 				}
 
@@ -885,29 +789,21 @@ class JsonIterator {
 		}
 	}
 
-	/*!
-    @brief return the key of an object iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	const typename ObjectType::key_type& key() const {
-		if (object->theType == ValueType::Object) {
-			return iterator.objectIterator->first;
+		if (this->object->theType == ValueType::Object) {
+			return this->iterator.objectIterator->first;
 		}
 
 		throw std::runtime_error{ "Cannot use key() for non-object iterators." };
 	}
 
-	/*!
-    @brief return the value of an iterator
-    @pre The iterator is initialized; i.e. `object != nullptr`.
-    */
 	Reference value() const {
 		return operator*();
 	}
 
-	Pointer object{ nullptr };
-	/// the actual iterator of the associated instance
+  protected:
 	InternalIterator<typename std::remove_const<JsonObject>::type> iterator{};
+	Pointer object{ nullptr };
 };
 
 class JsonIterator;
@@ -931,22 +827,29 @@ class JsonSerializer {
 	using BoolType = Bool;
 	JsonSerializer(JsonObject&& theValueNew) noexcept {
 		this->theValue = std::move(theValueNew);
+		this->theType = theValueNew.theType;
 	}
 	IteratorType begin() noexcept {
 		IteratorType result(&this->theValue);
-		result.set_begin();
+		result.setBegin();
 		return result;
 	}
 
 	IteratorType end() noexcept {
 		IteratorType result(&this->theValue);
-		result.set_end();
+		result.setEnd();
 		return result;
 	}
 	JsonObject theValue{};
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	std::unique_ptr<String> theString{ std::make_unique<String>() };
+
+	JsonObject& operator[](Uint64 idx) const;
+	JsonObject& operator[](Uint64 idx);
+
+	JsonObject& operator[](const typename ObjectType::key_type& key) const;
+	JsonObject& operator[](typename ObjectType::key_type key);
 
 	~JsonSerializer() noexcept = default;
 
