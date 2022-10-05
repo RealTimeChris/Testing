@@ -671,32 +671,40 @@ JsonObject::~JsonObject() noexcept {
 	this->destroy();
 }
 
+struct UpdatePresenceData {
+	String status{};///< Current status.
+	Int64 since{ 0 };///< When was the activity started?
+	Bool afk{ false };///< Are we afk.
+
+	operator JsonObject();
+};
+
+UpdatePresenceData ::operator JsonObject() {
+	JsonObject theData{};
+	theData["TEST"] = this->afk;
+	theData["since"] = this->since;
+	return theData;
+}
+
 struct WebSocketIdentifyData {
-	DiscordCoreInternal::UpdatePresenceData presence{};
+	UpdatePresenceData presence{};
 	int32_t largeThreshold{ 250 };
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
 	int64_t intents{};
 
-	operator String();
+	operator JsonObject();
 };
 
-WebSocketIdentifyData::operator String() {
+WebSocketIdentifyData::operator JsonObject() {
 	JsonObject theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
-	for (auto& value : this->presence.activities) {
-		JsonObject theSerializer02{ };
-			if (value.url != "") {
-			theSerializer02["url"] = std::string{ value.url };
-			}
-			theSerializer02["theType"] = uint32_t{ static_cast<uint32_t>(value.type) };
-			theSerializer02["name"] = "TESTING";
-			theSerializer02["test02"] = uint32_t{ static_cast<uint32_t>(value.type) };
-			theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	}
+	JsonObject theSerializer02{};
+	theSerializer02 = this->presence;
+	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
@@ -717,7 +725,7 @@ WebSocketIdentifyData::operator String() {
 	
 	theSerializer["op"] = static_cast<uint32_t>(2);
 	
-	return static_cast<String>(theSerializer);
+	return theSerializer;
 
 }
 
@@ -740,35 +748,17 @@ int32_t main() noexcept {
 		std::vector<std::string> theResults02{};
 		theStopWatch.resetTimer();
 		for (int32_t x = 0; x < 128 * 128; ++x) {
-			theResults01.push_back(theDataBewTwo);
+			theResults01.push_back(theDataBewTwo.operator JsonObject());
 		}
 		std::cout << "THE TIME 01: " << theObject.operator DiscordCoreAPI::String() << std::endl;
 
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
 		theDataBew.currentShard = 23;
-		theDataBewTwo.presence.activities.push_back(theData);
 		theStopWatch.resetTimer();
-		for (int32_t x = 0; x < 128 * 128; ++x) {
-			theResults01.push_back(theDataBewTwo);
-		}
-		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
-		{
-			JsonObject theObject{};
-			theObject["testing"] = "TESTING";
-			std::vector<JsonObject> theVector{};
-			for (uint32_t x = 0; x < 512 * 512; ++x) {
-				theVector.push_back(theObject);
-			}
-			std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
-		}
-		std::cout << "THE RESULT: " << theDataBewTwo.operator DiscordCoreAPI::String() << std::endl;
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
-		auto theResult = thePacker.parseJsonToEtf(theDataBew.operator DiscordCoreAPI::String());
-				std::cout << "THE RESULT: " << theDataBewTwo.operator DiscordCoreAPI::String() << std::endl;
+		auto theResult = thePacker.parseJsonToEtf(theDataBew.operator JsonObject());
 		std::cout << "THE RESULT: " << thePacker.parseEtfToJson(theResult) << std::endl;
-
-		theDataBew.presence.activities.push_back(theData);
 
 
 	} catch (...) {
