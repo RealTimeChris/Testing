@@ -66,7 +66,7 @@ class ErlPacker {
   public:
 	ErlPacker() noexcept {};
 
-	String& parseJsonToEtf(JsonObject&& dataToParse);
+	String& parseJsonToEtf(DiscordCoreAPI::JsonObject&& dataToParse);
 
 	String& parseEtfToJson(StringView dataToParse);
 
@@ -82,21 +82,21 @@ class ErlPacker {
 	Uint64 offSet{};
 	Uint64 size{};
 
-	void singleValueJsonToETF(JsonObject&& dataToParse);
+	void singleValueJsonToETF(DiscordCoreAPI::JsonObject&& dataToParse);
 
-	void writeObject(JsonObject::ObjectType&& jsonData);
+	void writeObject(DiscordCoreAPI::JsonObject::ObjectType&& jsonData);
 
-	void writeString(JsonObject::StringType&& jsonData);
+	void writeString(DiscordCoreAPI::JsonObject::StringType&& jsonData);
 
-	void writeInt(JsonObject::IntType jsonData);
+	void writeInt(DiscordCoreAPI::JsonObject::IntType jsonData);
 
-	void writeUint(JsonObject::UintType jsonData);
+	void writeUint(DiscordCoreAPI::JsonObject::UintType jsonData);
 
-	void writeFloat(JsonObject::FloatType jsonData);
+	void writeFloat(DiscordCoreAPI::JsonObject::FloatType jsonData);
 
-	void writeArray(JsonObject::ArrayType&& jsonData);
+	void writeArray(DiscordCoreAPI::JsonObject::ArrayType&& jsonData);
 
-	void writeBool(JsonObject::BoolType jsonData);
+	void writeBool(DiscordCoreAPI::JsonObject::BoolType jsonData);
 
 	void writeNullExt();
 
