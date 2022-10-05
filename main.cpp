@@ -47,13 +47,33 @@ bool EnumConverter::isItAVector() noexcept {
 
 JsonObject::JsonValue::JsonValue() noexcept {};
 
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(const ArrayType& theData) noexcept {
+	*this->array = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(ArrayType&& theData) noexcept {
+	*this->array = std::move(theData);
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(const ObjectType& theData) noexcept {
+	*this->object = theData;
+	return *this;
+}
+
+JsonObject::JsonValue& JsonObject::JsonValue::operator=(ObjectType&& theData) noexcept {
+	*this->object = std::move(theData);
+	return *this;
+}
+
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(const StringType& theData) noexcept {
 	*this->string = theData;
 	return *this;
 }
 
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(StringType&& theData) noexcept {
-	*this->string = theData;
+	*this->string = std::move(theData);
 	return *this;
 }
 
@@ -157,18 +177,17 @@ JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(std::make_unique<ObjectType>());
-			*this->theValue.object = *theKey.theValue.object;
+			this->theValue = std::move(*theKey.theValue.object);
 			break;
 		}
 		case ValueType::Array: {
 			this->set(std::make_unique<ArrayType>());
-			*this->theValue.array = *theKey.theValue.array;
+			this->theValue = std::move(*theKey.theValue.array);
 			break;
 		}
 		case ValueType::String: {
 			this->set(std::make_unique<StringType>());
-			*this->theValue.string = *theKey.theValue.string;
-			break;
+			this->theValue = std::move(*theKey.theValue.string);
 			break;
 		}
 		case ValueType::Bool: {
@@ -203,23 +222,19 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(std::make_unique<ObjectType>());
-			for (auto& [key, value]: *theKey.theValue.object) {
-				this->theValue.object->emplace(key, std::move(value));
-			}
+			this->theValue = std::move(*theKey.theValue.object);
 			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(std::make_unique<ArrayType>());
-			for (auto& value: *theKey.theValue.array) {
-				this->theValue.array->emplace_back(std::move(value));
-			}
+			this->theValue = std::move(*theKey.theValue.array);
 			this->theType = ValueType::Array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(std::make_unique<StringType>());
-			*this->theValue.string = *theKey.theValue.string;
+			this->theValue = std::move(*theKey.theValue.string);
 			this->theType = ValueType::String;
 			break;
 		}
@@ -261,7 +276,7 @@ JsonObject::JsonObject(const JsonObject& theKey) noexcept {
 
 JsonObject& JsonObject::operator=(String&& theData) noexcept {
 	this->set(std::make_unique<StringType>());
-	*this->theValue.string = theData;
+	*this->theValue.string = std::move(theData);
 	this->theType = ValueType::String;
 	return *this;
 }

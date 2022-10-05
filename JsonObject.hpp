@@ -114,6 +114,14 @@ class JsonObject {
 
 		JsonValue(const JsonValue&) noexcept = delete;
 
+		JsonValue& operator=(const ArrayType& theData) noexcept;
+
+		JsonValue& operator=(ArrayType&& theData) noexcept;
+
+		JsonValue& operator=(const ObjectType& theData) noexcept;
+
+		JsonValue& operator=(ObjectType&& theData) noexcept;
+
 		JsonValue& operator=(const StringType& theData) noexcept;
 
 		JsonValue& operator=(StringType&& theData) noexcept;
