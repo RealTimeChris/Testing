@@ -675,7 +675,7 @@ void JsonObject::pushBack(JsonObject& other) noexcept {
 }
 
 JsonObject::operator String() noexcept {
-	std::string theString{};
+	String theString{};
 	switch (this->theType) {
 		case ValueType::Object: {
 			if (this->theValue.object->empty()) {
@@ -685,11 +685,11 @@ JsonObject::operator String() noexcept {
 			theString += '{';
 
 			Uint64 theIndex{};
-			for (auto [key, value]: *this->theValue.object) {
+			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
 				theString += '\"';
-				theString += std::move(key);
+				theString += iterator->first;
 				theString += "\":";
-				theString += std::move(value);
+				theString += iterator->second;
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -706,14 +706,91 @@ JsonObject::operator String() noexcept {
 
 			theString += '[';
 
+			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
+				theString += *iterator;
+				theString += ',';
+			}
+
+			theString += this->theValue.array->back();
+
+			theString += ']';
+			break;
+		}
+
+		case ValueType::String: {
+			theString += '\"';
+			theString += std::move(*this->theValue.string);
+			theString += '\"';
+			break;
+		}
+		case ValueType::Bool: {
+			std::stringstream theStream{};
+			theStream << std::boolalpha << this->theValue.boolean;
+			theString += theStream.str();
+			break;
+		}
+		case ValueType::Float: {
+			theString += std::to_string(this->theValue.numberDouble);
+			break;
+		}
+		case ValueType::Uint64: {
+			theString += std::to_string(this->theValue.numberUint);
+			break;
+		}
+		case ValueType::Int64: {
+			theString += std::to_string(this->theValue.numberInt);
+			break;
+		}
+		case ValueType::Null: {
+			theString += "null";
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theString += "[]";
+			break;
+		}
+	}
+	return theString;
+}
+
+JsonObject::operator String() const noexcept {
+	String theString{};
+	switch (this->theType) {
+		case ValueType::Object: {
+			if (this->theValue.object->empty()) {
+				theString += "{}";
+			}
+
+			theString += '{';
+
 			Uint64 theIndex{};
-			for (auto value: *this->theValue.array) {
-				theString += std::move(value);
+			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
+				theString += '\"';
+				theString += iterator->first;
+				theString += "\":";
+				theString += iterator->second;
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
 				theIndex++;
 			}
+			theString += '}';
+			break;
+		}
+		case ValueType::Array: {
+			if (this->theValue.array->empty()) {
+				theString += "[]";
+				break;
+			}
+
+			theString += '[';
+
+			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
+				theString += *iterator;
+				theString += ',';
+			}
+
+			theString += this->theValue.array->back();
 
 			theString += ']';
 			break;
@@ -794,6 +871,258 @@ JsonObject::~JsonObject() noexcept {
 	this->destroy();
 }
 
+void JsonSerializer::writeString(const JsonObject& theObject, String& theString) const noexcept {
+	switch (theObject.theType) {
+		case ValueType::Object: {
+			//theObject.currentOffsetIntoStringStart = theString.size();
+			if (theObject.theValue.object->empty()) {
+				theString += "{}";
+			}
+
+			theString += '{';
+
+			Uint64 theIndex{};
+			for (auto iterator = theObject.theValue.object->cbegin(); iterator != theObject.theValue.object->cend(); ++iterator) {
+				theString += '\"';
+				theString += iterator->first;
+				theString += "\":";
+				writeString(iterator->second, theString);
+				if (theIndex < theObject.theValue.object->size() - 1) {
+					theString += ',';
+				}
+				theIndex++;
+			}
+			theString += '}';
+			//theObject.currentOffsetIntoStringEnd = theString.size();
+			//theObject.theString =
+			//StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Array: {
+			//theObject.currentOffsetIntoStringStart = theString.size();
+			if (theObject.theValue.array->empty()) {
+				theString += "[]";
+				break;
+			}
+
+			theString += '[';
+
+			for (auto iterator = theObject.theValue.array->cbegin(); iterator != theObject.theValue.array->cend() - 1; ++iterator) {
+				writeString(*iterator, theString);
+				theString += ',';
+			}
+
+			theString += theObject.theValue.array->back();
+
+			theString += ']';
+			//theObject.currentOffsetIntoStringEnd = theString.size();
+			//theObject.theString =
+			//				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+
+		case ValueType::String: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += '\"';
+			theString += std::move(*theObject.theValue.string);
+			theString += '\"';
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Bool: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			std::stringstream theStream{};
+			theStream << std::boolalpha << theObject.theValue.boolean;
+			theString += theStream.str();
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Float: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += std::to_string(theObject.theValue.numberDouble);
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Uint64: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += std::to_string(theObject.theValue.numberUint);
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Int64: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += std::to_string(theObject.theValue.numberInt);
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Null: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += "null";
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += "[]";
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			//std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+	}
+	return;
+}
+
+void JsonSerializer::writeString(const JsonObject& theObject, String& theString) noexcept {
+	
+	switch (theObject.theType) {
+		case ValueType::Object: {
+			//theObject.currentOffsetIntoStringStart = theString.size();
+			if (theObject.theValue.object->empty()) {
+				theString += "{}";
+			}
+
+			theString += '{';
+
+			Uint64 theIndex{};
+			for (auto iterator = theObject.theValue.object->cbegin(); iterator != theObject.theValue.object->cend(); ++iterator) {
+				theString += '\"';
+				theString += iterator->first;
+				theString += "\":";
+				writeString(iterator->second, theString);
+				if (theIndex < theObject.theValue.object->size() - 1) {
+					theString += ',';
+				}
+				theIndex++;
+			}
+			theString += '}';
+			//theObject.currentOffsetIntoStringEnd = theString.size();
+			//theObject.theString =
+			//StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Array: {
+			//theObject.currentOffsetIntoStringStart = theString.size();
+			if (theObject.theValue.array->empty()) {
+				theString += "[]";
+				break;
+			}
+
+			theString += '[';
+
+			for (auto iterator = theObject.theValue.array->cbegin(); iterator != theObject.theValue.array->cend() - 1; ++iterator) {
+				writeString(*iterator, theString);
+				theString += ',';
+			}
+
+			theString += theObject.theValue.array->back();
+
+			theString += ']';
+			//theObject.currentOffsetIntoStringEnd = theString.size();
+			//theObject.theString =
+			//				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+
+		case ValueType::String: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += '\"';
+			theString += std::move(*theObject.theValue.string);
+			theString += '\"';
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Bool: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			std::stringstream theStream{};
+			theStream << std::boolalpha << theObject.theValue.boolean;
+			theString += theStream.str();
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Float: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += std::to_string(theObject.theValue.numberDouble);
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Uint64: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += std::to_string(theObject.theValue.numberUint);
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Int64: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += std::to_string(theObject.theValue.numberInt);
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Null: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += "null";
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theObject.currentOffsetIntoStringStart = theString.size();
+			theString += "[]";
+			theObject.currentOffsetIntoStringEnd = theString.size();
+			theObject.theString =
+				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
+			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			break;
+		}
+	}
+	return;
+}
+
+JsonSerializer::operator String&() const {
+	this->writeString(this->theValue, *this->theString);
+	return *this->theString;
+}
+
 struct UpdatePresenceData {
 	String status{};///< Current status.
 	Int64 since{ 0 };///< When was the activity started?
@@ -846,15 +1175,8 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->currentShard));
 	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
 	theSerializer["d"]["token"] = this->botToken;
-	//JsonSerializer theSerializer03{ theSerializer };
-	//theSerializer03["d"]["intents"] = 23;
 	theSerializer["op"] = static_cast<uint32_t>(2);
-	//for (auto it = theSerializer03.begin(), end = theSerializer03.end(); it != end; ++it) {
-	//if (it != end) {
-	//std::cout << "THE CURRENT STRING: " << static_cast<String>(*it) << std::endl;
-	//		}
-	//}
-	
+	std::cout << "THE LINES: " << static_cast<String>(theSerializer) << std::endl;
 	return theSerializer;
 
 }
@@ -875,15 +1197,16 @@ int32_t main() noexcept {
 		{
 			JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
 			
-			std::vector<std::string> theResults02{};
+			std::string theResults02{};
+			size_t theSize{};
 			for (int32_t x = 0; x < 128 * 128; ++x) {
 				theSerializer["d"]["intents"] = x;
-				theResults02.push_back(*theSerializer.begin());
+				theResults02 = theSerializer;
+				theSize += theResults02.size();
+				
 			}
+			std::cout << theSize << std::endl;
 			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
-			for (auto& value: theResults02) {
-				std::cout << value << std::endl;
-			}
 		}
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });

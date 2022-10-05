@@ -105,8 +105,12 @@ class JsonObject {
 	using BoolType = Bool;
 	JsonObject() noexcept = default;
 
+	DiscordCoreAPI::TextFormat theFormat{ DiscordCoreAPI::TextFormat::Etf };
+	mutable size_t currentOffsetIntoStringStart{};
+	mutable size_t currentOffsetIntoStringEnd{};
 	ValueType theType{ ValueType::Null };
-
+	mutable StringView theString{};
+	
 	union JsonValue {
 		std::unique_ptr<ObjectType> object;
 		std::unique_ptr<StringType> string;
@@ -844,10 +848,11 @@ class JsonSerializer {
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	std::unique_ptr<String> theString{ std::make_unique<String>() };
-
+	void writeString(const JsonObject& theObject, String& theString) const noexcept;
+	void writeString(const JsonObject& theObject, String& theString) noexcept;
 	JsonObject& operator[](Uint64 idx) const;
 	JsonObject& operator[](Uint64 idx);
-
+	operator String&() const;
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
