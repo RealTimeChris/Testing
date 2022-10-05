@@ -3,9 +3,9 @@
 #include "JsonObject.hpp"
 
 EnumConverter& EnumConverter::operator=(EnumConverter&& other) noexcept {
-	this->thePtr = other.thePtr;
-	other.thePtr = nullptr;
+	this->theVector = std::move(other.theVector);
 	this->vectorType = other.vectorType;
+	this->theUint = other.theUint;
 	return *this;
 }
 
@@ -13,26 +13,36 @@ EnumConverter::EnumConverter(EnumConverter&& other) noexcept {
 	*this = std::move(other);
 }
 
-EnumConverter::operator std::vector<Uint64>() {
+EnumConverter::operator std::vector<Uint64>() const noexcept {
 	std::vector<Uint64> theObject{};
-	for (auto& value: *static_cast<std::vector<Uint64>*>(this->thePtr)) {
+	for (auto& value: this->theVector) {
 		theObject.emplace_back(value);
 	}
 	return theObject;
 }
 
-EnumConverter::operator Uint64() {
-	return Uint64{ *static_cast<Uint64*>(this->thePtr) };
+EnumConverter::operator std::vector<Uint64>() noexcept {
+	std::vector<Uint64> theObject{};
+	for (auto& value: this->theVector) {
+		theObject.emplace_back(value);
+	}
+	return theObject;
 }
 
-EnumConverter::~EnumConverter() {
-	if (this->thePtr) {
-		if (this->vectorType) {
-			delete static_cast<std::vector<Uint64>*>(this->thePtr);
-		} else {
-			delete static_cast<Uint64*>(this->thePtr);
-		}
-	}
+EnumConverter::operator Uint64() const noexcept {
+	return this->theUint;
+}
+
+EnumConverter::operator Uint64() noexcept {
+	return this->theUint;
+}
+
+bool EnumConverter::isItAVector() const noexcept {
+	return this->vectorType;
+}
+
+bool EnumConverter::isItAVector() noexcept {
+	return this->vectorType;
 }
 
 JsonObject::JsonValue::JsonValue() noexcept {};
@@ -109,14 +119,37 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(Bool theData) noexcept {
 
 JsonObject::JsonValue::~JsonValue() noexcept {};
 
-JsonObject& JsonObject::operator=(EnumConverter theData) noexcept {
-	this->theValue = Uint64{ theData };
-	this->theValue.numberUint = Uint64{ theData };
-	this->theType = ValueType::Uint64;
+JsonObject& JsonObject::operator=(EnumConverter&& theData) noexcept {
+	if (theData.isItAVector()) {
+		this->set(std::make_unique<ArrayType>());
+		for (auto& value: theData.operator std::vector<Uint64, std::allocator<Uint64>>()) {
+			this->theValue.array->push_back(value);
+		}
+	} else {
+		this->theValue.numberUint = Uint64{ theData };
+		this->theType = ValueType::Uint64;
+	}
 	return *this;
 }
 
-JsonObject::JsonObject(EnumConverter theData) noexcept {
+JsonObject::JsonObject(EnumConverter&& theData) noexcept {
+	*this = std::move(theData);
+}
+
+JsonObject& JsonObject::operator=(const EnumConverter& theData) noexcept {
+	if (theData.isItAVector()) {
+		this->set(std::make_unique<ArrayType>());
+		for (auto& value: theData.operator std::vector<Uint64, std::allocator<Uint64>>()) {
+			this->theValue.array->push_back(value);
+		}
+	} else {
+		this->theValue.numberUint = Uint64{ theData };
+		this->theType = ValueType::Uint64;
+	}
+	return *this;
+}
+
+JsonObject::JsonObject(const EnumConverter& theData) noexcept {
 	*this = std::move(theData);
 }
 
@@ -803,6 +836,12 @@ int32_t main() noexcept {
 		ErlPacker thePacker{};
 		DiscordCoreAPI::ActivityData theData{};
 		std::vector<std::string> theResults01{};
+		JsonObject theObject{};
+		std::vector<DiscordCoreAPI::ChannelType> theVector{};
+		
+		theVector.push_back(DiscordCoreAPI::ChannelType::Dm);
+		theVector.push_back(DiscordCoreAPI::ChannelType::Guild_Category);
+		theObject["TESTING"] = theVector;
 		theData.name = "TESTING";
 		theDataBewTwo.numberOfShards = 0;
 		theDataBewTwo.currentShard = 23;
@@ -811,7 +850,7 @@ int32_t main() noexcept {
 		for (int32_t x = 0; x < 128 * 128; ++x) {
 			//theResults01.push_back(theDataBewTwo);
 		}
-		std::cout << "THE TIME 01: " << theStopWatch.totalTimePassed() << std::endl;
+		std::cout << "THE TIME 01: " << theObject.operator DiscordCoreAPI::String() << std::endl;
 
 		WebSocketIdentifyData theDataBew{};
 		theDataBew.numberOfShards = 0;
