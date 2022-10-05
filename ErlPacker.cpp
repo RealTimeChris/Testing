@@ -25,8 +25,7 @@
 /// 
 #include <discordcoreapi/ErlPacker.hpp>
 #include "ErlPacker.hpp"
-#include "JsonObject.hpp"
-
+/*
 	ErlPackError::ErlPackError(const String& message) : std::runtime_error(message.c_str()){};
 
 String& ErlPacker::parseJsonToEtf(JsonObject&& dataToParse) {
@@ -619,3 +618,4 @@ String ErlPacker::parseMapExt() {
 }
 
 
+*/

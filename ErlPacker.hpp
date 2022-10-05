@@ -27,7 +27,7 @@
 #define ERL_PACKER_02
 
 #include "JsonObject.hpp"
-
+/*
 #include <discordcoreapi/Index.hpp>
 #include <simdjson.h>
 #include <coroutine>
@@ -36,37 +36,12 @@
 
 
 
-struct ErlPackError : public std::runtime_error {
-  public:
-	explicit ErlPackError(const String& message);
-};
-
-constexpr Uint8 formatVersion{ 131 };
-
-enum class ETFTokenType : Uint8 {
-	New_Float_Ext = 70,
-	Small_Integer_Ext = 97,
-	Integer_Ext = 98,
-	Float_Ext = 99,
-	Atom_Ext = 100,
-	Small_Tuple_Ext = 104,
-	Large_Tuple_Ext = 105,
-	Nil_Ext = 106,
-	String_Ext = 107,
-	List_Ext = 108,
-	Binary_Ext = 109,
-	Small_Big_Ext = 110,
-	Large_Big_Ext = 111,
-	Small_Atom_Ext = 115,
-	Map_Ext = 116,
-	Atom_Utf8_Ext = 118
-};
 
 class ErlPacker {
   public:
 	ErlPacker() noexcept {};
 
-	String& parseJsonToEtf(DiscordCoreAPI::JsonObject&& dataToParse);
+	String& parseJsonToEtf(JsonObject&& dataToParse);
 
 	String& parseEtfToJson(StringView dataToParse);
 
@@ -82,21 +57,21 @@ class ErlPacker {
 	Uint64 offSet{};
 	Uint64 size{};
 
-	void singleValueJsonToETF(DiscordCoreAPI::JsonObject&& dataToParse);
+	void singleValueJsonToETF(JsonObject&& dataToParse);
 
-	void writeObject(DiscordCoreAPI::JsonObject::ObjectType&& jsonData);
+	void writeObject(JsonObject::ObjectType&& jsonData);
 
-	void writeString(DiscordCoreAPI::JsonObject::StringType&& jsonData);
+	void writeString(JsonObject::StringType&& jsonData);
 
-	void writeInt(DiscordCoreAPI::JsonObject::IntType jsonData);
+	void writeInt(JsonObject::IntType jsonData);
 
-	void writeUint(DiscordCoreAPI::JsonObject::UintType jsonData);
+	void writeUint(JsonObject::UintType jsonData);
 
-	void writeFloat(DiscordCoreAPI::JsonObject::FloatType jsonData);
+	void writeFloat(JsonObject::FloatType jsonData);
 
-	void writeArray(DiscordCoreAPI::JsonObject::ArrayType&& jsonData);
+	void writeArray(JsonObject::ArrayType&& jsonData);
 
-	void writeBool(DiscordCoreAPI::JsonObject::BoolType jsonData);
+	void writeBool(JsonObject::BoolType jsonData);
 
 	void writeNullExt();
 
@@ -179,5 +154,5 @@ class ErlPacker {
 
 	String parseMapExt();
 };
-
+*/
 #endif // !ERL_PACKER

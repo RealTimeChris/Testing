@@ -37,6 +37,12 @@ concept IsEnum = std::is_enum<TheType>::value;
 template<typename TheType>
 concept IsString = std::same_as<TheType, String>;
 
+
+/*
+
+
+
+
 struct EnumConverter {
 	template<IsEnum EnumType> EnumConverter& operator=(EnumType other) {
 		this->theUint = static_cast<Uint64>(other);
@@ -261,3 +267,4 @@ class JsonObject {
 
 	~JsonObject() noexcept;
 };
+*/
