@@ -1118,6 +1118,127 @@ void JsonSerializer::writeString(const JsonObject& theObject, String& theString)
 	return;
 }
 
+struct LengthData {
+	Uint64 offSet{};
+	Uint64 length{};
+};
+
+class StringBuffer {
+  public:
+	StringBuffer() noexcept;
+
+	StringView operator[](LengthData);
+
+	char operator[](Uint64);
+
+	operator StringView();
+
+	operator String&();
+
+	void writeData(const char* thePtr, Uint64 theSize);
+
+	String::iterator begin();
+
+	String::iterator end();
+
+	void erase(Uint64);
+
+	Uint64 size();
+
+	void clear();
+
+	char* data();
+
+  protected:
+	Uint64 whichOneAreWeOn{ 0 };
+	std::string theString01{};
+	std::string theString02{};
+	Uint64 theSize{};
+};
+
+StringBuffer::StringBuffer() noexcept {
+	this->theString01.resize(1024 * 16);
+	this->theString02.resize(1024 * 16);
+}
+
+StringView StringBuffer::operator[](LengthData size) {
+	if (this->whichOneAreWeOn == 0) {
+		StringView theString{ this->theString01.data() + size.offSet, size.length };
+		return theString;
+	} else {
+		StringView theString{ this->theString02.data() + size.offSet, size.length };
+		return theString;
+	}
+}
+
+void StringBuffer::erase(Uint64 amount) {
+	this->theSize = this->theSize - amount;
+	if (this->whichOneAreWeOn == 0) {
+		if (this->theString02.size() < this->theString01.size()) {
+			this->theString02.resize(this->theString01.size());
+		}
+		memcpy(this->theString02.data(), this->theString01.data() + amount, this->theSize);
+		this->whichOneAreWeOn = 1;
+	} else {
+		if (this->theString01.size() < this->theString02.size()) {
+			this->theString01.resize(this->theString02.size());
+		}
+		memcpy(this->theString01.data(), this->theString02.data() + amount, this->theSize);
+		this->whichOneAreWeOn = 0;
+	}
+}
+
+void StringBuffer::writeData(const char* thePtr, Uint64 theSize) {
+	if (this->whichOneAreWeOn == 0) {
+		if (this->theSize + theSize > this->theString01.size()) {
+			this->theString01.resize(this->theString01.size() + theSize);
+		}
+		memcpy(this->theString01.data() + this->theSize, thePtr, theSize);
+		this->theSize += theSize;
+	} else {
+		if (this->theSize + theSize > this->theString02.size()) {
+			this->theString02.resize(this->theString02.size() + theSize);
+		}
+		memcpy(this->theString02.data() + this->theSize, thePtr, theSize);
+		this->theSize += theSize;
+	}
+}
+
+StringBuffer::operator StringView() {
+	if (this->whichOneAreWeOn == 0) {
+		StringView theString{ this->theString01.data(), this->theSize };
+		return theString;
+	} else {
+		StringView theString{ this->theString02.data(), this->theSize };
+		return theString;
+	}
+}
+
+char StringBuffer::operator[](Uint64 theIndex) {
+	if (this->whichOneAreWeOn == 0) {
+		return this->theString01[theIndex];
+	} else {
+		return this->theString02[theIndex];
+	}
+}
+
+Uint64 StringBuffer::size() {
+	return this->theSize;
+}
+
+void StringBuffer::clear() {
+	this->whichOneAreWeOn = 0;
+	this->theSize = 0;
+}
+
+char* StringBuffer::data() {
+	if (this->whichOneAreWeOn == 0) {
+		return this->theString01.data();
+	} else {
+		return this->theString02.data();
+	}
+}
+
 JsonSerializer::operator String&() const {
 	this->writeString(this->theValue, *this->theString);
 	return *this->theString;
@@ -1194,7 +1315,15 @@ int32_t main() noexcept {
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
 		std::vector<DiscordCoreAPI::ChannelType> theVector{};
-		
+		StringBuffer theBuffer{};
+		String theString{};
+		for (uint32_t x = 0; x < 1024 * 16; ++x) {
+			theString.append(std::to_string(x));
+		}
+		theBuffer.writeData(theString.data(), theString.size());
+		std::cout << "THE STRING: " << theBuffer.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		theBuffer.erase(1024 * 8);
+		std::cout << "THE STRING: " << theBuffer.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		theVector.push_back(DiscordCoreAPI::ChannelType::Dm);
 		theVector.push_back(DiscordCoreAPI::ChannelType::Guild_Category);
 		theData.name = "TESTING";
