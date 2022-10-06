@@ -1155,15 +1155,23 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
-	JsonObject theSerializer02{};
-	theSerializer02 = this->presence;
+	UpdatePresenceData theSerializer02{};
+	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
 			theSerializer["since"] = this->presence.since;
 	}
-	
+	int32_t theIndex{};
+	for (auto& value: *theSerializer["d"]["presence"]["activities"].theValue.array) {
+		theIndex++;
+		JsonObject theObject{};
+		theObject = JsonObject{ value };
+		theObject["status"] = theIndex;
+		value = theObject;
+	}
 	theSerializer["d"]["status"] = this->presence.status;
 	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
 	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
@@ -1199,9 +1207,10 @@ int32_t main() noexcept {
 			
 			std::string theResults02{};
 			size_t theSize{};
-			for (int32_t x = 0; x < 128 * 128; ++x) {
+			for (int32_t x = 0; x < 1; ++x) {
 				theSerializer["d"]["intents"] = x;
 				theResults02 = theSerializer;
+				std::cout << "THE STRING: " << theResults02 << std::endl;
 				theSize += theResults02.size();
 				
 			}
