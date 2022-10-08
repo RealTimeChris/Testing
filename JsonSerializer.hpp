@@ -294,7 +294,7 @@ class JsonSerializer {
 	JsonSerializer(JsonObject&& theValueNew) noexcept : theValue(theValueNew) {
 		this->theType = theValueNew.theType;
 	}
-	const JsonObject theValue{};
+	mutable JsonObject theValue{};
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	DiscordCoreAPI::TextFormat theFormat{};

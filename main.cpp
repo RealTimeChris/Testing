@@ -615,7 +615,7 @@ JsonObject& JsonSerializer::operator[](Uint64 index) const {
 
 JsonObject& JsonSerializer::operator[](Uint64 index) {
 	if (this->theType == ValueType::Null) {
-		const_cast<JsonObject*>(&this->theValue)->set(std::make_unique<JsonObject::ArrayType>());
+		this->theValue.set(std::make_unique<JsonObject::ArrayType>());
 		this->theType = ValueType::Array;
 	}
 
@@ -639,7 +639,7 @@ JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key)
 
 JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
-		const_cast<JsonObject*>(&this->theValue)->set(std::make_unique<JsonObject::ObjectType>());
+		this->theValue.set(std::make_unique<JsonObject::ObjectType>());
 		this->theType = ValueType::Object;
 	}
 
@@ -903,7 +903,7 @@ void JsonSerializer::writeString(const JsonObject& theObject, String& theString)
 			} else {
 				this->writeObject(*theObject.theValue.object);
 			}
-			
+
 			break;
 		}
 		case ValueType::Array: {
@@ -963,89 +963,6 @@ void JsonSerializer::writeString(const JsonObject& theObject, String& theString)
 		}
 	}
 	return;
-}
-
-struct LengthData {
-	Uint64 offSet{};
-	Uint64 length{};
-};
-
-class StringBuffer {
-  public:
-	StringBuffer() noexcept;
-
-	StringView operator[](LengthData);
-
-	char operator[](Uint64);
-
-	operator StringView();
-
-	operator String&();
-
-	void writeData(const char* thePtr, Uint64 theSize);
-
-	String::iterator begin();
-
-	String::iterator end();
-
-	void erase(Uint64);
-
-	Uint64 size();
-
-	void clear();
-
-	char* data();
-
-  protected:
-	Uint64 whichOneAreWeOn{ 0 };
-	std::string theString01{};
-	std::string theString02{};
-	Uint64 theSize{};
-};
-
-StringBuffer::StringBuffer() noexcept {
-	this->theString01.resize(1024 * 16);
-}
-
-StringView StringBuffer::operator[](LengthData size) {
-	StringView theString{ this->theString01.data() + size.offSet, size.length };
-	return theString;
-}
-
-void StringBuffer::erase(Uint64 amount) {
-	this->theSize = this->theSize - amount;
-	memcpy(this->theString01.data(), this->theString01.data() + amount, this->theSize);
-	this->whichOneAreWeOn = 1;
-}
-
-void StringBuffer::writeData(const char* thePtr, Uint64 theSize) {
-	if (this->theSize + theSize > this->theString01.size()) {
-		this->theString01.resize(this->theString01.size() + theSize);
-	}
-	memcpy(this->theString01.data() + this->theSize, thePtr, theSize);
-	this->theSize += theSize;
-}
-
-StringBuffer::operator StringView() {
-	StringView theString{ this->theString01.data(), this->theSize };
-	return theString;
-}
-
-char StringBuffer::operator[](Uint64 theIndex) {
-	return this->theString01[theIndex];
-}
-
-Uint64 StringBuffer::size() {
-	return this->theSize;
-}
-
-void StringBuffer::clear() {
-	this->whichOneAreWeOn = 0;
-	this->theSize = 0;
-}
-
-char* StringBuffer::data() {
-	return this->theString01.data();
 }
 
 JsonSerializer::operator String&(){
@@ -1123,13 +1040,6 @@ int32_t main() noexcept {
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
 		std::vector<DiscordCoreAPI::ChannelType> theVector{};
-		StringBuffer theBuffer{};
-		String theString{};
-		for (uint32_t x = 0; x < 1024 * 16; ++x) {
-			theString.append(std::to_string(x));
-		}
-		theBuffer.writeData(theString.data(), theString.size());
-		theBuffer.erase(1024 * 8);
 		theVector.push_back(DiscordCoreAPI::ChannelType::Dm);
 		theVector.push_back(DiscordCoreAPI::ChannelType::Guild_Category);
 		theData.name = "TESTING";
@@ -1147,9 +1057,11 @@ int32_t main() noexcept {
 			std::string theResults02{};
 			size_t theSize{};
 			for (int32_t x = 0; x < 1024 * 256; ++x) {
+				theSerializer["d"]["intents"] = x;
 				theResults02 = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
 				theSize += theResults02.size();
-				//std::cout << "THE SIZE: " << theResults02.size() << std::endl;
+				//std::cout << "THE JSON DATA:" << thePacker.parseEtfToJson(theResults02) << std::endl;
+				//std::cout << "THE STRING: " << theResults02 << std::endl;
 			}
 			std::cout << theSize << std::endl;
 			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
