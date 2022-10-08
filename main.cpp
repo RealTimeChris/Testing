@@ -11,14 +11,14 @@ String& JsonObject::parseJsonToEtf(JsonObject&& dataToParse) {
 	return this->bufferString;
 }
 
-void JsonSerializer::singleValueJsonToETF(JsonObject&& jsonData) {
+void JsonSerializer::singleValueJsonToETF(const JsonObject& jsonData){ 
 	switch (jsonData.theType) {
 		case ValueType::Array: {
 			this->writeArray(*jsonData.theValue.array);
 			break;
 		}
 		case ValueType::Object: {
-			this->writeObject(std::move(*jsonData.theValue.object));
+			this->writeObject(*jsonData.theValue.object);
 			break;
 		}
 		case ValueType::Bool: {
@@ -38,7 +38,7 @@ void JsonSerializer::singleValueJsonToETF(JsonObject&& jsonData) {
 			break;
 		}
 		case ValueType::String: {
-			this->writeString(std::move(*jsonData.theValue.string));
+			this->writeString(*jsonData.theValue.string);
 			break;
 		}
 		case ValueType::Null: {
@@ -66,18 +66,19 @@ void JsonSerializer::writeObject(const JsonObject::ObjectType& jsonData) {
 	for (auto field: jsonData) {
 		if (add_comma) {
 		}
+		
 		StringStream theStream{};
 		theStream << field.first;
 		String theKey = theStream.str();
 
 		auto theSize = theKey.size();
-		this->appendBinaryExt(std::move(theKey), static_cast<Uint32>(theSize));
-		this->singleValueJsonToETF(std::move(field.second));
+		this->appendBinaryExt(theKey, static_cast<Uint32>(theSize));
+		this->singleValueJsonToETF(field.second);
 		add_comma = true;
 	}
 }
 
-void JsonSerializer::writeString(JsonObject::StringType&& jsonData) {
+void JsonSerializer::writeString(const JsonObject::StringType& jsonData) {
 	StringStream theStream{};
 	theStream << jsonData;
 	auto theSize = static_cast<Uint32>(theStream.str().size());
@@ -111,11 +112,11 @@ void JsonSerializer::writeInt(JsonObject::IntType jsonData) {
 	}
 }
 
-void JsonSerializer::writeArray(JsonObject::ArrayType& jsonData) {
+void JsonSerializer::writeArray(const JsonObject::ArrayType& jsonData) {
 	Bool add_comma{ false };
 	this->appendListHeader(static_cast<Uint32>(jsonData.size()));
 	for (auto element: jsonData) {
-		this->singleValueJsonToETF(std::move(element));
+		this->singleValueJsonToETF(element);
 		add_comma = true;
 	}
 	this->appendNilExt();
@@ -130,16 +131,16 @@ void JsonSerializer::writeBool(JsonObject::BoolType jsonData) {
 	}
 }
 
-void JsonSerializer::writeToBuffer(String&& bytes) {
+void JsonSerializer::writeToBuffer(const String& bytes) {
 	this->bufferString.insert(this->bufferString.end(), bytes.begin(), bytes.end());
 	this->offSet += bytes.size();
 }
 
-void JsonSerializer::appendBinaryExt(String&& bytes, Uint32 sizeNew) {
+void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(std::move(bufferNew));
-	this->writeToBuffer(std::move(bytes));
+	this->writeToBuffer(bufferNew);
+	this->writeToBuffer(bytes);
 }
 
 void JsonSerializer::appendUnsignedLongLong(Uint64 value) {
@@ -158,30 +159,30 @@ void JsonSerializer::appendUnsignedLongLong(Uint64 value) {
 	}
 	bufferNew[1] = bytesToEncode;
 	bufferNew[2] = 0;
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendSmallIntegerExt(Uint8 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Integer_Ext), static_cast<char>(value) };
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendIntegerExt(Uint32 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Integer_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, value);
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendListHeader(Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::List_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendMapHeader(Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Map_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendNewFloatExt(Double FloatValue) {
@@ -190,34 +191,34 @@ void JsonSerializer::appendNewFloatExt(Double FloatValue) {
 
 	void* punner{ &FloatValue };
 	DiscordCoreAPI::storeBits(bufferNew, *static_cast<Uint64*>(punner));
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendVersion() {
 	String bufferNew{};
 	bufferNew.push_back(static_cast<char>(formatVersion));
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendNilExt() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Nil_Ext) };
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendFalse() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
 		static_cast<Uint8>('e') };
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendTrue() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 void JsonSerializer::appendNil() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('i'), static_cast<Uint8>('l') };
-	this->writeToBuffer(std::move(bufferNew));
+	this->writeToBuffer(bufferNew);
 }
 
 JsonObject::JsonValue::JsonValue() noexcept {};
@@ -671,6 +672,85 @@ void JsonObject::pushBack(JsonObject& other) noexcept {
 	}
 }
 
+JsonObject::operator String() const noexcept {
+	String theString{};
+	switch (this->theType) {
+		case ValueType::Object: {
+			if (this->theValue.object->empty()) {
+				theString += "{}";
+			}
+
+			theString += '{';
+
+			Uint64 theIndex{};
+			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
+				theString += '\"';
+				theString += iterator->first;
+				theString += "\":";
+				theString += static_cast<String>(iterator->second);
+				if (theIndex < this->theValue.object->size() - 1) {
+					theString += ',';
+				}
+				theIndex++;
+			}
+			theString += '}';
+			break;
+		}
+		case ValueType::Array: {
+			if (this->theValue.array->empty()) {
+				theString += "[]";
+				break;
+			}
+
+			theString += '[';
+
+			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
+				theString += *iterator;
+				theString += ',';
+			}
+
+			theString += this->theValue.array->back();
+
+			theString += ']';
+			break;
+		}
+
+		case ValueType::String: {
+			theString += '\"';
+			theString += *this->theValue.string;
+			theString += '\"';
+			break;
+		}
+		case ValueType::Bool: {
+			std::stringstream theStream{};
+			theStream << std::boolalpha << this->theValue.boolean;
+			theString += theStream.str();
+			break;
+		}
+		case ValueType::Float: {
+			theString += std::to_string(this->theValue.numberDouble);
+			break;
+		}
+		case ValueType::Uint64: {
+			theString += std::to_string(this->theValue.numberUint);
+			break;
+		}
+		case ValueType::Int64: {
+			theString += std::to_string(this->theValue.numberInt);
+			break;
+		}
+		case ValueType::Null: {
+			theString += "null";
+			break;
+		}
+		case ValueType::Null_Ext: {
+			theString += "[]";
+			break;
+		}
+	}
+	return theString;
+}
+
 JsonObject::operator String() noexcept {
 	String theString{};
 	switch (this->theType) {
@@ -716,86 +796,7 @@ JsonObject::operator String() noexcept {
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += std::move(*this->theValue.string);
-			theString += '\"';
-			break;
-		}
-		case ValueType::Bool: {
-			std::stringstream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
-			break;
-		}
-		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
-			break;
-		}
-		case ValueType::Null: {
-			theString += "null";
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theString += "[]";
-			break;
-		}
-	}
-	return theString;
-}
-
-JsonObject::operator String() const noexcept {
-	String theString{};
-	switch (this->theType) {
-		case ValueType::Object: {
-			if (this->theValue.object->empty()) {
-				theString += "{}";
-			}
-
-			theString += '{';
-
-			Uint64 theIndex{};
-			for (auto iterator = this->theValue.object->cbegin(); iterator != this->theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += iterator->first;
-				theString += "\":";
-				theString += iterator->second;
-				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-			theString += '}';
-			break;
-		}
-		case ValueType::Array: {
-			if (this->theValue.array->empty()) {
-				theString += "[]";
-				break;
-			}
-
-			theString += '[';
-
-			for (auto iterator = this->theValue.array->cbegin(); iterator != this->theValue.array->cend() - 1; ++iterator) {
-				theString += *iterator;
-				theString += ',';
-			}
-
-			theString += this->theValue.array->back();
-
-			theString += ']';
-			break;
-		}
-
-		case ValueType::String: {
-			theString += '\"';
-			theString += std::move(*this->theValue.string);
+			theString += *this->theValue.string;
 			theString += '\"';
 			break;
 		}
@@ -869,7 +870,11 @@ JsonObject::~JsonObject() noexcept {
 }
 
 String JsonSerializer::getString(DiscordCoreAPI::TextFormat theFormatNew) {
+	this->bufferString.clear();
 	this->theFormat = theFormatNew;
+	if (this->theFormat == DiscordCoreAPI::TextFormat::Etf) {
+		this->appendVersion();
+	}
 	return *this;
 }
 
@@ -926,7 +931,7 @@ void JsonSerializer::writeString(const JsonObject& theObject, String& theString)
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += std::move(*theObject.theValue.string);
+			theString += *theObject.theValue.string;
 			theString += '\"';
 			break;
 		}
@@ -1044,7 +1049,6 @@ char* StringBuffer::data() {
 }
 
 JsonSerializer::operator String&(){
-	this->bufferString.clear();
 	this->writeString(this->theValue, this->bufferString);
 	return this->bufferString;
 }
@@ -1125,9 +1129,7 @@ int32_t main() noexcept {
 			theString.append(std::to_string(x));
 		}
 		theBuffer.writeData(theString.data(), theString.size());
-		std::cout << "THE STRING: " << theBuffer.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		theBuffer.erase(1024 * 8);
-		std::cout << "THE STRING: " << theBuffer.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		theVector.push_back(DiscordCoreAPI::ChannelType::Dm);
 		theVector.push_back(DiscordCoreAPI::ChannelType::Guild_Category);
 		theData.name = "TESTING";
@@ -1137,14 +1139,17 @@ int32_t main() noexcept {
 		theStopWatch.resetTimer();
 		{
 			JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
-
-			std::cout << "THE LINES: " << theSerializer.getString(DiscordCoreAPI::TextFormat::Etf)<< std::endl;
+			auto theString = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
+			
+			std::cout << "THE LINES: " << theString << std::endl;
+			DiscordCoreInternal::ErlPacker thePacker{};
+			std::cout << "THE JSON DATA:" << thePacker.parseEtfToJson(theString) << std::endl;
 			std::string theResults02{};
 			size_t theSize{};
-			for (int32_t x = 0; x < 1024*1024; ++x) {
-				theSerializer["d"]["intents"] = x;
+			for (int32_t x = 0; x < 1024 * 256; ++x) {
+				JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
+				theSerializer.operator JsonObject&()["d"]["intents"] = x;
 				theResults02 = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
-				//std::cout << "THE STRING: (LENGTH) " << theResults02.size() << std::endl;
 				theSize += theResults02.size();
 			}
 			std::cout << theSize << std::endl;

@@ -251,7 +251,7 @@ class JsonObject {
 
 	operator String() const noexcept;
 
-	operator String() noexcept;
+	operator String() noexcept;	
 
 	void pushBack(JsonObject&& other) noexcept;
 	void pushBack(JsonObject& other) noexcept;
@@ -308,12 +308,15 @@ class JsonSerializer {
 	operator String&();
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
+	operator JsonObject&() {
+		return this->theValue;
+	}
 
-	void singleValueJsonToETF(JsonObject&& dataToParse);
+	void singleValueJsonToETF(const JsonObject& jsonData);
 
 	void writeObject(const JsonObject::ObjectType& jsonData);
 
-	void writeString(JsonObject::StringType&& jsonData);
+	void writeString(const JsonObject::StringType& jsonData);
 
 	void writeInt(JsonObject::IntType jsonData);
 
@@ -321,7 +324,7 @@ class JsonSerializer {
 
 	void writeFloat(JsonObject::FloatType jsonData);
 
-	void writeArray(JsonObject::ArrayType& jsonData);
+	void writeArray(const JsonObject::ArrayType& jsonData);
 
 	void writeBool(JsonObject::BoolType jsonData);
 
@@ -329,9 +332,9 @@ class JsonSerializer {
 
 	void writeNull();
 
-	void writeToBuffer(String&&);
+	void writeToBuffer(const String&);
 
-	void appendBinaryExt(String&&, Uint32);
+	void appendBinaryExt(const String& bytes, Uint32 sizeNew);
 
 	void appendUnsignedLongLong(Uint64);
 
