@@ -8,15 +8,13 @@ String& JsonObject::parseJsonToEtf(JsonObject&& dataToParse) {
 	this->offSet = 0;
 	this->size = 0;
 	this->buffer = {};
-	this->appendVersion();
-	this->singleValueJsonToETF(std::move(dataToParse));
 	return this->bufferString;
 }
 
-void JsonObject::singleValueJsonToETF(JsonObject&& jsonData) {
+void JsonSerializer::singleValueJsonToETF(JsonObject&& jsonData) {
 	switch (jsonData.theType) {
 		case ValueType::Array: {
-			this->writeArray(std::move(*jsonData.theValue.array));
+			this->writeArray(*jsonData.theValue.array);
 			break;
 		}
 		case ValueType::Object: {
@@ -54,15 +52,15 @@ void JsonObject::singleValueJsonToETF(JsonObject&& jsonData) {
 	}
 }
 
-void JsonObject::writeNullExt() {
+void JsonSerializer::writeNullExt() {
 	this->appendNilExt();
 }
 
-void JsonObject::writeNull() {
+void JsonSerializer::writeNull() {
 	this->appendNil();
 }
 
-void JsonObject::writeObject(JsonObject::ObjectType&& jsonData) {
+void JsonSerializer::writeObject(const JsonObject::ObjectType& jsonData) {
 	Bool add_comma{ false };
 	this->appendMapHeader(static_cast<Uint32>(jsonData.size()));
 	for (auto field: jsonData) {
@@ -79,19 +77,19 @@ void JsonObject::writeObject(JsonObject::ObjectType&& jsonData) {
 	}
 }
 
-void JsonObject::writeString(JsonObject::StringType&& jsonData) {
+void JsonSerializer::writeString(JsonObject::StringType&& jsonData) {
 	StringStream theStream{};
 	theStream << jsonData;
 	auto theSize = static_cast<Uint32>(theStream.str().size());
 	this->appendBinaryExt(theStream.str(), theSize);
 }
 
-void JsonObject::writeFloat(JsonObject::FloatType jsonData) {
+void JsonSerializer::writeFloat(JsonObject::FloatType jsonData) {
 	auto theFloat = jsonData;
 	this->appendNewFloatExt(theFloat);
 }
 
-void JsonObject::writeUint(JsonObject::UintType jsonData) {
+void JsonSerializer::writeUint(JsonObject::UintType jsonData) {
 	auto theInt = jsonData;
 	if (theInt <= 255 && theInt >= 0) {
 		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
@@ -102,7 +100,7 @@ void JsonObject::writeUint(JsonObject::UintType jsonData) {
 	}
 }
 
-void JsonObject::writeInt(JsonObject::IntType jsonData) {
+void JsonSerializer::writeInt(JsonObject::IntType jsonData) {
 	auto theInt = jsonData;
 	if (theInt <= 127 && theInt >= -127) {
 		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
@@ -113,7 +111,7 @@ void JsonObject::writeInt(JsonObject::IntType jsonData) {
 	}
 }
 
-void JsonObject::writeArray(JsonObject::ArrayType&& jsonData) {
+void JsonSerializer::writeArray(JsonObject::ArrayType& jsonData) {
 	Bool add_comma{ false };
 	this->appendListHeader(static_cast<Uint32>(jsonData.size()));
 	for (auto element: jsonData) {
@@ -123,7 +121,7 @@ void JsonObject::writeArray(JsonObject::ArrayType&& jsonData) {
 	this->appendNilExt();
 }
 
-void JsonObject::writeBool(JsonObject::BoolType jsonData) {
+void JsonSerializer::writeBool(JsonObject::BoolType jsonData) {
 	auto theBool = jsonData;
 	if (theBool) {
 		this->appendTrue();
@@ -132,19 +130,19 @@ void JsonObject::writeBool(JsonObject::BoolType jsonData) {
 	}
 }
 
-void JsonObject::writeToBuffer(String&& bytes) {
+void JsonSerializer::writeToBuffer(String&& bytes) {
 	this->bufferString.insert(this->bufferString.end(), bytes.begin(), bytes.end());
 	this->offSet += bytes.size();
 }
 
-void JsonObject::appendBinaryExt(String&& bytes, Uint32 sizeNew) {
+void JsonSerializer::appendBinaryExt(String&& bytes, Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
 	this->writeToBuffer(std::move(bufferNew));
 	this->writeToBuffer(std::move(bytes));
 }
 
-void JsonObject::appendUnsignedLongLong(Uint64 value) {
+void JsonSerializer::appendUnsignedLongLong(Uint64 value) {
 	String bufferNew{};
 	bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
 	bufferNew[0] = static_cast<Uint8>(ETFTokenType::Small_Big_Ext);
@@ -163,30 +161,30 @@ void JsonObject::appendUnsignedLongLong(Uint64 value) {
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendSmallIntegerExt(Uint8 value) {
+void JsonSerializer::appendSmallIntegerExt(Uint8 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Integer_Ext), static_cast<char>(value) };
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendIntegerExt(Uint32 value) {
+void JsonSerializer::appendIntegerExt(Uint32 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Integer_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, value);
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendListHeader(Uint32 sizeNew) {
+void JsonSerializer::appendListHeader(Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::List_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendMapHeader(Uint32 sizeNew) {
+void JsonSerializer::appendMapHeader(Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Map_Ext) };
 	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendNewFloatExt(Double FloatValue) {
+void JsonSerializer::appendNewFloatExt(Double FloatValue) {
 	String bufferNew{};
 	bufferNew.push_back(static_cast<unsigned char>(ETFTokenType::New_Float_Ext));
 
@@ -195,29 +193,29 @@ void JsonObject::appendNewFloatExt(Double FloatValue) {
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendVersion() {
+void JsonSerializer::appendVersion() {
 	String bufferNew{};
 	bufferNew.push_back(static_cast<char>(formatVersion));
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendNilExt() {
+void JsonSerializer::appendNilExt() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Nil_Ext) };
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendFalse() {
+void JsonSerializer::appendFalse() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
 		static_cast<Uint8>('e') };
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendTrue() {
+void JsonSerializer::appendTrue() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
 	this->writeToBuffer(std::move(bufferNew));
 }
 
-void JsonObject::appendNil() {
+void JsonSerializer::appendNil() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('i'), static_cast<Uint8>('l') };
 	this->writeToBuffer(std::move(bufferNew));
 }
@@ -457,7 +455,6 @@ JsonObject& JsonObject::operator=(Uint64 theData) noexcept {
 }
 
 JsonObject::JsonObject(Uint64 theData) noexcept {
-	this->appendUnsignedLongLong(theData);
 	*this = theData;
 }
 
@@ -871,247 +868,92 @@ JsonObject::~JsonObject() noexcept {
 	this->destroy();
 }
 
-void JsonSerializer::writeString(const JsonObject& theObject, String& theString) const noexcept {
-	switch (theObject.theType) {
-		case ValueType::Object: {
-			//theObject.currentOffsetIntoStringStart = theString.size();
-			if (theObject.theValue.object->empty()) {
-				theString += "{}";
-			}
-
-			theString += '{';
-
-			Uint64 theIndex{};
-			for (auto iterator = theObject.theValue.object->cbegin(); iterator != theObject.theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += iterator->first;
-				theString += "\":";
-				writeString(iterator->second, theString);
-				if (theIndex < theObject.theValue.object->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-			theString += '}';
-			//theObject.currentOffsetIntoStringEnd = theString.size();
-			//theObject.theString =
-			//StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Array: {
-			//theObject.currentOffsetIntoStringStart = theString.size();
-			if (theObject.theValue.array->empty()) {
-				theString += "[]";
-				break;
-			}
-
-			theString += '[';
-
-			for (auto iterator = theObject.theValue.array->cbegin(); iterator != theObject.theValue.array->cend() - 1; ++iterator) {
-				writeString(*iterator, theString);
-				theString += ',';
-			}
-
-			theString += theObject.theValue.array->back();
-
-			theString += ']';
-			//theObject.currentOffsetIntoStringEnd = theString.size();
-			//theObject.theString =
-			//				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-
-		case ValueType::String: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			theString += '\"';
-			theString += std::move(*theObject.theValue.string);
-			theString += '\"';
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Bool: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			std::stringstream theStream{};
-			theStream << std::boolalpha << theObject.theValue.boolean;
-			theString += theStream.str();
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Float: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			theString += std::to_string(theObject.theValue.numberDouble);
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Uint64: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			theString += std::to_string(theObject.theValue.numberUint);
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Int64: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			theString += std::to_string(theObject.theValue.numberInt);
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Null: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			theString += "null";
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theObject.currentOffsetIntoStringStart = theString.size();
-			theString += "[]";
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			//std::cout << "THE STRING: " << theObject.theString << std::endl;
-			break;
-		}
-	}
-	return;
+String JsonSerializer::getString(DiscordCoreAPI::TextFormat theFormatNew) {
+	this->theFormat = theFormatNew;
+	return *this;
 }
 
 void JsonSerializer::writeString(const JsonObject& theObject, String& theString) noexcept {
-	
 	switch (theObject.theType) {
 		case ValueType::Object: {
-			//theObject.currentOffsetIntoStringStart = theString.size();
-			if (theObject.theValue.object->empty()) {
-				theString += "{}";
-			}
-
-			theString += '{';
-
-			Uint64 theIndex{};
-			for (auto iterator = theObject.theValue.object->cbegin(); iterator != theObject.theValue.object->cend(); ++iterator) {
-				theString += '\"';
-				theString += iterator->first;
-				theString += "\":";
-				writeString(iterator->second, theString);
-				if (theIndex < theObject.theValue.object->size() - 1) {
-					theString += ',';
+			if (this->theFormat == DiscordCoreAPI::TextFormat::Json) {
+				if (theObject.theValue.object->empty()) {
+					theString += "{}";
 				}
-				theIndex++;
+
+				theString += '{';
+
+				Uint64 theIndex{};
+				for (auto iterator = theObject.theValue.object->cbegin(); iterator != theObject.theValue.object->cend(); ++iterator) {
+					theString += '\"';
+					theString += iterator->first;
+					theString += "\":";
+					writeString(iterator->second, theString);
+					if (theIndex < theObject.theValue.object->size() - 1) {
+						theString += ',';
+					}
+					theIndex++;
+				}
+				theString += '}';
+			} else {
+				this->writeObject(*theObject.theValue.object);
 			}
-			theString += '}';
-			//theObject.currentOffsetIntoStringEnd = theString.size();
-			//theObject.theString =
-			//StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
+			
 			break;
 		}
 		case ValueType::Array: {
-			//theObject.currentOffsetIntoStringStart = theString.size();
-			if (theObject.theValue.array->empty()) {
-				theString += "[]";
-				break;
+			if (this->theFormat == DiscordCoreAPI::TextFormat::Json) {
+				if (theObject.theValue.array->empty()) {
+					theString += "[]";
+					break;
+				}
+
+				theString += '[';
+
+				for (auto iterator = theObject.theValue.array->cbegin(); iterator != theObject.theValue.array->cend() - 1; ++iterator) {
+					writeString(*iterator, theString);
+					theString += ',';
+				}
+
+				theString += theObject.theValue.array->back();
+
+				theString += ']';
+			} else {
+				this->writeArray(*theObject.theValue.array);
 			}
-
-			theString += '[';
-
-			for (auto iterator = theObject.theValue.array->cbegin(); iterator != theObject.theValue.array->cend() - 1; ++iterator) {
-				writeString(*iterator, theString);
-				theString += ',';
-			}
-
-			theString += theObject.theValue.array->back();
-
-			theString += ']';
-			//theObject.currentOffsetIntoStringEnd = theString.size();
-			//theObject.theString =
-			//				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 
 		case ValueType::String: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			theString += '\"';
 			theString += std::move(*theObject.theValue.string);
 			theString += '\"';
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 		case ValueType::Bool: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			std::stringstream theStream{};
 			theStream << std::boolalpha << theObject.theValue.boolean;
 			theString += theStream.str();
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 		case ValueType::Float: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			theString += std::to_string(theObject.theValue.numberDouble);
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 		case ValueType::Uint64: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			theString += std::to_string(theObject.theValue.numberUint);
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 		case ValueType::Int64: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			theString += std::to_string(theObject.theValue.numberInt);
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 		case ValueType::Null: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			theString += "null";
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 		case ValueType::Null_Ext: {
-			theObject.currentOffsetIntoStringStart = theString.size();
 			theString += "[]";
-			theObject.currentOffsetIntoStringEnd = theString.size();
-			theObject.theString =
-				StringView{ theString.data() + theObject.currentOffsetIntoStringStart, theObject.currentOffsetIntoStringEnd - theObject.currentOffsetIntoStringStart };
-			std::cout << "THE STRING: " << theObject.theString << std::endl;
 			break;
 		}
 	}
@@ -1201,9 +1043,10 @@ char* StringBuffer::data() {
 	return this->theString01.data();
 }
 
-JsonSerializer::operator String&() const {
-	this->writeString(this->theValue, *this->theString);
-	return *this->theString;
+JsonSerializer::operator String&(){
+	this->bufferString.clear();
+	this->writeString(this->theValue, this->bufferString);
+	return this->bufferString;
 }
 
 struct UpdatePresenceData {
@@ -1267,7 +1110,6 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
 	theSerializer["d"]["token"] = this->botToken;
 	theSerializer["op"] = static_cast<uint32_t>(2);
-	std::cout << "THE LINES: " << static_cast<String>(theSerializer) << std::endl;
 	return theSerializer;
 
 }
@@ -1295,15 +1137,15 @@ int32_t main() noexcept {
 		theStopWatch.resetTimer();
 		{
 			JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
-			
+
+			std::cout << "THE LINES: " << theSerializer.getString(DiscordCoreAPI::TextFormat::Etf)<< std::endl;
 			std::string theResults02{};
 			size_t theSize{};
-			for (int32_t x = 0; x < 1; ++x) {
+			for (int32_t x = 0; x < 1024*1024; ++x) {
 				theSerializer["d"]["intents"] = x;
-				theResults02 = theSerializer;
-				std::cout << "THE STRING: " << theResults02 << std::endl;
+				theResults02 = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
+				//std::cout << "THE STRING: (LENGTH) " << theResults02.size() << std::endl;
 				theSize += theResults02.size();
-				
 			}
 			std::cout << theSize << std::endl;
 			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
