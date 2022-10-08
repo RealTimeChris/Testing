@@ -3,7 +3,7 @@
 #include "JsonSerializer.hpp"
 //#include <nlohmann/json.hpp>
 
-String& JsonObject::parseJsonToEtf(JsonObject&& dataToParse) {
+String& JsonSerializer::parseJsonToEtf(JsonObject&& dataToParse) {
 	this->bufferString.clear();
 	this->offSet = 0;
 	this->size = 0;
@@ -229,7 +229,7 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(const ArrayType& theData
 }
 
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(ArrayType&& theData) noexcept {
-	*this->array = std::move(theData);
+	*this->array = theData;
 	return *this;
 }
 
@@ -239,7 +239,7 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(const ObjectType& theDat
 }
 
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(ObjectType&& theData) noexcept {
-	*this->object = std::move(theData);
+	*this->object = theData;
 	return *this;
 }
 
@@ -249,7 +249,7 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(const StringType& theDat
 }
 
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(StringType&& theData) noexcept {
-	*this->string = std::move(theData);
+	*this->string = theData;
 	return *this;
 }
 
@@ -319,17 +319,17 @@ JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(std::make_unique<ObjectType>());
-			this->theValue = std::move(*theKey.theValue.object);
+			this->theValue = *theKey.theValue.object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(std::make_unique<ArrayType>());
-			this->theValue = std::move(*theKey.theValue.array);
+			this->theValue = *theKey.theValue.array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(std::make_unique<StringType>());
-			this->theValue = std::move(*theKey.theValue.string);
+			this->theValue = *theKey.theValue.string;
 			break;
 		}
 		case ValueType::Bool: {
@@ -357,26 +357,26 @@ JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 }
 
 JsonObject::JsonObject(JsonObject&& theKey) noexcept {
-	*this = std::move(theKey);
+	*this = theKey;
 }
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(std::make_unique<ObjectType>());
-			this->theValue = std::move(*theKey.theValue.object);
+			this->theValue = *theKey.theValue.object;
 			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(std::make_unique<ArrayType>());
-			this->theValue = std::move(*theKey.theValue.array);
+			this->theValue = *theKey.theValue.array;
 			this->theType = ValueType::Array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(std::make_unique<StringType>());
-			this->theValue = std::move(*theKey.theValue.string);
+			this->theValue = *theKey.theValue.string;
 			this->theType = ValueType::String;
 			break;
 		}
@@ -418,13 +418,13 @@ JsonObject::JsonObject(const JsonObject& theKey) noexcept {
 
 JsonObject& JsonObject::operator=(String&& theData) noexcept {
 	this->set(std::make_unique<StringType>());
-	*this->theValue.string = std::move(theData);
+	*this->theValue.string = theData;
 	this->theType = ValueType::String;
 	return *this;
 }
 
 JsonObject::JsonObject(String&& theData) noexcept {
-	*this = std::move(theData);
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(const String& theData) noexcept {
@@ -603,7 +603,7 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(std::move(key), JsonObject{});
+		auto result = this->theValue.object->emplace(key, JsonObject{});
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -615,7 +615,7 @@ JsonObject& JsonSerializer::operator[](Uint64 index) const {
 
 JsonObject& JsonSerializer::operator[](Uint64 index) {
 	if (this->theType == ValueType::Null) {
-		this->theValue.set(std::make_unique<JsonObject::ArrayType>());
+		const_cast<JsonObject*>(&this->theValue)->set(std::make_unique<JsonObject::ArrayType>());
 		this->theType = ValueType::Array;
 	}
 
@@ -639,12 +639,12 @@ JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key)
 
 JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
-		this->theValue.set(std::make_unique<JsonObject::ObjectType>());
+		const_cast<JsonObject*>(&this->theValue)->set(std::make_unique<JsonObject::ObjectType>());
 		this->theType = ValueType::Object;
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{});
+		auto result = this->theValue.theValue.object->emplace(key, JsonObject{});
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -657,7 +657,7 @@ void JsonObject::pushBack(JsonObject&& other) noexcept {
 	}
 
 	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(std::move(other));
+		this->theValue.array->emplace_back(other);
 	}
 }
 
@@ -668,7 +668,7 @@ void JsonObject::pushBack(JsonObject& other) noexcept {
 	}
 
 	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(std::move(other));
+		this->theValue.array->emplace_back(other);
 	}
 }
 
@@ -1147,10 +1147,9 @@ int32_t main() noexcept {
 			std::string theResults02{};
 			size_t theSize{};
 			for (int32_t x = 0; x < 1024 * 256; ++x) {
-				JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
-				theSerializer.operator JsonObject&()["d"]["intents"] = x;
 				theResults02 = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
 				theSize += theResults02.size();
+				//std::cout << "THE SIZE: " << theResults02.size() << std::endl;
 			}
 			std::cout << theSize << std::endl;
 			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;

@@ -265,8 +265,6 @@ class JsonObject {
 	void destroy() noexcept;
 
 	~JsonObject() noexcept;
-
-	String& parseJsonToEtf(JsonObject&& dataToParse);
 	String comparisongStringFalse{ "false" };
 	String comparisongStringNil{ "nil" };
 	String falseString{ "false" };
@@ -293,11 +291,10 @@ class JsonSerializer {
 	using Reference = JsonSerializer&;
 	using IntType = Int64;
 	using BoolType = Bool;
-	JsonSerializer(JsonObject&& theValueNew) noexcept {
-		this->theValue = std::move(theValueNew);
+	JsonSerializer(JsonObject&& theValueNew) noexcept : theValue(theValueNew) {
 		this->theType = theValueNew.theType;
 	}
-	JsonObject theValue{};
+	const JsonObject theValue{};
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	DiscordCoreAPI::TextFormat theFormat{};
@@ -308,9 +305,10 @@ class JsonSerializer {
 	operator String&();
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
-	operator JsonObject&() {
+	operator const JsonObject&() {
 		return this->theValue;
 	}
+	String& parseJsonToEtf(JsonObject&& dataToParse);
 
 	void singleValueJsonToETF(const JsonObject& jsonData);
 
