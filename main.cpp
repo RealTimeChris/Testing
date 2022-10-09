@@ -1036,22 +1036,12 @@ WebSocketIdentifyData::operator JsonObject() {
 
 }
 
-template<class T> struct CustomAllocator {
-	using ValueType = T;
-	CustomAllocator() noexcept {
-	}
-	template<class U> CustomAllocator(const CustomAllocator<U>&) noexcept {
-	}
-	ValueType* allocate(std::size_t n) {
-		return static_cast<ValueType*>(::operator new(n * sizeof(ValueType)));
-	}
-	void deallocate(ValueType* p, std::size_t n) {
-		::delete[](p);
-	}
-	template<typename... Args> ValueType* construct(ValueType* thePtr, Args&&... args) {
-		*thePtr = ValueType{ std::move(args)... };
-		return thePtr;
-	}
+template<class ObjectType> struct CustomAllocator:public std::allocator_traits<std::allocator<ObjectType>> {
+	using ValueType = ObjectType;
+
+	CustomAllocator() noexcept {}
+
+	template<class U> CustomAllocator(const CustomAllocator<U>&) noexcept {}
 };
 
 template<class T, class U> constexpr bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&) noexcept {
@@ -1072,8 +1062,7 @@ template<typename ObjectType> class ObjectCache {
 	using LReference = ValueType&&;
 	using Pointer = ValueType*;
 
-	ObjectCache() noexcept {};
-
+	ObjectCache() noexcept {}
 
 	Reference emplace(LReference theData) noexcept {		
 		if (this->contains(theData)) {
@@ -1082,16 +1071,12 @@ template<typename ObjectType> class ObjectCache {
 			this->theMap[theIndex] = std::move(theData);
 			return this->theMap[theIndex];
 		} else {
-			AllocatorType alloc{};
-			SizeType theIndex = this->theCurrentSize;
-			std::cout << "THE VALUE: " << theData << std::endl;
-			auto theOldMap = std::move(this->theMap);
-			this->theMap = alloc.allocate(this->theCurrentSize + 1);
-			memcpy(this->theMap, theOldMap, this->theCurrentSize * sizeof(ObjectType));
-			alloc.construct(this->theMap + this->theCurrentSize, std::move(theData));
-			alloc.deallocate(theOldMap, this->theCurrentSize);
-			this->theCurrentSize++;
-			return this->theMap[theIndex];
+			this->increaseAllocatedSize();
+			AllocatorType allocTraits{};
+			std::allocator<ObjectType> allocator{};
+			allocTraits.construct(allocator, this->theMap + this->theCurrentlyUsedSize, std::move(theData));
+			this->theCurrentlyUsedSize++;
+			return this->theMap[this->theCurrentlyUsedSize - 1];
 		}
 	}
 
@@ -1102,16 +1087,12 @@ template<typename ObjectType> class ObjectCache {
 			this->theMap[theIndex] = std::move(theData);
 			return this->theMap[theIndex];
 		} else {
-			AllocatorType alloc{};
-			std::cout << "THE VALUE: " << theData << std::endl;
-			SizeType theIndex = this->theCurrentSize;
-			auto theOldMap = std::move(this->theMap);
-			this->theMap = alloc.allocate(this->theCurrentSize + 1);
-			memcpy(this->theMap, theOldMap, this->theCurrentSize * sizeof(ObjectType));
-			alloc.construct(this->theMap + this->theCurrentSize, std::move(theData));
-			alloc.deallocate(theOldMap, this->theCurrentSize);
-			this->theCurrentSize++;
-			return this->theMap[theIndex];
+			this->increaseAllocatedSize();
+			AllocatorType allocTraits{};
+			std::allocator<ObjectType> allocator{};
+			allocTraits.construct(allocator, this->theMap + this->theCurrentlyUsedSize, theData);
+			this->theCurrentlyUsedSize++;
+			return this->theMap[this->theCurrentlyUsedSize - 1];
 		}
 	}
 
@@ -1120,9 +1101,9 @@ template<typename ObjectType> class ObjectCache {
 		return *this->theMap.find(theKey);
 	}
 
-	Reference at(LReference theKey) noexcept {
+	Reference at(LReference theKey) {
 		std::shared_lock theLock{ this->theMutex };
-		for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+		for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
 			if (this->theMap[x] == theKey) {
 				return this->theMap[x];
 			}
@@ -1130,9 +1111,9 @@ template<typename ObjectType> class ObjectCache {
 		throw std::runtime_error{ "Couldn't find that object in the cache!" };
 	}
 
-	Reference at(Reference theKey) noexcept {
+	Reference at(Reference theKey) {
 		std::shared_lock theLock{ this->theMutex };
-		for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+		for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
 			if (this->theMap[x] == theKey) {
 				return this->theMap[x];
 			}
@@ -1147,13 +1128,13 @@ template<typename ObjectType> class ObjectCache {
 
 	auto end() {
 		std::unique_lock theLock{ this->theMutex };
-		return this->theMap + this->theCurrentSize;
+		return this->theMap + this->theCurrentlyUsedSize;
 	}
 
 	const Bool contains(Reference theKey) noexcept {
 		std::unique_lock theLock{ this->theMutex };
-		if (this->theCurrentSize > 0) {
-			for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+		if (this->theCurrentlyUsedSize > 0) {
+			for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
 				if (this->theMap[x] == theKey) {
 					return true;
 				}
@@ -1165,16 +1146,16 @@ template<typename ObjectType> class ObjectCache {
 	auto erase(LReference theKey) {	
 		if (this->contains(theKey)) {
 			std::unique_lock theLock{ this->theMutex };
-			AllocatorType alloc{};
+			AllocatorType allocTraits{};
+			std::allocator<ObjectType> allocator{};
 			SizeType theIndex = this->getIndex(theKey);
-			std::cout << "THE CURRENT INDEX: " << this->theCurrentSize << std::endl;
-			std::cout << "THE INDEX: " << theIndex << std::endl;
-			auto theOldMap = this->theMap;
-			this->theMap = alloc.allocate(this->theCurrentSize - 1);
-			memcpy(this->theMap, theOldMap, (theIndex) * sizeof(ObjectType));
-			memcpy(this->theMap + theIndex, theOldMap + theIndex, (this->theCurrentSize - 1 - theIndex) * sizeof(ObjectType));
-			alloc.deallocate(theOldMap, this->theCurrentSize - 1);
-			this->theCurrentSize--;
+			auto theNewMap = this->theMap;
+			this->theMap = nullptr;
+			this->theMap = allocTraits.allocate(allocator, this->theCurrentlyUsedSize - 1);
+			memcpy(this->theMap, theNewMap, (theIndex) * sizeof(ObjectType));
+			memcpy(this->theMap + theIndex, theNewMap + theIndex, (this->theCurrentlyUsedSize - 1 - theIndex) * sizeof(ObjectType));
+			allocTraits.deallocate(allocator, theNewMap, this->theCurrentlyUsedSize);
+			this->theCurrentlyUsedSize--;
 			return this->theMap;
 		}
 		throw std::runtime_error{ "Sorry, but that object does not exist within this ObjectCache!" };
@@ -1183,16 +1164,16 @@ template<typename ObjectType> class ObjectCache {
 	auto erase(Reference theKey) {
 		if (this->contains(theKey)) {
 			std::unique_lock theLock{ this->theMutex };
-			AllocatorType alloc{};
+			AllocatorType allocTraits{};
+			std::allocator<ObjectType> allocator{};
 			SizeType theIndex = this->getIndex(theKey);
-			std::cout << "THE CURRENT INDEX: " << this->theCurrentSize << std::endl;
-			std::cout << "THE INDEX: " << theIndex << std::endl;
-			auto theOldMap = this->theMap;
-			this->theMap = alloc.allocate(this->theCurrentSize - 1);
-			memcpy(this->theMap, theOldMap, (theIndex ) * sizeof(ObjectType));
-			memcpy(this->theMap + theIndex, theOldMap + theIndex, (this->theCurrentSize - 1 - theIndex) * sizeof(ObjectType));
-			alloc.deallocate(theOldMap, this->theCurrentSize - 1);
-			this->theCurrentSize--;
+			auto theNewMap = this->theMap;
+			this->theMap = nullptr;
+			this->theMap = allocTraits.allocate(allocator, this->theCurrentlyUsedSize - 1);
+			memcpy(this->theMap, theNewMap, (theIndex) * sizeof(ObjectType));
+			memcpy(this->theMap + theIndex, theNewMap + theIndex, (this->theCurrentlyUsedSize - 1 - theIndex) * sizeof(ObjectType));
+			allocTraits.deallocate(allocator, theNewMap, this->theCurrentlyUsedSize);
+			this->theCurrentlyUsedSize--;
 			return this->theMap;
 		}
 		throw std::runtime_error{ "Sorry, but that object does not exist within this ObjectCache!" };
@@ -1201,27 +1182,47 @@ template<typename ObjectType> class ObjectCache {
 	ObjectType& operator[](ObjectType& theKey) {
 		std::shared_lock theLock{ this->theMutex };
 		auto theIndex = this->getIndex(theKey);
-		return *this->theMap[theIndex];
+		return this->theMap[theIndex];
 	}
 
 	ObjectType& operator[](ObjectType&& theKey) {
 		std::shared_lock theLock{ this->theMutex };
 		auto theIndex = this->getIndex(theKey);
-		return *this->theMap[theIndex];
+		return this->theMap[theIndex];
 	}
 
 	Uint64 size() noexcept {
 		std::unique_lock theLock{ this->theMutex };
-		return this->theCurrentSize;
+		return this->theCurrentlyUsedSize;
 	}
 
   protected:
+	SizeType theCurrentlyAllocatedSize{};
+	SizeType theCurrentlyUsedSize{};
 	std::shared_mutex theMutex{};
-	SizeType theCurrentSize{};
 	Pointer theMap{};
 
+	void increaseAllocatedSize() {
+		if (this->theCurrentlyUsedSize + 1 >= this->theCurrentlyAllocatedSize) {
+			SizeType newSize{};
+			if (this->theCurrentlyAllocatedSize == 0) {
+				newSize = 12;
+			} else {
+				newSize = this->theCurrentlyAllocatedSize * 2;
+			}
+			SizeType theIndex = this->theCurrentlyUsedSize;
+			AllocatorType allocTraits{};
+			std::allocator<ObjectType> allocator{};
+			auto theNewMap = allocTraits.allocate(allocator, newSize);
+			memcpy(theNewMap, this->theMap, this->theCurrentlyUsedSize * sizeof(ObjectType));
+			allocTraits.deallocate(allocator, this->theMap, this->theCurrentlyUsedSize);
+			this->theCurrentlyAllocatedSize = newSize;
+			this->theMap = theNewMap;
+		}
+	}
+
 	SizeType getIndex(Reference theData) {
-		for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+		for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
 			if (this->theMap[x] == theData) {
 				return x;
 			}
@@ -1234,13 +1235,21 @@ int32_t main() noexcept {
 	try {
 
 		{
-			ObjectCache<int> theCache{};
-			for (int32_t x = 0; x < 1024; ++x) {
-				theCache.emplace(x);
+			ObjectCache<DiscordCoreAPI::GuildData> theCache{};
+			for (int32_t x = 0; x < 1024*10; ++x) {
+				if (x % 10000 == 0) {
+					std::cout << "WERE HERE THIS IS IT!" << std::endl;
+				}
+				DiscordCoreAPI::GuildData theData{};
+				theData.id = x;
+				theCache.emplace(theData);
 			}
 			
-			theCache.erase(23);
-			theCache.erase(0);
+			theCache.erase(DiscordCoreAPI::GuildData{});
+			for (auto iterator = theCache.begin(); iterator != theCache.end(); ++iterator) {
+				iterator = theCache.erase(*iterator);
+			}
+			theCache.erase(DiscordCoreAPI::GuildData{});
 			std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
 		}
 		
