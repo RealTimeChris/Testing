@@ -1,6 +1,7 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
 #include "JsonSerializer.hpp"
+#include <xmemory>
 //#include <nlohmann/json.hpp>
 
 String& JsonSerializer::parseJsonToEtf(JsonObject&& dataToParse) {
@@ -1034,6 +1035,108 @@ WebSocketIdentifyData::operator JsonObject() {
 	return theSerializer;
 
 }
+
+template<typename ObjectType> class ObjectCache {
+  public:
+	using ValueType = ObjectType;
+	using AllocatorType = std::allocator<ValueType>;
+	using AllocatorTraits = std::allocator_traits<AllocatorType>;
+	using SizeType = size_t;
+	using Reference = ValueType&;
+	using ConstReference = const Reference;
+	using LReference = ValueType&&;
+	using Pointer = ValueType*;
+	
+
+	ObjectCache() noexcept {};
+
+	Reference emplace(LReference theData) noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		if (this->contains(theData)) {
+			SizeType theIndex = this->getIndex();
+			this->theMap[theIndex] = std::move(theData);
+			return this->theMap[theIndex];
+		} else {
+			std::allocator<ObjectType>:
+			AllocatorTraits::allocate();
+		}
+	}
+
+	Reference emplace(Reference theData) noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		//this->theMap.emplace(theData);
+	}
+
+	ConstReference readOnly(Reference theKey) noexcept {
+		std::shared_lock theLock{ this->theMutex };
+		//return *this->theMap.find(theKey);
+	}
+
+	Reference at(LReference theKey) noexcept {
+		std::shared_lock theLock{ this->theMutex };
+		//return ( ObjectType& )*this->theMap.find(theKey);
+	}
+
+	Reference at(Reference theKey) noexcept {
+		std::shared_lock theLock{ this->theMutex };
+		//return ( ObjectType& )*this->theMap.find(theKey);
+	}
+
+	auto begin() {
+		std::unique_lock theLock{ this->theMutex };
+		//return this->theMap.begin();
+	}
+
+	auto end() {
+		std::unique_lock theLock{ this->theMutex };
+		//return this->theMap.end();
+	}
+
+	const Bool contains(Reference theKey) noexcept {
+		for (SizeType x = 0; x < this->theCurrentSize;++x) {
+			if (this->theMap[x] == theKey) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void erase(Reference theKey) {
+		if (this->theMap.contains(theKey)) {
+			//std::unique_lock theLock{ this->theMutex };
+			//this->theMap.erase(theKey);
+		}
+	}
+
+	ObjectType& operator[](ObjectType& theKey) {
+		std::shared_lock theLock{ this->theMutex };
+		//return ( ObjectType& )*this->theMap.find(theKey);
+	}
+
+	ObjectType& operator[](ObjectType&& theKey) {
+		std::shared_lock theLock{ this->theMutex };
+		//return ( ObjectType& )*this->theMap.find(theKey);
+	}
+
+	Uint64 size() noexcept {
+		std::unique_lock theLock{ this->theMutex };
+		//return this->theMap.size();
+	}
+
+  protected:
+	std::shared_mutex theMutex{};
+	SizeType theCurrentSize{};
+	Pointer theMap{};
+
+	SizeType getIndex(Reference theData) {
+		for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+			if (this->theMap[x] == theData) {
+				return x;
+			}
+		}
+		return SizeType{ -1 };
+	}
+};
 
 int32_t main() noexcept {
 	try {
