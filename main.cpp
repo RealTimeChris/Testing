@@ -1046,7 +1046,7 @@ template<class T> struct CustomAllocator {
 		return static_cast<ValueType*>(::operator new(n * sizeof(ValueType)));
 	}
 	void deallocate(ValueType* p, std::size_t n) {
-		::delete (p);
+		::delete[](p);
 	}
 	template<typename... Args> ValueType* construct(ValueType* thePtr, Args&&... args) {
 		*thePtr = ValueType{ std::move(args)... };
@@ -1172,8 +1172,8 @@ template<typename ObjectType> class ObjectCache {
 			auto theOldMap = this->theMap;
 			this->theMap = alloc.allocate(this->theCurrentSize - 1);
 			memcpy(this->theMap, theOldMap, (theIndex) * sizeof(ObjectType));
-			memcpy(this->theMap + theIndex , theOldMap + theIndex, (this->theCurrentSize - theIndex) * sizeof(ObjectType));
-			alloc.deallocate(theOldMap, this->theCurrentSize);
+			memcpy(this->theMap + theIndex, theOldMap + theIndex, (this->theCurrentSize - 1 - theIndex) * sizeof(ObjectType));
+			alloc.deallocate(theOldMap, this->theCurrentSize - 1);
 			this->theCurrentSize--;
 			return this->theMap;
 		}
@@ -1190,8 +1190,8 @@ template<typename ObjectType> class ObjectCache {
 			auto theOldMap = this->theMap;
 			this->theMap = alloc.allocate(this->theCurrentSize - 1);
 			memcpy(this->theMap, theOldMap, (theIndex ) * sizeof(ObjectType));
-			memcpy(this->theMap + theIndex , theOldMap + theIndex, (this->theCurrentSize - theIndex) * sizeof(ObjectType));
-			alloc.deallocate(theOldMap, this->theCurrentSize);
+			memcpy(this->theMap + theIndex, theOldMap + theIndex, (this->theCurrentSize - 1 - theIndex) * sizeof(ObjectType));
+			alloc.deallocate(theOldMap, this->theCurrentSize - 1);
 			this->theCurrentSize--;
 			return this->theMap;
 		}
