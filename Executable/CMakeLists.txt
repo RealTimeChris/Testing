@@ -21,6 +21,11 @@ target_link_libraries(
 
 target_sources("${PROJECT_NAME}" PUBLIC "${CMAKE_SOURCE_DIR}/ErlPacker.cpp")
 
+target_compile_features(
+	"${PROJECT_NAME}" PUBLIC
+	"cxx_std_20"
+)
+
 set_target_properties(
 	"${PROJECT_NAME}" PROPERTIES 
 	OUTPUT_NAME "${PROJECT_NAME}-Cpp"

@@ -1,7 +1,7 @@
 #include <discordcoreapi/Index.hpp>
 #include "ErlPacker.hpp"
 #include "JsonSerializer.hpp"
-#include <xmemory>
+#include <scoped_allocator>
 //#include <nlohmann/json.hpp>
 
 String& JsonSerializer::parseJsonToEtf(JsonObject&& dataToParse) {
@@ -1036,35 +1036,77 @@ WebSocketIdentifyData::operator JsonObject() {
 
 }
 
+
 template<typename ObjectType> class ObjectCache {
   public:
 	using ValueType = ObjectType;
-	using AllocatorType = std::allocator<ValueType>;
-	using AllocatorTraits = std::allocator_traits<AllocatorType>;
+	using AllocatorType = std::allocator<ObjectType>;
 	using SizeType = size_t;
 	using Reference = ValueType&;
 	using ConstReference = const Reference;
 	using LReference = ValueType&&;
 	using Pointer = ValueType*;
-	
-
+	std::allocator<ObjectType> alloc{};
 	ObjectCache() noexcept {};
+
 
 	Reference emplace(LReference theData) noexcept {
 		std::unique_lock theLock{ this->theMutex };
 		if (this->contains(theData)) {
-			SizeType theIndex = this->getIndex();
+			SizeType theIndex = this->getIndex(theData);
 			this->theMap[theIndex] = std::move(theData);
 			return this->theMap[theIndex];
 		} else {
-			std::allocator<ObjectType>:
-			AllocatorTraits::allocate();
+			SizeType theIndex = this->theCurrentSize;
+			//this->theMap += alloc.new_object(std::move(theData));
+			this->theCurrentSize++;
+			std::cout << "THE CURRENT SIZE: " << this->theCurrentSize << std::endl;
+			return this->theMap[theIndex];
 		}
 	}
-
+	template<typename ValueType>
 	Reference emplace(Reference theData) noexcept {
 		std::unique_lock theLock{ this->theMutex };
-		//this->theMap.emplace(theData);
+		if (this->contains(theData)) {
+			SizeType theIndex = this->getIndex(theData);
+			this->theMap[theIndex] = std::move(theData);
+			return this->theMap[theIndex];
+		} else {
+			// default allocator for strings
+			std::allocator<ValueType> alloc;
+			// matching traits
+			using traits_t = std::allocator_traits<decltype(alloc)>;
+
+			// Rebinding the allocator using the trait for strings gets the same type
+			traits_t::rebind_alloc<ValueType> alloc_ = alloc;
+
+			std::string* p = traits_t::allocate(alloc, 2);// space for 2 strings
+
+			traits_t::construct(alloc, p, "foo");
+			traits_t::construct(alloc, p + 1, "bar");
+
+			std::cout << p[0] << ' ' << p[1] << '\n';
+
+			traits_t::destroy(alloc, p + 1);
+			traits_t::destroy(alloc, p);
+			traits_t::deallocate(alloc, p, 2);
+			/*
+			SizeType theIndex = this->theCurrentSize;
+			auto theOldMap = std::move(this->theMap);
+			this->theMap = alloc.allocate(this->theCurrentSize + 1);
+			using AllocTraits = std::allocator_traits<AllocatorType>;
+			AllocTraits::rebind_alloc<ObjectType> alloc = alloc;
+
+			memcpy(this->theMap, theOldMap, this->theCurrentSize * sizeof(ObjectType));
+			for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+				AllocTraits::destroy(this->theMap + x);
+			}
+			alloc.deallocate(this->theMap, this->theCurrentSize);
+			this->theCurrentSize++;
+			std::cout << "THE CURRENT SIZE: 0202 " << this->theCurrentSize << std::endl;
+			*/
+			return this->theMap[theIndex];
+		}
 	}
 
 	ConstReference readOnly(Reference theKey) noexcept {
@@ -1074,6 +1116,12 @@ template<typename ObjectType> class ObjectCache {
 
 	Reference at(LReference theKey) noexcept {
 		std::shared_lock theLock{ this->theMutex };
+		for (SizeType x = 0; x < this->theCurrentSize; ++x) {
+			if (this->theMap[x] == theKey) {
+				return this->theMap[x];
+			}
+		}
+		throw std::runtime_error{ "Couldn't find that object in the cache!" };
 		//return ( ObjectType& )*this->theMap.find(theKey);
 	}
 
@@ -1084,12 +1132,12 @@ template<typename ObjectType> class ObjectCache {
 
 	auto begin() {
 		std::unique_lock theLock{ this->theMutex };
-		//return this->theMap.begin();
+		return this->theMap;
 	}
 
 	auto end() {
 		std::unique_lock theLock{ this->theMutex };
-		//return this->theMap.end();
+		return this->theMap + this->theCurrentSize;
 	}
 
 	const Bool contains(Reference theKey) noexcept {
@@ -1101,10 +1149,26 @@ template<typename ObjectType> class ObjectCache {
 		return false;
 	}
 
-	void erase(Reference theKey) {
-		if (this->theMap.contains(theKey)) {
-			//std::unique_lock theLock{ this->theMutex };
-			//this->theMap.erase(theKey);
+	auto erase(LReference theKey) {		
+		if (this->contains(theKey)) {
+			std::unique_lock theLock{ this->theMutex };
+			auto theIndex = this->getIndex(theKey);
+			std::cout << "THE INDEX: " << theIndex << std::endl;
+			//alloc.destroy(&this->theMap[theIndex]);
+			return &this->theMap[theIndex];
+			//alloc.deallocate(&this->theMap[theIndex], 1 * sizeof(ObjectType));
+		}
+	}
+
+	auto erase(Reference theKey) {
+		if (this->contains(theKey)) {
+			std::unique_lock theLock{ this->theMutex };
+			auto theIndex = this->getIndex(theKey);
+			std::cout << "THE INDEX: " << theIndex << std::endl;
+			//alloc.destroy(this->theMap + theIndex);
+			//alloc.deallocate(this->theMap + theIndex, 1);
+			return &this->theMap[theIndex];
+			//alloc.deallocate(&this->theMap[theIndex], 1 * sizeof(ObjectType));
 		}
 	}
 
@@ -1134,12 +1198,25 @@ template<typename ObjectType> class ObjectCache {
 				return x;
 			}
 		}
-		return SizeType{ -1 };
+		return SizeType{ static_cast<SizeType>(-1) };
 	}
 };
 
 int32_t main() noexcept {
 	try {
+
+		{
+			ObjectCache<int> theCache{};
+			for (int32_t x = 0; x < 1024; ++x) {
+				theCache.emplace(x);
+			}
+			
+			for (auto theValue = theCache.begin(); theValue != theCache.end(); ++theValue) {
+				theValue = theCache.erase(*theValue);
+			}	
+			std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
+		}
+		
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
 		std::vector<DiscordCoreAPI::ChannelType> theVector{};
