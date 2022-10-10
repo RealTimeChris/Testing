@@ -120,24 +120,14 @@ class JsonObject {
 	using BoolType = Bool;
 	using SizeType = size_t;
 
-	
-	template<typename DeleterType> struct Deleter { 
-		void operator()(DeleterType*theObject){
-			std::pmr::polymorphic_allocator<DeleterType> theAllocator{};
-			theAllocator.destroy(theObject);
-			theAllocator.deallocate(theObject, 1);
-		}; 
-	};
-	
 	ValueType theType{ ValueType::Null };
-	SizeType startingIndex{};
-	SizeType endingIndex{};
+	StringView theStringReal{};
 	String* theString{};
-	JsonObject() noexcept = default;
+	JsonObject() noexcept {};
 	union JsonValue {
-		UniquePtrD<ObjectType, Deleter<ObjectType>> object;
-		UniquePtrD<StringType, Deleter<StringType>> string;
-		UniquePtrD<ArrayType, Deleter<ArrayType>> array;
+		ObjectType* object;
+		StringType* string;
+		ArrayType* array;
 		FloatType numberDouble;
 		UintType numberUint;
 		IntType numberInt;
@@ -150,6 +140,14 @@ class JsonObject {
 
 		JsonValue& operator=(const JsonValue&) noexcept = delete;
 		JsonValue(const JsonValue&) noexcept = delete;
+
+		JsonValue& operator=(const ObjectType& theData) noexcept;
+
+		JsonValue& operator=(ObjectType&& theData) noexcept;
+
+		JsonValue& operator=(const ArrayType& theData) noexcept;
+
+		JsonValue& operator=(ArrayType&& theData) noexcept;
 
 		JsonValue& operator=(const StringType& theData) noexcept;
 
@@ -184,8 +182,9 @@ class JsonObject {
 
 	JsonValue theValue{};
 
-	JsonObject(String* theStringNew) noexcept {
+	JsonObject(String* theStringNew, ValueType theTypeNew) noexcept {
 		this->theString = theStringNew;
+		this->theType = theTypeNew;
 	}
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
@@ -309,7 +308,7 @@ class JsonSerializer {
 	using IntType = Int64;
 	using BoolType = Bool;
 	JsonSerializer() noexcept {};
-	mutable JsonObject theValue{ &this->bufferString };
+	mutable JsonObject theValue{ &this->theString, ValueType::Object };
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	DiscordCoreAPI::TextFormat theFormat{};
@@ -377,7 +376,7 @@ class JsonSerializer {
 	String comparisongStringNil{ "nil" };
 	String falseString{ "false" };
 	String nilString{ "nil" };
-	mutable String bufferString{};
+	mutable String theString{};
 	StringView buffer{};
 	Uint64 offSet{};
 	Uint64 size{};

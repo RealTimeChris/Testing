@@ -396,8 +396,8 @@ JsonObject& JsonObject::operator=(ValueType theType) noexcept {
 	return *this;
 }
 
-JsonObject::JsonObject(ValueType theType) noexcept {
-	*this = theType;
+JsonObject::JsonObject(ValueType theValue) noexcept {
+	*this = theValue;
 }
 
 JsonObject& JsonObject::operator[](Uint64 index) const {
@@ -422,7 +422,7 @@ JsonObject& JsonObject::operator[](Uint64 index) {
 
 JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key) const {
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(key, JsonObject{ &this->bufferString });
+		auto result = this->theValue.theValue.object->emplace(key, JsonObject{ &this->theString, ValueType::Object });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -430,7 +430,7 @@ JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key)
 
 JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(key, JsonObject{ this->theString });
+		auto result = this->theValue.object->emplace(key, JsonObject{ ValueType::Object });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -443,7 +443,7 @@ JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{ this->bufferString });
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{ &this->theString, ValueType::Object });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -457,7 +457,7 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(std::move(key), JsonObject{ this->theString });
+		auto result = this->theValue.object->emplace(std::move(key), JsonObject{ ValueType::Object });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -646,42 +646,42 @@ JsonObject::operator String() noexcept {
 Void JsonObject::set(UniquePtr<String> p) {
 	destroy();
 	std::pmr::polymorphic_allocator<StringType> theAllocator{};
-	UniquePtrD<StringType, Deleter<StringType>> thePtr{ theAllocator.allocate(1), Deleter<StringType>{} };
-	theAllocator.construct(thePtr.get());
-	this->theValue.string = std::move(thePtr);
+	//UniquePtrD<StringType, Deleter<StringType>> thePtr{ theAllocator.allocate(1), Deleter<StringType>{} };
+	//theAllocator.construct(thePtr.get());
+	//this->theValue.string = std::move(thePtr);
 	this->theType = ValueType::String;
 }
 
 Void JsonObject::set(UniquePtr<ArrayType> p) {
 	destroy();
 	std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
-	UniquePtrD<ArrayType, Deleter<ArrayType>> thePtr{ theAllocator.allocate(1), Deleter<ArrayType>{} };
-	theAllocator.construct(thePtr.get());
-	this->theValue.array = std::move(thePtr);
+	//UniquePtrD<ArrayType, Deleter<ArrayType>> thePtr{ theAllocator.allocate(1), Deleter<ArrayType>{} };
+	//theAllocator.construct(thePtr.get());
+	//this->theValue.array = std::move(thePtr);
 	this->theType = ValueType::Array;
 }
 
 Void JsonObject::set(UniquePtr<ObjectType> p) {
 	destroy();
 	std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
-	UniquePtrD<ObjectType, Deleter<ObjectType>> thePtr{ theAllocator.allocate(1), Deleter<ObjectType>{} };
-	theAllocator.construct(thePtr.get());
-	this->theValue.object = std::move(thePtr);
+	//UniquePtrD<ObjectType, Deleter<ObjectType>> thePtr{ theAllocator.allocate(1), Deleter<ObjectType>{} };
+	//theAllocator.construct(thePtr.get());
+	//this->theValue.object = std::move(thePtr);
 	this->theType = ValueType::Object;
 }
 
 Void JsonObject::destroy() noexcept {
 	switch (this->theType) {
 		case ValueType::Array: {
-			this->theValue.array.reset(nullptr);
+			delete this->theValue.array;
 			break;
 		}
 		case ValueType::Object: {
-			this->theValue.object.reset(nullptr);
+			delete this->theValue.object;
 			break;
 		}
 		case ValueType::String: {
-			this->theValue.string.reset(nullptr);
+			delete this->theValue.string;
 			break;
 		}
 	}
