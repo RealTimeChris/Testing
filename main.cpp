@@ -4,245 +4,38 @@
 #include <scoped_allocator>
 //#include <nlohmann/json.hpp>
 
-String& JsonSerializer::parseJsonToEtf(JsonObject&& dataToParse) {
-	this->bufferString.clear();
-	this->offSet = 0;
-	this->size = 0;
-	this->buffer = {};
-	return this->bufferString;
+EnumConverter& EnumConverter::operator=(EnumConverter&& other) noexcept {
+	this->theVector = std::move(other.theVector);
+	this->vectorType = other.vectorType;
+	this->theUint = other.theUint;
+	return *this;
 }
 
-void JsonSerializer::singleValueJsonToETF(const JsonObject& jsonData){ 
-	switch (jsonData.theType) {
-		case ValueType::Array: {
-			this->writeArray(*jsonData.theValue.array);
-			break;
-		}
-		case ValueType::Object: {
-			this->writeObject(*jsonData.theValue.object);
-			break;
-		}
-		case ValueType::Bool: {
-			this->writeBool(jsonData.theValue.boolean);
-			break;
-		}
-		case ValueType::Float: {
-			this->writeFloat(jsonData.theValue.numberDouble);
-			break;
-		}
-		case ValueType::Int64: {
-			this->writeInt(jsonData.theValue.numberInt);
-			break;
-		}
-		case ValueType::Uint64: {
-			this->writeUint(jsonData.theValue.numberUint);
-			break;
-		}
-		case ValueType::String: {
-			this->writeString(*jsonData.theValue.string);
-			break;
-		}
-		case ValueType::Null: {
-			this->writeNull();
-			break;
-		}
-		case ValueType::Null_Ext: {
-			this->writeNullExt();
-			break;
-		}
+EnumConverter::EnumConverter(EnumConverter&& other) noexcept {
+	*this = std::move(other);
+}
+
+EnumConverter::operator Vector<Uint64>() const noexcept {
+	Vector<Uint64> theObject{};
+	for (auto& value: this->theVector) {
+		theObject.emplace_back(value);
 	}
+	return theObject;
 }
 
-void JsonSerializer::writeNullExt() {
-	this->appendNilExt();
+EnumConverter::operator Uint64() const noexcept {
+	return this->theUint;
 }
 
-void JsonSerializer::writeNull() {
-	this->appendNil();
+bool EnumConverter::isItAVector() const noexcept {
+	return this->vectorType;
 }
 
-void JsonSerializer::writeObject(const JsonObject::ObjectType& jsonData) {
-	Bool add_comma{ false };
-	this->appendMapHeader(static_cast<Uint32>(jsonData.size()));
-	for (auto field: jsonData) {
-		if (add_comma) {
-		}
-		
-		StringStream theStream{};
-		theStream << field.first;
-		String theKey = theStream.str();
-
-		auto theSize = theKey.size();
-		this->appendBinaryExt(theKey, static_cast<Uint32>(theSize));
-		this->singleValueJsonToETF(field.second);
-		add_comma = true;
-	}
-}
-
-void JsonSerializer::writeString(const JsonObject::StringType& jsonData) {
-	StringStream theStream{};
-	theStream << jsonData;
-	auto theSize = static_cast<Uint32>(theStream.str().size());
-	this->appendBinaryExt(theStream.str(), theSize);
-}
-
-void JsonSerializer::writeFloat(JsonObject::FloatType jsonData) {
-	auto theFloat = jsonData;
-	this->appendNewFloatExt(theFloat);
-}
-
-void JsonSerializer::writeUint(JsonObject::UintType jsonData) {
-	auto theInt = jsonData;
-	if (theInt <= 255 && theInt >= 0) {
-		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
-	} else if (theInt <= std::numeric_limits<Uint32>::max() && theInt >= 0) {
-		this->appendIntegerExt(static_cast<Uint32>(theInt));
-	} else {
-		this->appendUnsignedLongLong(theInt);
-	}
-}
-
-void JsonSerializer::writeInt(JsonObject::IntType jsonData) {
-	auto theInt = jsonData;
-	if (theInt <= 127 && theInt >= -127) {
-		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
-	} else if (theInt <= std::numeric_limits<Int32>::max() && theInt >= std::numeric_limits<Int32>::min()) {
-		this->appendIntegerExt(static_cast<Uint32>(theInt));
-	} else {
-		this->appendUnsignedLongLong(static_cast<Uint64>(theInt));
-	}
-}
-
-void JsonSerializer::writeArray(const JsonObject::ArrayType& jsonData) {
-	Bool add_comma{ false };
-	this->appendListHeader(static_cast<Uint32>(jsonData.size()));
-	for (auto element: jsonData) {
-		this->singleValueJsonToETF(element);
-		add_comma = true;
-	}
-	this->appendNilExt();
-}
-
-void JsonSerializer::writeBool(JsonObject::BoolType jsonData) {
-	auto theBool = jsonData;
-	if (theBool) {
-		this->appendTrue();
-	} else {
-		this->appendFalse();
-	}
-}
-
-void JsonSerializer::writeToBuffer(const String& bytes) {
-	this->bufferString.insert(this->bufferString.end(), bytes.begin(), bytes.end());
-	this->offSet += bytes.size();
-}
-
-void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
-	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(bufferNew);
-	this->writeToBuffer(bytes);
-}
-
-void JsonSerializer::appendUnsignedLongLong(Uint64 value) {
-	String bufferNew{};
-	bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
-	bufferNew[0] = static_cast<Uint8>(ETFTokenType::Small_Big_Ext);
-	DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{ 1500 } };
-	Uint8 bytesToEncode = 0;
-	while (value > 0) {
-		if (theStopWatch.hasTimePassed()) {
-			break;
-		}
-		bufferNew[static_cast<Uint64>(3) + bytesToEncode] = value & 0xF;
-		value >>= 8;
-		bytesToEncode++;
-	}
-	bufferNew[1] = bytesToEncode;
-	bufferNew[2] = 0;
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendSmallIntegerExt(Uint8 value) {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Integer_Ext), static_cast<char>(value) };
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendIntegerExt(Uint32 value) {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Integer_Ext) };
-	DiscordCoreAPI::storeBits(bufferNew, value);
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendListHeader(Uint32 sizeNew) {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::List_Ext) };
-	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendMapHeader(Uint32 sizeNew) {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Map_Ext) };
-	DiscordCoreAPI::storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendNewFloatExt(Double FloatValue) {
-	String bufferNew{};
-	bufferNew.push_back(static_cast<unsigned char>(ETFTokenType::New_Float_Ext));
-
-	void* punner{ &FloatValue };
-	DiscordCoreAPI::storeBits(bufferNew, *static_cast<Uint64*>(punner));
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendVersion() {
-	String bufferNew{};
-	bufferNew.push_back(static_cast<char>(formatVersion));
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendNilExt() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Nil_Ext) };
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendFalse() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
-		static_cast<Uint8>('e') };
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendTrue() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
-	this->writeToBuffer(bufferNew);
-}
-
-void JsonSerializer::appendNil() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('i'), static_cast<Uint8>('l') };
-	this->writeToBuffer(bufferNew);
+bool EnumConverter::isItAVector() noexcept {
+	return this->vectorType;
 }
 
 JsonObject::JsonValue::JsonValue() noexcept {};
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(const ArrayType& theData) noexcept {
-	*this->array = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(ArrayType&& theData) noexcept {
-	*this->array = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(const ObjectType& theData) noexcept {
-	*this->object = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(ObjectType&& theData) noexcept {
-	*this->object = theData;
-	return *this;
-}
 
 JsonObject::JsonValue& JsonObject::JsonValue::operator=(const StringType& theData) noexcept {
 	*this->string = theData;
@@ -316,21 +109,55 @@ JsonObject::JsonValue& JsonObject::JsonValue::operator=(Bool theData) noexcept {
 
 JsonObject::JsonValue::~JsonValue() noexcept {};
 
+JsonObject& JsonObject::operator=(EnumConverter&& theData) noexcept {
+	if (theData.isItAVector()) {
+		this->set(std::make_unique<ArrayType>());
+		for (auto& value: theData.operator Vector<Uint64>()) {
+			this->theValue.array->push_back(value);
+		}
+	} else {
+		this->theValue.numberUint = Uint64{ theData };
+		this->theType = ValueType::Uint64;
+	}
+	return *this;
+}
+
+JsonObject::JsonObject(EnumConverter&& theData) noexcept {
+	*this = std::move(theData);
+}
+
+JsonObject& JsonObject::operator=(const EnumConverter& theData) noexcept {
+	if (theData.isItAVector()) {
+		this->set(std::make_unique<ArrayType>());
+		for (auto& value: theData.operator Vector<Uint64>()) {
+			this->theValue.array->push_back(value);
+		}
+	} else {
+		this->theValue.numberUint = Uint64{ theData };
+		this->theType = ValueType::Uint64;
+	}
+	return *this;
+}
+
+JsonObject::JsonObject(const EnumConverter& theData) noexcept {
+	*this = theData;
+}
+
 JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(std::make_unique<ObjectType>());
-			this->theValue = *theKey.theValue.object;
+			*this->theValue.object = *theKey.theValue.object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(std::make_unique<ArrayType>());
-			this->theValue = *theKey.theValue.array;
+			*this->theValue.array = *theKey.theValue.array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(std::make_unique<StringType>());
-			this->theValue = *theKey.theValue.string;
+			*this->theValue.string = *theKey.theValue.string;
 			break;
 		}
 		case ValueType::Bool: {
@@ -358,26 +185,30 @@ JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 }
 
 JsonObject::JsonObject(JsonObject&& theKey) noexcept {
-	*this = theKey;
+	*this = std::move(theKey);
 }
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(std::make_unique<ObjectType>());
-			this->theValue = *theKey.theValue.object;
+			for (auto& [key, value]: *theKey.theValue.object) {
+				this->theValue.object->emplace(key, std::move(value));
+			}
 			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(std::make_unique<ArrayType>());
-			this->theValue = *theKey.theValue.array;
+			for (auto& value: *theKey.theValue.array) {
+				this->theValue.array->emplace_back(std::move(value));
+			}
 			this->theType = ValueType::Array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(std::make_unique<StringType>());
-			this->theValue = *theKey.theValue.string;
+			*this->theValue.string = *theKey.theValue.string;
 			this->theType = ValueType::String;
 			break;
 		}
@@ -425,7 +256,7 @@ JsonObject& JsonObject::operator=(String&& theData) noexcept {
 }
 
 JsonObject::JsonObject(String&& theData) noexcept {
-	*this = theData;
+	*this = std::move(theData);
 }
 
 JsonObject& JsonObject::operator=(const String& theData) noexcept {
@@ -589,50 +420,17 @@ JsonObject& JsonObject::operator[](Uint64 index) {
 	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 }
 
-JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
-	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(key, ValueType::Null);
-		return result.first->second;
-	}
-	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
-}
-
-JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
-	if (this->theType == ValueType::Null) {
-		this->set(std::make_unique<ObjectType>());
-		this->theType = ValueType::Object;
-	}
-
-	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(key, JsonObject{});
-		return result.first->second;
-	}
-	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
-}
-
-JsonObject& JsonSerializer::operator[](Uint64 index) const {
-	return this->theValue.theValue.array->operator[](index);
-}
-
-JsonObject& JsonSerializer::operator[](Uint64 index) {
-	if (this->theType == ValueType::Null) {
-		this->theValue.set(std::make_unique<JsonObject::ArrayType>());
-		this->theType = ValueType::Array;
-	}
-
-	if (this->theType == ValueType::Array) {
-		if (index >= this->theValue.theValue.array->size()) {
-			this->theValue.theValue.array->resize(index + 1);
-		}
-
-		return this->theValue.theValue.array->operator[](index);
-	}
-	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
-}
-
 JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key) const {
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(key, ValueType::Null);
+		auto result = this->theValue.theValue.object->emplace(key, JsonObject{ &this->bufferString });
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
+JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
+	if (this->theType == ValueType::Object) {
+		auto result = this->theValue.object->emplace(key, JsonObject{ this->theString });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -645,31 +443,45 @@ JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(key, JsonObject{});
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{ this->bufferString });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
 }
 
-void JsonObject::pushBack(JsonObject&& other) noexcept {
+
+JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
+	if (this->theType == ValueType::Null) {
+		this->set(std::make_unique<ObjectType>());
+		this->theType = ValueType::Object;
+	}
+
+	if (this->theType == ValueType::Object) {
+		auto result = this->theValue.object->emplace(std::move(key), JsonObject{ this->theString });
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
+Void JsonObject::pushBack(JsonObject&& other) noexcept {
 	if (this->theType == ValueType::Null) {
 		this->set(std::make_unique<ArrayType>());
 		this->theType = ValueType::Array;
 	}
 
 	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(other);
+		this->theValue.array->emplace_back(std::move(other));
 	}
 }
 
-void JsonObject::pushBack(JsonObject& other) noexcept {
+Void JsonObject::pushBack(JsonObject& other) noexcept {
 	if (this->theType == ValueType::Null) {
 		this->set(std::make_unique<ArrayType>());
 		this->theType = ValueType::Array;
 	}
 
 	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(other);
+		this->theValue.array->emplace_back(std::move(other));
 	}
 }
 
@@ -688,7 +500,7 @@ JsonObject::operator String() const noexcept {
 				theString += '\"';
 				theString += iterator->first;
 				theString += "\":";
-				theString += static_cast<String>(iterator->second);
+				theString += iterator->second;
 				if (theIndex < this->theValue.object->size() - 1) {
 					theString += ',';
 				}
@@ -718,12 +530,12 @@ JsonObject::operator String() const noexcept {
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += *this->theValue.string;
+			theString += std::move(*this->theValue.string);
 			theString += '\"';
 			break;
 		}
 		case ValueType::Bool: {
-			std::stringstream theStream{};
+			StringStream theStream{};
 			theStream << std::boolalpha << this->theValue.boolean;
 			theString += theStream.str();
 			break;
@@ -797,12 +609,12 @@ JsonObject::operator String() noexcept {
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += *this->theValue.string;
+			theString += std::move(*this->theValue.string);
 			theString += '\"';
 			break;
 		}
 		case ValueType::Bool: {
-			std::stringstream theStream{};
+			StringStream theStream{};
 			theStream << std::boolalpha << this->theValue.boolean;
 			theString += theStream.str();
 			break;
@@ -831,25 +643,34 @@ JsonObject::operator String() noexcept {
 	return theString;
 }
 
-void JsonObject::set(std::unique_ptr<String> pointer) {
+Void JsonObject::set(UniquePtr<String> p) {
 	destroy();
-	new (&this->theValue.string) std::unique_ptr<String>{ std::move(pointer) };
+	std::pmr::polymorphic_allocator<StringType> theAllocator{};
+	UniquePtrD<StringType, Deleter<StringType>> thePtr{ theAllocator.allocate(1), Deleter<StringType>{} };
+	theAllocator.construct(thePtr.get());
+	this->theValue.string = std::move(thePtr);
 	this->theType = ValueType::String;
 }
 
-void JsonObject::set(std::unique_ptr<ArrayType> pointer) {
+Void JsonObject::set(UniquePtr<ArrayType> p) {
 	destroy();
-	new (&this->theValue.string) std::unique_ptr<ArrayType>{ std::move(pointer) };
+	std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
+	UniquePtrD<ArrayType, Deleter<ArrayType>> thePtr{ theAllocator.allocate(1), Deleter<ArrayType>{} };
+	theAllocator.construct(thePtr.get());
+	this->theValue.array = std::move(thePtr);
 	this->theType = ValueType::Array;
 }
 
-void JsonObject::set(std::unique_ptr<ObjectType> pointer) {
+Void JsonObject::set(UniquePtr<ObjectType> p) {
 	destroy();
-	new (&this->theValue.string) std::unique_ptr<ObjectType>{ std::move(pointer) };
+	std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
+	UniquePtrD<ObjectType, Deleter<ObjectType>> thePtr{ theAllocator.allocate(1), Deleter<ObjectType>{} };
+	theAllocator.construct(thePtr.get());
+	this->theValue.object = std::move(thePtr);
 	this->theType = ValueType::Object;
 }
 
-void JsonObject::destroy() noexcept {
+Void JsonObject::destroy() noexcept {
 	switch (this->theType) {
 		case ValueType::Array: {
 			this->theValue.array.reset(nullptr);
@@ -870,107 +691,6 @@ JsonObject::~JsonObject() noexcept {
 	this->destroy();
 }
 
-String JsonSerializer::getString(DiscordCoreAPI::TextFormat theFormatNew) {
-	this->bufferString.clear();
-	this->theFormat = theFormatNew;
-	if (this->theFormat == DiscordCoreAPI::TextFormat::Etf) {
-		this->appendVersion();
-	}
-	return *this;
-}
-
-void JsonSerializer::writeString(const JsonObject& theObject, String& theString) noexcept {
-	switch (theObject.theType) {
-		case ValueType::Object: {
-			if (this->theFormat == DiscordCoreAPI::TextFormat::Json) {
-				if (theObject.theValue.object->empty()) {
-					theString += "{}";
-				}
-
-				theString += '{';
-
-				Uint64 theIndex{};
-				for (auto iterator = theObject.theValue.object->cbegin(); iterator != theObject.theValue.object->cend(); ++iterator) {
-					theString += '\"';
-					theString += iterator->first;
-					theString += "\":";
-					writeString(iterator->second, theString);
-					if (theIndex < theObject.theValue.object->size() - 1) {
-						theString += ',';
-					}
-					theIndex++;
-				}
-				theString += '}';
-			} else {
-				this->writeObject(*theObject.theValue.object);
-			}
-
-			break;
-		}
-		case ValueType::Array: {
-			if (this->theFormat == DiscordCoreAPI::TextFormat::Json) {
-				if (theObject.theValue.array->empty()) {
-					theString += "[]";
-					break;
-				}
-
-				theString += '[';
-
-				for (auto iterator = theObject.theValue.array->cbegin(); iterator != theObject.theValue.array->cend() - 1; ++iterator) {
-					writeString(*iterator, theString);
-					theString += ',';
-				}
-
-				theString += theObject.theValue.array->back();
-
-				theString += ']';
-			} else {
-				this->writeArray(*theObject.theValue.array);
-			}
-			break;
-		}
-
-		case ValueType::String: {
-			theString += '\"';
-			theString += *theObject.theValue.string;
-			theString += '\"';
-			break;
-		}
-		case ValueType::Bool: {
-			std::stringstream theStream{};
-			theStream << std::boolalpha << theObject.theValue.boolean;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::Float: {
-			theString += std::to_string(theObject.theValue.numberDouble);
-			break;
-		}
-		case ValueType::Uint64: {
-			theString += std::to_string(theObject.theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			theString += std::to_string(theObject.theValue.numberInt);
-			break;
-		}
-		case ValueType::Null: {
-			theString += "null";
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theString += "[]";
-			break;
-		}
-	}
-	return;
-}
-
-JsonSerializer::operator String&(){
-	this->writeString(this->theValue, this->bufferString);
-	return this->bufferString;
-}
-
 struct UpdatePresenceData {
 	String status{};///< Current status.
 	Int64 since{ 0 };///< When was the activity started?
@@ -980,7 +700,7 @@ struct UpdatePresenceData {
 };
 
 UpdatePresenceData ::operator JsonObject() {
-	JsonObject theData{};
+	JsonSerializer theData{};
 	theData["status"] = this->status;
 	theData["since"] = this->since;
 	theData["afk"] = this->afk;
@@ -999,7 +719,7 @@ struct WebSocketIdentifyData {
 };
 
 WebSocketIdentifyData::operator JsonObject() {
-	JsonObject theSerializer{};
+	JsonSerializer theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
@@ -1011,14 +731,6 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
 			theSerializer["since"] = this->presence.since;
-	}
-	int32_t theIndex{};
-	for (auto& value: *theSerializer["d"]["presence"]["activities"].theValue.array) {
-		theIndex++;
-		JsonObject theObject{};
-		theObject = JsonObject{ value };
-		theObject["status"] = theIndex;
-		value = theObject;
 	}
 	theSerializer["d"]["status"] = this->presence.status;
 	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
@@ -1068,27 +780,27 @@ class RingBufferInterface {
 
 	Uint64 getUsedSpace() noexcept {
 		if (this->areWeFull) {
-			return 1024 * 16;
+			return 1024 * 256;
 		}
-		if ((this->head % 1024 * 16) >= (this->tail % (1024 * 16))) {
-			Uint64 freeSpace = (1024 * 16) - ((this->head % (1024 * 16)) - (this->tail % (1024 * 16)));
-			return (1024 * 16) - freeSpace;
+		if ((this->head % 1024 * 256) >= (this->tail % (1024 * 256))) {
+			Uint64 freeSpace = (1024 * 256) - ((this->head % (1024 * 256)) - (this->tail % (1024 * 256)));
+			return (1024 * 256) - freeSpace;
 		} else {
-			Uint64 freeSpace = (this->tail % (1024 * 16)) - (this->head % (1024 * 16));
-			return (1024 * 16) - freeSpace;
+			Uint64 freeSpace = (this->tail % (1024 * 256)) - (this->head % (1024 * 256));
+			return (1024 * 256) - freeSpace;
 		}
 	}
 
 	Uint64 getFreeSpace() noexcept {
-		return (1024 * 16) - this->getUsedSpace();
+		return (1024 * 256) - this->getUsedSpace();
 	}
 
 	void* getCurrentTail() noexcept {
-		return (this->theArray + (this->tail % ((1024 * 16))));
+		return (this->theArray + (this->tail % ((1024 * 256))));
 	}
 
 	void* getCurrentHead() noexcept {
-		return (this->theArray + (this->head % ((1024 * 16))));
+		return (this->theArray + (this->head % ((1024 * 256))));
 	}
 
 	Bool isItFull() noexcept {
@@ -1102,10 +814,10 @@ class RingBufferInterface {
 	}
 
   protected:
-	__declspec(align(8)) char theArray[1024 * 16]{};
-	__declspec(align(8)) Bool areWeFull{ false };
-	__declspec(align(8)) Uint64 tail{};
-	__declspec(align(8)) Uint64 head{};
+	std::byte theArray[1024 * 256]{};
+	 Bool areWeFull{ false };
+	Uint64 tail{};
+	Uint64 head{};
 };
 
 template<typename Func> auto benchmark(Func test_func, int iterations) {
@@ -1173,50 +885,193 @@ int main() {
 
 */
 
+template<class ObjectType> class StackAllocator {
+  public:
+	typedef size_t size_type;
+	typedef ptrdiff_t difference_type;
+	typedef ObjectType* pointer;
+	typedef const ObjectType* const_pointer;
+	typedef ObjectType& reference;
+	typedef const ObjectType& const_reference;
+	typedef ObjectType value_type;
+	using pointer = ObjectType*;
+	using ValueType = ObjectType;
+	StackAllocator() {}
 
-namespace DiscordCoreAPI {
-	bool operator<(const DiscordCoreAPI::GuildData& lsh, const DiscordCoreAPI::GuildData& rhs) {
-		return lsh.id < rhs.id;
+	StackAllocator(const StackAllocator&) {}
+
+	pointer allocate(size_t count) {
+		const auto new_offset = offset_ + sizeof(ObjectType);
+		const auto place = buffer_ + new_offset - sizeof(ObjectType);
+		offset_ = new_offset;
+		return new (place) ValueType{};
 	}
+	void deallocate(pointer,size_t theAmount) {
+		//this->theArray.modifyReadOrWritePosition(RingBufferAccessType::Read, theAmount * sizeof(ObjectType));
+	}
+
+	char buffer_[1024 * 256]{};
+	std::size_t offset_{0};
+
+	//RingBufferInterface theArray{};
+
+	pointer address(reference x) const {
+		return &x;
+	}
+	const_pointer address(const_reference x) const {
+		return &x;
+	}
+	StackAllocator<ObjectType>& operator=(const StackAllocator&) {
+		return nullptr;
+	}
+	void construct(pointer p, const ObjectType& val) {
+		new (( ObjectType* )p) ObjectType(val);
+	}
+	void destroy(pointer p) {
+		p->~ObjectType();
+	}
+
+	size_type max_size() const {
+		return size_t(-1);
+	}
+
+	template<class U> struct rebind { typedef StackAllocator<U> other; };
+
+	template<class U> StackAllocator(const StackAllocator<U>&) {
+	}
+
+	template<class U> StackAllocator& operator=(const StackAllocator<U>&) {
+		return *this;
+	}
+};
+
+int doit() {
+	char ac[80];
+	if (gethostname(ac, sizeof(ac)) == SOCKET_ERROR) {
+		std::cerr << "Error " << WSAGetLastError() << " when getting local host name." << std::endl;
+		return 1;
+	}
+	std::cout << "Host name is " << ac << "." << std::endl;
+
+	struct hostent* phe = gethostbyname(ac);
+	if (phe == 0) {
+		std::cerr << "Yow! Bad host lookup." << std::endl;
+		return 1;
+	}
+
+	for (int i = 0; phe->h_addr_list[i] != 0; ++i) {
+		struct in_addr addr;
+		memcpy(&addr, phe->h_addr_list[i], sizeof(struct in_addr));
+		std::cout << "Address " << i << ": " << inet_ntoa(addr) << std::endl;
+	}
+
+	return 0;
 }
 
-int main() {
-	constexpr int push_back_limit{ 16 };
-
-	DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::microseconds{} };
-	{
-		std::cout << "Entering scope #1 (without buffer on stack)...\n";
-		std::cout << "Creating vector v...\n";
-		std::unordered_set<DiscordCoreAPI::GuildData> list{};
-		theStopWatch.resetTimer();
-		for (int i{}; i != 1024 * 16; ++i) {
-			DiscordCoreAPI::GuildData theData{};
-			theData.id = i;
-			list.emplace(theData);
-		}
-		std::cout << "Exiting scope #2...AFTER: " << theStopWatch.totalTimePassed() << "\n";
+Bool connect(const String& baseUrlNew, const String& portNew) noexcept {
+	sockaddr_in theStreamTargetAddress{};
+	theStreamTargetAddress.sin_addr.s_addr = inet_addr(baseUrlNew.c_str());
+	theStreamTargetAddress.sin_port = DiscordCoreAPI::reverseByteOrder<Uint16>(static_cast<unsigned short>(stoi(portNew)));
+	theStreamTargetAddress.sin_family = AF_INET;
+	SOCKET theSocket{};
+	DiscordCoreInternal::addrinfoWrapper hints{}, address{};
+	hints->ai_family = AF_INET;
+	hints->ai_socktype = SOCK_DGRAM;
+	hints->ai_protocol = IPPROTO_UDP;
+	DiscordCoreAPI::StreamType streamType {};
+	//std::cout << "THE ADDRESS: " << theStreamTargetAddress.sin_addr.s_addr << std::endl;
+	if (getaddrinfo(baseUrlNew.c_str(), portNew.c_str(), hints, address)) {
+		//std::cout << "THE ADDRESS: " << address->ai_addr->sa_data << std::endl;
+		return false;
 	}
+	std::cout << "THE ADDRESS: " << address->ai_addr->sa_data << std::endl;
+	std::string clienthost{};
+	clienthost.resize(NI_MAXHOST);
+	std::string clientservice{};
+	clientservice.resize(NI_MAXSERV);
+	int theErrorCode = getnameinfo(address->ai_addr, sizeof(*address->ai_addr), clienthost.data(), sizeof(clienthost), clientservice.data(), sizeof(clientservice),
+		NI_NUMERICHOST | NI_NUMERICSERV);
+	std::cout << "The ip address is = " << clienthost << std::endl;
+	std::cout << "The clientservice = " << clientservice << std::endl;
+	if (theSocket = socket(address->ai_family, address->ai_socktype, address->ai_protocol); theSocket == SOCKET_ERROR) {
+		return false;
+	}
+	
+	if (streamType == DiscordCoreAPI::StreamType::None || streamType == DiscordCoreAPI::StreamType::Client) {
+		if (::connect(theSocket, address->ai_addr, static_cast<Int32>(address->ai_addrlen))) {
+			return false;
+		}
+	} else {
+		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::seconds{ 300 } };
+		while (!theStopWatch.hasTimePassed()) {
+			String clientToServerString{};
+			clientToServerString = "test string";
+		
 
-	std::cout << '\n';
+			if (auto theResult = bind(theSocket, ( sockaddr* )&theStreamTargetAddress, sizeof(sockaddr)); theResult != 0) {
+			return false;
+			}
+
+			auto writtenBytes{ sendto(static_cast<Int32>(theSocket), clientToServerString.data(), static_cast<Int32>(clientToServerString.size()), 0,
+				( sockaddr* )&theStreamTargetAddress, static_cast<Int32>(sizeof(theStreamTargetAddress))) };
+#ifdef _WIN32
+			Int32 intSize{ sizeof(theStreamTargetAddress) };
+#else
+			socklen_t intSize{ sizeof(theStreamTargetAddress) };
+#endif
+			String serverToClientBuffer{};
+
+			serverToClientBuffer.resize(11);
+			auto readBytes { recvfrom(static_cast<Int32>(theSocket), serverToClientBuffer.data(), static_cast<Int32>(serverToClientBuffer.size()), 0,
+							reinterpret_cast<sockaddr*>(&theStreamTargetAddress), &intSize) };
+			int theErrorCode = getnameinfo(reinterpret_cast<sockaddr*>(&theStreamTargetAddress), sizeof(*address->ai_addr), clienthost.data(), sizeof(clienthost),
+				clientservice.data(), sizeof(clientservice), NI_NUMERICHOST | NI_NUMERICSERV);
+			std::cout << "The ip address is = " << clienthost << std::endl;
+			std::cout << "The clientservice = " << clientservice << std::endl;
+				if (readBytes >= 0) {
+							break;
+				}
+		}
+	}
+#ifdef _WIN32
+				u_long value02{ 1 };
+				if (ioctlsocket(theSocket, FIONBIO, &value02)) {
+		return false;
+	}
+#else
+	if (fcntl(theSocket, F_SETFL, fcntl(theSocket, F_GETFL, 0) | O_NONBLOCK)) {
+					return false;
+	}
+#endif
+				//	return true;
+				//}}
+			}
+			int main() {
 	
 	{
-		std::cout << "Entering scope #2 (with buffer on stack)...\n";
-
-		std::cout << "Creating vector v...\n";
-		std::uint16_t buffer[1024 * 16]{};
-		std::cout << "v.data() @ " << buffer << '\n';
-		std::pmr::monotonic_buffer_resource mbr{};
-		std::pmr::polymorphic_allocator<DiscordCoreAPI::GuildData> pa{ &mbr };
-		std::pmr::unordered_set<DiscordCoreAPI::GuildData, std::less<DiscordCoreAPI::GuildData>, std::pmr::polymorphic_allocator<DiscordCoreAPI::GuildData>> list{ pa };
-		theStopWatch.resetTimer();
-		for (int i{}; i != 1024 * 16; ++i) {
-			DiscordCoreAPI::GuildData theData{};
-			theData.id = i;
-			list.emplace(theData);
-		}
-		std::cout << "Exiting scope #2...AFTER: " << theStopWatch.totalTimePassed() << "\n";
+		std::string address{ "192.168.0.28" };
+		std::string port{ "40010" };
 		
+		WSAData wsaData;
+		if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {
+			return 255;
+		}
+		connect(address, port);
+		doit();
+		std::vector<int32_t, StackAllocator<int32_t>> theVector01{};
+		std::vector<int32_t, StackAllocator<int32_t>> theVector02{};
+		//std::vector<int32_t, StackAllocator<int32_t>> theVector03{};
+		for (uint32_t x = 0; x < (1024 * 128 /4)-8; ++x) {
+			//theVector03.push_back(x);
+			//std::cout << "THE VALUE: " << theVector03[x];
+		}
+		std::this_thread::sleep_for(std::chrono::seconds{ 4 });
 	}
+	std::this_thread::sleep_for(std::chrono::seconds{ 4 });
+	
+	std::this_thread::sleep_for(std::chrono::seconds{ 2 });
+	//theTraits.construct(,);
+
 }
 /*
 int32_t main() noexcept {

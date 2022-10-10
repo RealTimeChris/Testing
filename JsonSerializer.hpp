@@ -33,6 +33,13 @@
 #include <variant>
 #include <set>
 
+template<typename ObjectType, typename DeleterType = void> using UniquePtrD = std::unique_ptr<ObjectType, DeleterType>;
+template<typename KeyType, typename ObjectType> using UMap = std::unordered_map<KeyType, ObjectType>;
+template<typename KeyType, typename ObjectType> using Map = std::map<KeyType, ObjectType>;
+template<typename ObjectType> using UniquePtr = std::unique_ptr<ObjectType>;
+template<typename ObjectType> using Atomic = std::atomic<ObjectType>;
+template<typename ObjectType> using Vector = std::vector<ObjectType>;
+template<typename ObjectType> using Deque = std::deque<ObjectType>;
 using AtomicUint64 = std::atomic_uint64_t;
 using AtomicUint32 = std::atomic_uint32_t;
 using AtomicInt64 = std::atomic_int64_t;
@@ -53,6 +60,7 @@ using Float = float;
 using Double = double;
 using Snowflake = Uint64;
 using Bool = bool;
+using Void = void;
 
 enum class ValueType : Int8 { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8 };
 
@@ -62,56 +70,74 @@ concept IsEnum = std::is_enum<TheType>::value;
 template<typename TheType>
 concept IsString = std::same_as<TheType, String>;
 
-struct ErlPackError : public std::runtime_error {
-  public:
-	explicit ErlPackError(const String& message);
-};
+struct EnumConverter {
+	template<IsEnum EnumType> EnumConverter& operator=(EnumType other) {
+		this->theUint = static_cast<Uint64>(other);
+		return *this;
+	};
 
-constexpr Uint8 formatVersion{ 131 };
+	template<IsEnum EnumType> EnumConverter(EnumType other) {
+		*this = other;
+	};
 
-enum class ETFTokenType : Uint8 {
-	New_Float_Ext = 70,
-	Small_Integer_Ext = 97,
-	Integer_Ext = 98,
-	Float_Ext = 99,
-	Atom_Ext = 100,
-	Small_Tuple_Ext = 104,
-	Large_Tuple_Ext = 105,
-	Nil_Ext = 106,
-	String_Ext = 107,
-	List_Ext = 108,
-	Binary_Ext = 109,
-	Small_Big_Ext = 110,
-	Large_Big_Ext = 111,
-	Small_Atom_Ext = 115,
-	Map_Ext = 116,
-	Atom_Utf8_Ext = 118
+	EnumConverter& operator=(EnumConverter&&) noexcept;
+	EnumConverter(EnumConverter&&) noexcept;
+
+	EnumConverter& operator=(const EnumConverter&) noexcept = delete;
+	EnumConverter(const EnumConverter&) noexcept = delete;
+
+	template<IsEnum EnumType> EnumConverter& operator=(Vector<EnumType> other) {
+		this->theVector = std::move(other);
+		return *this;
+	};
+
+	template<IsEnum EnumType> EnumConverter(Vector<EnumType> other) {
+		*this = other;
+	};
+
+	operator Vector<Uint64>() const noexcept;
+
+	explicit operator Uint64() const noexcept;
+
+	bool isItAVector() const noexcept;
+	bool isItAVector() noexcept;
+
+  protected:
+	Vector<Uint64> theVector{};
+	Bool vectorType{ false };
+	Uint64 theUint{};
 };
 
 class JsonObject {
   public:
 	using ObjectType = std::map<String, JsonObject, std::less<>, std::allocator<std::pair<const String, JsonObject>>>;
 	template<typename Type> using AllocatorType = std::allocator<Type>;
-	using ArrayType = std::vector<JsonObject>;
-	using ConstPointer = const JsonObject*;
-	using Pointer = JsonObject*;
-	using DifferenceType = std::ptrdiff_t;
+	using ArrayType = Vector<JsonObject>;
 	using StringType = String;
 	using UintType = Uint64;
 	using FloatType = Double;
-	using ConstReference = const JsonObject&;
-	using Reference = JsonObject&;
 	using IntType = Int64;
 	using BoolType = Bool;
-	JsonObject() noexcept = default;
+	using SizeType = size_t;
 
-	DiscordCoreAPI::TextFormat theFormat{ DiscordCoreAPI::TextFormat::Etf };
-	ValueType theType{ ValueType::Null };
 	
+	template<typename DeleterType> struct Deleter { 
+		void operator()(DeleterType*theObject){
+			std::pmr::polymorphic_allocator<DeleterType> theAllocator{};
+			theAllocator.destroy(theObject);
+			theAllocator.deallocate(theObject, 1);
+		}; 
+	};
+	
+	ValueType theType{ ValueType::Null };
+	SizeType startingIndex{};
+	SizeType endingIndex{};
+	String* theString{};
+	JsonObject() noexcept = default;
 	union JsonValue {
-		std::unique_ptr<ObjectType> object;
-		std::unique_ptr<StringType> string;
-		std::unique_ptr<ArrayType> array;
+		UniquePtrD<ObjectType, Deleter<ObjectType>> object;
+		UniquePtrD<StringType, Deleter<StringType>> string;
+		UniquePtrD<ArrayType, Deleter<ArrayType>> array;
 		FloatType numberDouble;
 		UintType numberUint;
 		IntType numberInt;
@@ -120,20 +146,10 @@ class JsonObject {
 		JsonValue() noexcept;
 
 		JsonValue& operator=(JsonValue&&) noexcept = delete;
-
 		JsonValue(JsonValue&&) noexcept = delete;
 
 		JsonValue& operator=(const JsonValue&) noexcept = delete;
-
 		JsonValue(const JsonValue&) noexcept = delete;
-
-		JsonValue& operator=(const ArrayType& theData) noexcept;
-
-		JsonValue& operator=(ArrayType&& theData) noexcept;
-
-		JsonValue& operator=(const ObjectType& theData) noexcept;
-
-		JsonValue& operator=(ObjectType&& theData) noexcept;
 
 		JsonValue& operator=(const StringType& theData) noexcept;
 
@@ -168,7 +184,11 @@ class JsonObject {
 
 	JsonValue theValue{};
 
-	template<typename ObjectType> JsonObject& operator=(std::vector<ObjectType> theData) noexcept {
+	JsonObject(String* theStringNew) noexcept {
+		this->theString = theStringNew;
+	}
+
+	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
 		this->set(std::make_unique<ArrayType>());
 		for (auto& value: theData) {
 			this->theValue.array->push_back(JsonObject{ value });
@@ -176,11 +196,11 @@ class JsonObject {
 		return *this;
 	}
 
-	template<typename ObjectType> JsonObject(std::vector<ObjectType> theData) noexcept {
+	template<typename ObjectType> JsonObject(Vector<ObjectType> theData) noexcept {
 		*this = theData;
 	}
 
-	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(std::unordered_map<KeyType, ObjectType> theData) noexcept {
+	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(UMap<KeyType, ObjectType> theData) noexcept {
 		this->set(std::make_unique<ObjectType>());
 		for (auto& [key, value]: theData) {
 			this->theValue.object->at(key) = JsonObject{ value };
@@ -188,9 +208,15 @@ class JsonObject {
 		return *this;
 	}
 
-	template<IsString KeyType, IsString ObjectType> JsonObject(std::unordered_map<KeyType, ObjectType> theData) noexcept {
+	template<IsString KeyType, IsString ObjectType> JsonObject(UMap<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
 	};
+
+	JsonObject& operator=(EnumConverter&& theData) noexcept;
+	JsonObject(EnumConverter&&) noexcept;
+
+	JsonObject& operator=(const EnumConverter& theData) noexcept;
+	JsonObject(const EnumConverter&) noexcept;
 
 	JsonObject& operator=(JsonObject&& theKey) noexcept;
 	JsonObject(JsonObject&& theKey) noexcept;
@@ -243,38 +269,29 @@ class JsonObject {
 	JsonObject& operator=(ValueType) noexcept;
 	JsonObject(ValueType) noexcept;
 
-	JsonObject& operator[](Uint64 idx) const;
-	JsonObject& operator[](Uint64 idx);
+	JsonObject& operator[](Uint64 index) const;
+	JsonObject& operator[](Uint64 index);
 
 	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
 	operator String() const noexcept;
 
-	operator String() noexcept;	
+	operator String() noexcept;
 
-	void pushBack(JsonObject&& other) noexcept;
-	void pushBack(JsonObject& other) noexcept;
+	Void pushBack(JsonObject&& other) noexcept;
+	Void pushBack(JsonObject& other) noexcept;
 
-	void set(std::unique_ptr<String> p);
+	Void set(UniquePtr<String> pointer);
 
-	void set(std::unique_ptr<ArrayType> p);
+	Void set(UniquePtr<ArrayType> pointer);
 
-	void set(std::unique_ptr<ObjectType> p);
+	Void set(UniquePtr<ObjectType> pointer);
 
-	void destroy() noexcept;
+	Void destroy() noexcept;
 
 	~JsonObject() noexcept;
-	String comparisongStringFalse{ "false" };
-	String comparisongStringNil{ "nil" };
-	String falseString{ "false" };
-	String nilString{ "nil" };
-	String bufferString{};
-	StringView buffer{};
-	Uint64 offSet{};
-	Uint64 size{};
 };
-
 class JsonSerializer {
   public:
 
@@ -291,10 +308,8 @@ class JsonSerializer {
 	using Reference = JsonSerializer&;
 	using IntType = Int64;
 	using BoolType = Bool;
-	JsonSerializer(JsonObject&& theValueNew) noexcept : theValue(theValueNew) {
-		this->theType = theValueNew.theType;
-	}
-	mutable JsonObject theValue{};
+	JsonSerializer() noexcept {};
+	mutable JsonObject theValue{ &this->bufferString };
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	DiscordCoreAPI::TextFormat theFormat{};

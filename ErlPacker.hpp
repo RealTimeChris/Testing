@@ -27,6 +27,7 @@
 #define ERL_PACKER_02
 
 #include "JsonObject.hpp"
+#include <nlohmann/json.hpp>
 /*
 #include <discordcoreapi/Index.hpp>
 #include <simdjson.h>
