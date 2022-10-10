@@ -1036,206 +1036,194 @@ WebSocketIdentifyData::operator JsonObject() {
 
 }
 
-template<class ObjectType> struct CustomAllocator:public std::allocator_traits<std::allocator<ObjectType>> {
-	using ValueType = ObjectType;
+std::atomic_int64_t theAtomic{};
 
-	CustomAllocator() noexcept {}
 
-	template<class U> CustomAllocator(const CustomAllocator<U>&) noexcept {}
-};
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <iostream>
+#include <iterator>
+#include <memory_resource>
+#include <vector>
 
-template<class T, class U> constexpr bool operator==(const CustomAllocator<T>&, const CustomAllocator<U>&) noexcept {
-	return true;
-}
+enum class RingBufferAccessType { Read = 0, Write = 1 };
 
-template<class T, class U> constexpr bool operator!=(const CustomAllocator<T>&, const CustomAllocator<U>&) noexcept {
-	return false;
-}
-
-template<typename ObjectType> class ObjectCache {
+class RingBufferInterface {
   public:
-	using ValueType = ObjectType;
-	using AllocatorType = CustomAllocator<ObjectType>;
-	using SizeType = size_t;
-	using Reference = ValueType&;
-	using ConstReference = const Reference;
-	using LReference = ValueType&&;
-	using Pointer = ValueType*;
-
-	ObjectCache() noexcept {}
-
-	Reference emplace(LReference theData) noexcept {		
-		if (this->contains(theData)) {
-			std::unique_lock theLock{ this->theMutex };
-			SizeType theIndex = this->getIndex(theData);
-			this->theMap[theIndex] = std::move(theData);
-			return this->theMap[theIndex];
+	void modifyReadOrWritePosition(RingBufferAccessType theType, Uint64 theSize) noexcept {
+		if (theType == RingBufferAccessType::Read) {
+			this->tail += theSize;
+			this->areWeFull = false;
 		} else {
-			this->increaseAllocatedSize();
-			AllocatorType allocTraits{};
-			std::allocator<ObjectType> allocator{};
-			allocTraits.construct(allocator, this->theMap + this->theCurrentlyUsedSize, std::move(theData));
-			this->theCurrentlyUsedSize++;
-			return this->theMap[this->theCurrentlyUsedSize - 1];
+			this->head += theSize;
+			if (this->head == this->tail) {
+				this->areWeFull = true;
+			}
+			if (this->head != this->tail) {
+				this->areWeFull = false;
+			}
 		}
 	}
 
-	Reference emplace(Reference theData) noexcept {
-		if (this->contains(theData)) {
-			std::unique_lock theLock{ this->theMutex };
-			SizeType theIndex = this->getIndex(theData);
-			this->theMap[theIndex] = std::move(theData);
-			return this->theMap[theIndex];
+	Uint64 getUsedSpace() noexcept {
+		if (this->areWeFull) {
+			return 1024 * 16;
+		}
+		if ((this->head % 1024 * 16) >= (this->tail % (1024 * 16))) {
+			Uint64 freeSpace = (1024 * 16) - ((this->head % (1024 * 16)) - (this->tail % (1024 * 16)));
+			return (1024 * 16) - freeSpace;
 		} else {
-			this->increaseAllocatedSize();
-			AllocatorType allocTraits{};
-			std::allocator<ObjectType> allocator{};
-			allocTraits.construct(allocator, this->theMap + this->theCurrentlyUsedSize, theData);
-			this->theCurrentlyUsedSize++;
-			return this->theMap[this->theCurrentlyUsedSize - 1];
+			Uint64 freeSpace = (this->tail % (1024 * 16)) - (this->head % (1024 * 16));
+			return (1024 * 16) - freeSpace;
 		}
 	}
 
-	ConstReference readOnly(Reference theKey) noexcept {
-		std::shared_lock theLock{ this->theMutex };
-		return *this->theMap.find(theKey);
+	Uint64 getFreeSpace() noexcept {
+		return (1024 * 16) - this->getUsedSpace();
 	}
 
-	Reference at(LReference theKey) {
-		std::shared_lock theLock{ this->theMutex };
-		for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
-			if (this->theMap[x] == theKey) {
-				return this->theMap[x];
-			}
-		}
-		throw std::runtime_error{ "Couldn't find that object in the cache!" };
+	void* getCurrentTail() noexcept {
+		return (this->theArray + (this->tail % ((1024 * 16))));
 	}
 
-	Reference at(Reference theKey) {
-		std::shared_lock theLock{ this->theMutex };
-		for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
-			if (this->theMap[x] == theKey) {
-				return this->theMap[x];
-			}
-		}
-		throw std::runtime_error{ "Couldn't find that object in the cache!" };
+	void* getCurrentHead() noexcept {
+		return (this->theArray + (this->head % ((1024 * 16))));
 	}
 
-	auto begin() {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theMap;
+	Bool isItFull() noexcept {
+		return this->areWeFull;
 	}
 
-	auto end() {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theMap + this->theCurrentlyUsedSize;
-	}
-
-	const Bool contains(Reference theKey) noexcept {
-		std::unique_lock theLock{ this->theMutex };
-		if (this->theCurrentlyUsedSize > 0) {
-			for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
-				if (this->theMap[x] == theKey) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	auto erase(LReference theKey) {	
-		if (this->contains(theKey)) {
-			std::unique_lock theLock{ this->theMutex };
-			AllocatorType allocTraits{};
-			std::allocator<ObjectType> allocator{};
-			SizeType theIndex = this->getIndex(theKey);
-			auto theNewMap = this->theMap;
-			this->theMap = nullptr;
-			this->theMap = allocTraits.allocate(allocator, this->theCurrentlyUsedSize - 1);
-			memcpy(this->theMap, theNewMap, (theIndex) * sizeof(ObjectType));
-			memcpy(this->theMap + theIndex, theNewMap + theIndex, (this->theCurrentlyUsedSize - 1 - theIndex) * sizeof(ObjectType));
-			allocTraits.deallocate(allocator, theNewMap, this->theCurrentlyUsedSize);
-			this->theCurrentlyUsedSize--;
-			return this->theMap;
-		}
-		throw std::runtime_error{ "Sorry, but that object does not exist within this ObjectCache!" };
-	}
-
-	auto erase(Reference theKey) {
-		if (this->contains(theKey)) {
-			std::unique_lock theLock{ this->theMutex };
-			AllocatorType allocTraits{};
-			std::allocator<ObjectType> allocator{};
-			SizeType theIndex = this->getIndex(theKey);
-			auto theNewMap = this->theMap;
-			this->theMap = nullptr;
-			this->theMap = allocTraits.allocate(allocator, this->theCurrentlyUsedSize - 1);
-			memcpy(this->theMap, theNewMap, (theIndex) * sizeof(ObjectType));
-			memcpy(this->theMap + theIndex, theNewMap + theIndex, (this->theCurrentlyUsedSize - 1 - theIndex) * sizeof(ObjectType));
-			allocTraits.deallocate(allocator, theNewMap, this->theCurrentlyUsedSize);
-			this->theCurrentlyUsedSize--;
-			return this->theMap;
-		}
-		throw std::runtime_error{ "Sorry, but that object does not exist within this ObjectCache!" };
-	}
-
-	ObjectType& operator[](ObjectType& theKey) {
-		std::shared_lock theLock{ this->theMutex };
-		auto theIndex = this->getIndex(theKey);
-		return this->theMap[theIndex];
-	}
-
-	ObjectType& operator[](ObjectType&& theKey) {
-		std::shared_lock theLock{ this->theMutex };
-		auto theIndex = this->getIndex(theKey);
-		return this->theMap[theIndex];
-	}
-
-	Uint64 size() noexcept {
-		std::unique_lock theLock{ this->theMutex };
-		return this->theCurrentlyUsedSize;
+	virtual void clear() noexcept {
+		this->areWeFull = false;
+		this->tail = 0;
+		this->head = 0;
 	}
 
   protected:
-	SizeType theCurrentlyAllocatedSize{};
-	SizeType theCurrentlyUsedSize{};
-	std::shared_mutex theMutex{};
-	Pointer theMap{};
-
-	void increaseAllocatedSize() {
-		if (this->theCurrentlyUsedSize + 1 >= this->theCurrentlyAllocatedSize) {
-			SizeType newSize{};
-			if (this->theCurrentlyAllocatedSize == 0) {
-				newSize = 12;
-			} else {
-				newSize = this->theCurrentlyAllocatedSize * 2;
-			}
-			SizeType theIndex = this->theCurrentlyUsedSize;
-			AllocatorType allocTraits{};
-			std::allocator<ObjectType> allocator{};
-			auto theNewMap = allocTraits.allocate(allocator, newSize);
-			memcpy(theNewMap, this->theMap, this->theCurrentlyUsedSize * sizeof(ObjectType));
-			allocTraits.deallocate(allocator, this->theMap, this->theCurrentlyUsedSize);
-			this->theCurrentlyAllocatedSize = newSize;
-			this->theMap = theNewMap;
-		}
-	}
-
-	SizeType getIndex(Reference theData) {
-		for (SizeType x = 0; x < this->theCurrentlyUsedSize; ++x) {
-			if (this->theMap[x] == theData) {
-				return x;
-			}
-		}
-		return SizeType{ static_cast<SizeType>(-1) };
-	}
+	__declspec(align(8)) char theArray[1024 * 16]{};
+	__declspec(align(8)) Bool areWeFull{ false };
+	__declspec(align(8)) Uint64 tail{};
+	__declspec(align(8)) Uint64 head{};
 };
 
+template<typename Func> auto benchmark(Func test_func, int iterations) {
+	const auto start = std::chrono::system_clock::now();
+	while (iterations-- > 0) {
+		test_func();
+	}
+	const auto stop = std::chrono::system_clock::now();
+	const auto secs = std::chrono::duration<double>(stop - start);
+	return secs.count();
+}
+/*
+int main() {
+	constexpr int iterations{ 1 };
+	constexpr int total_nodes{ 2'0000 };
+
+	auto default_std_alloc = [total_nodes] {
+		std::list<int> list;
+		for (int i{}; i != total_nodes; ++i) {
+			list.push_back(i);
+		}
+	};
+
+	auto default_pmr_alloc = [total_nodes] {
+		std::pmr::list<int> list;
+		for (int i{}; i != total_nodes; ++i) {
+			list.push_back(i);
+		}
+	};
+
+	auto pmr_alloc_no_buf = [total_nodes] {
+		std::pmr::monotonic_buffer_resource mbr;
+		std::pmr::polymorphic_allocator<int> pa{ &mbr };
+		std::pmr::list<int> list{ pa };
+		for (int i{}; i != total_nodes; ++i) {
+			list.push_back(i);
+		}
+	};
+
+	auto pmr_alloc_and_buf = [total_nodes] {
+		std::array<std::byte, total_nodes> buffer;// enough to fit in all nodes
+		std::pmr::monotonic_buffer_resource mbr{ buffer.data(), buffer.size() };
+		std::cout << "v.data() @ " << buffer.data() << '\n';
+		std::pmr::polymorphic_allocator<int> pa{ &mbr };
+		std::pmr::list<int> list{ pa };
+		
+		for (int i{}; i != total_nodes; ++i) {
+			list.push_back(i);
+			
+		}
+		std::cout << "v.data() @ " << &(list.front()) - 14 << '\n';
+	};
+
+	const double t1 = benchmark(default_std_alloc, iterations);
+	const double t2 = benchmark(default_pmr_alloc, iterations);
+	const double t3 = benchmark(pmr_alloc_no_buf, iterations);
+	const double t4 = benchmark(pmr_alloc_and_buf, iterations);
+
+	std::cout << std::fixed << std::setprecision(3) << "t1 (default std alloc): " << t1 << " sec; t1/t1: " << t1 / t1 << '\n'
+			  << "t2 (default pmr alloc): " << t2 << " sec; t1/t2: " << t1 / t2 << '\n'
+			  << "t3 (pmr alloc  no buf): " << t3 << " sec; t1/t3: " << t1 / t3 << '\n'
+			  << "t4 (pmr alloc and buf): " << t4 << " sec; t1/t4: " << t1 / t4 << '\n';
+}
+/*
+
+*/
+
+
+namespace DiscordCoreAPI {
+	bool operator<(const DiscordCoreAPI::GuildData& lsh, const DiscordCoreAPI::GuildData& rhs) {
+		return lsh.id < rhs.id;
+	}
+}
+
+int main() {
+	constexpr int push_back_limit{ 16 };
+
+	DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::microseconds{} };
+	{
+		std::cout << "Entering scope #1 (without buffer on stack)...\n";
+		std::cout << "Creating vector v...\n";
+		std::unordered_set<DiscordCoreAPI::GuildData> list{};
+		theStopWatch.resetTimer();
+		for (int i{}; i != 1024 * 16; ++i) {
+			DiscordCoreAPI::GuildData theData{};
+			theData.id = i;
+			list.emplace(theData);
+		}
+		std::cout << "Exiting scope #2...AFTER: " << theStopWatch.totalTimePassed() << "\n";
+	}
+
+	std::cout << '\n';
+	
+	{
+		std::cout << "Entering scope #2 (with buffer on stack)...\n";
+
+		std::cout << "Creating vector v...\n";
+		std::uint16_t buffer[1024 * 16]{};
+		std::cout << "v.data() @ " << buffer << '\n';
+		std::pmr::monotonic_buffer_resource mbr{};
+		std::pmr::polymorphic_allocator<DiscordCoreAPI::GuildData> pa{ &mbr };
+		std::pmr::unordered_set<DiscordCoreAPI::GuildData, std::less<DiscordCoreAPI::GuildData>, std::pmr::polymorphic_allocator<DiscordCoreAPI::GuildData>> list{ pa };
+		theStopWatch.resetTimer();
+		for (int i{}; i != 1024 * 16; ++i) {
+			DiscordCoreAPI::GuildData theData{};
+			theData.id = i;
+			list.emplace(theData);
+		}
+		std::cout << "Exiting scope #2...AFTER: " << theStopWatch.totalTimePassed() << "\n";
+		
+	}
+}
+/*
 int32_t main() noexcept {
 	try {
 
 		{
-			ObjectCache<DiscordCoreAPI::GuildData> theCache{};
+			DiscordCoreAPI::ObjectCacheReal<DiscordCoreAPI::GuildData> theCache{};
 			for (int32_t x = 0; x < 1024*10; ++x) {
 				if (x % 10000 == 0) {
 					std::cout << "WERE HERE THIS IS IT!" << std::endl;
@@ -1245,13 +1233,14 @@ int32_t main() noexcept {
 				theCache.emplace(theData);
 			}
 			
-			theCache.erase(DiscordCoreAPI::GuildData{});
-			for (auto iterator = theCache.begin(); iterator != theCache.end(); ++iterator) {
-				iterator = theCache.erase(*iterator);
-			}
-			theCache.erase(DiscordCoreAPI::GuildData{});
+			//theCache.erase(DiscordCoreAPI::GuildData{});
+			//for (auto iterator = theCache.begin(); iterator != theCache.end(); ++iterator) {
+				//iterator = theCache.erase(*iterator->get());
+			//}
+			//theCache.erase(DiscordCoreAPI::GuildData{});
 			std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
 		}
+		std::cout << "THE FINAL COUNT: " << theAtomic.load() << std::endl;
 		
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
@@ -1298,4 +1287,4 @@ int32_t main() noexcept {
 
 	return 0;
 }
-
+*/
