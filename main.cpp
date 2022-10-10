@@ -978,7 +978,7 @@ Bool connect(const String& baseUrlNew, const String& portNew) noexcept {
 	hints->ai_family = AF_INET;
 	hints->ai_socktype = SOCK_DGRAM;
 	hints->ai_protocol = IPPROTO_UDP;
-	DiscordCoreAPI::StreamType streamType {};
+	DiscordCoreAPI::StreamType streamType{ DiscordCoreAPI::StreamType::Client };
 	//std::cout << "THE ADDRESS: " << theStreamTargetAddress.sin_addr.s_addr << std::endl;
 	if (getaddrinfo(baseUrlNew.c_str(), portNew.c_str(), hints, address)) {
 		//std::cout << "THE ADDRESS: " << address->ai_addr->sa_data << std::endl;
@@ -996,57 +996,65 @@ Bool connect(const String& baseUrlNew, const String& portNew) noexcept {
 	if (theSocket = socket(address->ai_family, address->ai_socktype, address->ai_protocol); theSocket == SOCKET_ERROR) {
 		return false;
 	}
-	
+	std::cout << "The ip address is = " << clienthost << std::endl;
+	std::cout << "The clientservice = " << clientservice << std::endl;
+
 	if (streamType == DiscordCoreAPI::StreamType::None || streamType == DiscordCoreAPI::StreamType::Client) {
 		if (::connect(theSocket, address->ai_addr, static_cast<Int32>(address->ai_addrlen))) {
 			return false;
 		}
+		String clientToServerString{};
+		clientToServerString = "test string";
+		Int32 intSize{ sizeof(theStreamTargetAddress) };
+		String serverToClientBuffer{};
+		serverToClientBuffer.resize(11);
+		auto writtenBytes{ sendto(static_cast<Int32>(theSocket), clientToServerString.data(), static_cast<Int32>(clientToServerString.size()), 0,
+			( sockaddr* )&theStreamTargetAddress, static_cast<Int32>(sizeof(theStreamTargetAddress))) };
+		auto readBytes{ recvfrom(static_cast<Int32>(theSocket), serverToClientBuffer.data(), static_cast<Int32>(serverToClientBuffer.size()), 0,
+			reinterpret_cast<sockaddr*>(&theStreamTargetAddress), &intSize) };
+		int theErrorCode = getnameinfo(reinterpret_cast<sockaddr*>(&theStreamTargetAddress), sizeof(*address->ai_addr), clienthost.data(), sizeof(clienthost), clientservice.data(),
+			sizeof(clientservice), NI_NUMERICHOST | NI_NUMERICSERV);
+		std::cout << "The ip address is 0303 = " << clienthost << std::endl;
+		std::cout << "The clientservice 0303 = " << clientservice << std::endl;
+		std::cout << "The clientservice 0303 = " << serverToClientBuffer << std::endl;
+
 	} else {
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::seconds{ 300 } };
 		while (!theStopWatch.hasTimePassed()) {
-			String clientToServerString{};
-			clientToServerString = "test string";
-		
+			
+			std::cout << "The ip address is = " << clienthost << std::endl;
+			std::cout << "The clientservice = " << clientservice << std::endl;
+
 
 			if (auto theResult = bind(theSocket, ( sockaddr* )&theStreamTargetAddress, sizeof(sockaddr)); theResult != 0) {
-			return false;
+				return false;
 			}
+			std::cout << "The ip address is 0202 = " << clienthost << std::endl;
+			std::cout << "The clientservice 0202 = " << clientservice << std::endl;
 
-			auto writtenBytes{ sendto(static_cast<Int32>(theSocket), clientToServerString.data(), static_cast<Int32>(clientToServerString.size()), 0,
-				( sockaddr* )&theStreamTargetAddress, static_cast<Int32>(sizeof(theStreamTargetAddress))) };
+			
 #ifdef _WIN32
-			Int32 intSize{ sizeof(theStreamTargetAddress) };
+
 #else
 			socklen_t intSize{ sizeof(theStreamTargetAddress) };
 #endif
-			String serverToClientBuffer{};
-
-			serverToClientBuffer.resize(11);
-			auto readBytes { recvfrom(static_cast<Int32>(theSocket), serverToClientBuffer.data(), static_cast<Int32>(serverToClientBuffer.size()), 0,
-							reinterpret_cast<sockaddr*>(&theStreamTargetAddress), &intSize) };
-			int theErrorCode = getnameinfo(reinterpret_cast<sockaddr*>(&theStreamTargetAddress), sizeof(*address->ai_addr), clienthost.data(), sizeof(clienthost),
-				clientservice.data(), sizeof(clientservice), NI_NUMERICHOST | NI_NUMERICSERV);
-			std::cout << "The ip address is = " << clienthost << std::endl;
-			std::cout << "The clientservice = " << clientservice << std::endl;
-				if (readBytes >= 0) {
-							break;
-				}
 		}
 	}
 #ifdef _WIN32
-				u_long value02{ 1 };
-				if (ioctlsocket(theSocket, FIONBIO, &value02)) {
+	u_long value02{ 1 };
+	if (ioctlsocket(theSocket, FIONBIO, &value02)) {
 		return false;
 	}
 #else
 	if (fcntl(theSocket, F_SETFL, fcntl(theSocket, F_GETFL, 0) | O_NONBLOCK)) {
-					return false;
+		return false;
 	}
 #endif
-				//	return true;
-				//}}
-			}
-			int main() {
+	//	return true;
+	//}}
+}
+			
+int main() {
 	
 	{
 		std::string address{ "192.168.0.28" };
