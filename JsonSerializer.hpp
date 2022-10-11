@@ -123,7 +123,10 @@ class JsonObject {
 	ValueType theType{ ValueType::Null };
 	StringView theStringReal{};
 	String* theString{};
-	JsonObject() noexcept {};
+	JsonObject() noexcept = default;
+	JsonObject(String* theStringNew) noexcept {
+		this->theString = theStringNew;
+	};
 	union JsonValue {
 		ObjectType* object;
 		StringType* string;
@@ -188,7 +191,7 @@ class JsonObject {
 	}
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		for (auto& value: theData) {
 			this->theValue.array->push_back(JsonObject{ value });
 		}
@@ -200,7 +203,7 @@ class JsonObject {
 	}
 
 	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(UMap<KeyType, ObjectType> theData) noexcept {
-		this->set(std::make_unique<ObjectType>());
+		this->set(ValueType::Object);
 		for (auto& [key, value]: theData) {
 			this->theValue.object->at(key) = JsonObject{ value };
 		}
@@ -281,11 +284,7 @@ class JsonObject {
 	Void pushBack(JsonObject&& other) noexcept;
 	Void pushBack(JsonObject& other) noexcept;
 
-	Void set(UniquePtr<String> pointer);
-
-	Void set(UniquePtr<ArrayType> pointer);
-
-	Void set(UniquePtr<ObjectType> pointer);
+	Void set(ValueType theType);
 
 	Void destroy() noexcept;
 

@@ -111,7 +111,7 @@ JsonObject::JsonValue::~JsonValue() noexcept {};
 
 JsonObject& JsonObject::operator=(EnumConverter&& theData) noexcept {
 	if (theData.isItAVector()) {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		for (auto& value: theData.operator Vector<Uint64>()) {
 			this->theValue.array->push_back(value);
 		}
@@ -128,7 +128,7 @@ JsonObject::JsonObject(EnumConverter&& theData) noexcept {
 
 JsonObject& JsonObject::operator=(const EnumConverter& theData) noexcept {
 	if (theData.isItAVector()) {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		for (auto& value: theData.operator Vector<Uint64>()) {
 			this->theValue.array->push_back(value);
 		}
@@ -146,17 +146,17 @@ JsonObject::JsonObject(const EnumConverter& theData) noexcept {
 JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
-			this->set(std::make_unique<ObjectType>());
+			this->set(ValueType::Object);
 			*this->theValue.object = *theKey.theValue.object;
 			break;
 		}
 		case ValueType::Array: {
-			this->set(std::make_unique<ArrayType>());
+			this->set(ValueType::Array);
 			*this->theValue.array = *theKey.theValue.array;
 			break;
 		}
 		case ValueType::String: {
-			this->set(std::make_unique<StringType>());
+			this->set(ValueType::String);
 			*this->theValue.string = *theKey.theValue.string;
 			break;
 		}
@@ -191,7 +191,7 @@ JsonObject::JsonObject(JsonObject&& theKey) noexcept {
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
-			this->set(std::make_unique<ObjectType>());
+			this->set(ValueType::Object);
 			for (auto& [key, value]: *theKey.theValue.object) {
 				this->theValue.object->emplace(key, std::move(value));
 			}
@@ -199,7 +199,7 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 			break;
 		}
 		case ValueType::Array: {
-			this->set(std::make_unique<ArrayType>());
+			this->set(ValueType::Array);
 			for (auto& value: *theKey.theValue.array) {
 				this->theValue.array->emplace_back(std::move(value));
 			}
@@ -207,7 +207,7 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 			break;
 		}
 		case ValueType::String: {
-			this->set(std::make_unique<StringType>());
+			this->set(ValueType::String);
 			*this->theValue.string = *theKey.theValue.string;
 			this->theType = ValueType::String;
 			break;
@@ -249,7 +249,7 @@ JsonObject::JsonObject(const JsonObject& theKey) noexcept {
 }
 
 JsonObject& JsonObject::operator=(String&& theData) noexcept {
-	this->set(std::make_unique<StringType>());
+	this->set(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
 	return *this;
@@ -260,7 +260,7 @@ JsonObject::JsonObject(String&& theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(const String& theData) noexcept {
-	this->set(std::make_unique<StringType>());
+	this->set(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
 	return *this;
@@ -271,7 +271,7 @@ JsonObject::JsonObject(const String& theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
-	this->set(std::make_unique<StringType>());
+	this->set(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
 	return *this;
@@ -406,7 +406,7 @@ JsonObject& JsonObject::operator[](Uint64 index) const {
 
 JsonObject& JsonObject::operator[](Uint64 index) {
 	if (this->theType == ValueType::Null) {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
 
@@ -438,7 +438,7 @@ JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) con
 
 JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
-		this->theValue.set(std::make_unique<JsonObject::ObjectType>());
+		this->theValue.set(ValueType::Object);
 		this->theType = ValueType::Object;
 	}
 
@@ -452,7 +452,7 @@ JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 
 JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
-		this->set(std::make_unique<ObjectType>());
+		this->set(ValueType::Object);
 		this->theType = ValueType::Object;
 	}
 
@@ -465,7 +465,7 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 
 Void JsonObject::pushBack(JsonObject&& other) noexcept {
 	if (this->theType == ValueType::Null) {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
 
@@ -476,7 +476,7 @@ Void JsonObject::pushBack(JsonObject&& other) noexcept {
 
 Void JsonObject::pushBack(JsonObject& other) noexcept {
 	if (this->theType == ValueType::Null) {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
 
@@ -643,45 +643,51 @@ JsonObject::operator String() noexcept {
 	return theString;
 }
 
-Void JsonObject::set(UniquePtr<String> p) {
-	destroy();
-	std::pmr::polymorphic_allocator<StringType> theAllocator{};
-	//UniquePtrD<StringType, Deleter<StringType>> thePtr{ theAllocator.allocate(1), Deleter<StringType>{} };
-	//theAllocator.construct(thePtr.get());
-	//this->theValue.string = std::move(thePtr);
-	this->theType = ValueType::String;
+String JsonSerializer::getString(DiscordCoreAPI::TextFormat theFormatNew) {
+	return this->theString;
 }
 
-Void JsonObject::set(UniquePtr<ArrayType> p) {
+Void JsonObject::set(ValueType theTypeNew) {
 	destroy();
-	std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
-	//UniquePtrD<ArrayType, Deleter<ArrayType>> thePtr{ theAllocator.allocate(1), Deleter<ArrayType>{} };
-	//theAllocator.construct(thePtr.get());
-	//this->theValue.array = std::move(thePtr);
-	this->theType = ValueType::Array;
-}
-
-Void JsonObject::set(UniquePtr<ObjectType> p) {
-	destroy();
-	std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
-	//UniquePtrD<ObjectType, Deleter<ObjectType>> thePtr{ theAllocator.allocate(1), Deleter<ObjectType>{} };
-	//theAllocator.construct(thePtr.get());
-	//this->theValue.object = std::move(thePtr);
-	this->theType = ValueType::Object;
+	
+	switch (theType) {
+		case ValueType::Object: {
+			std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
+			this->theValue.object = theAllocator.allocate(1);
+			theAllocator.construct(this->theValue.object);
+			break;
+		}
+		case ValueType::Array: {
+			std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
+			this->theValue.array = theAllocator.allocate(1);
+			theAllocator.construct(this->theValue.array);
+			break;
+		}
+		case ValueType::String: {
+			std::pmr::polymorphic_allocator<StringType> theAllocator{};
+			this->theValue.string = theAllocator.allocate(1);
+			theAllocator.construct(this->theValue.string);
+			break;
+		}
+	}
+	this->theType = theTypeNew;
 }
 
 Void JsonObject::destroy() noexcept {
 	switch (this->theType) {
 		case ValueType::Array: {
-			delete this->theValue.array;
+			std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
+			theAllocator.deallocate(this->theValue.array, 1);
 			break;
 		}
 		case ValueType::Object: {
-			delete this->theValue.object;
+			std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
+			theAllocator.deallocate(this->theValue.object, 1);
 			break;
 		}
 		case ValueType::String: {
-			delete this->theValue.string;
+			std::pmr::polymorphic_allocator<StringType> theAllocator{};
+			theAllocator.deallocate(this->theValue.string, 1);
 			break;
 		}
 	}
@@ -885,88 +891,7 @@ int main() {
 
 */
 
-template<class ObjectType> class StackAllocator {
-  public:
-	typedef size_t size_type;
-	typedef ptrdiff_t difference_type;
-	typedef ObjectType* pointer;
-	typedef const ObjectType* const_pointer;
-	typedef ObjectType& reference;
-	typedef const ObjectType& const_reference;
-	typedef ObjectType value_type;
-	using pointer = ObjectType*;
-	using ValueType = ObjectType;
-	StackAllocator() {}
 
-	StackAllocator(const StackAllocator&) {}
-
-	pointer allocate(size_t count) {
-		const auto new_offset = offset_ + sizeof(ObjectType);
-		const auto place = buffer_ + new_offset - sizeof(ObjectType);
-		offset_ = new_offset;
-		return new (place) ValueType{};
-	}
-	void deallocate(pointer,size_t theAmount) {
-		//this->theArray.modifyReadOrWritePosition(RingBufferAccessType::Read, theAmount * sizeof(ObjectType));
-	}
-
-	char buffer_[1024 * 256]{};
-	std::size_t offset_{0};
-
-	//RingBufferInterface theArray{};
-
-	pointer address(reference x) const {
-		return &x;
-	}
-	const_pointer address(const_reference x) const {
-		return &x;
-	}
-	StackAllocator<ObjectType>& operator=(const StackAllocator&) {
-		return nullptr;
-	}
-	void construct(pointer p, const ObjectType& val) {
-		new (( ObjectType* )p) ObjectType(val);
-	}
-	void destroy(pointer p) {
-		p->~ObjectType();
-	}
-
-	size_type max_size() const {
-		return size_t(-1);
-	}
-
-	template<class U> struct rebind { typedef StackAllocator<U> other; };
-
-	template<class U> StackAllocator(const StackAllocator<U>&) {
-	}
-
-	template<class U> StackAllocator& operator=(const StackAllocator<U>&) {
-		return *this;
-	}
-};
-
-int doit() {
-	char ac[80];
-	if (gethostname(ac, sizeof(ac)) == SOCKET_ERROR) {
-		std::cerr << "Error " << WSAGetLastError() << " when getting local host name." << std::endl;
-		return 1;
-	}
-	std::cout << "Host name is " << ac << "." << std::endl;
-
-	struct hostent* phe = gethostbyname(ac);
-	if (phe == 0) {
-		std::cerr << "Yow! Bad host lookup." << std::endl;
-		return 1;
-	}
-
-	for (int i = 0; phe->h_addr_list[i] != 0; ++i) {
-		struct in_addr addr;
-		memcpy(&addr, phe->h_addr_list[i], sizeof(struct in_addr));
-		std::cout << "Address " << i << ": " << inet_ntoa(addr) << std::endl;
-	}
-
-	return 0;
-}
 
 Bool connect(const String& baseUrlNew, const String& portNew) noexcept {
 	sockaddr_in theStreamTargetAddress{};
@@ -1053,7 +978,7 @@ Bool connect(const String& baseUrlNew, const String& portNew) noexcept {
 	//	return true;
 	//}}
 }
-			
+/*			
 int main() {
 	
 	{
@@ -1081,19 +1006,17 @@ int main() {
 	//theTraits.construct(,);
 
 }
-/*
+*/
 int32_t main() noexcept {
 	try {
 
 		{
-			DiscordCoreAPI::ObjectCacheReal<DiscordCoreAPI::GuildData> theCache{};
 			for (int32_t x = 0; x < 1024*10; ++x) {
 				if (x % 10000 == 0) {
 					std::cout << "WERE HERE THIS IS IT!" << std::endl;
 				}
 				DiscordCoreAPI::GuildData theData{};
 				theData.id = x;
-				theCache.emplace(theData);
 			}
 			
 			//theCache.erase(DiscordCoreAPI::GuildData{});
@@ -1116,7 +1039,7 @@ int32_t main() noexcept {
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
 		theStopWatch.resetTimer();
 		{
-			JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
+			JsonSerializer theSerializer{};
 			auto theString = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
 			
 			std::cout << "THE LINES: " << theString << std::endl;
@@ -1150,4 +1073,3 @@ int32_t main() noexcept {
 
 	return 0;
 }
-*/
