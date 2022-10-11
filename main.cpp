@@ -252,6 +252,11 @@ JsonObject& JsonObject::operator=(String&& theData) noexcept {
 	this->set(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
+	auto theIndex = this->theString->size();
+	this->theString += '\"';
+	*this->theString += *this->theValue.string;
+	this->theString += '\"';
+	this->theStringReal = StringView{ this->theString->data() + theIndex, this->theString->size() - theIndex };
 	return *this;
 }
 
@@ -263,6 +268,11 @@ JsonObject& JsonObject::operator=(const String& theData) noexcept {
 	this->set(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
+	auto theIndex = this->theString->size();
+	this->theString += '\"';
+	*this->theString += *this->theValue.string;
+	this->theString += '\"';
+	this->theStringReal = StringView{ this->theString->data() + theIndex, this->theString->size() - theIndex };
 	return *this;
 }
 
@@ -274,6 +284,11 @@ JsonObject& JsonObject::operator=(const char* theData) noexcept {
 	this->set(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
+	auto theIndex = this->theString->size();
+	this->theString += '\"';
+	*this->theString += *this->theValue.string;
+	this->theString += '\"';
+	this->theStringReal = StringView{ this->theString->data() + theIndex, this->theString->size() - theIndex };
 	return *this;
 }
 
@@ -324,6 +339,7 @@ JsonObject::JsonObject(Uint8 theData) noexcept {
 JsonObject& JsonObject::operator=(Int64 theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Int64;
+	*this->theString += std::to_string(this->theValue.numberInt);
 	return *this;
 }
 
@@ -334,6 +350,7 @@ JsonObject::JsonObject(Int64 theData) noexcept {
 JsonObject& JsonObject::operator=(Int32 theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Int64;
+	*this->theString += std::to_string(this->theValue.numberInt);
 	return *this;
 }
 
@@ -344,6 +361,7 @@ JsonObject::JsonObject(Int32 theData) noexcept {
 JsonObject& JsonObject::operator=(Int16 theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Int64;
+	*this->theString += std::to_string(this->theValue.numberInt);
 	return *this;
 }
 
@@ -354,6 +372,7 @@ JsonObject::JsonObject(Int16 theData) noexcept {
 JsonObject& JsonObject::operator=(Int8 theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Int64;
+	*this->theString += std::to_string(this->theValue.numberInt);
 	return *this;
 }
 
@@ -364,6 +383,7 @@ JsonObject::JsonObject(Int8 theData) noexcept {
 JsonObject& JsonObject::operator=(Double theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Float;
+	*this->theString += std::to_string(this->theValue.numberDouble);
 	return *this;
 }
 
@@ -374,6 +394,7 @@ JsonObject::JsonObject(Double theData) noexcept {
 JsonObject& JsonObject::operator=(Float theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Float;
+	*this->theString += std::to_string(this->theValue.numberDouble);
 	return *this;
 }
 
@@ -384,6 +405,9 @@ JsonObject::JsonObject(Float theData) noexcept {
 JsonObject& JsonObject::operator=(Bool theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Bool;
+	StringStream theStream{};
+	theStream << std::boolalpha << this->theValue.boolean;
+	*this->theString += theStream.str();
 	return *this;
 }
 
@@ -423,7 +447,20 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(std::move(key), JsonObject{});
+		auto result = this->theValue.object->emplace(std::move(key), JsonObject{ this->theString });
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
+JsonObject& JsonSerializer::operator[](const char* key) {
+	if (this->theValue.theType == ValueType::Null) {
+		this->theValue.set(ValueType::Object);
+		this->theValue.theType = ValueType::Object;
+	}
+
+	if (this->theValue.theType == ValueType::Object) {
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{ &this->theString });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -495,23 +532,19 @@ JsonObject::operator String() noexcept {
 		}
 
 		case ValueType::String: {
-			theString += '\"';
-			theString += std::move(*this->theValue.string);
-			theString += '\"';
+			theString += *this->theString;
 			break;
 		}
 		case ValueType::Bool: {
-			StringStream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
+			theString += *this->theString;
 			break;
 		}
 		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
+			theString += *this->theString;
 			break;
 		}
 		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
+			theString += *this->theString;
 			break;
 		}
 		case ValueType::Int64: {
@@ -631,6 +664,10 @@ JsonObject::~JsonObject() noexcept {
 	this->destroy();
 }
 
+String JsonSerializer::getString(DiscordCoreAPI::TextFormat theFormat) {
+	return this->theValue;
+}
+
 struct UpdatePresenceData {
 	String status{};///< Current status.
 	Int64 since{ 0 };///< When was the activity started?
@@ -640,7 +677,7 @@ struct UpdatePresenceData {
 };
 
 UpdatePresenceData ::operator JsonObject() {
-	JsonObject theData{};
+	JsonSerializer theData{};
 	theData["status"] = this->status;
 	theData["since"] = this->since;
 	theData["afk"] = this->afk;
@@ -655,11 +692,11 @@ struct WebSocketIdentifyData {
 	std::string botToken{};
 	int64_t intents{};
 
-	operator JsonObject();
+	operator JsonSerializer();
 };
 
-WebSocketIdentifyData::operator JsonObject() {
-	JsonObject theSerializer{};
+WebSocketIdentifyData::operator JsonSerializer() {
+	JsonSerializer theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
@@ -798,7 +835,7 @@ int32_t main() noexcept {
 		theDataBewTwo.currentShard = 23;
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
 		theStopWatch.resetTimer();
-		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
+		std::cout << "THE DATA: " << theDataBewTwo.operator JsonSerializer().getString(DiscordCoreAPI::TextFormat::Etf) << std::endl;
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
 		

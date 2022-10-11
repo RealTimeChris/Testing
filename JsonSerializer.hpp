@@ -119,8 +119,10 @@ class JsonObject {
 	using FloatType = Double;
 	using IntType = Int64;
 	using BoolType = Bool;
-
+	
 	ValueType theType{ ValueType::Null };
+	String* theString{ nullptr };
+	StringView theStringReal{};
 
 	union JsonValue {
 		ObjectType* object;
@@ -173,6 +175,10 @@ class JsonObject {
 	JsonValue theValue{};
 
 	JsonObject() noexcept = default;
+
+	JsonObject(String* thePtr) noexcept {
+		this->theString = thePtr;
+	} 
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
 		this->set(std::make_unique<ArrayType>());
