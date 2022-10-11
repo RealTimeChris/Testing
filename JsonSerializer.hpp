@@ -110,9 +110,9 @@ struct EnumConverter {
 
 class JsonObject {
   public:
-	using ObjectType = std::map<String, JsonObject, std::less<>, std::allocator<std::pair<const String, JsonObject>>>;
-	template<typename Type> using AllocatorType = std::allocator<Type>;
-	using ArrayType = Vector<JsonObject>;
+	using ObjectType = std::map<String, JsonObject, std::less<>, std::pmr::polymorphic_allocator<std::pair<const String, JsonObject>>>;
+	using AllocatorType = std::pmr::polymorphic_allocator<JsonObject>;
+	using ArrayType = std::vector<JsonObject,AllocatorType>;
 	using StringType = String;
 	using UintType = Uint64;
 	using FloatType = Double;
@@ -124,17 +124,15 @@ class JsonObject {
 	StringView theStringReal{};
 	String* theString{};
 	JsonObject() noexcept = default;
-	JsonObject(String* theStringNew) noexcept {
-		this->theString = theStringNew;
-	};
+
 	union JsonValue {
-		ObjectType* object;
-		StringType* string;
-		ArrayType* array;
 		FloatType numberDouble;
 		UintType numberUint;
+		ObjectType* object;
+		StringType* string;
 		IntType numberInt;
 		BoolType boolean;
+		ArrayType* array;
 
 		JsonValue() noexcept;
 
@@ -271,10 +269,8 @@ class JsonObject {
 	JsonObject& operator=(ValueType) noexcept;
 	JsonObject(ValueType) noexcept;
 
-	JsonObject& operator[](Uint64 index) const;
 	JsonObject& operator[](Uint64 index);
 
-	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 
 	operator String() const noexcept;
@@ -306,8 +302,11 @@ class JsonSerializer {
 	using Reference = JsonSerializer&;
 	using IntType = Int64;
 	using BoolType = Bool;
-	JsonSerializer() noexcept {};
-	mutable JsonObject theValue{ &this->theString, ValueType::Object };
+	JsonSerializer() noexcept {
+		std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
+		this->theValue = theAllocator.new_object<JsonObject>(&this->theString, ValueType::Object);
+	};
+	mutable JsonObject* theValue{};
 	ValueType theType{ ValueType::Null };
 	StringView theCurrentStringMemory{};
 	DiscordCoreAPI::TextFormat theFormat{};
@@ -316,7 +315,6 @@ class JsonSerializer {
 	JsonObject& operator[](Uint64 idx) const;
 	JsonObject& operator[](Uint64 idx);
 	operator String&();
-	JsonObject& operator[](const typename ObjectType::key_type& key) const;
 	JsonObject& operator[](typename ObjectType::key_type key);
 	operator const JsonObject&() {
 		return this->theValue;
@@ -369,7 +367,10 @@ class JsonSerializer {
 
 	void appendNil();
 
-	~JsonSerializer() noexcept = default;
+	~JsonSerializer() noexcept {
+		std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
+		theAllocator.delete_object(this->theValue);
+	};
 
 	String comparisongStringFalse{ "false" };
 	String comparisongStringNil{ "nil" };

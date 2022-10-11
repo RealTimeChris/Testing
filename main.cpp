@@ -117,7 +117,7 @@ JsonObject& JsonObject::operator=(EnumConverter&& theData) noexcept {
 		}
 	} else {
 		this->theValue.numberUint = Uint64{ theData };
-		this->theType = ValueType::Uint64;
+		*this = ValueType::Uint64;
 	}
 	return *this;
 }
@@ -134,7 +134,7 @@ JsonObject& JsonObject::operator=(const EnumConverter& theData) noexcept {
 		}
 	} else {
 		this->theValue.numberUint = Uint64{ theData };
-		this->theType = ValueType::Uint64;
+		this->set(ValueType::Uint64);
 	}
 	return *this;
 }
@@ -195,7 +195,6 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 			for (auto& [key, value]: *theKey.theValue.object) {
 				this->theValue.object->emplace(key, std::move(value));
 			}
-			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
@@ -203,18 +202,16 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 			for (auto& value: *theKey.theValue.array) {
 				this->theValue.array->emplace_back(std::move(value));
 			}
-			this->theType = ValueType::Array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(ValueType::String);
 			*this->theValue.string = *theKey.theValue.string;
-			this->theType = ValueType::String;
 			break;
 		}
 		case ValueType::Bool: {
 			this->theValue.boolean = theKey.theValue.boolean;
-			this->theType = ValueType::Bool;
+			this->set(ValueType::Bool);
 			break;
 		}
 		case ValueType::Int64: {
@@ -393,15 +390,12 @@ JsonObject::JsonObject(Bool theData) noexcept {
 
 JsonObject& JsonObject::operator=(ValueType theType) noexcept {
 	this->theType = theType;
+	this->set(this->theType);
 	return *this;
 }
 
 JsonObject::JsonObject(ValueType theValue) noexcept {
 	*this = theValue;
-}
-
-JsonObject& JsonObject::operator[](Uint64 index) const {
-	return this->theValue.array->operator[](index);
 }
 
 JsonObject& JsonObject::operator[](Uint64 index) {
@@ -420,30 +414,14 @@ JsonObject& JsonObject::operator[](Uint64 index) {
 	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 }
 
-JsonObject& JsonSerializer::operator[](const typename ObjectType::key_type& key) const {
-	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(key, JsonObject{ &this->theString, ValueType::Object });
-		return result.first->second;
-	}
-	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
-}
-
-JsonObject& JsonObject::operator[](const typename ObjectType::key_type& key) const {
-	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(key, JsonObject{ ValueType::Object });
-		return result.first->second;
-	}
-	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
-}
-
 JsonObject& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
-		this->theValue.set(ValueType::Object);
+		this->theValue->set(ValueType::Object);
 		this->theType = ValueType::Object;
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{ &this->theString, ValueType::Object });
+		auto result = this->theValue->theValue.object->emplace(std::move(key), JsonObject{ &this->theString, ValueType::Object });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -650,23 +628,20 @@ String JsonSerializer::getString(DiscordCoreAPI::TextFormat theFormatNew) {
 Void JsonObject::set(ValueType theTypeNew) {
 	destroy();
 	
-	switch (theType) {
+	switch (theTypeNew) {
 		case ValueType::Object: {
 			std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
-			this->theValue.object = theAllocator.allocate(1);
-			theAllocator.construct(this->theValue.object);
+			this->theValue.object = theAllocator.new_object<ObjectType>();
 			break;
 		}
 		case ValueType::Array: {
 			std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
-			this->theValue.array = theAllocator.allocate(1);
-			theAllocator.construct(this->theValue.array);
+			this->theValue.array = theAllocator.new_object<ArrayType>();
 			break;
 		}
 		case ValueType::String: {
 			std::pmr::polymorphic_allocator<StringType> theAllocator{};
-			this->theValue.string = theAllocator.allocate(1);
-			theAllocator.construct(this->theValue.string);
+			this->theValue.string = theAllocator.new_object<StringType>();
 			break;
 		}
 	}
@@ -677,20 +652,21 @@ Void JsonObject::destroy() noexcept {
 	switch (this->theType) {
 		case ValueType::Array: {
 			std::pmr::polymorphic_allocator<ArrayType> theAllocator{};
-			theAllocator.deallocate(this->theValue.array, 1);
+			theAllocator.delete_object(this->theValue.array);
 			break;
 		}
 		case ValueType::Object: {
 			std::pmr::polymorphic_allocator<ObjectType> theAllocator{};
-			theAllocator.deallocate(this->theValue.object, 1);
+			theAllocator.delete_object(this->theValue.object);
 			break;
 		}
 		case ValueType::String: {
 			std::pmr::polymorphic_allocator<StringType> theAllocator{};
-			theAllocator.deallocate(this->theValue.string, 1);
+			theAllocator.delete_object(this->theValue.string);
 			break;
 		}
 	}
+	this->theType = ValueType::Null;
 }
 
 JsonObject::~JsonObject() noexcept {
@@ -835,196 +811,19 @@ template<typename Func> auto benchmark(Func test_func, int iterations) {
 	const auto secs = std::chrono::duration<double>(stop - start);
 	return secs.count();
 }
-/*
-int main() {
-	constexpr int iterations{ 1 };
-	constexpr int total_nodes{ 2'0000 };
 
-	auto default_std_alloc = [total_nodes] {
-		std::list<int> list;
-		for (int i{}; i != total_nodes; ++i) {
-			list.push_back(i);
-		}
-	};
-
-	auto default_pmr_alloc = [total_nodes] {
-		std::pmr::list<int> list;
-		for (int i{}; i != total_nodes; ++i) {
-			list.push_back(i);
-		}
-	};
-
-	auto pmr_alloc_no_buf = [total_nodes] {
-		std::pmr::monotonic_buffer_resource mbr;
-		std::pmr::polymorphic_allocator<int> pa{ &mbr };
-		std::pmr::list<int> list{ pa };
-		for (int i{}; i != total_nodes; ++i) {
-			list.push_back(i);
-		}
-	};
-
-	auto pmr_alloc_and_buf = [total_nodes] {
-		std::array<std::byte, total_nodes> buffer;// enough to fit in all nodes
-		std::pmr::monotonic_buffer_resource mbr{ buffer.data(), buffer.size() };
-		std::cout << "v.data() @ " << buffer.data() << '\n';
-		std::pmr::polymorphic_allocator<int> pa{ &mbr };
-		std::pmr::list<int> list{ pa };
-		
-		for (int i{}; i != total_nodes; ++i) {
-			list.push_back(i);
-			
-		}
-		std::cout << "v.data() @ " << &(list.front()) - 14 << '\n';
-	};
-
-	const double t1 = benchmark(default_std_alloc, iterations);
-	const double t2 = benchmark(default_pmr_alloc, iterations);
-	const double t3 = benchmark(pmr_alloc_no_buf, iterations);
-	const double t4 = benchmark(pmr_alloc_and_buf, iterations);
-
-	std::cout << std::fixed << std::setprecision(3) << "t1 (default std alloc): " << t1 << " sec; t1/t1: " << t1 / t1 << '\n'
-			  << "t2 (default pmr alloc): " << t2 << " sec; t1/t2: " << t1 / t2 << '\n'
-			  << "t3 (pmr alloc  no buf): " << t3 << " sec; t1/t3: " << t1 / t3 << '\n'
-			  << "t4 (pmr alloc and buf): " << t4 << " sec; t1/t4: " << t1 / t4 << '\n';
-}
-/*
-
-*/
-
-
-
-Bool connect(const String& baseUrlNew, const String& portNew) noexcept {
-	sockaddr_in theStreamTargetAddress{};
-	theStreamTargetAddress.sin_addr.s_addr = inet_addr(baseUrlNew.c_str());
-	theStreamTargetAddress.sin_port = DiscordCoreAPI::reverseByteOrder<Uint16>(static_cast<unsigned short>(stoi(portNew)));
-	theStreamTargetAddress.sin_family = AF_INET;
-	SOCKET theSocket{};
-	DiscordCoreInternal::addrinfoWrapper hints{}, address{};
-	hints->ai_family = AF_INET;
-	hints->ai_socktype = SOCK_DGRAM;
-	hints->ai_protocol = IPPROTO_UDP;
-	DiscordCoreAPI::StreamType streamType{ DiscordCoreAPI::StreamType::Client };
-	//std::cout << "THE ADDRESS: " << theStreamTargetAddress.sin_addr.s_addr << std::endl;
-	if (getaddrinfo(baseUrlNew.c_str(), portNew.c_str(), hints, address)) {
-		//std::cout << "THE ADDRESS: " << address->ai_addr->sa_data << std::endl;
-		return false;
-	}
-	std::cout << "THE ADDRESS: " << address->ai_addr->sa_data << std::endl;
-	std::string clienthost{};
-	clienthost.resize(NI_MAXHOST);
-	std::string clientservice{};
-	clientservice.resize(NI_MAXSERV);
-	int theErrorCode = getnameinfo(address->ai_addr, sizeof(*address->ai_addr), clienthost.data(), sizeof(clienthost), clientservice.data(), sizeof(clientservice),
-		NI_NUMERICHOST | NI_NUMERICSERV);
-	std::cout << "The ip address is = " << clienthost << std::endl;
-	std::cout << "The clientservice = " << clientservice << std::endl;
-	if (theSocket = socket(address->ai_family, address->ai_socktype, address->ai_protocol); theSocket == SOCKET_ERROR) {
-		return false;
-	}
-	std::cout << "The ip address is = " << clienthost << std::endl;
-	std::cout << "The clientservice = " << clientservice << std::endl;
-
-	if (streamType == DiscordCoreAPI::StreamType::None || streamType == DiscordCoreAPI::StreamType::Client) {
-		if (::connect(theSocket, address->ai_addr, static_cast<Int32>(address->ai_addrlen))) {
-			return false;
-		}
-		String clientToServerString{};
-		clientToServerString = "test string";
-		Int32 intSize{ sizeof(theStreamTargetAddress) };
-		String serverToClientBuffer{};
-		serverToClientBuffer.resize(11);
-		auto writtenBytes{ sendto(static_cast<Int32>(theSocket), clientToServerString.data(), static_cast<Int32>(clientToServerString.size()), 0,
-			( sockaddr* )&theStreamTargetAddress, static_cast<Int32>(sizeof(theStreamTargetAddress))) };
-		auto readBytes{ recvfrom(static_cast<Int32>(theSocket), serverToClientBuffer.data(), static_cast<Int32>(serverToClientBuffer.size()), 0,
-			reinterpret_cast<sockaddr*>(&theStreamTargetAddress), &intSize) };
-		int theErrorCode = getnameinfo(reinterpret_cast<sockaddr*>(&theStreamTargetAddress), sizeof(*address->ai_addr), clienthost.data(), sizeof(clienthost), clientservice.data(),
-			sizeof(clientservice), NI_NUMERICHOST | NI_NUMERICSERV);
-		std::cout << "The ip address is 0303 = " << clienthost << std::endl;
-		std::cout << "The clientservice 0303 = " << clientservice << std::endl;
-		std::cout << "The clientservice 0303 = " << serverToClientBuffer << std::endl;
-
-	} else {
-		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::seconds{ 300 } };
-		while (!theStopWatch.hasTimePassed()) {
-			
-			std::cout << "The ip address is = " << clienthost << std::endl;
-			std::cout << "The clientservice = " << clientservice << std::endl;
-
-
-			if (auto theResult = bind(theSocket, ( sockaddr* )&theStreamTargetAddress, sizeof(sockaddr)); theResult != 0) {
-				return false;
-			}
-			std::cout << "The ip address is 0202 = " << clienthost << std::endl;
-			std::cout << "The clientservice 0202 = " << clientservice << std::endl;
-
-			
-#ifdef _WIN32
-
-#else
-			socklen_t intSize{ sizeof(theStreamTargetAddress) };
-#endif
-		}
-	}
-#ifdef _WIN32
-	u_long value02{ 1 };
-	if (ioctlsocket(theSocket, FIONBIO, &value02)) {
-		return false;
-	}
-#else
-	if (fcntl(theSocket, F_SETFL, fcntl(theSocket, F_GETFL, 0) | O_NONBLOCK)) {
-		return false;
-	}
-#endif
-	//	return true;
-	//}}
-}
-/*			
-int main() {
-	
-	{
-		std::string address{ "192.168.0.28" };
-		std::string port{ "40010" };
-		
-		WSAData wsaData;
-		if (WSAStartup(MAKEWORD(1, 1), &wsaData) != 0) {
-			return 255;
-		}
-		connect(address, port);
-		doit();
-		std::vector<int32_t, StackAllocator<int32_t>> theVector01{};
-		std::vector<int32_t, StackAllocator<int32_t>> theVector02{};
-		//std::vector<int32_t, StackAllocator<int32_t>> theVector03{};
-		for (uint32_t x = 0; x < (1024 * 128 /4)-8; ++x) {
-			//theVector03.push_back(x);
-			//std::cout << "THE VALUE: " << theVector03[x];
-		}
-		std::this_thread::sleep_for(std::chrono::seconds{ 4 });
-	}
-	std::this_thread::sleep_for(std::chrono::seconds{ 4 });
-	
-	std::this_thread::sleep_for(std::chrono::seconds{ 2 });
-	//theTraits.construct(,);
-
-}
-*/
 int32_t main() noexcept {
 	try {
-
+		JsonObject* theObject;
 		{
-			for (int32_t x = 0; x < 1024*10; ++x) {
-				if (x % 10000 == 0) {
-					std::cout << "WERE HERE THIS IS IT!" << std::endl;
-				}
-				DiscordCoreAPI::GuildData theData{};
-				theData.id = x;
-			}
 			
-			//theCache.erase(DiscordCoreAPI::GuildData{});
-			//for (auto iterator = theCache.begin(); iterator != theCache.end(); ++iterator) {
-				//iterator = theCache.erase(*iterator->get());
-			//}
-			//theCache.erase(DiscordCoreAPI::GuildData{});
-			std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
+			std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
+			theObject = theAllocator.new_object<JsonObject>();
+			
+		}
+		{
+			std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
+			theAllocator.delete_object(theObject);
 		}
 		std::cout << "THE FINAL COUNT: " << theAtomic.load() << std::endl;
 		
@@ -1039,23 +838,6 @@ int32_t main() noexcept {
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
 		theStopWatch.resetTimer();
 		{
-			JsonSerializer theSerializer{};
-			auto theString = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
-			
-			std::cout << "THE LINES: " << theString << std::endl;
-			DiscordCoreInternal::ErlPacker thePacker{};
-			std::cout << "THE JSON DATA:" << thePacker.parseEtfToJson(theString) << std::endl;
-			std::string theResults02{};
-			size_t theSize{};
-			for (int32_t x = 0; x < 1024 * 256; ++x) {
-				theSerializer["d"]["intents"] = x;
-				theResults02 = theSerializer.getString(DiscordCoreAPI::TextFormat::Etf);
-				theSize += theResults02.size();
-				//std::cout << "THE JSON DATA:" << thePacker.parseEtfToJson(theResults02) << std::endl;
-				//std::cout << "THE STRING: " << theResults02 << std::endl;
-			}
-			std::cout << theSize << std::endl;
-			std::cout << "THE TIME PASSED: " << theStopWatch.totalTimePassed() << std::endl;
 		}
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 5000 });
