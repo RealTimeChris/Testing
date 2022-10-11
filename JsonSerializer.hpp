@@ -110,29 +110,26 @@ struct EnumConverter {
 
 class JsonObject {
   public:
-	using ObjectType = std::map<String, JsonObject, std::less<>, std::pmr::polymorphic_allocator<std::pair<const String, JsonObject>>>;
+	using AllocatorTypeMap = std::pmr::polymorphic_allocator<std::pair<const String,JsonObject>>;
 	using AllocatorType = std::pmr::polymorphic_allocator<JsonObject>;
-	using ArrayType = std::vector<JsonObject,AllocatorType>;
+	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
+	using ArrayType = std::vector<JsonObject, AllocatorType>;
 	using StringType = String;
 	using UintType = Uint64;
 	using FloatType = Double;
 	using IntType = Int64;
 	using BoolType = Bool;
-	using SizeType = size_t;
 
 	ValueType theType{ ValueType::Null };
-	StringView theStringReal{};
-	String* theString{};
-	JsonObject() noexcept = default;
 
 	union JsonValue {
-		FloatType numberDouble;
-		UintType numberUint;
 		ObjectType* object;
 		StringType* string;
+		ArrayType* array;
+		FloatType numberDouble;
+		UintType numberUint;
 		IntType numberInt;
 		BoolType boolean;
-		ArrayType* array;
 
 		JsonValue() noexcept;
 
@@ -141,14 +138,6 @@ class JsonObject {
 
 		JsonValue& operator=(const JsonValue&) noexcept = delete;
 		JsonValue(const JsonValue&) noexcept = delete;
-
-		JsonValue& operator=(const ObjectType& theData) noexcept;
-
-		JsonValue& operator=(ObjectType&& theData) noexcept;
-
-		JsonValue& operator=(const ArrayType& theData) noexcept;
-
-		JsonValue& operator=(ArrayType&& theData) noexcept;
 
 		JsonValue& operator=(const StringType& theData) noexcept;
 
@@ -183,13 +172,10 @@ class JsonObject {
 
 	JsonValue theValue{};
 
-	JsonObject(String* theStringNew, ValueType theTypeNew) noexcept {
-		this->theString = theStringNew;
-		this->theType = theTypeNew;
-	}
+	JsonObject() noexcept = default;
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
-		this->set(ValueType::Array);
+		this->set(std::make_unique<ArrayType>());
 		for (auto& value: theData) {
 			this->theValue.array->push_back(JsonObject{ value });
 		}
@@ -201,7 +187,7 @@ class JsonObject {
 	}
 
 	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(UMap<KeyType, ObjectType> theData) noexcept {
-		this->set(ValueType::Object);
+		this->set(std::make_unique<ObjectType>());
 		for (auto& [key, value]: theData) {
 			this->theValue.object->at(key) = JsonObject{ value };
 		}
@@ -273,111 +259,49 @@ class JsonObject {
 
 	JsonObject& operator[](typename ObjectType::key_type key);
 
-	operator String() const noexcept;
-
 	operator String() noexcept;
 
 	Void pushBack(JsonObject&& other) noexcept;
 	Void pushBack(JsonObject& other) noexcept;
 
-	Void set(ValueType theType);
+	Void set(ValueType theTypeNew);
 
 	Void destroy() noexcept;
 
+	friend bool operator==(const JsonObject&, const JsonObject&);
+
 	~JsonObject() noexcept;
 };
+
 class JsonSerializer {
   public:
 
-  using ObjectType = std::map<String, JsonSerializer, std::less<>, std::allocator<std::pair<const String, JsonSerializer>>>;
-	template<typename Type> using AllocatorType = std::allocator<Type>;
-	using ArrayType = std::vector<JsonSerializer>;
-	using ConstPointer = const JsonSerializer*;
-	using Pointer = JsonSerializer*;
-	using DifferenceType = std::ptrdiff_t;
+	using AllocatorTypeMap = std::pmr::polymorphic_allocator<std::pair<const String,JsonObject>>;
+	using AllocatorType = std::pmr::polymorphic_allocator<JsonObject>;
+	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
+	using ArrayType = std::vector<JsonObject, AllocatorType>;
 	using StringType = String;
 	using UintType = Uint64;
 	using FloatType = Double;
-	using ConstReference = const JsonSerializer&;
-	using Reference = JsonSerializer&;
 	using IntType = Int64;
 	using BoolType = Bool;
-	JsonSerializer() noexcept {
-		std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
-		this->theValue = theAllocator.new_object<JsonObject>(&this->theString, ValueType::Object);
-	};
-	mutable JsonObject* theValue{};
-	ValueType theType{ ValueType::Null };
-	StringView theCurrentStringMemory{};
+
+	JsonSerializer() noexcept = default;
+	mutable JsonObject theValue{};
 	DiscordCoreAPI::TextFormat theFormat{};
 	String getString(DiscordCoreAPI::TextFormat theFormatNew);
-	void writeString(const JsonObject& theObject, String& theString) noexcept;
-	JsonObject& operator[](Uint64 idx) const;
-	JsonObject& operator[](Uint64 idx);
-	operator String&();
-	JsonObject& operator[](typename ObjectType::key_type key);
+	JsonObject& operator[](const char*);
 	operator const JsonObject&() {
 		return this->theValue;
 	}
-	String& parseJsonToEtf(JsonObject&& dataToParse);
 
-	void singleValueJsonToETF(const JsonObject& jsonData);
-
-	void writeObject(const JsonObject::ObjectType& jsonData);
-
-	void writeString(const JsonObject::StringType& jsonData);
-
-	void writeInt(JsonObject::IntType jsonData);
-
-	void writeUint(JsonObject::UintType jsonData);
-
-	void writeFloat(JsonObject::FloatType jsonData);
-
-	void writeArray(const JsonObject::ArrayType& jsonData);
-
-	void writeBool(JsonObject::BoolType jsonData);
-
-	void writeNullExt();
-
-	void writeNull();
-
-	void writeToBuffer(const String&);
-
-	void appendBinaryExt(const String& bytes, Uint32 sizeNew);
-
-	void appendUnsignedLongLong(Uint64);
-
-	void appendSmallIntegerExt(Uint8);
-
-	void appendIntegerExt(Uint32);
-
-	void appendListHeader(Uint32);
-
-	void appendMapHeader(Uint32);
-
-	void appendNewFloatExt(Double);
-
-	void appendVersion();
-
-	void appendNilExt();
-
-	void appendFalse();
-
-	void appendTrue();
-
-	void appendNil();
-
-	~JsonSerializer() noexcept {
-		std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
-		theAllocator.delete_object(this->theValue);
-	};
+	~JsonSerializer() noexcept = default;
 
 	String comparisongStringFalse{ "false" };
 	String comparisongStringNil{ "nil" };
 	String falseString{ "false" };
-	String nilString{ "nil" };
 	mutable String theString{};
-	StringView buffer{};
+	String nilString{ "nil" };
 	Uint64 offSet{};
 	Uint64 size{};
 };
