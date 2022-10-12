@@ -27,7 +27,7 @@ EnumConverter::operator Uint64() const noexcept {
 	return this->theUint;
 }
 
-bool EnumConverter::isItAVector()const  noexcept {
+bool EnumConverter::isItAVector() const noexcept {
 	return this->vectorType;
 }
 
@@ -377,81 +377,80 @@ JsonObject::operator String() noexcept {
 	switch (this->theType) {
 		case ValueType::Object: {
 			if (this->theValue.object->empty()) {
-				this->theString = "{}";
+				theString = "{}";
 			}
 
-			this->theString = '{';
+			theString = '{';
 
 			Uint64 theIndex{};
 			for (auto& [key, value]: *this->theValue.object) {
-				this->theString += '\"';
-				this->theString += key;
-				this->theString += "\":";
-				this->theString += value;
+				theString += '\"';
+				theString += key;
+				theString += "\":";
+				theString += value;
 				if (theIndex < this->theValue.object->size() - 1) {
-					this->theString += ',';
+					theString += ',';
 				}
 				theIndex++;
 			}
-			this->theString += '}';
+			theString += '}';
 			break;
 		}
 		case ValueType::Array: {
 			if (this->theValue.array->empty()) {
-				this->theString = "[]";
+				theString = "[]";
 				break;
 			}
 
-			this->theString = '[';
+			theString = '[';
 
 			Uint64 theIndex{};
 			for (auto& value: *this->theValue.array) {
-				this->theString += value;
+				theString += value;
 				if (theIndex < this->theValue.array->size() - 1) {
-					this->theString += ',';
+					theString += ',';
 				}
 				theIndex++;
 			}
 
-			this->theString += ']';
+			theString += ']';
 			break;
 		}
 
 		case ValueType::String: {
-			this->theString = '\"';
-			this->theString += "TEST";
-			this->theString += *this->theValue.string;
-			this->theString += '\"';
+			theString = '\"';
+			theString += *this->theValue.string;
+			theString += '\"';
 			break;
 		}
 		case ValueType::Bool: {
 			StringStream theStream{};
 			theStream << std::boolalpha << this->theValue.boolean;
-			this->theString = theStream.str();
+			theString = theStream.str();
 			break;
 		}
 		case ValueType::Float: {
-			this->theString = std::to_string(this->theValue.numberDouble);
+			theString = std::to_string(this->theValue.numberDouble);
 			break;
 		}
 		case ValueType::Uint64: {
-			this->theString = std::to_string(this->theValue.numberUint);
+			theString = std::to_string(this->theValue.numberUint);
 			break;
 		}
 		case ValueType::Int64: {
-			this->theString = std::to_string(this->theValue.numberInt);
+			theString = std::to_string(this->theValue.numberInt);
 			break;
 		}
 		case ValueType::Null: {
-			this->theString = "null";
+			theString = "null";
 			break;
 		}
 		case ValueType::Null_Ext: {
-			this->theString = "[]";
+			theString = "[]";
 			break;
 		}
 	}
-	return this->theString;
+	return theString;
 }
 
 Void JsonObject::set(ValueType theTypeNew) {
@@ -476,8 +475,6 @@ Void JsonObject::set(ValueType theTypeNew) {
 			break;
 		}
 	}
-	
-	
 }
 
 bool operator==(const JsonObject& lhs, const JsonObject& rhs) {
