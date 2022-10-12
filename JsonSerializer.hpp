@@ -141,7 +141,7 @@ class JsonObject {
 	String theKey{};
 
 	JsonObject() noexcept {
-		this->set(ValueType::String);
+		this->set(ValueType::Object);
 	};
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {

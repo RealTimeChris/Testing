@@ -70,19 +70,19 @@ JsonObject::JsonObject(const EnumConverter& theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
-	this->set(ValueType::String);
+	this->set(theKey.theType);
 	*this->theValue.theValue = std::move(*theKey.theValue.theValue);
-	//this->theKey = theKey.theKey;
+	this->theKey = theKey.theKey;
 	this->theType = theKey.theType;
 	return *this;
 }
 
 JsonObject::JsonObject(JsonObject&& theKey) noexcept {
-	this->set(ValueType::String);
 	*this = std::move(theKey);
 }
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
+	this->set(theKey.theType);
 	*this->theValue.theValue = *theKey.theValue.theValue;
 	this->theKey = theKey.theKey;
 	this->theType = theKey.theType;
@@ -133,6 +133,7 @@ JsonObject::JsonObject(const char* theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint64 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Uint64;
 	return *this;
@@ -143,6 +144,7 @@ JsonObject::JsonObject(Uint64 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint32 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Uint64;
 	return *this;
@@ -153,6 +155,7 @@ JsonObject::JsonObject(Uint32 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint16 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Uint64;
 	return *this;
@@ -163,6 +166,7 @@ JsonObject::JsonObject(Uint16 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint8 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Uint64;
 	return *this;
@@ -173,6 +177,7 @@ JsonObject::JsonObject(Uint8 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int64 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Int64;
 	return *this;
@@ -183,6 +188,7 @@ JsonObject::JsonObject(Int64 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int32 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Int64;
 	return *this;
@@ -193,6 +199,7 @@ JsonObject::JsonObject(Int32 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int16 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Int64;
 	return *this;
@@ -203,6 +210,7 @@ JsonObject::JsonObject(Int16 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int8 theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Int64;
 	return *this;
@@ -213,6 +221,7 @@ JsonObject::JsonObject(Int8 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Double theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Float;
 	return *this;
@@ -223,6 +232,7 @@ JsonObject::JsonObject(Double theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Float theData) noexcept {
+	this->set(ValueType::String);
 	*this->theValue.theValue = std::to_string(theData);
 	this->theType = ValueType::Float;
 	return *this;
@@ -235,6 +245,7 @@ JsonObject::JsonObject(Float theData) noexcept {
 JsonObject& JsonObject::operator=(Bool theData) noexcept {
 	StringStream theStream{};
 	theStream << std::boolalpha << theData;
+	this->set(ValueType::String);
 	*this->theValue.theValue = theStream.str();
 	this->theType = ValueType::Bool;
 	return *this;
@@ -276,7 +287,7 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(std::move(key), JsonObject{});
+		auto result = this->theValue.object->emplace(std::move(key), JsonObject{ ValueType::Object });
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -401,10 +412,6 @@ JsonObject::operator String() noexcept {
 		}
 		default:{
 			theString = *this->theValue.theValue;
-			break;
-		}
-		case ValueType::Float: {
-			
 			break;
 		}
 	}
@@ -628,10 +635,6 @@ WebSocketIdentifyDataTwo::operator JsonObject() {
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	std::cout << "THE ARRAY: " << std::endl;
-	for (auto& value: *theSerializer["d"]["presence"]["activities"].theValue.array) {
-		std::cout << "THE VALUE: " << value.operator DiscordCoreAPI::String() << std::endl;
-	}
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
 		theSerializer["since"] = this->presence.since;
@@ -656,12 +659,9 @@ int32_t main() noexcept {
 				
 		WebSocketIdentifyDataTwo theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
-		JsonSerializer theDataNew{};
-		theDataNew = theDataBewTwo;
-		std::cout << "THE DATA: " << theDataNew.operator DiscordCoreAPI::String() << std::endl;
+		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
 		theDataBewTwo.botToken = "TEST_TOKEN";
-		theDataNew = theDataBewTwo;
-		std::cout << "THE DATA: " << theDataNew.operator DiscordCoreAPI::String() << std::endl;
+		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
 		theData.name = "TESTING";
 		theDataBewTwo.numberOfShards = 0;
 		theDataBewTwo.currentShard = 23;
@@ -669,13 +669,12 @@ int32_t main() noexcept {
 		Vector<String> theVector{};
 		theStopWatch.resetTimer();
 		size_t theSize{};
-		for (int32_t x = 0; x < 1024*1024 ; ++x) {
-			auto theString = theDataNew.operator DiscordCoreAPI::String();
-			theDataNew[JsonSerializer::ObjectType::key_type{ "d" }]["token"] = x;
-			//std::cout << "THE STRING: " << theString << std::endl;
-			theSize += theString.size();
-			theVector.push_back(std::move(theString));
+		for (uint32_t x = 0; x < 1024 * 32; ++x) {
+			theVector.push_back(theDataBewTwo.operator JsonObject());
+			theSize += theVector.back().size();
+			std::cout << "THE STRING: " << theVector.back() << std::endl;
 		}
+		
 
 		std::cout << "THE SIZE: " << theSize << std::endl;
 		std::cout << "THE TIME: " << theStopWatch.totalTimePassed() << std::endl;
