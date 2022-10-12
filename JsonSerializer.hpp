@@ -122,13 +122,9 @@ class JsonObject {
 	ValueType theType{ ValueType::Null };
 
 	union JsonValue {
+		StringType* theValue;
 		ObjectType* object;
-		StringType* string;
 		ArrayType* array;
-		FloatType numberDouble;
-		UintType numberUint;
-		IntType numberInt;
-		BoolType boolean;
 
 		JsonValue() noexcept;
 
@@ -142,9 +138,11 @@ class JsonObject {
 	};
 
 	JsonValue theValue{};
-	String theString{};
+	String theKey{};
 
-	JsonObject() noexcept = default;
+	JsonObject() noexcept {
+		this->set(ValueType::String);
+	};
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
 		this->set(std::make_unique<ArrayType>());
