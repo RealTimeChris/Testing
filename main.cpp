@@ -628,7 +628,6 @@ int32_t main() noexcept {
 				//theAllocator.delete_object(theObject[x]);
 			}
 		}
-		std::cout << "THE FINAL COUNT: " << theAtomic.load() << std::endl;
 		
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
