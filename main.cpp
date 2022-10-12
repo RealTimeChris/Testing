@@ -376,12 +376,11 @@ Void JsonObject::pushBack(JsonObject& other) noexcept {
 JsonObject::operator String() noexcept {
 	switch (this->theType) {
 		case ValueType::Object: {
-			this->theString += "TEST";
 			if (this->theValue.object->empty()) {
-				this->theString += "{}";
+				this->theString = "{}";
 			}
 
-			this->theString += '{';
+			this->theString = '{';
 
 			Uint64 theIndex{};
 			for (auto& [key, value]: *this->theValue.object) {
@@ -399,11 +398,11 @@ JsonObject::operator String() noexcept {
 		}
 		case ValueType::Array: {
 			if (this->theValue.array->empty()) {
-				this->theString += "[]";
+				this->theString = "[]";
 				break;
 			}
 
-			this->theString += '[';
+			this->theString = '[';
 
 			Uint64 theIndex{};
 			for (auto& value: *this->theValue.array) {
@@ -419,7 +418,7 @@ JsonObject::operator String() noexcept {
 		}
 
 		case ValueType::String: {
-			this->theString += '\"';
+			this->theString = '\"';
 			this->theString += "TEST";
 			this->theString += *this->theValue.string;
 			this->theString += '\"';
@@ -428,27 +427,27 @@ JsonObject::operator String() noexcept {
 		case ValueType::Bool: {
 			StringStream theStream{};
 			theStream << std::boolalpha << this->theValue.boolean;
-			this->theString += theStream.str();
+			this->theString = theStream.str();
 			break;
 		}
 		case ValueType::Float: {
-			this->theString += std::to_string(this->theValue.numberDouble);
+			this->theString = std::to_string(this->theValue.numberDouble);
 			break;
 		}
 		case ValueType::Uint64: {
-			this->theString += std::to_string(this->theValue.numberUint);
+			this->theString = std::to_string(this->theValue.numberUint);
 			break;
 		}
 		case ValueType::Int64: {
-			this->theString += std::to_string(this->theValue.numberInt);
+			this->theString = std::to_string(this->theValue.numberInt);
 			break;
 		}
 		case ValueType::Null: {
-			this->theString += "null";
+			this->theString = "null";
 			break;
 		}
 		case ValueType::Null_Ext: {
-			this->theString += "[]";
+			this->theString = "[]";
 			break;
 		}
 	}
