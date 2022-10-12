@@ -138,34 +138,6 @@ class JsonObject {
 		JsonValue& operator=(const JsonValue&) noexcept = delete;
 		JsonValue(const JsonValue&) noexcept = delete;
 
-		JsonValue& operator=(const StringType& theData) noexcept;
-
-		JsonValue& operator=(StringType&& theData) noexcept;
-
-		JsonValue& operator=(const char* theData) noexcept;
-
-		JsonValue& operator=(Uint64 theData) noexcept;
-
-		JsonValue& operator=(Uint32 theData) noexcept;
-
-		JsonValue& operator=(Uint16 theData) noexcept;
-
-		JsonValue& operator=(Uint8 theData) noexcept;
-
-		JsonValue& operator=(Int64 theData) noexcept;
-
-		JsonValue& operator=(Int32 theData) noexcept;
-
-		JsonValue& operator=(Int16 theData) noexcept;
-
-		JsonValue& operator=(Int8 theData) noexcept;
-
-		JsonValue& operator=(Double theData) noexcept;
-
-		JsonValue& operator=(Float theData) noexcept;
-
-		JsonValue& operator=(Bool theData) noexcept;
-
 		~JsonValue() noexcept;
 	};
 

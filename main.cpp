@@ -31,78 +31,7 @@ bool EnumConverter::isItAVector()const  noexcept {
 	return this->vectorType;
 }
 
-
 JsonObject::JsonValue::JsonValue() noexcept {};
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(const StringType& theData) noexcept {
-	*this->string = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(StringType&& theData) noexcept {
-	*this->string = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(const char* theData) noexcept {
-	*this->string = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Uint64 theData) noexcept {
-	this->numberUint = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Uint32 theData) noexcept {
-	this->numberUint = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Uint16 theData) noexcept {
-	this->numberUint = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Uint8 theData) noexcept {
-	this->numberUint = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Int64 theData) noexcept {
-	this->numberInt = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Int32 theData) noexcept {
-	this->numberInt = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Int16 theData) noexcept {
-	this->numberInt = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Int8 theData) noexcept {
-	this->numberInt = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Double theData) noexcept {
-	this->numberDouble = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Float theData) noexcept {
-	this->numberDouble = theData;
-	return *this;
-}
-
-JsonObject::JsonValue& JsonObject::JsonValue::operator=(Bool theData) noexcept {
-	this->boolean = theData;
-	return *this;
-}
 
 JsonObject::JsonValue::~JsonValue() noexcept {};
 
@@ -189,13 +118,13 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(ValueType::Object);
-			*this->theValue.object = std::move(*theKey.theValue.object);
+			*this->theValue.object = *theKey.theValue.object;
 			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(ValueType::Array);
-			*this->theValue.array = std::move(*theKey.theValue.array);
+			*this->theValue.array = *theKey.theValue.array;
 			this->theType = ValueType::Array;
 			break;
 		}
@@ -275,7 +204,7 @@ JsonObject::JsonObject(const char* theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint64 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberUint = theData;
 	this->theType = ValueType::Uint64;
 	return *this;
 }
@@ -285,7 +214,7 @@ JsonObject::JsonObject(Uint64 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint32 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberUint = theData;
 	this->theType = ValueType::Uint64;
 	return *this;
 }
@@ -295,7 +224,7 @@ JsonObject::JsonObject(Uint32 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint16 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberUint = theData;
 	this->theType = ValueType::Uint64;
 	return *this;
 }
@@ -305,7 +234,7 @@ JsonObject::JsonObject(Uint16 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Uint8 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberUint = theData;
 	this->theType = ValueType::Uint64;
 	return *this;
 }
@@ -315,7 +244,7 @@ JsonObject::JsonObject(Uint8 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int64 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberInt = theData;
 	this->theType = ValueType::Int64;
 	return *this;
 }
@@ -325,7 +254,7 @@ JsonObject::JsonObject(Int64 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int32 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberInt = theData;
 	this->theType = ValueType::Int64;
 	return *this;
 }
@@ -335,7 +264,7 @@ JsonObject::JsonObject(Int32 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int16 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberInt = theData;
 	this->theType = ValueType::Int64;
 	return *this;
 }
@@ -345,7 +274,7 @@ JsonObject::JsonObject(Int16 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Int8 theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberInt = theData;
 	this->theType = ValueType::Int64;
 	return *this;
 }
@@ -355,7 +284,7 @@ JsonObject::JsonObject(Int8 theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Double theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberDouble = theData;
 	this->theType = ValueType::Float;
 	return *this;
 }
@@ -365,17 +294,17 @@ JsonObject::JsonObject(Double theData) noexcept {
 }
 
 JsonObject& JsonObject::operator=(Float theData) noexcept {
-	this->theValue = theData;
+	this->theValue.numberDouble = theData;
 	this->theType = ValueType::Float;
 	return *this;
 }
 
 JsonObject::JsonObject(Float theData) noexcept {
-	this->theValue = theData;
+	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(Bool theData) noexcept {
-	this->theValue = theData;
+	this->theValue.boolean = theData;
 	this->theType = ValueType::Bool;
 	return *this;
 }
@@ -440,7 +369,7 @@ Void JsonObject::pushBack(JsonObject& other) noexcept {
 	}
 
 	if (this->theType == ValueType::Array) {
-		this->theValue.array->emplace_back(std::move(other));
+		this->theValue.array->emplace_back(other);
 	}
 }
 
@@ -455,7 +384,7 @@ JsonObject::operator String() noexcept {
 			theString += '{';
 
 			Uint64 theIndex{};
-			for (auto& [key, value]: *this->theValue.object) {				
+			for (auto& [key, value]: *this->theValue.object) {
 				theString += '\"';
 				theString += key;
 				theString += "\":";
@@ -476,12 +405,14 @@ JsonObject::operator String() noexcept {
 
 			theString += '[';
 
+			Uint64 theIndex{};
 			for (auto& value: *this->theValue.array) {
 				theString += value;
-				theString += ',';
+				if (theIndex < this->theValue.array->size() - 1) {
+					theString += ',';
+				}
+				theIndex++;
 			}
-
-			theString += this->theValue.array->back();
 
 			theString += ']';
 			break;
@@ -489,7 +420,7 @@ JsonObject::operator String() noexcept {
 
 		case ValueType::String: {
 			theString += '\"';
-			theString += std::move(*this->theValue.string);
+			theString += *this->theValue.string;
 			theString += '\"';
 			break;
 		}
@@ -660,7 +591,10 @@ WebSocketIdentifyData::operator JsonObject() {
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	
+	std::cout << "THE ARRAY: " << std::endl;
+	for (auto& value: *theSerializer["d"]["presence"]["activities"].theValue.array) {
+		std::cout << "THE VALUE: " << value.operator DiscordCoreAPI::String() << std::endl;
+	}
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
 			theSerializer["since"] = this->presence.since;
