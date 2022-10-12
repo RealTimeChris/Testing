@@ -208,7 +208,7 @@ class JsonObject {
 	JsonObject(EnumConverter&&) noexcept;
 
 	JsonObject& operator=(const EnumConverter& theData) noexcept;
-	//JsonObject(const EnumConverter&) noexcept;
+	JsonObject(const EnumConverter&) noexcept;
 
 	JsonObject& operator=(JsonObject&& theKey) noexcept;
 	JsonObject(JsonObject&& theKey) noexcept;
@@ -217,16 +217,16 @@ class JsonObject {
 	JsonObject(const JsonObject& theKey) noexcept;
 
 	JsonObject& operator=(StringType&& theData) noexcept;
-	//JsonObject(StringType&&) noexcept;
+	JsonObject(StringType&&) noexcept;
 
 	JsonObject& operator=(const StringType& theData) noexcept;
-	//JsonObject(const StringType&) noexcept;
+	JsonObject(const StringType&) noexcept;
 
 	JsonObject& operator=(const char* theData) noexcept;
-	//JsonObject(const char* theData) noexcept;
+	JsonObject(const char* theData) noexcept;
 
 	JsonObject& operator=(Uint64 theData) noexcept;
-	//JsonObject(Uint64) noexcept;
+	JsonObject(Uint64) noexcept;
 
 	JsonObject& operator=(Uint32 theData) noexcept;
 	JsonObject(Uint32) noexcept;
@@ -256,7 +256,7 @@ class JsonObject {
 	JsonObject(Float) noexcept;
 
 	JsonObject& operator=(Bool theData) noexcept;
-	//JsonObject(Bool) noexcept;
+	JsonObject(Bool) noexcept;
 
 	JsonObject& operator=(ValueType) noexcept;
 	JsonObject(ValueType) noexcept;
