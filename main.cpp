@@ -351,6 +351,45 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
 }
 
+String& JsonSerializer::operator[](const char* key) {
+	if (this->theValue.theType == ValueType::Null) {
+		this->theValue.set(ValueType::Object);
+		this->theValue.theType = ValueType::Object;
+	}
+
+	if (this->theValue.theType == ValueType::Object) {
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{});
+		return result.first->second.theString;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
+JsonObject& JsonSerializer::operator[](JsonSerializer::ObjectType::key_type key) {
+	if (this->theValue.theType == ValueType::Null) {
+		this->theValue.set(ValueType::Object);
+		this->theValue.theType = ValueType::Object;
+	}
+
+	if (this->theValue.theType == ValueType::Object) {
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{});
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
+JsonObject& JsonSerializer::operator=(const char* key)noexcept {
+	if (this->theValue.theType == ValueType::Null) {
+		this->theValue.set(ValueType::Object);
+		this->theValue.theType = ValueType::Object;
+	}
+
+	if (this->theValue.theType == ValueType::Object) {
+		auto result = this->theValue.theValue.object->emplace(std::move(key), JsonObject{});
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
 Void JsonObject::pushBack(JsonObject&& other) noexcept {
 	if (this->theType == ValueType::Null) {
 		this->set(ValueType::Array);
@@ -373,6 +412,10 @@ Void JsonObject::pushBack(JsonObject& other) noexcept {
 	}
 }
 
+JsonSerializer::operator String() {
+	return this->theValue;
+}
+
 JsonObject::operator String() noexcept {
 	switch (this->theType) {
 		case ValueType::Object: {
@@ -385,9 +428,9 @@ JsonObject::operator String() noexcept {
 			Uint64 theIndex{};
 			for (auto& [key, value]: *this->theValue.object) {
 				this->theString += '\"';
-				this->theString += key;
+				this->theString += std::move(key);
 				this->theString += "\":";
-				this->theString += value;
+				this->theString += std::move(value);
 				if (theIndex < this->theValue.object->size() - 1) {
 					this->theString += ',';
 				}
@@ -406,7 +449,7 @@ JsonObject::operator String() noexcept {
 
 			Uint64 theIndex{};
 			for (auto& value: *this->theValue.array) {
-				this->theString += value;
+				this->theString += std::move(value);
 				if (theIndex < this->theValue.array->size() - 1) {
 					this->theString += ',';
 				}
@@ -456,25 +499,54 @@ JsonObject::operator String() noexcept {
 Void JsonObject::set(ValueType theTypeNew) {
 	this->destroy();
 	switch (theTypeNew) {
-		case ValueType::String: {
-			std::pmr::polymorphic_allocator<StringType> allocator{};
-			this->theValue.string = allocator.new_object<StringType>();
+		case ValueType::Object: {
+			std::allocator<JsonObject::ObjectType> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<JsonObject::ObjectType>>;
+			AllocatorTraits alloc{};
+			this->theValue.object = alloc.allocate(allocator, 1);
+			alloc.construct(allocator, this->theValue.object);
 			this->theType = theTypeNew;
 			break;
 		}
 		case ValueType::Array: {
-			std::pmr::polymorphic_allocator<ArrayType> allocator{};
-			this->theValue.array = allocator.new_object<ArrayType>();
+			std::allocator<JsonObject::ArrayType> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<JsonObject::ArrayType>>;
+			AllocatorTraits alloc{};
+			this->theValue.array = alloc.allocate(allocator, 1);
+			alloc.construct(allocator, this->theValue.array);
 			this->theType = theTypeNew;
 			break;
 		}
-		case ValueType::Object: {
-			std::pmr::polymorphic_allocator<ObjectType> allocator{};
-			this->theValue.object = allocator.new_object<ObjectType>();
+		case ValueType::String: {
+			std::allocator<JsonObject::StringType> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<JsonObject::StringType>>;
+			AllocatorTraits alloc{};
+			this->theValue.string = alloc.allocate(allocator, 1);
+			alloc.construct(allocator, this->theValue.string);
 			this->theType = theTypeNew;
 			break;
 		}
 	}
+}
+
+JsonSerializer& JsonSerializer::operator=(JsonObject& other) noexcept {
+	this->theString = other;
+	this->theValue = other;
+	return *this;
+}
+
+JsonSerializer& JsonSerializer::operator=(JsonObject&&other) noexcept {
+	this->theString = other;
+	this->theValue = std::move(other);
+	return *this;
+}
+
+JsonSerializer::JsonSerializer(JsonObject& other) noexcept {
+	*this = other;
+}
+
+JsonSerializer::JsonSerializer(JsonObject&& other) noexcept {
+	*this = std::move(other);
 }
 
 bool operator==(const JsonObject& lhs, const JsonObject& rhs) {
@@ -530,19 +602,28 @@ bool operator==(const JsonObject& lhs, const JsonObject& rhs) {
 
 Void JsonObject::destroy() noexcept {
 	switch (this->theType) {
-		case ValueType::Array: {
-			std::pmr::polymorphic_allocator<ArrayType> allocator{};
-			allocator.delete_object(this->theValue.array);
+		case ValueType::Object: {
+			std::allocator<JsonObject::ObjectType> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<JsonObject::ObjectType>>;
+			AllocatorTraits alloc{};
+			alloc.destroy(allocator, this->theValue.object);
+			alloc.deallocate(allocator, this->theValue.object, 1);
 			break;
 		}
-		case ValueType::Object: {
-			std::pmr::polymorphic_allocator<ObjectType> allocator{};
-			allocator.delete_object(this->theValue.object);
+		case ValueType::Array: {
+			std::allocator<JsonObject::ArrayType> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<JsonObject::ArrayType>>;
+			AllocatorTraits alloc{};
+			alloc.destroy(allocator, this->theValue.array);
+			allocator.deallocate(this->theValue.array, 1);
 			break;
 		}
 		case ValueType::String: {
-			std::pmr::polymorphic_allocator<StringType> allocator{};
-			allocator.delete_object(this->theValue.string);
+			std::allocator<JsonObject::StringType> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<JsonObject::StringType>>;
+			AllocatorTraits alloc{};
+			alloc.destroy(allocator, this->theValue.string);
+			alloc.deallocate(allocator, this->theValue.string, 1);
 			break;
 		}
 	}
@@ -576,10 +657,10 @@ struct WebSocketIdentifyData {
 	std::string botToken{};
 	int64_t intents{};
 
-	operator JsonObject();
+	operator JsonSerializer();
 };
 
-WebSocketIdentifyData::operator JsonObject() {
+WebSocketIdentifyData::operator JsonSerializer() {
 	JsonObject theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
@@ -612,34 +693,77 @@ WebSocketIdentifyData::operator JsonObject() {
 
 }
 
+struct WebSocketIdentifyDataTwo {
+	UpdatePresenceData presence{};
+	int32_t largeThreshold{ 250 };
+	int32_t numberOfShards{};
+	int32_t currentShard{};
+	std::string botToken{};
+	int64_t intents{};
+
+	operator JsonObject();
+};
+
+WebSocketIdentifyDataTwo::operator JsonObject() {
+	JsonObject theSerializer{};
+	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
+
+	UpdatePresenceData theSerializer02{};
+	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	std::cout << "THE ARRAY: " << std::endl;
+	for (auto& value: *theSerializer["d"]["presence"]["activities"].theValue.array) {
+		std::cout << "THE VALUE: " << value.operator DiscordCoreAPI::String() << std::endl;
+	}
+	theSerializer["d"]["afk"] = this->presence.afk;
+	if (this->presence.since != 0) {
+		theSerializer["since"] = this->presence.since;
+	}
+	theSerializer["d"]["status"] = this->presence.status;
+	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+#ifdef _WIN32
+	theSerializer["d"]["properties"]["os"] = "Windows";
+#else
+	theSerializer["d"]["properties"]["os"] = "Linux";
+#endif
+	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->currentShard));
+	theSerializer["d"]["shard"].pushBack(static_cast<uint32_t>(this->numberOfShards));
+	theSerializer["d"]["token"] = this->botToken;
+	theSerializer["op"] = static_cast<uint32_t>(2);
+	return theSerializer;
+}
+
 int32_t main() noexcept {
 	try {
-		std::vector<JsonObject*> theObject;
-		{
-			std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
-			for (uint32_t x = 0; x < 1024 * 1024 * 8; ++x) {
-				//theObject.emplace_back(theAllocator.new_object<JsonObject>());
-			}
-			
-		}
-		{
-			std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
-			for (uint32_t x = 0; x < 1024 * 1024 * 8; ++x) {
-				//theAllocator.delete_object(theObject[x]);
-			}
-		}
-		
-		WebSocketIdentifyData theDataBewTwo{};
+				
+		WebSocketIdentifyDataTwo theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
-		std::vector<DiscordCoreAPI::ChannelType> theVector{};
-		theVector.push_back(DiscordCoreAPI::ChannelType::Dm);
-		theVector.push_back(DiscordCoreAPI::ChannelType::Guild_Category);
+		JsonSerializer theDataNew{};
+		theDataNew = theDataBewTwo;
+		std::cout << "THE DATA: " << theDataNew.operator DiscordCoreAPI::String() << std::endl;
+		theDataBewTwo.botToken = "TEST_TOKEN";
+		theDataNew = theDataBewTwo;
+		std::cout << "THE DATA: " << theDataNew.operator DiscordCoreAPI::String() << std::endl;
 		theData.name = "TESTING";
 		theDataBewTwo.numberOfShards = 0;
 		theDataBewTwo.currentShard = 23;
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
+		Vector<String> theVector{};
 		theStopWatch.resetTimer();
-		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
+		size_t theSize{};
+		for (int32_t x = 0; x < 1024*1024 ; ++x) {
+			auto theString = theDataNew.operator DiscordCoreAPI::String();
+			theDataNew[JsonSerializer::ObjectType::key_type{ "d" }]["token"] = x;
+			//std::cout << "THE STRING: " << theString << std::endl;
+			theSize += theString.size();
+			theVector.push_back(std::move(theString));
+		}
+
+		std::cout << "THE SIZE: " << theSize << std::endl;
+		std::cout << "THE TIME: " << theStopWatch.totalTimePassed() << std::endl;
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
 

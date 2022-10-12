@@ -109,8 +109,8 @@ struct EnumConverter {
 
 class JsonObject {
   public:
-	using AllocatorTypeMap = std::pmr::polymorphic_allocator<std::pair<const String,JsonObject>>;
-	using AllocatorType = std::pmr::polymorphic_allocator<JsonObject>;
+	using AllocatorTypeMap = std::allocator<std::pair<const String,JsonObject>>;
+	using AllocatorType = std::allocator<JsonObject>;
 	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
 	using ArrayType = std::vector<JsonObject, AllocatorType>;
 	using StringType = String;
@@ -120,7 +120,6 @@ class JsonObject {
 	using BoolType = Bool;
 
 	ValueType theType{ ValueType::Null };
-	String theString{};
 
 	union JsonValue {
 		ObjectType* object;
@@ -143,6 +142,7 @@ class JsonObject {
 	};
 
 	JsonValue theValue{};
+	String theString{};
 
 	JsonObject() noexcept = default;
 
@@ -248,8 +248,8 @@ class JsonObject {
 class JsonSerializer {
   public:
 
-	using AllocatorTypeMap = std::pmr::polymorphic_allocator<std::pair<const String,JsonObject>>;
-	using AllocatorType = std::pmr::polymorphic_allocator<JsonObject>;
+	using AllocatorTypeMap =  std::allocator<std::pair<const String,JsonObject>>;
+	using AllocatorType =  std::allocator<JsonObject>;
 	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
 	using ArrayType = std::vector<JsonObject, AllocatorType>;
 	using StringType = String;
@@ -257,16 +257,16 @@ class JsonSerializer {
 	using FloatType = Double;
 	using IntType = Int64;
 	using BoolType = Bool;
-
+	JsonSerializer& operator=(JsonObject&) noexcept;
+	JsonSerializer& operator=(JsonObject&&) noexcept;
+	JsonObject& operator=(const char*) noexcept;
+	JsonSerializer(JsonObject&) noexcept;
+	JsonSerializer(JsonObject&&) noexcept;
 	JsonSerializer() noexcept = default;
 	mutable JsonObject theValue{};
-	DiscordCoreAPI::TextFormat theFormat{};
-	String getString(DiscordCoreAPI::TextFormat theFormatNew);
-	JsonObject& operator[](const char*);
-	operator const JsonObject&() {
-		return this->theValue;
-	}
-
+	JsonObject& operator[](JsonSerializer::ObjectType::key_type key);
+	String& operator[](const char*);
+	operator String();
 	~JsonSerializer() noexcept = default;
 
 	String comparisongStringFalse{ "false" };
