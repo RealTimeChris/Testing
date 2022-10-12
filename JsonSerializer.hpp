@@ -109,7 +109,7 @@ struct EnumConverter {
 
 class JsonObject {
   public:
-	using AllocatorTypeMap = std::allocator<std::pair<const String,JsonObject>>;
+	using AllocatorTypeMap = std::allocator<std::pair<const String, JsonObject>>;
 	using AllocatorType = std::allocator<JsonObject>;
 	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
 	using ArrayType = std::vector<JsonObject, AllocatorType>;
@@ -122,9 +122,13 @@ class JsonObject {
 	ValueType theType{ ValueType::Null };
 
 	union JsonValue {
-		StringType* theValue;
 		ObjectType* object;
+		StringType* string;
 		ArrayType* array;
+		FloatType numberDouble;
+		UintType numberUint;
+		IntType numberInt;
+		BoolType boolean;
 
 		JsonValue() noexcept;
 
@@ -138,14 +142,11 @@ class JsonObject {
 	};
 
 	JsonValue theValue{};
-	String theKey{};
 
-	JsonObject() noexcept {
-		this->set(ValueType::Object);
-	};
+	JsonObject() noexcept = default;
 
 	template<typename ObjectType> JsonObject& operator=(Vector<ObjectType> theData) noexcept {
-		this->set(std::make_unique<ArrayType>());
+		this->set(ValueType::Array);
 		for (auto& value: theData) {
 			this->theValue.array->push_back(JsonObject{ value });
 		}
@@ -157,7 +158,7 @@ class JsonObject {
 	}
 
 	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(UMap<KeyType, ObjectType> theData) noexcept {
-		this->set(std::make_unique<ObjectType>());
+		this->set(ValueType::Object);
 		for (auto& [key, value]: theData) {
 			this->theValue.object->at(key) = JsonObject{ value };
 		}
@@ -243,38 +244,7 @@ class JsonObject {
 	~JsonObject() noexcept;
 };
 
-class JsonSerializer {
-  public:
-
-	using AllocatorTypeMap =  std::allocator<std::pair<const String,JsonObject>>;
-	using AllocatorType =  std::allocator<JsonObject>;
-	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
-	using ArrayType = std::vector<JsonObject, AllocatorType>;
-	using StringType = String;
-	using UintType = Uint64;
-	using FloatType = Double;
-	using IntType = Int64;
-	using BoolType = Bool;
-	JsonSerializer& operator=(JsonObject&) noexcept;
-	JsonSerializer& operator=(JsonObject&&) noexcept;
-	JsonObject& operator=(const char*) noexcept;
-	JsonSerializer(JsonObject&) noexcept;
-	JsonSerializer(JsonObject&&) noexcept;
-	JsonSerializer() noexcept = default;
-	mutable JsonObject theValue{};
-	JsonObject& operator[](JsonSerializer::ObjectType::key_type key);
-	String& operator[](const char*);
-	operator String();
-	~JsonSerializer() noexcept = default;
-
-	String comparisongStringFalse{ "false" };
-	String comparisongStringNil{ "nil" };
-	String falseString{ "false" };
-	mutable String theString{};
-	String nilString{ "nil" };
-	Uint64 offSet{};
-	Uint64 size{};
-};
+;
 
 
 #endif// !ERL_PACKER
