@@ -113,7 +113,7 @@ JsonObject& JsonObject::operator=(EnumConverter&& theData) noexcept {
 	if (theData.isItAVector()) {
 		this->set(ValueType::Array);
 		for (auto& value: theData.operator Vector<Uint64>()) {
-			this->theValue.array->push_back(value);
+			//this->theValue.array->push_back(value);
 		}
 	} else {
 		this->theValue.numberUint = Uint64{ theData };
@@ -130,17 +130,13 @@ JsonObject& JsonObject::operator=(const EnumConverter& theData) noexcept {
 	if (theData.isItAVector()) {
 		this->set(ValueType::Array);
 		for (auto& value: theData.operator Vector<Uint64>()) {
-			this->theValue.array->push_back(value);
+			//is->theValue.array->push_back(value);
 		}
 	} else {
 		this->theValue.numberUint = Uint64{ theData };
 		this->theType = ValueType::Uint64;
 	}
 	return *this;
-}
-
-JsonObject::JsonObject(const EnumConverter& theData) noexcept {
-	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
@@ -181,11 +177,8 @@ JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 		}
 	}
 	this->theType = theKey.theType;
+	this->theString = theKey.theString;
 	return *this;
-}
-
-JsonObject::JsonObject(JsonObject&& theKey) noexcept {
-	*this = std::move(theKey);
 }
 
 JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
@@ -240,13 +233,11 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 			break;
 		}
 	}
+	this->theString = theKey.theString;
 	this->theType = theKey.theType;
 	return *this;
 }
 
-JsonObject::JsonObject(const JsonObject& theKey) noexcept {
-	*this = theKey;
-}
 
 JsonObject& JsonObject::operator=(String&& theData) noexcept {
 	this->set(ValueType::String);
@@ -258,10 +249,6 @@ JsonObject& JsonObject::operator=(String&& theData) noexcept {
 	this->theString += '\"';
 	this->theStringReal = StringView{ this->theString->data() + theIndex, this->theString->size() - theIndex };
 	return *this;
-}
-
-JsonObject::JsonObject(String&& theData) noexcept {
-	*this = std::move(theData);
 }
 
 JsonObject& JsonObject::operator=(const String& theData) noexcept {
@@ -276,10 +263,6 @@ JsonObject& JsonObject::operator=(const String& theData) noexcept {
 	return *this;
 }
 
-JsonObject::JsonObject(const String& theData) noexcept {
-	*this = theData;
-}
-
 JsonObject& JsonObject::operator=(const char* theData) noexcept {
 	this->set(ValueType::String);
 	*this->theValue.string = theData;
@@ -292,19 +275,12 @@ JsonObject& JsonObject::operator=(const char* theData) noexcept {
 	return *this;
 }
 
-JsonObject::JsonObject(const char* theData) noexcept {
-	*this = theData;
-}
-
 JsonObject& JsonObject::operator=(Uint64 theData) noexcept {
 	this->theValue = theData;
 	this->theType = ValueType::Uint64;
 	return *this;
 }
 
-JsonObject::JsonObject(Uint64 theData) noexcept {
-	*this = theData;
-}
 
 JsonObject& JsonObject::operator=(Uint32 theData) noexcept {
 	this->theValue = theData;
@@ -409,10 +385,6 @@ JsonObject& JsonObject::operator=(Bool theData) noexcept {
 	theStream << std::boolalpha << this->theValue.boolean;
 	*this->theString += theStream.str();
 	return *this;
-}
-
-JsonObject::JsonObject(Bool theData) noexcept {
-	*this = theData;
 }
 
 JsonObject& JsonObject::operator=(ValueType theType) noexcept {
@@ -640,6 +612,15 @@ bool operator==(const JsonObject& lhs, const JsonObject& rhs) {
 	return true;
 }
 
+JsonObject::JsonObject(JsonObject&& theKey) noexcept {
+	*this = std::move(theKey);
+}
+
+JsonObject::JsonObject(const JsonObject& theKey) noexcept {
+	*this = std::move(theKey);
+}
+
+
 Void JsonObject::destroy() noexcept {
 	switch (this->theType) {
 		case ValueType::Array: {
@@ -673,10 +654,10 @@ struct UpdatePresenceData {
 	Int64 since{ 0 };///< When was the activity started?
 	Bool afk{ false };///< Are we afk.
 
-	operator JsonObject();
+	operator JsonSerializer();
 };
 
-UpdatePresenceData ::operator JsonObject() {
+UpdatePresenceData ::operator JsonSerializer() {
 	JsonSerializer theData{};
 	theData["status"] = this->status;
 	theData["since"] = this->since;
@@ -701,9 +682,9 @@ WebSocketIdentifyData::operator JsonSerializer() {
 	theSerializer["d"]["large_threshold"] = static_cast<uint32_t>(250);
 	
 	UpdatePresenceData theSerializer02{};
-	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	//theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	//theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	//theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
 	
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
