@@ -374,84 +374,85 @@ Void JsonObject::pushBack(JsonObject& other) noexcept {
 }
 
 JsonObject::operator String() noexcept {
-	String theString{};
 	switch (this->theType) {
 		case ValueType::Object: {
+			this->theString += "TEST";
 			if (this->theValue.object->empty()) {
-				theString += "{}";
+				this->theString += "{}";
 			}
 
-			theString += '{';
+			this->theString += '{';
 
 			Uint64 theIndex{};
 			for (auto& [key, value]: *this->theValue.object) {
-				theString += '\"';
-				theString += key;
-				theString += "\":";
-				theString += value;
+				this->theString += '\"';
+				this->theString += key;
+				this->theString += "\":";
+				this->theString += value;
 				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
+					this->theString += ',';
 				}
 				theIndex++;
 			}
-			theString += '}';
+			this->theString += '}';
 			break;
 		}
 		case ValueType::Array: {
 			if (this->theValue.array->empty()) {
-				theString += "[]";
+				this->theString += "[]";
 				break;
 			}
 
-			theString += '[';
+			this->theString += '[';
 
 			Uint64 theIndex{};
 			for (auto& value: *this->theValue.array) {
-				theString += value;
+				this->theString += value;
 				if (theIndex < this->theValue.array->size() - 1) {
-					theString += ',';
+					this->theString += ',';
 				}
 				theIndex++;
 			}
 
-			theString += ']';
+			this->theString += ']';
 			break;
 		}
 
 		case ValueType::String: {
-			theString += '\"';
-			theString += *this->theValue.string;
-			theString += '\"';
+			this->theString += '\"';
+			this->theString += "TEST";
+			this->theString += *this->theValue.string;
+			this->theString += '\"';
 			break;
 		}
 		case ValueType::Bool: {
 			StringStream theStream{};
 			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
+			this->theString += theStream.str();
 			break;
 		}
 		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
+			this->theString += std::to_string(this->theValue.numberDouble);
 			break;
 		}
 		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
+			this->theString += std::to_string(this->theValue.numberUint);
 			break;
 		}
 		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
+			this->theString += std::to_string(this->theValue.numberInt);
 			break;
 		}
 		case ValueType::Null: {
-			theString += "null";
+			this->theString += "null";
 			break;
 		}
 		case ValueType::Null_Ext: {
-			theString += "[]";
+			this->theString += "[]";
 			break;
 		}
 	}
-	return theString;
+	return this->theString;
 }
 
 Void JsonObject::set(ValueType theTypeNew) {
@@ -703,14 +704,14 @@ int32_t main() noexcept {
 		{
 			std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
 			for (uint32_t x = 0; x < 1024 * 1024 * 8; ++x) {
-				theObject.emplace_back(theAllocator.new_object<JsonObject>());
+				//theObject.emplace_back(theAllocator.new_object<JsonObject>());
 			}
 			
 		}
 		{
 			std::pmr::polymorphic_allocator<JsonObject> theAllocator{};
 			for (uint32_t x = 0; x < 1024 * 1024 * 8; ++x) {
-				theAllocator.delete_object(theObject[x]);
+				//theAllocator.delete_object(theObject[x]);
 			}
 		}
 		std::cout << "THE FINAL COUNT: " << theAtomic.load() << std::endl;

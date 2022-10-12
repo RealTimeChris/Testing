@@ -120,6 +120,7 @@ class JsonObject {
 	using BoolType = Bool;
 
 	ValueType theType{ ValueType::Null };
+	String theString{};
 
 	union JsonValue {
 		ObjectType* object;
