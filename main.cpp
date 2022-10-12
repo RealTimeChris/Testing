@@ -27,13 +27,10 @@ EnumConverter::operator Uint64() const noexcept {
 	return this->theUint;
 }
 
-bool EnumConverter::isItAVector() const noexcept {
+bool EnumConverter::isItAVector()const  noexcept {
 	return this->vectorType;
 }
 
-bool EnumConverter::isItAVector() noexcept {
-	return this->vectorType;
-}
 
 JsonObject::JsonValue::JsonValue() noexcept {};
 
@@ -147,17 +144,17 @@ JsonObject& JsonObject::operator=(JsonObject&& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(ValueType::Object);
-			*this->theValue.object = *theKey.theValue.object;
+			*this->theValue.object = std::move(*theKey.theValue.object);
 			break;
 		}
 		case ValueType::Array: {
 			this->set(ValueType::Array);
-			*this->theValue.array = *theKey.theValue.array;
+			*this->theValue.array = std::move(*theKey.theValue.array);
 			break;
 		}
 		case ValueType::String: {
 			this->set(ValueType::String);
-			*this->theValue.string = *theKey.theValue.string;
+			*this->theValue.string = std::move(*theKey.theValue.string);
 			break;
 		}
 		case ValueType::Bool: {
@@ -192,17 +189,13 @@ JsonObject& JsonObject::operator=(const JsonObject& theKey) noexcept {
 	switch (theKey.theType) {
 		case ValueType::Object: {
 			this->set(ValueType::Object);
-			for (auto& [key, value]: *theKey.theValue.object) {
-				this->theValue.object->emplace(key, std::move(value));
-			}
+			*this->theValue.object = std::move(*theKey.theValue.object);
 			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(ValueType::Array);
-			for (auto& value: *theKey.theValue.array) {
-				this->theValue.array->emplace_back(std::move(value));
-			}
+			*this->theValue.array = std::move(*theKey.theValue.array);
 			this->theType = ValueType::Array;
 			break;
 		}
@@ -801,11 +794,6 @@ int32_t main() noexcept {
 		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
-		
-
-		WebSocketIdentifyData theDataBew{};
-		theDataBew.numberOfShards = 0;
-		theDataBew.currentShard = 23;
 
 
 	} catch (...) {

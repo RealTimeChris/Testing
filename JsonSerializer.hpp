@@ -100,7 +100,6 @@ struct EnumConverter {
 	explicit operator Uint64() const noexcept;
 
 	bool isItAVector() const noexcept;
-	bool isItAVector() noexcept;
 
   protected:
 	Vector<Uint64> theVector{};
