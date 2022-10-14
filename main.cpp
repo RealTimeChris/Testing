@@ -492,6 +492,7 @@ JsonObject::~JsonObject() noexcept {
 }
 
 void JsonObject::dump() {
+	std::cout << "THE STRING BEFORE: " << this->theString << std::endl;
 	this->theString = "";
 	switch (this->theType) {
 		case ValueType::Object: {
@@ -576,6 +577,7 @@ void JsonObject::dump() {
 			break;
 		}
 	}
+	std::cout << "THE STRING AFTER: " << this->theString << std::endl;
 	return;
 }
 
