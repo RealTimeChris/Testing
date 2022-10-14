@@ -110,9 +110,10 @@ struct EnumConverter {
 class JsonObject {
   public:
 	using AllocatorTypeMap = std::allocator<std::pair<const String, JsonObject>>;
-	using AllocatorType = std::allocator<JsonObject>;
+	template<typename ObjectType>
+	using AllocatorType = std::allocator<ObjectType>;
 	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
-	using ArrayType = std::vector<JsonObject, AllocatorType>;
+	using ArrayType = std::vector<JsonObject, AllocatorType<JsonObject>>;
 	using StringType = String;
 	using UintType = Uint64;
 	using FloatType = Double;
@@ -161,7 +162,8 @@ class JsonObject {
 	template<IsString KeyType, IsString ObjectType> JsonObject& operator=(UMap<KeyType, ObjectType> theData) noexcept {
 		this->set(ValueType::Object);
 		for (auto& [key, value]: theData) {
-			this->theValue.object->at(key) = JsonObject{ value };
+			(*this->theValue.object)[key] = JsonObject{ this->theString };
+			(*this->theValue.object)[key] = value;
 		}
 		return *this;
 	}
@@ -240,9 +242,7 @@ class JsonObject {
 
 	friend bool operator==(const JsonObject&, const JsonObject&);
 	
-	String dump(JsonObject&& theObject = JsonObject{});
-
-	String dump(JsonObject& theObject);
+	void dump();
 
 	void writeCharacters(const char* C, size_t length);
 
@@ -252,17 +252,17 @@ class JsonObject {
 
 	~JsonObject() noexcept;
 };
-
+/*
 class JsonSerializer {
   public:
-	JsonSerializer(JsonObject&&) noexcept;
-	void dump() noexcept;
-	operator String();
+	JsonSerializer() noexcept;
+	String getString();
 	JsonObject& operator[](JsonObject::ObjectType::key_type theKey);
   protected:
-	JsonObject theObject{};
+	JsonObject theObject{ &this->theString };
+	String theString{};
 
 };
-
+*/
 
 #endif// !ERL_PACKER
