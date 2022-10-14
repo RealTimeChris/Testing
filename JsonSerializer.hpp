@@ -371,17 +371,17 @@ class JsonSerializer {
 			}
 
 			case ValueType::Int64: {
-				dump_integer(this->theObject.theValue.numberInt);
+				dumpInt(this->theObject.theValue.numberInt);
 				return;
 			}
 
 			case ValueType::Uint64: {
-				dump_integer(this->theObject.theValue.numberUint);
+				dumpInt(this->theObject.theValue.numberUint);
 				return;
 			}
 
 			case ValueType::Float: {
-				dump_float(this->theObject.theValue.numberDouble);
+				dumpFloat(this->theObject.theValue.numberDouble);
 				return;
 			}
 
@@ -460,17 +460,17 @@ class JsonSerializer {
 			}
 
 			case ValueType::Int64: {
-				dump_integer(val.theValue.numberInt);
+				dumpInt(val.theValue.numberInt);
 				return;
 			}
 
 			case ValueType::Uint64: {
-				dump_integer(val.theValue.numberUint);
+				dumpInt(val.theValue.numberUint);
 				return;
 			}
 
 			case ValueType::Float: {
-				dump_float(val.theValue.numberDouble);
+				dumpFloat(val.theValue.numberDouble);
 				return;
 			}
 
@@ -484,23 +484,12 @@ class JsonSerializer {
 	operator String() {
 		return std::move(this->o->operator DiscordCoreAPI::String());
 	}
-	/*!
-    @brief dump escaped string
-    Escape a string by replacing certain special characters by a sequence of an
-    escape character (backslash) and another character and other control
-    characters by a sequence of "\u" followed by a four-digit hex
-    representation. The escaped string is written to output stream @a o.
-    @param[in] s  the string to escape
-    @param[in] false  whether to escape non-ASCII characters with
-                             \uXXXX sequences
-    @complexity Linear in the length of string @a s.
-    */
+
 	void dumpEscaped(const StringType& s, const bool ensure_ascii) {
 		std::uint32_t codepoint{};
 		std::uint8_t state = UTF8_ACCEPT;
-		std::size_t bytes = 0;// number of bytes written to stringBuffer
+		std::size_t bytes = 0;
 
-		// number of bytes written at the point of the last valid byte
 		std::size_t postAcceptBytes = 0;
 		std::size_t nonDumpedCharacters = 0;
 
@@ -508,52 +497,52 @@ class JsonSerializer {
 			const auto byte = static_cast<std::uint8_t>(s[i]);
 
 			switch (decode(state, codepoint, byte)) {
-				case UTF8_ACCEPT:// decode found a new code point
+				case UTF8_ACCEPT:
 				{
 					switch (codepoint) {
-						case 0x08:// backspace
+						case 0x08:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = 'b';
 							break;
 						}
 
-						case 0x09:// horizontal tab
+						case 0x09:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = 't';
 							break;
 						}
 
-						case 0x0A:// newline
+						case 0x0A:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = 'n';
 							break;
 						}
 
-						case 0x0C:// formfeed
+						case 0x0C:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = 'f';
 							break;
 						}
 
-						case 0x0D:// carriage return
+						case 0x0D:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = 'r';
 							break;
 						}
 
-						case 0x22:// quotation mark
+						case 0x22:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = '\"';
 							break;
 						}
 
-						case 0x5C:// reverse solidus
+						case 0x5C:
 						{
 							stringBuffer[bytes++] = '\\';
 							stringBuffer[bytes++] = '\\';
@@ -561,46 +550,35 @@ class JsonSerializer {
 						}
 
 						default: {
-							// escape control characters (0x00..0x1F) or, if
-							// false parameter is used, non-ASCII characters
 							if ((codepoint <= 0x1F) || (ensure_ascii && (codepoint >= 0x7F))) {
 								if (codepoint <= 0xFFFF) {
-									// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
 									static_cast<void>((std::snprintf)(stringBuffer.data() + bytes, 7, "\\u%04x", static_cast<std::uint16_t>(codepoint)));
 									bytes += 6;
 								} else {
-									// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
 									static_cast<void>((std::snprintf)(stringBuffer.data() + bytes, 13, "\\u%04x\\u%04x", static_cast<std::uint16_t>(0xD7C0u + (codepoint >> 10u)),
 										static_cast<std::uint16_t>(0xDC00u + (codepoint & 0x3FFu))));
 									bytes += 12;
 								}
 							} else {
-								// copy byte to buffer (all previous bytes
-								// been copied have in default case above)
 								stringBuffer[bytes++] = s[i];
 							}
 							break;
 						}
 					}
 
-					// write buffer and reset index; there must be 13 bytes
-					// left, as this is the maximal number of bytes to be
-					// written ("\uxxxx\uxxxx\0") for one code point
 					if (stringBuffer.size() - bytes < 13) {
 						o->writeCharacters(stringBuffer.data(), bytes);
 						bytes = 0;
 					}
 
-					// remember the byte position of this accept
 					postAcceptBytes = bytes;
 					nonDumpedCharacters = 0;
 					break;
 				}
 
-				default:// decode found yet incomplete multi-byte code point
+				default:
 				{
 					if (!ensure_ascii) {
-						// code point will not be escaped - copy byte to buffer
 						stringBuffer[bytes++] = s[i];
 					}
 					++nonDumpedCharacters;
@@ -621,7 +599,7 @@ class JsonSerializer {
     @param[in] x  unsigned integer number to count its digits
     @return    number of decimal digits
     */
-	inline unsigned int count_digits(UintType x) noexcept {
+	inline unsigned int countDigits(UintType x) noexcept {
 		unsigned int digitCount = 1;
 		for (;;) {
 			if (x < 10) {
@@ -657,7 +635,7 @@ class JsonSerializer {
     */
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, UintType>::value || std::is_same<NumberType, IntType>::value, int> = 0>
-	void dump_integer(NumberType x) {
+	void dumpInt(NumberType x) {
 		static constexpr std::array<std::array<char, 2>, 100> digits_to_99{ {
 			{ { '0', '0' } },
 			{ { '0', '1' } },
@@ -777,13 +755,13 @@ class JsonSerializer {
 
 		if (is_negative_number(x)) {
 			*buffer_ptr = '-';
-			abs_value = remove_sign(static_cast<IntType>(x));
+			abs_value = removeSign(static_cast<IntType>(x));
 
 			// account one more byte for the minus sign
-			n_chars = 1 + count_digits(abs_value);
+			n_chars = 1 + countDigits(abs_value);
 		} else {
 			abs_value = static_cast<UintType>(x);
-			n_chars = count_digits(abs_value);
+			n_chars = countDigits(abs_value);
 		}
 
 	
@@ -818,7 +796,7 @@ class JsonSerializer {
     with @a numberBuffer.
     @param[in] x  floating-point number to dump
     */
-	void dump_float(FloatType x) {
+	void dumpFloat(FloatType x) {
 		// NaN / inf
 		if (!std::isfinite(x)) {
 			o->writeCharacters("null", 4);
@@ -836,7 +814,7 @@ class JsonSerializer {
 	}
 
 
-	void dump_float(FloatType x, std::false_type /*is_ieee_single_or_double*/) {
+	void dumpFloat(FloatType x, std::false_type /*is_ieee_single_or_double*/) {
 		// get number of digits for a float -> text -> float round-trip
 		static constexpr auto d = std::numeric_limits<FloatType>::max_digits10;
 
@@ -921,15 +899,15 @@ class JsonSerializer {
 
 	/*
      * Overload to make the compiler happy while it is instantiating
-     * dump_integer for UintType.
+     * dumpInt for UintType.
      * Must never be called.
      */
-	UintType remove_sign(UintType x) {
+	UintType removeSign(UintType x) {
 		return x;// LCOV_EXCL_LINE
 	}
 
 	/*
-     * Helper function for dump_integer
+     * Helper function for dumpInt
      *
      * This function takes a negative signed integer and returns its absolute
      * value as unsigned integer. The plus/minus shuffling is necessary as we can
@@ -937,7 +915,7 @@ class JsonSerializer {
      * absolute values of INT_MIN and INT_MAX are usually not the same. See
      * #1708 for details.
      */
-	inline UintType remove_sign(IntType x) noexcept {
+	inline UintType removeSign(IntType x) noexcept {
 		return static_cast<UintType>(-(x + 1)) + 1;
 	}
 
