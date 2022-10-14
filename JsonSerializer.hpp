@@ -270,57 +270,129 @@ class OutputStringAdapter {
 	}
 
 	operator String() {
-		return theString;
+		return std::move(theString);
 	}
 
   private:
 	String theString{};
 };
 
-template<typename BasicJsonType> class JsonSerializer {
-	using StringType = typename BasicJsonType::StringType;
-	using FloatType = typename BasicJsonType::FloatType;
-	using IntType = typename BasicJsonType::IntType;
-	using UintType = typename BasicJsonType::UintType;
+class JsonSerializer {
+	using StringType = typename JsonObject::StringType;
+	using FloatType = typename JsonObject::FloatType;
+	using IntType = typename JsonObject::IntType;
+	using UintType = typename JsonObject::UintType;
 	static constexpr std::uint8_t UTF8_ACCEPT = 0;
-
   public:
+
+	  
+	JsonObject& operator[](JsonObject::ObjectType::key_type theKey);
+
 	JsonObject theObject{};
-	/*!
-    @param[in] s  output stream to serialize to
-    @param[in] ichar  indentation character to use
-    @param[in] error_handler_  how to react on decoding errors
-    */
-	JsonSerializer(JsonObject&& theObjectNew):
-		loc(std::localeconv()), indentChar('\t') {
+
+	JsonSerializer(JsonObject&& theObjectNew) : loc(std::localeconv()), indentChar('\t') {
+		this->theObject = std::move(theObjectNew);
 	}
-	// delete because of pointer members
+
+	JsonSerializer(const JsonObject& theObjectNew) : loc(std::localeconv()), indentChar('\t') {
+		this->theObject = theObjectNew;
+	}
 	JsonSerializer(JsonSerializer&) = delete;
 	JsonSerializer& operator=(const JsonSerializer&) = delete;
 	JsonSerializer(JsonSerializer&&) = delete;
 	JsonSerializer& operator=(JsonSerializer&&) = delete;
 	~JsonSerializer() = default;
 
-	/*!
-    @brief internal implementation of the serialization function
-    This function is called by the public member function dump and organizes
-    the serialization internally. The indentation level is propagated as
-    additional parameter. In case of arrays and objects, the function is
-    called recursively.
-    - strings and object keys are escaped using `escape_string()`
-    - integer numbers are converted implicitly via `operator<<`
-    - floating-point numbers are converted to a string using `"%g"` format
-    - binary values are serialized as objects containing the subtype and the
-      byte array
-    @param[in] val               value to serialize
-    @param[in] pretty_print      whether the output shall be pretty-printed
-    @param[in] false If @a false is true, all non-ASCII characters
-    in the output are escaped with `\uXXXX` sequences, and the result consists
-    of ASCII characters only.
-    @param[in] indent_step       the indent level
-    @param[in] current_indent    the current indent level (only used internally)
-    */
-	void dump(const BasicJsonType& val) {
+	void dump() {
+		switch (this->theObject.theType) {
+			case ValueType::Object: {
+				if (this->theObject.theValue.object->empty()) {
+					o->writeCharacters("{}", 2);
+					return;
+				}
+				o->writeCharacter('{');
+
+				// first n-1 elements
+				auto i = this->theObject.theValue.object->cbegin();
+				for (std::size_t cnt = 0; cnt < this->theObject.theValue.object->size() - 1; ++cnt, ++i) {
+					o->writeCharacter('\"');
+					dumpEscaped(i->first, false);
+					o->writeCharacters("\":", 2);
+					dump(i->second);
+					o->writeCharacter(',');
+				}
+
+				o->writeCharacter('\"');
+				dumpEscaped(i->first, false);
+				o->writeCharacters("\":", 2);
+				dump(i->second);
+
+				o->writeCharacter('}');
+			}
+
+				return;
+
+			case ValueType::Array: {
+				if (this->theObject.theValue.array->empty()) {
+					o->writeCharacters("[]", 2);
+					return;
+				}
+
+				o->writeCharacter('[');
+
+				// first n-1 elements
+				for (auto i = this->theObject.theValue.array->cbegin(); i != this->theObject.theValue.array->cend() - 1; ++i) {
+					dump(*i);
+					o->writeCharacter(',');
+				}
+
+				// last element
+				dump(this->theObject.theValue.array->back());
+
+				o->writeCharacter(']');
+
+				return;
+			}
+
+			case ValueType::String: {
+				o->writeCharacter('\"');
+				dumpEscaped(*this->theObject.theValue.string, false);
+				o->writeCharacter('\"');
+				return;
+			}
+
+			case ValueType::Bool: {
+				if (this->theObject.theValue.boolean) {
+					o->writeCharacters("true", 4);
+				} else {
+					o->writeCharacters("false", 5);
+				}
+				return;
+			}
+
+			case ValueType::Int64: {
+				dump_integer(this->theObject.theValue.numberInt);
+				return;
+			}
+
+			case ValueType::Uint64: {
+				dump_integer(this->theObject.theValue.numberUint);
+				return;
+			}
+
+			case ValueType::Float: {
+				dump_float(this->theObject.theValue.numberDouble);
+				return;
+			}
+
+			case ValueType::Null: {
+				o->writeCharacters("null", 4);
+				return;
+			}
+		}
+	}
+
+	void dump(const JsonObject& val) {
 		switch (val.theType) {
 			case ValueType::Object: {
 				if (val.theValue.object->empty()) {
@@ -333,17 +405,14 @@ template<typename BasicJsonType> class JsonSerializer {
 				auto i = val.theValue.object->cbegin();
 				for (std::size_t cnt = 0; cnt < val.theValue.object->size() - 1; ++cnt, ++i) {
 					o->writeCharacter('\"');
-					dump_escaped(i->first, false);
+					dumpEscaped(i->first, false);
 					o->writeCharacters("\":", 2);
 					dump(i->second);
 					o->writeCharacter(',');
 				}
 
-				// last element
-				assert(i != val.theValue.object->cend());
-				assert(std::next(i) == val.theValue.object->cend());
 				o->writeCharacter('\"');
-				dump_escaped(i->first, false);
+				dumpEscaped(i->first, false);
 				o->writeCharacters("\":", 2);
 				dump(i->second);
 
@@ -367,7 +436,6 @@ template<typename BasicJsonType> class JsonSerializer {
 				}
 
 				// last element
-				assert(!val.theValue.array->empty());
 				dump(val.theValue.array->back());
 
 				o->writeCharacter(']');
@@ -377,7 +445,7 @@ template<typename BasicJsonType> class JsonSerializer {
 
 			case ValueType::String: {
 				o->writeCharacter('\"');
-				dump_escaped(*val.theValue.string, false);
+				dumpEscaped(*val.theValue.string, false);
 				o->writeCharacter('\"');
 				return;
 			}
@@ -413,9 +481,8 @@ template<typename BasicJsonType> class JsonSerializer {
 		}
 	}
 
-
 	operator String() {
-		return this->o->operator DiscordCoreAPI::String();
+		return std::move(this->o->operator DiscordCoreAPI::String());
 	}
 	/*!
     @brief dump escaped string
@@ -428,14 +495,14 @@ template<typename BasicJsonType> class JsonSerializer {
                              \uXXXX sequences
     @complexity Linear in the length of string @a s.
     */
-	void dump_escaped(const StringType& s, const bool ensure_ascii) {
+	void dumpEscaped(const StringType& s, const bool ensure_ascii) {
 		std::uint32_t codepoint{};
 		std::uint8_t state = UTF8_ACCEPT;
 		std::size_t bytes = 0;// number of bytes written to stringBuffer
 
 		// number of bytes written at the point of the last valid byte
-		std::size_t bytes_after_last_accept = 0;
-		std::size_t undumped_chars = 0;
+		std::size_t postAcceptBytes = 0;
+		std::size_t nonDumpedCharacters = 0;
 
 		for (std::size_t i = 0; i < s.size(); ++i) {
 			const auto byte = static_cast<std::uint8_t>(s[i]);
@@ -525,8 +592,8 @@ template<typename BasicJsonType> class JsonSerializer {
 					}
 
 					// remember the byte position of this accept
-					bytes_after_last_accept = bytes;
-					undumped_chars = 0;
+					postAcceptBytes = bytes;
+					nonDumpedCharacters = 0;
 					break;
 				}
 
@@ -536,7 +603,7 @@ template<typename BasicJsonType> class JsonSerializer {
 						// code point will not be escaped - copy byte to buffer
 						stringBuffer[bytes++] = s[i];
 					}
-					++undumped_chars;
+					++nonDumpedCharacters;
 					break;
 				}
 			}
@@ -555,36 +622,23 @@ template<typename BasicJsonType> class JsonSerializer {
     @return    number of decimal digits
     */
 	inline unsigned int count_digits(UintType x) noexcept {
-		unsigned int n_digits = 1;
+		unsigned int digitCount = 1;
 		for (;;) {
 			if (x < 10) {
-				return n_digits;
+				return digitCount;
 			}
 			if (x < 100) {
-				return n_digits + 1;
+				return digitCount + 1;
 			}
 			if (x < 1000) {
-				return n_digits + 2;
+				return digitCount + 2;
 			}
 			if (x < 10000) {
-				return n_digits + 3;
+				return digitCount + 3;
 			}
 			x = x / 10000u;
-			n_digits += 4;
+			digitCount += 4;
 		}
-	}
-
-	/*!
-     * @brief convert a byte to a uppercase hex representation
-     * @param[in] byte byte to represent
-     * @return representation ("00".."FF")
-     */
-	static String hex_bytes(std::uint8_t byte) {
-		String result = "FF";
-		constexpr const char* nibble_to_hex = "0123456789ABCDEF";
-		result[0] = nibble_to_hex[byte / 16];
-		result[1] = nibble_to_hex[byte % 16];
-		return result;
 	}
 
 	// templates to avoid warnings about useless casts
@@ -732,8 +786,7 @@ template<typename BasicJsonType> class JsonSerializer {
 			n_chars = count_digits(abs_value);
 		}
 
-		// spare 1 byte for '\0'
-		assert(n_chars < numberBuffer.size() - 1);
+	
 
 		// jump to the end to generate the string from backward,
 		// so we later avoid reversing the result
@@ -792,16 +845,12 @@ template<typename BasicJsonType> class JsonSerializer {
 		std::ptrdiff_t len = (std::snprintf)(numberBuffer.data(), numberBuffer.size(), "%.*g", d, x);
 
 		// negative value indicates an error
-		assert(len > 0);
-		// check if buffer was large enough
-		assert(static_cast<std::size_t>(len) < numberBuffer.size());
 
 		// erase thousands separator
 		if (thousandsSeparator != '\0') {
 			// NOLINTNEXTLINE(readability-qualified-auto,llvm-qualified-auto): std::remove returns an iterator, see https://github.com/nlohmann/json/issues/3081
 			const auto end = std::remove(numberBuffer.begin(), numberBuffer.begin() + len, thousandsSeparator);
 			std::fill(end, numberBuffer.end(), '\0');
-			assert((end - numberBuffer.begin()) <= len);
 			len = (end - numberBuffer.begin());
 		}
 
@@ -861,13 +910,11 @@ template<typename BasicJsonType> class JsonSerializer {
 			1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1// s7..s8
 		} };
 
-		assert(byte < utf8d.size());
 		const std::uint8_t type = utf8d[byte];
 
 		codep = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (codep << 6u) : (0xFFu >> type) & (byte);
 
 		const std::size_t index = 256u + static_cast<size_t>(state) * 16u + static_cast<size_t>(type);
-		assert(index < 400);
 		state = utf8d[index];
 		return state;
 	}
@@ -878,7 +925,6 @@ template<typename BasicJsonType> class JsonSerializer {
      * Must never be called.
      */
 	UintType remove_sign(UintType x) {
-		assert(false);// NOLINT(cert-dcl03-c,hicpp-static-assert,misc-static-assert) LCOV_EXCL_LINE
 		return x;// LCOV_EXCL_LINE
 	}
 
@@ -892,7 +938,6 @@ template<typename BasicJsonType> class JsonSerializer {
      * #1708 for details.
      */
 	inline UintType remove_sign(IntType x) noexcept {
-		assert(x < 0 && x < (std::numeric_limits<IntType>::max)());// NOLINT(misc-redundant-expression)
 		return static_cast<UintType>(-(x + 1)) + 1;
 	}
 

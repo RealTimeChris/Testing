@@ -338,6 +338,19 @@ JsonObject& JsonObject::operator[](Uint64 index) {
 	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 }
 
+JsonObject& JsonSerializer::operator[](JsonObject::ObjectType::key_type theKey) {
+	if (this->theObject.theType == ValueType::Null) {
+		this->theObject.set(ValueType::Object);
+		this->theObject.theType = ValueType::Object;
+	}
+
+	if (this->theObject.theType == ValueType::Object) {
+		auto result = this->theObject.theValue.object->emplace(std::move(theKey), JsonObject{});
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
 JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
 		this->set(ValueType::Object);
@@ -764,9 +777,10 @@ int32_t main() noexcept {
 		auto theReferece = theDataBewTwo.operator JsonObject();
 		
 		size_t theSize{};
-		JsonSerializer<JsonObject> theSerializer{ std::move(theReferece) };
-		theSerializer.dump(theDataBewTwo.operator JsonObject());
+		JsonSerializer theSerializer{ theReferece };
 		for (uint32_t x = 0; x < 1024 * 256; ++x) {
+			theSerializer.dump();
+			theSerializer["d"]["intents"] = x;
 			theVector.push_back(theSerializer.operator DiscordCoreAPI::String());
 			theSize += theVector.back().size();
 			if (x % 1000 == 0) {
