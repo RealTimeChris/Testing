@@ -120,6 +120,7 @@ class JsonObject {
 	using BoolType = Bool;
 
 	ValueType theType{ ValueType::Null };
+	StringType theString{};
 
 	union JsonValue {
 		ObjectType* object;
@@ -230,8 +231,6 @@ class JsonObject {
 
 	JsonObject& operator[](typename ObjectType::key_type key);
 
-	operator String() noexcept;
-
 	Void pushBack(JsonObject&& other) noexcept;
 	Void pushBack(JsonObject& other) noexcept;
 
@@ -240,11 +239,30 @@ class JsonObject {
 	Void destroy() noexcept;
 
 	friend bool operator==(const JsonObject&, const JsonObject&);
+	
+	String dump(JsonObject&& theObject = JsonObject{});
+
+	String dump(JsonObject& theObject);
+
+	void writeCharacters(const char* C, size_t length);
+
+	void writeCharacter(char C);
+
+	operator String() noexcept;
 
 	~JsonObject() noexcept;
 };
 
-;
+class JsonSerializer {
+  public:
+	JsonSerializer(JsonObject&&) noexcept;
+	void dump() noexcept;
+	operator String();
+	JsonObject& operator[](JsonObject::ObjectType::key_type theKey);
+  protected:
+	JsonObject theObject{};
+
+};
 
 
 #endif// !ERL_PACKER

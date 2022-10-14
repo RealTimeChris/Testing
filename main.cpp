@@ -338,6 +338,19 @@ JsonObject& JsonObject::operator[](Uint64 index) {
 	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 }
 
+JsonObject& JsonSerializer::operator[](JsonObject::ObjectType::key_type theKey) {
+	if (this->theObject.theType == ValueType::Null) {
+		this->theObject.set(ValueType::Object);
+		this->theObject.theType = ValueType::Object;
+	}
+
+	if (this->theObject.theType == ValueType::Object) {
+		auto result = this->theObject.theValue.object->emplace(std::move(theKey), JsonObject{});
+		return result.first->second;
+	}
+	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+}
+
 JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
 		this->set(ValueType::Object);
@@ -371,88 +384,6 @@ Void JsonObject::pushBack(JsonObject& other) noexcept {
 	if (this->theType == ValueType::Array) {
 		this->theValue.array->emplace_back(other);
 	}
-}
-
-JsonObject::operator String() noexcept {
-	String theString{};
-	switch (this->theType) {
-		case ValueType::Object: {
-			if (this->theValue.object->empty()) {
-				theString = "{}";
-				return theString;
-			}
-
-			theString += '{';
-
-			Uint64 theIndex{};
-			for (auto& [key, value]: *this->theValue.object) {
-				theString += '\"';
-				theString += key;
-				theString += "\":";
-				theString += value;
-				if (theIndex < this->theValue.object->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-			theString += '}';
-			break;
-		}
-		case ValueType::Array: {
-			if (this->theValue.array->empty()) {
-				theString += "[]";
-				break;
-			}
-
-			theString += '[';
-
-			Uint64 theIndex{};
-			for (auto& value: *this->theValue.array) {
-				theString += value;
-				if (theIndex < this->theValue.array->size() - 1) {
-					theString += ',';
-				}
-				theIndex++;
-			}
-
-			theString += ']';
-			break;
-		}
-
-		case ValueType::String: {
-			theString += '\"';
-			theString += *this->theValue.string;
-			theString += '\"';
-			break;
-		}
-		case ValueType::Bool: {
-			StringStream theStream{};
-			theStream << std::boolalpha << this->theValue.boolean;
-			theString += theStream.str();
-			break;
-		}
-		case ValueType::Float: {
-			theString += std::to_string(this->theValue.numberDouble);
-			break;
-		}
-		case ValueType::Uint64: {
-			theString += std::to_string(this->theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			theString += std::to_string(this->theValue.numberInt);
-			break;
-		}
-		case ValueType::Null: {
-			theString += "null";
-			break;
-		}
-		case ValueType::Null_Ext: {
-			theString += "[]";
-			break;
-		}
-	}
-	return theString;
 }
 
 Void JsonObject::set(ValueType theTypeNew) {
@@ -572,6 +503,285 @@ JsonObject::~JsonObject() noexcept {
 	this->destroy();
 }
 
+String JsonObject::dump(JsonObject&& theObject) {
+	switch (theObject.theType) {
+		case ValueType::Object: {
+			if (theObject.theValue.object->empty()) {
+				this->writeCharacters("{}", 2);
+				return this->theString;
+			}
+
+			this->writeCharacter('{');
+
+			Uint64 theIndex{};
+			for (auto& [key, value]: *theObject.theValue.object) {
+				this->writeCharacter('\"');
+				this->writeCharacters(key.data(), key.size());
+				this->writeCharacters("\":", 3);
+				this->writeCharacters(key.data(), key.size());
+				dump(value);
+				if (theIndex < theObject.theValue.object->size() - 1) {
+					this->writeCharacter(',');
+				}
+				theIndex++;
+			}
+			this->writeCharacter('}');
+			break;
+		}
+		case ValueType::Array: {
+			if (theObject.theValue.array->empty()) {
+				this->writeCharacters("[]", 2);
+				break;
+			}
+
+			this->writeCharacter('[');
+
+			Uint64 theIndex{};
+			for (auto& value: *theObject.theValue.array) {
+				dump(value);
+				if (theIndex < theObject.theValue.array->size() - 1) {
+					this->writeCharacter(',');
+				}
+				theIndex++;
+			}
+
+			this->writeCharacter(']');
+			break;
+		}
+
+		case ValueType::String: {
+			this->writeCharacter('\"');
+			this->writeCharacters(theObject.theValue.string->data(), theObject.theValue.string->size());
+			this->writeCharacter('\"');
+			break;
+		}
+		case ValueType::Bool: {
+			StringStream theStream{};
+			theStream << std::boolalpha << theObject.theValue.boolean;
+			auto theStringNew = theStream.str();
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Float: {
+			auto theStringNew = std::to_string(theObject.theValue.numberDouble);
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Uint64: {
+			auto theStringNew = std::to_string(theObject.theValue.numberUint);
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Int64: {
+			auto theStringNew = std::to_string(theObject.theValue.numberInt);
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Null: {
+			this->writeCharacters("null", 4);
+			break;
+		}
+		case ValueType::Null_Ext: {
+			this->writeCharacters("[]", 2);
+			break;
+		}
+	}
+	return this->theString;
+}
+
+void JsonSerializer::dump() noexcept {
+	switch (this->theObject.theType) {
+		case ValueType::Object: {
+			if (this->theObject.theValue.object->empty()) {
+				this->theObject.writeCharacters("{}", 2);
+				return;
+			}
+
+			this->theObject.writeCharacter('{');
+
+			Uint64 theIndex{};
+			for (auto& [key, value]: *this->theObject.theValue.object) {
+				this->theObject.writeCharacter('\"');
+				this->theObject.writeCharacters(key.data(), key.size());
+				this->theObject.writeCharacters("\":", 3);
+				this->theObject.writeCharacters(key.data(), key.size());
+				this->theObject.dump(value);
+				if (theIndex < this->theObject.theValue.object->size() - 1) {
+					this->theObject.writeCharacter(',');
+				}
+				theIndex++;
+			}
+			this->theObject.writeCharacter('}');
+			break;
+		}
+		case ValueType::Array: {
+			if (this->theObject.theValue.array->empty()) {
+				this->theObject.writeCharacters("[]", 2);
+				break;
+			}
+
+			this->theObject.writeCharacter('[');
+
+			Uint64 theIndex{};
+			for (auto& value: *this->theObject.theValue.array) {
+				this->theObject.dump(value);
+				if (theIndex < this->theObject.theValue.array->size() - 1) {
+					this->theObject.writeCharacter(',');
+				}
+				theIndex++;
+			}
+
+			this->theObject.writeCharacter(']');
+			break;
+		}
+
+		case ValueType::String: {
+			this->theObject.writeCharacter('\"');
+			this->theObject.writeCharacters(this->theObject.theValue.string->data(), this->theObject.theValue.string->size());
+			this->theObject.writeCharacter('\"');
+			break;
+		}
+		case ValueType::Bool: {
+			StringStream theStream{};
+			theStream << std::boolalpha << this->theObject.theValue.boolean;
+			auto theStringNew = theStream.str();
+			this->theObject.writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Float: {
+			auto theStringNew = std::to_string(this->theObject.theValue.numberDouble);
+			this->theObject.writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Uint64: {
+			auto theStringNew = std::to_string(this->theObject.theValue.numberUint);
+			this->theObject.writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Int64: {
+			auto theStringNew = std::to_string(this->theObject.theValue.numberInt);
+			this->theObject.writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Null: {
+			this->theObject.writeCharacters("null", 4);
+			break;
+		}
+		case ValueType::Null_Ext: {
+			this->theObject.writeCharacters("[]", 2);
+			break;
+		}
+	}
+	return;
+}
+
+String JsonObject::dump(JsonObject& theObject) {
+	switch (theObject.theType) {
+		case ValueType::Object: {
+			if (theObject.theValue.object->empty()) {
+				this->writeCharacters("{}", 2);
+				return this->theString;
+			}
+
+			this->writeCharacter('{');
+
+			Uint64 theIndex{};
+			for (auto& [key, value]: *theObject.theValue.object) {
+				this->writeCharacter('\"');
+				this->writeCharacters(key.data(), key.size());
+				this->writeCharacters("\":", 3);
+				dump(value);
+				if (theIndex < theObject.theValue.object->size() - 1) {
+					this->writeCharacter(',');
+				}
+				theIndex++;
+			}
+			this->writeCharacter('}');
+			break;
+		}
+		case ValueType::Array: {
+			if (theObject.theValue.array->empty()) {
+				this->writeCharacters("[]", 2);
+				break;
+			}
+
+			this->writeCharacter('[');
+
+			Uint64 theIndex{};
+			for (auto& value: *theObject.theValue.array) {
+				dump(value);
+				if (theIndex < theObject.theValue.array->size() - 1) {
+					this->writeCharacter(',');
+				}
+				theIndex++;
+			}
+
+			this->writeCharacter(']');
+			break;
+		}
+
+		case ValueType::String: {
+			this->writeCharacter('\"');
+			this->writeCharacters(theObject.theValue.string->data(), theObject.theValue.string->size());
+			this->writeCharacter('\"');
+			break;
+		}
+		case ValueType::Bool: {
+			StringStream theStream{};
+			theStream << std::boolalpha << theObject.theValue.boolean;
+			auto theStringNew = theStream.str();
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Float: {
+			auto theStringNew = std::to_string(theObject.theValue.numberDouble);
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Uint64: {
+			auto theStringNew = std::to_string(theObject.theValue.numberUint);
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Int64: {
+			auto theStringNew = std::to_string(theObject.theValue.numberInt);
+			this->writeCharacters(theStringNew.data(), theStringNew.size());
+			break;
+		}
+		case ValueType::Null: {
+			this->writeCharacters("null", 4);
+			break;
+		}
+		case ValueType::Null_Ext: {
+			this->writeCharacters("[]", 2);
+			break;
+		}
+	}
+	return this->theString;
+}
+
+void JsonObject::writeCharacter(char C) {
+	this->theString.push_back(C);
+}
+
+void JsonObject::writeCharacters(const char* C, size_t length) {
+	this->theString.append(C, length);
+}
+
+JsonObject::operator String() noexcept {
+	return this->theString;
+}
+
+
+JsonSerializer::JsonSerializer(JsonObject&& theObjectNew) noexcept {
+	this->theObject = std::move(theObjectNew);
+}
+
+JsonSerializer::operator String() {
+	return this->theObject.theString;
+}
+
+
 struct UpdatePresenceData {
 	String status{};///< Current status.
 	Int64 since{ 0 };///< When was the activity started?
@@ -635,20 +845,24 @@ int32_t main() noexcept {
 				
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
-		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
 		theDataBewTwo.botToken = "TEST_TOKEN";
-		std::cout << "THE DATA: " << theDataBewTwo.operator JsonObject().operator DiscordCoreAPI::String() << std::endl;
 		theData.name = "TESTING";
 		theDataBewTwo.numberOfShards = 0;
 		theDataBewTwo.currentShard = 23;
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
 		Vector<String> theVector{};
+		JsonSerializer theSerializer{ theDataBewTwo.operator JsonObject() };
+		auto theReferece = theDataBewTwo.operator JsonObject();
 		theStopWatch.resetTimer();
+		theSerializer.dump();
 		size_t theSize{};
-		for (uint32_t x = 0; x < 1; ++x) {
-			theVector.push_back(theDataBewTwo.operator JsonObject());
+		for (uint32_t x = 0; x < 1024 * 128; ++x) {
+			theSerializer["d"]["intents"] = x;
+			theSerializer["d"]["intents"].dump(theSerializer["d"]["intents"]);
+			std::cout << "THE INTENTS: " << theSerializer["d"]["intents"].operator DiscordCoreAPI::String() << std::endl;
+			theVector.push_back(theSerializer.operator DiscordCoreAPI::String());
 			theSize += theVector.back().size();
-			//std::cout << "THE STRING: " << theVector.back() << std::endl;
+			std::cout << "THE STRING: " << theVector.back() << std::endl;
 		}
 		
 
