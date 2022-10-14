@@ -347,7 +347,7 @@ JsonObject& JsonObject::operator[](typename ObjectType::key_type key) {
 	}
 
 	if (this->theType == ValueType::Object) {
-		auto result = this->theValue.object->emplace(std::move(key), JsonObject{ this->theString });
+		auto result = this->theValue.object->emplace(std::move(key), JsonObject{});
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
