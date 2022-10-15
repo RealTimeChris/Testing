@@ -763,9 +763,19 @@ int32_t main() noexcept {
 		for (Uint8 x = 0; x < 12; ++x) {
 			std::cout << "THE VALUE: " << +arrayTwo[x] << std::endl;
 		}
-		String theString{};
-		
-		
+		DiscordCoreAPI::InteractionResponseData theDataNew{};
+		DiscordCoreAPI::EmbedData messageEmbed;
+		messageEmbed.setAuthor("", "");
+		messageEmbed.setColor("discordGuild.data.borderColor");
+		messageEmbed.setTimeStamp("getTimeAndDate()");
+		messageEmbed.setDescription("------**You've succesfully added <# to your list of accepted music channels!**------");
+		messageEmbed.setTitle("__**Music Channel Added:**__");
+		DiscordCoreAPI::RespondToInputEventData dataPackage{ DiscordCoreAPI::InputEventData{} };
+		theDataNew.data.embeds.push_back(messageEmbed);
+		String theString{"{\"data\":{\"components\":[],\"embeds\":[{\"author\":{\"icon_url\":\"https://cdn.discordapp.com/avatars/0/\",\"name\":\"\",\"proxy_icon_url\":\"\",\"url\":\"\"},\"color\":\"16711422\",\"description\":\"------**That channel is not present on the list of enabled music channels!**------\",\"footer\":{\"icon_url\":\"\",\"proxy_icon_url\":\"\",\"text\":\"\"},\"image\":{\"height\":0,\"proxy_url\":\"\",\"url\":\"\",\"width\":0},\"provider\":{\"name\":\"\",\"url\":\"\"},\"thumbnail\":{\"height\":0,\"proxy_url\":\"\",\"url\":\"\",\"width\":0},\"timeStamp\":\"2022-10-14 01:56\",\"title\":\"__**Missing from List:**__\",\"type\":\"\",\"url\":\"\",\"video\":{\"height\":0,\"proxy_url\":\"\",\"url\":\"\",\"width\":0}}],\"flags\":64,\"tts\":false},\"type\":4}"};
+		dataPackage.addMessageEmbed(messageEmbed);
+		nlohmann::json theDataNewer{ nlohmann::json::parse(theString) };
+		std::cout << "THE DATA: " << theDataNewer.dump() << std::endl;
 		WebSocketIdentifyData theDataBewTwo{};
 		DiscordCoreAPI::ActivityData theData{};
 		theDataBewTwo.botToken = "TEST_TOKEN";
