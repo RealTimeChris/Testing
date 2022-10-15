@@ -237,17 +237,9 @@ class JsonObject {
 
 	Void set(ValueType theTypeNew);
 
-	void writeCharacters(const char* C, size_t length, String&);
-
-	void writeCharacter(char C, String&);
-
 	Void destroy() noexcept;
 
 	friend bool operator==(const JsonObject&, const JsonObject&);
-	
-	void dump(String& theString);
-
-	operator String() noexcept;
 
 	~JsonObject() noexcept;
 };
@@ -297,75 +289,73 @@ class JsonSerializer {
 	JsonSerializer(const JsonObject& theObjectNew) : loc(std::localeconv()), indentChar('\t') {
 		this->theObject = theObjectNew;
 	}
-	JsonSerializer(JsonSerializer&) = delete;
-	JsonSerializer& operator=(const JsonSerializer&) = delete;
-	JsonSerializer(JsonSerializer&&) = delete;
-	JsonSerializer& operator=(JsonSerializer&&) = delete;
+	JsonSerializer(JsonSerializer&) noexcept = default;
+	
+	JsonSerializer& operator=(const JsonSerializer&) noexcept = default;
+	JsonSerializer(JsonSerializer&&) noexcept = default;
+	JsonSerializer& operator=(JsonSerializer&&) noexcept = default;
 	~JsonSerializer() = default;
 
 	void dump() {
 		switch (this->theObject.theType) {
 			case ValueType::Object: {
 				if (this->theObject.theValue.object->empty()) {
-					o->writeCharacters("{}", 2);
+					outputAdapter.writeCharacters("{}", 2);
 					return;
 				}
-				o->writeCharacter('{');
+				outputAdapter.writeCharacter('{');
 
-				// first n-1 elements
 				auto i = this->theObject.theValue.object->cbegin();
 				for (std::size_t cnt = 0; cnt < this->theObject.theValue.object->size() - 1; ++cnt, ++i) {
-					o->writeCharacter('\"');
+					outputAdapter.writeCharacter('\"');
 					dumpEscaped(i->first, false);
-					o->writeCharacters("\":", 2);
+					outputAdapter.writeCharacters("\":", 2);
 					dump(i->second);
-					o->writeCharacter(',');
+					outputAdapter.writeCharacter(',');
 				}
 
-				o->writeCharacter('\"');
+				outputAdapter.writeCharacter('\"');
 				dumpEscaped(i->first, false);
-				o->writeCharacters("\":", 2);
+				outputAdapter.writeCharacters("\":", 2);
 				dump(i->second);
 
-				o->writeCharacter('}');
+				outputAdapter.writeCharacter('}');
 			}
 
 				return;
 
 			case ValueType::Array: {
 				if (this->theObject.theValue.array->empty()) {
-					o->writeCharacters("[]", 2);
+					outputAdapter.writeCharacters("[]", 2);
 					return;
 				}
 
-				o->writeCharacter('[');
+				outputAdapter.writeCharacter('[');
 
-				// first n-1 elements
 				for (auto i = this->theObject.theValue.array->cbegin(); i != this->theObject.theValue.array->cend() - 1; ++i) {
 					dump(*i);
-					o->writeCharacter(',');
+					outputAdapter.writeCharacter(',');
 				}
 
-				// last element
 				dump(this->theObject.theValue.array->back());
 
-				o->writeCharacter(']');
+				outputAdapter.writeCharacter(']');
 
 				return;
 			}
 
 			case ValueType::String: {
-				o->writeCharacter('\"');
+				outputAdapter.writeCharacter('\"');
 				dumpEscaped(*this->theObject.theValue.string, false);
-				o->writeCharacter('\"');
+				outputAdapter.writeCharacter('\"');
 				return;
 			}
 
 			case ValueType::Bool: {
 				if (this->theObject.theValue.boolean) {
-					o->writeCharacters("true", 4);
+					outputAdapter.writeCharacters("true", 4);
 				} else {
-					o->writeCharacters("false", 5);
+					outputAdapter.writeCharacters("false", 5);
 				}
 				return;
 			}
@@ -386,7 +376,7 @@ class JsonSerializer {
 			}
 
 			case ValueType::Null: {
-				o->writeCharacters("null", 4);
+				outputAdapter.writeCharacters("null", 4);
 				return;
 			}
 		}
@@ -396,65 +386,60 @@ class JsonSerializer {
 		switch (val.theType) {
 			case ValueType::Object: {
 				if (val.theValue.object->empty()) {
-					o->writeCharacters("{}", 2);
+					outputAdapter.writeCharacters("{}", 2);
 					return;
 				}
-				o->writeCharacter('{');
-
-				// first n-1 elements
+				outputAdapter.writeCharacter('{');
 				auto i = val.theValue.object->cbegin();
 				for (std::size_t cnt = 0; cnt < val.theValue.object->size() - 1; ++cnt, ++i) {
-					o->writeCharacter('\"');
+					outputAdapter.writeCharacter('\"');
 					dumpEscaped(i->first, false);
-					o->writeCharacters("\":", 2);
+					outputAdapter.writeCharacters("\":", 2);
 					dump(i->second);
-					o->writeCharacter(',');
+					outputAdapter.writeCharacter(',');
 				}
 
-				o->writeCharacter('\"');
+				outputAdapter.writeCharacter('\"');
 				dumpEscaped(i->first, false);
-				o->writeCharacters("\":", 2);
+				outputAdapter.writeCharacters("\":", 2);
 				dump(i->second);
 
-				o->writeCharacter('}');
+				outputAdapter.writeCharacter('}');
 			}
 
 				return;
 
 			case ValueType::Array: {
 				if (val.theValue.array->empty()) {
-					o->writeCharacters("[]", 2);
+					outputAdapter.writeCharacters("[]", 2);
 					return;
 				}
 
-				o->writeCharacter('[');
-
-				// first n-1 elements
+				outputAdapter.writeCharacter('[');
 				for (auto i = val.theValue.array->cbegin(); i != val.theValue.array->cend() - 1; ++i) {
 					dump(*i);
-					o->writeCharacter(',');
+					outputAdapter.writeCharacter(',');
 				}
 
-				// last element
 				dump(val.theValue.array->back());
 
-				o->writeCharacter(']');
+				outputAdapter.writeCharacter(']');
 
 				return;
 			}
 
 			case ValueType::String: {
-				o->writeCharacter('\"');
+				outputAdapter.writeCharacter('\"');
 				dumpEscaped(*val.theValue.string, false);
-				o->writeCharacter('\"');
+				outputAdapter.writeCharacter('\"');
 				return;
 			}
 
 			case ValueType::Bool: {
 				if (val.theValue.boolean) {
-					o->writeCharacters("true", 4);
+					outputAdapter.writeCharacters("true", 4);
 				} else {
-					o->writeCharacters("false", 5);
+					outputAdapter.writeCharacters("false", 5);
 				}
 				return;
 			}
@@ -475,14 +460,14 @@ class JsonSerializer {
 			}
 
 			case ValueType::Null: {
-				o->writeCharacters("null", 4);
+				outputAdapter.writeCharacters("null", 4);
 				return;
 			}
 		}
 	}
 
 	operator String() {
-		return std::move(this->o->operator DiscordCoreAPI::String());
+		return std::move(this->outputAdapter.operator DiscordCoreAPI::String());
 	}
 
 	void dumpEscaped(const StringType& s, const bool ensure_ascii) {
@@ -567,7 +552,7 @@ class JsonSerializer {
 					}
 
 					if (stringBuffer.size() - bytes < 13) {
-						o->writeCharacters(stringBuffer.data(), bytes);
+						outputAdapter.writeCharacters(stringBuffer.data(), bytes);
 						bytes = 0;
 					}
 
@@ -588,17 +573,12 @@ class JsonSerializer {
 		}
 
 		if (bytes > 0) {
-			o->writeCharacters(stringBuffer.data(), bytes);
+			outputAdapter.writeCharacters(stringBuffer.data(), bytes);
 		}
 	}
 
   private:
-	/*!
-    @brief count digits
-    Count the number of decimal (base 10) digits for an input unsigned integer.
-    @param[in] x  unsigned integer number to count its digits
-    @return    number of decimal digits
-    */
+
 	inline unsigned int countDigits(UintType x) noexcept {
 		unsigned int digitCount = 1;
 		for (;;) {
@@ -619,20 +599,13 @@ class JsonSerializer {
 		}
 	}
 
-	// templates to avoid warnings about useless casts
 	template<typename NumberType, std::enable_if_t<std::is_signed<NumberType>::value, int> = 0> bool is_negative_number(NumberType x) {
 		return x < 0;
 	}
 	template<typename NumberType, std::enable_if_t<std::is_unsigned<NumberType>::value, int> = 0> bool is_negative_number(NumberType /*unused*/) {
 		return false;
 	}
-	/*!
-    @brief dump an integer
-    Dump a given integer to output stream @a o. Works internally with
-    @a numberBuffer.
-    @param[in] x  integer number (signed or unsigned) to dump
-    @tparam NumberType either @a IntType or @a UintType
-    */
+	
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, UintType>::value || std::is_same<NumberType, IntType>::value, int> = 0>
 	void dumpInt(NumberType x) {
@@ -740,14 +713,13 @@ class JsonSerializer {
 		} };
 
 
-		// special case for "0"
 		if (x == 0) {
-			o->writeCharacter('0');
+			outputAdapter.writeCharacter('0');
 			return;
 		}
 
-		// use a pointer to fill the buffer
-		auto buffer_ptr = numberBuffer.begin();// NOLINT(llvm-qualified-auto,readability-qualified-auto,cppcoreguidelines-pro-type-vararg,hicpp-vararg)
+		
+		auto buffer_ptr = numberBuffer.begin();
 
 		UintType abs_value;
 
@@ -757,21 +729,14 @@ class JsonSerializer {
 			*buffer_ptr = '-';
 			abs_value = removeSign(static_cast<IntType>(x));
 
-			// account one more byte for the minus sign
 			n_chars = 1 + countDigits(abs_value);
 		} else {
 			abs_value = static_cast<UintType>(x);
 			n_chars = countDigits(abs_value);
 		}
 
-	
-
-		// jump to the end to generate the string from backward,
-		// so we later avoid reversing the result
 		buffer_ptr += n_chars;
 
-		// Fast int2ascii implementation inspired by "Fastware" talk by Andrei Alexandrescu
-		// See: https://www.youtube.com/watch?v=o4-CwDo2zpg
 		while (abs_value >= 100) {
 			const auto digits_index = static_cast<unsigned>((abs_value % 100));
 			abs_value /= 100;
@@ -787,105 +752,66 @@ class JsonSerializer {
 			*(--buffer_ptr) = static_cast<char>('0' + abs_value);
 		}
 
-		o->writeCharacters(numberBuffer.data(), n_chars);
+		outputAdapter.writeCharacters(numberBuffer.data(), n_chars);
 	}
 
-	/*!
-    @brief dump a floating-point number
-    Dump a given floating-point number to output stream @a o. Works internally
-    with @a numberBuffer.
-    @param[in] x  floating-point number to dump
-    */
 	void dumpFloat(FloatType x) {
-		// NaN / inf
 		if (!std::isfinite(x)) {
-			o->writeCharacters("null", 4);
+			outputAdapter.writeCharacters("null", 4);
 			return;
 		}
 
-		// If FloatType is an IEEE-754 single or double precision number,
-		// use the Grisu2 algorithm to produce short numbers which are
-		// guaranteed to round-trip, using strtof and strtod, resp.
-		//
-		// NB: The test below works if <long double> == <double>.
 		static constexpr bool is_ieee_single_or_double =
 			(std::numeric_limits<FloatType>::is_iec559 && std::numeric_limits<FloatType>::digits == 24 && std::numeric_limits<FloatType>::max_exponent == 128) ||
 			(std::numeric_limits<FloatType>::is_iec559 && std::numeric_limits<FloatType>::digits == 53 && std::numeric_limits<FloatType>::max_exponent == 1024);
 	}
 
 
-	void dumpFloat(FloatType x, std::false_type /*is_ieee_single_or_double*/) {
-		// get number of digits for a float -> text -> float round-trip
+	void dumpFloat(FloatType x, std::false_type ) {
 		static constexpr auto d = std::numeric_limits<FloatType>::max_digits10;
 
-		// the actual conversion
-		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
 		std::ptrdiff_t len = (std::snprintf)(numberBuffer.data(), numberBuffer.size(), "%.*g", d, x);
 
-		// negative value indicates an error
-
-		// erase thousands separator
 		if (thousandsSeparator != '\0') {
-			// NOLINTNEXTLINE(readability-qualified-auto,llvm-qualified-auto): std::remove returns an iterator, see https://github.com/nlohmann/json/issues/3081
 			const auto end = std::remove(numberBuffer.begin(), numberBuffer.begin() + len, thousandsSeparator);
 			std::fill(end, numberBuffer.end(), '\0');
 			len = (end - numberBuffer.begin());
 		}
 
-		// convert decimal point to '.'
 		if (decimalPoint != '\0' && decimalPoint != '.') {
-			// NOLINTNEXTLINE(readability-qualified-auto,llvm-qualified-auto): std::find returns an iterator, see https://github.com/nlohmann/json/issues/3081
 			const auto dec_pos = std::find(numberBuffer.begin(), numberBuffer.end(), decimalPoint);
 			if (dec_pos != numberBuffer.end()) {
 				*dec_pos = '.';
 			}
 		}
 
-		o->writeCharacters(numberBuffer.data(), static_cast<std::size_t>(len));
+		outputAdapter.writeCharacters(numberBuffer.data(), static_cast<std::size_t>(len));
 
-		// determine if we need to append ".0"
 		const bool value_is_int_like = std::none_of(numberBuffer.begin(), numberBuffer.begin() + len + 1, [](char c) {
 			return c == '.' || c == 'e';
 		});
 
 		if (value_is_int_like) {
-			o->writeCharacters(".0", 2);
+			outputAdapter.writeCharacters(".0", 2);
 		}
 	}
 
-	/*!
-    @brief check whether a string is UTF-8 encoded
-    The function checks each byte of a string whether it is UTF-8 encoded. The
-    result of the check is stored in the @a state parameter. The function must
-    be called initially with state 0 (accept). State 1 means the string must
-    be rejected, because the current byte is not allowed. If the string is
-    completely processed, but the state is non-zero, the string ended
-    prematurely; that is, the last byte indicated more bytes should have
-    followed.
-    @param[in,out] state  the state of the decoding
-    @param[in,out] codep  codepoint (valid only if resulting state is UTF8_ACCEPT)
-    @param[in] byte       next byte to decode
-    @return               new state
-    @note The function has been edited: a Array is used.
-    @copyright Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
-    @sa http://bjoern.hoehrmann.de/utf-8/decoder/dfa/
-    */
 	static std::uint8_t decode(std::uint8_t& state, std::uint32_t& codep, const std::uint8_t byte) noexcept {
 		static const std::array<std::uint8_t, 400> utf8d = { {
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 00..1F
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 20..3F
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 40..5F
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 60..7F
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,// 80..9F
-			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,// A0..BF
-			8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,// C0..DF
-			0xA, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x4, 0x3, 0x3,// E0..EF
-			0xB, 0x6, 0x6, 0x6, 0x5, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8,// F0..FF
-			0x0, 0x1, 0x2, 0x3, 0x5, 0x8, 0x7, 0x1, 0x1, 0x1, 0x4, 0x6, 0x1, 0x1, 0x1, 0x1,// s0..s0
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,// s1..s2
-			1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1,// s3..s4
-			1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1,// s5..s6
-			1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1// s7..s8
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
+			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+			8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+			0xA, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x4, 0x3, 0x3,
+			0xB, 0x6, 0x6, 0x6, 0x5, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8,
+			0x0, 0x1, 0x2, 0x3, 0x5, 0x8, 0x7, 0x1, 0x1, 0x1, 0x4, 0x6, 0x1, 0x1, 0x1, 0x1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,
+			1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1,
+			1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 		} };
 
 		const std::uint8_t type = utf8d[byte];
@@ -897,46 +823,23 @@ class JsonSerializer {
 		return state;
 	}
 
-	/*
-     * Overload to make the compiler happy while it is instantiating
-     * dumpInt for UintType.
-     * Must never be called.
-     */
 	UintType removeSign(UintType x) {
-		return x;// LCOV_EXCL_LINE
+		return x;
 	}
 
-	/*
-     * Helper function for dumpInt
-     *
-     * This function takes a negative signed integer and returns its absolute
-     * value as unsigned integer. The plus/minus shuffling is necessary as we can
-     * not directly remove the sign of an arbitrary signed integer as the
-     * absolute values of INT_MIN and INT_MAX are usually not the same. See
-     * #1708 for details.
-     */
 	inline UintType removeSign(IntType x) noexcept {
 		return static_cast<UintType>(-(x + 1)) + 1;
 	}
 
   private:
-	/// the output of the JsonSerializer
-	std::unique_ptr<OutputStringAdapter> o{ std::make_unique<OutputStringAdapter>() };
+	OutputStringAdapter outputAdapter{};
 
-	/// a (hopefully) large enough character buffer
 	std::array<char, 64> numberBuffer{};
-	/// the locale's thousand separator character
 	const char thousandsSeparator{ '\0' };
-	/// the locale's decimal point character
 	const char decimalPoint{ '\0' };
 		const std::lconv* loc{ nullptr };
-		/// string buffer
 		std::array<char, 512> stringBuffer{};
-
-		/// the indentation character
 		const char indentChar{};
-
-		/// error_handler how to react on decoding errors
 };
 ;
 	
