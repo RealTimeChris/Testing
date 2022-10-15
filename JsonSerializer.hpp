@@ -18,10 +18,10 @@
 	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 	USA
 */
-/// JsonSerializer.hpp - Header for the json-JsonSerializer class.
+/// JsonObjectFinal.hpp - Header for the json-JsonObjectFinal class.
 /// Oct 10, 2022
 /// https://discordcoreapi.com
-/// \file JsonSerializer.hpp
+/// \file JsonObjectFinal.hpp
 
 #ifndef JSON_SERIALIZER
 #define JSON_SERIALIZER
@@ -58,11 +58,93 @@ using Int16 = int16_t;
 using Int8 = int8_t;
 using Float = float;
 using Double = double;
-using Snowflake = Uint64;
 using Bool = bool;
 using Void = void;
 
+template<typename TimeType> class StopWatch {
+  public:
+	StopWatch() = delete;
+
+	StopWatch(TimeType maxNumberOfMsNew) {
+		this->maxNumberOfMs = maxNumberOfMsNew.count();
+		this->startTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
+	}
+
+	Uint64 totalTimePassed() {
+		Uint64 currentTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
+		Uint64 elapsedTime = currentTime - this->startTime;
+		return elapsedTime;
+	}
+
+	bool hasTimePassed() {
+		Uint64 currentTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
+		Uint64 elapsedTime = currentTime - this->startTime;
+		if (elapsedTime >= this->maxNumberOfMs) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	void resetTimer() {
+		this->startTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
+	}
+
+  protected:
+	Uint64 maxNumberOfMs{ 0 };
+	Uint64 startTime{ 0 };
+};
+
+template<typename ReturnType> void storeBits(String& to, ReturnType num) {
+	const Uint8 byteSize{ 8 };
+	ReturnType newValue = reverseByteOrder<ReturnType>(num);
+	for (Uint32 x = 0; x < sizeof(ReturnType); ++x) {
+		to.push_back(static_cast<Uint8>(newValue >> (byteSize * x)));
+	}
+}
+
+constexpr Uint8 formatVersion{ 131 };
+
+enum class WebSocketOpCode : Int8 { Op_Continuation = 0x00, Op_Text = 0x01, Op_Binary = 0x02, Op_Close = 0x08, Op_Ping = 0x09, Op_Pong = 0x0a };
+
 enum class ValueType : Int8 { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8 };
+
+enum class ETFTokenType : Uint8 {
+	New_Float_Ext = 70,
+	Small_Integer_Ext = 97,
+	Integer_Ext = 98,
+	Float_Ext = 99,
+	Atom_Ext = 100,
+	Small_Tuple_Ext = 104,
+	Large_Tuple_Ext = 105,
+	Nil_Ext = 106,
+	String_Ext = 107,
+	List_Ext = 108,
+	Binary_Ext = 109,
+	Small_Big_Ext = 110,
+	Large_Big_Ext = 111,
+	Small_Atom_Ext = 115,
+	Map_Ext = 116,
+	Atom_Utf8_Ext = 118
+};
+
+template<typename ReturnType> ReturnType reverseByteOrder(const ReturnType net) {
+	switch (sizeof(ReturnType)) {
+		case 1: {
+			return net;
+		}
+		case 2: {
+			return ntohs(static_cast<u_short>(net));
+		}
+		case 4: {
+			return ntohl(static_cast<u_long>(net));
+		}
+		case 8: {
+			return ntohll(static_cast<unsigned long long>(net));
+		}
+	}
+	return ReturnType{};
+}
 
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
@@ -110,8 +192,7 @@ struct EnumConverter {
 class JsonObject {
   public:
 	using AllocatorTypeMap = std::allocator<std::pair<const String, JsonObject>>;
-	template<typename ObjectType>
-	using AllocatorType = std::allocator<ObjectType>;
+	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
 	using ObjectType = std::map<String, JsonObject, std::less<>, AllocatorTypeMap>;
 	using ArrayType = std::vector<JsonObject, AllocatorType<JsonObject>>;
 	using StringType = String;
@@ -241,18 +322,347 @@ class JsonObject {
 
 	friend bool operator==(const JsonObject&, const JsonObject&);
 
+	void writeCharacter(char theChar, String& theString) {
+		theString.push_back(theChar);
+	}
+
+	void writeCharacters(const char* theData, std::size_t length, String& theString) {
+		theString.append(theData, length);
+	}
+
+	operator String();
+
 	~JsonObject() noexcept;
 };
 
-struct SerializedJsonObject {
-	JsonObject theObject{};
-	String theString{};
-};
 
-class OutputStringAdapter {
+
+class JsonObjectFinal :public JsonObject{
   public:
-	OutputStringAdapter() noexcept = default;
-	
+	WebSocketOpCode theOpCode{};
+
+	JsonObjectFinal() noexcept = default;
+	JsonObject theObject{};
+	JsonObjectFinal(JsonObject& theObjectNew, WebSocketOpCode theOpCodeNew) {
+		this->theObject = std::move(theObjectNew);
+		this->theOpCode = theOpCodeNew;
+	}
+
+	JsonObjectFinal& operator=(const JsonObjectFinal&) noexcept = default;
+	JsonObjectFinal(JsonObjectFinal&) noexcept = default;
+
+	JsonObjectFinal& operator=(JsonObjectFinal&&) noexcept = default;
+	JsonObjectFinal(JsonObjectFinal&&) noexcept = default;
+
+	JsonObject& operator[](JsonObject::ObjectType::key_type theKey);
+
+	void parseJsonToEtf(const JsonObject& dataToParse) {
+		this->theString.clear();
+		this->appendVersion();
+		this->singleValueJsonToETF(dataToParse);
+		return;
+	}
+
+	void writeJsonObject(JsonObject::ObjectType& theObject) {
+		if (theObject.empty()) {
+			this->writeCharacters("{}", 2);
+			return;
+		}
+		this->writeCharacter('{');
+
+		Int32 theIndex{};
+		for (auto x = theObject.cbegin(); x != theObject.cend(); ++x) {
+			this->writeCharacter('\"');
+			dumpEscaped(x->first, false);
+			this->writeCharacters("\":", 2);
+			dump(x->second);
+
+			if (theIndex != theObject.size() - 1) {
+				this->writeCharacter(',');
+			}
+			theIndex++;
+		}
+
+		this->writeCharacter('}');
+	}
+
+	void writeJsonArray(JsonObject::ArrayType& theArray) {
+		if (theArray.empty()) {
+			this->writeCharacters("[]", 2);
+			return;
+		}
+
+		this->writeCharacter('[');
+
+		Int32 theIndex{};
+		for (auto x = theArray.cbegin(); x != theArray.cend(); ++x) {
+			dump(*x);
+			if (theIndex != theArray.size() - 1) {
+				this->writeCharacter(',');
+			}
+			theIndex++;
+		}
+
+		this->writeCharacter(']');
+	}
+
+	void dump() {
+		if (this->theOpCode == WebSocketOpCode::Op_Binary) {
+			parseJsonToEtf(this->theObject);
+		} else {
+			switch (this->theObject.theType) {
+				case ValueType::Object: {
+					this->writeJsonObject(*this->theObject.theValue.object);
+					return;
+				}
+				case ValueType::Array: {
+					this->writeJsonArray(*this->theObject.theValue.array);
+					return;
+				}
+				case ValueType::String: {
+					this->writeCharacter('\"');
+					dumpEscaped(*this->theObject.theValue.string, false);
+					this->writeCharacter('\"');
+					return;
+				}
+				case ValueType::Bool: {
+					if (this->theObject.theValue.boolean) {
+						this->writeCharacters("true", 4);
+					} else {
+						this->writeCharacters("false", 5);
+					}
+					return;
+				}
+				case ValueType::Int64: {
+					dumpInt(this->theObject.theValue.numberInt);
+					return;
+				}
+				case ValueType::Uint64: {
+					dumpInt(this->theObject.theValue.numberUint);
+					return;
+				}
+				case ValueType::Float: {
+					dumpFloat(this->theObject.theValue.numberDouble);
+					return;
+				}
+				case ValueType::Null: {
+					this->writeCharacters("null", 4);
+					return;
+				}
+			}
+		}
+	}
+
+	operator String() {
+		return std::move(this->theString);
+	}
+
+	~JsonObjectFinal() noexcept = default;
+
+  private:
+	void writeNullExt() {
+		this->appendNilExt();
+	}
+
+	void writeNull() {
+		this->appendNil();
+	}
+
+	void singleValueJsonToETF(const JsonObject& jsonData) {
+		switch (jsonData.theType) {
+			case ValueType::Array: {
+				this->writeArray(jsonData.theValue.array);
+				break;
+			}
+			case ValueType::Object: {
+				this->writeObject(jsonData.theValue.object);
+				break;
+			}
+			case ValueType::Bool: {
+				this->writeBool(jsonData.theValue.boolean);
+				break;
+			}
+			case ValueType::Float: {
+				this->writeFloat(jsonData.theValue.numberDouble);
+				break;
+			}
+			case ValueType::Int64: {
+				this->writeInt(jsonData.theValue.numberInt);
+				break;
+			}
+			case ValueType::Uint64: {
+				this->writeUint(jsonData.theValue.numberUint);
+				break;
+			}
+			case ValueType::String: {
+				this->writeString(jsonData.theValue.string);
+				break;
+			}
+			case ValueType::Null: {
+				this->writeNull();
+				break;
+			}
+			case ValueType::Null_Ext: {
+				this->writeNullExt();
+				break;
+			}
+		}
+	}
+
+	void writeObject(JsonObject::ObjectType* jsonData) {
+		Bool add_comma{ false };
+		this->appendMapHeader(static_cast<Uint32>(jsonData->size()));
+		for (auto& field: *jsonData) {
+			if (add_comma) {
+			}
+			StringStream theStream{};
+			theStream << field.first;
+			String theKey = theStream.str();
+
+			auto theSize = theKey.size();
+			this->appendBinaryExt(theKey, static_cast<Uint32>(theSize));
+			this->singleValueJsonToETF(field.second);
+			add_comma = true;
+		}
+	}
+
+	void writeString(JsonObject::StringType* jsonData) {
+		this->appendBinaryExt(*jsonData, jsonData->size());
+	}
+
+	void writeFloat(JsonObject::FloatType jsonData) {
+		auto theFloat = jsonData;
+		this->appendNewFloatExt(theFloat);
+	}
+
+	void writeUint(JsonObject::UintType jsonData) {
+		auto theInt = jsonData;
+		if (theInt <= 255 && theInt >= 0) {
+			this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
+		} else if (theInt <= std::numeric_limits<Uint32>::max() && theInt >= 0) {
+			this->appendIntegerExt(static_cast<Uint32>(theInt));
+		} else {
+			this->appendUnsignedLongLong(theInt);
+		}
+	}
+
+	void writeInt(JsonObject::IntType jsonData) {
+		auto theInt = jsonData;
+		if (theInt <= 127 && theInt >= -127) {
+			this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
+		} else if (theInt <= std::numeric_limits<Int32>::max() && theInt >= std::numeric_limits<Int32>::min()) {
+			this->appendIntegerExt(static_cast<Uint32>(theInt));
+		} else {
+			this->appendUnsignedLongLong(static_cast<Uint64>(theInt));
+		}
+	}
+
+	void writeArray(JsonObject::ArrayType* jsonData) {
+		Bool add_comma{ false };
+		this->appendListHeader(static_cast<Uint32>(jsonData->size()));
+		for (auto& element: *jsonData) {
+			this->singleValueJsonToETF(element);
+			add_comma = true;
+		}
+		this->appendNilExt();
+	}
+
+	void writeBool(JsonObject::BoolType jsonData) {
+		if (jsonData) {
+			this->appendTrue();
+		} else {
+			this->appendFalse();
+		}
+	}
+
+	void writeToBuffer(String& bytes) {
+		this->writeCharacters(bytes.data(), bytes.size());
+	}
+
+	void appendBinaryExt(String& bytes, Uint32 sizeNew) {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
+		storeBits(bufferNew, sizeNew);
+		this->writeToBuffer(bufferNew);
+		this->writeToBuffer(bytes);
+	}
+
+	void appendUnsignedLongLong(Uint64 value) {
+		String bufferNew{};
+		bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
+		bufferNew[0] = static_cast<Uint8>(ETFTokenType::Small_Big_Ext);
+		StopWatch theStopWatch{ std::chrono::milliseconds{ 1500 } };
+		Uint8 bytesToEncode = 0;
+		while (value > 0) {
+			if (theStopWatch.hasTimePassed()) {
+				break;
+			}
+			bufferNew[static_cast<Uint64>(3) + bytesToEncode] = value & 0xF;
+			value >>= 8;
+			bytesToEncode++;
+		}
+		bufferNew[1] = bytesToEncode;
+		bufferNew[2] = 0;
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendSmallIntegerExt(Uint8 value) {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Integer_Ext), static_cast<char>(value) };
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendIntegerExt(Uint32 value) {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Integer_Ext) };
+		storeBits(bufferNew, value);
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendListHeader(Uint32 sizeNew) {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::List_Ext) };
+		storeBits(bufferNew, sizeNew);
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendMapHeader(Uint32 sizeNew) {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Map_Ext) };
+		storeBits(bufferNew, sizeNew);
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendNewFloatExt(Double FloatValue) {
+		String bufferNew{};
+		bufferNew.push_back(static_cast<unsigned char>(ETFTokenType::New_Float_Ext));
+
+		void* punner{ &FloatValue };
+		storeBits(bufferNew, *static_cast<Uint64*>(punner));
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendVersion() {
+		String bufferNew{ static_cast<int8_t>(formatVersion) };
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendNilExt() {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Nil_Ext) };
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendFalse() {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
+			static_cast<Uint8>('e') };
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendTrue() {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
+		this->writeToBuffer(bufferNew);
+	}
+
+	void appendNil() {
+		String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('x'), static_cast<Uint8>('l') };
+		this->writeToBuffer(bufferNew);
+	}
+
 	void writeCharacter(char theChar) {
 		theString.push_back(theChar);
 	}
@@ -261,185 +671,82 @@ class OutputStringAdapter {
 		theString.append(theData, length);
 	}
 
-	operator String() {
-		return std::move(theString);
+	template<typename NumberType,
+		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
+	void dumpInt(NumberType x) {
+		auto theFloat = std::to_string(x);
+		this->writeCharacters(theFloat.data(), theFloat.size());
+		return;
 	}
 
-  private:
-	String theString{};
-};
-
-class JsonSerializer {
-	using StringType = typename JsonObject::StringType;
-	using FloatType = typename JsonObject::FloatType;
-	using IntType = typename JsonObject::IntType;
-	using UintType = typename JsonObject::UintType;
-	static constexpr std::uint8_t UTF8_ACCEPT = 0;
-  public:
-
-	  
-	JsonObject& operator[](JsonObject::ObjectType::key_type theKey);
-
-	JsonObject theObject{};
-
-	JsonSerializer(JsonObject&& theObjectNew)  {
-		this->theObject = std::move(theObjectNew);
+	void dumpFloat(Float x) {
+		auto theFloat = std::to_string(x);
+		this->writeCharacters(theFloat.data(), theFloat.size());
 	}
 
-	JsonSerializer(const JsonObject& theObjectNew)  {
-		this->theObject = theObjectNew;
-	}
-	JsonSerializer(JsonSerializer&) noexcept = default;
-	
-	JsonSerializer& operator=(const JsonSerializer&) noexcept = default;
-	JsonSerializer(JsonSerializer&&) noexcept = default;
-	JsonSerializer& operator=(JsonSerializer&&) noexcept = default;
-	~JsonSerializer() = default;
-
-	void dump() {
-		switch (this->theObject.theType) {
-			case ValueType::Object: {
-				if (this->theObject.theValue.object->empty()) {
-					outputAdapter.writeCharacters("{}", 2);
-					return;
-				}
-				outputAdapter.writeCharacter('{');
-
-				auto i = this->theObject.theValue.object->cbegin();
-				for (std::size_t cnt = 0; cnt < this->theObject.theValue.object->size() - 1; ++cnt, ++i) {
-					outputAdapter.writeCharacter('\"');
-					dumpEscaped(i->first, false);
-					outputAdapter.writeCharacters("\":", 2);
-					dump(i->second);
-					outputAdapter.writeCharacter(',');
-				}
-
-				outputAdapter.writeCharacter('\"');
-				dumpEscaped(i->first, false);
-				outputAdapter.writeCharacters("\":", 2);
-				dump(i->second);
-
-				outputAdapter.writeCharacter('}');
-			}
-
-				return;
-
-			case ValueType::Array: {
-				if (this->theObject.theValue.array->empty()) {
-					outputAdapter.writeCharacters("[]", 2);
-					return;
-				}
-
-				outputAdapter.writeCharacter('[');
-
-				for (auto i = this->theObject.theValue.array->cbegin(); i != this->theObject.theValue.array->cend() - 1; ++i) {
-					dump(*i);
-					outputAdapter.writeCharacter(',');
-				}
-
-				dump(this->theObject.theValue.array->back());
-
-				outputAdapter.writeCharacter(']');
-
-				return;
-			}
-
-			case ValueType::String: {
-				outputAdapter.writeCharacter('\"');
-				dumpEscaped(*this->theObject.theValue.string, false);
-				outputAdapter.writeCharacter('\"');
-				return;
-			}
-
-			case ValueType::Bool: {
-				if (this->theObject.theValue.boolean) {
-					outputAdapter.writeCharacters("true", 4);
-				} else {
-					outputAdapter.writeCharacters("false", 5);
-				}
-				return;
-			}
-
-			case ValueType::Int64: {
-				dumpInt(this->theObject.theValue.numberInt);
-				return;
-			}
-
-			case ValueType::Uint64: {
-				dumpInt(this->theObject.theValue.numberUint);
-				return;
-			}
-
-			case ValueType::Float: {
-				dumpFloat(this->theObject.theValue.numberDouble);
-				return;
-			}
-
-			case ValueType::Null: {
-				outputAdapter.writeCharacters("null", 4);
-				return;
-			}
-		}
+	void dumpFloat(Float x, std::false_type) {
+		auto theFloat = std::to_string(x);
+		this->writeCharacters(theFloat.data(), theFloat.size());
 	}
 
 	void dump(const JsonObject& val) {
 		switch (val.theType) {
 			case ValueType::Object: {
 				if (val.theValue.object->empty()) {
-					outputAdapter.writeCharacters("{}", 2);
+					this->writeCharacters("{}", 2);
 					return;
 				}
-				outputAdapter.writeCharacter('{');
-				auto i = val.theValue.object->cbegin();
-				for (std::size_t cnt = 0; cnt < val.theValue.object->size() - 1; ++cnt, ++i) {
-					outputAdapter.writeCharacter('\"');
-					dumpEscaped(i->first, false);
-					outputAdapter.writeCharacters("\":", 2);
-					dump(i->second);
-					outputAdapter.writeCharacter(',');
+				this->writeCharacter('{');
+				auto x = val.theValue.object->cbegin();
+				for (std::size_t cnt = 0; cnt < val.theValue.object->size() - 1; ++cnt, ++x) {
+					this->writeCharacter('\"');
+					dumpEscaped(x->first, false);
+					this->writeCharacters("\":", 2);
+					dump(x->second);
+					this->writeCharacter(',');
 				}
 
-				outputAdapter.writeCharacter('\"');
-				dumpEscaped(i->first, false);
-				outputAdapter.writeCharacters("\":", 2);
-				dump(i->second);
+				this->writeCharacter('\"');
+				dumpEscaped(x->first, false);
+				this->writeCharacters("\":", 2);
+				dump(x->second);
 
-				outputAdapter.writeCharacter('}');
+				this->writeCharacter('}');
 			}
 
 				return;
 
 			case ValueType::Array: {
 				if (val.theValue.array->empty()) {
-					outputAdapter.writeCharacters("[]", 2);
+					this->writeCharacters("[]", 2);
 					return;
 				}
 
-				outputAdapter.writeCharacter('[');
-				for (auto i = val.theValue.array->cbegin(); i != val.theValue.array->cend() - 1; ++i) {
-					dump(*i);
-					outputAdapter.writeCharacter(',');
+				this->writeCharacter('[');
+				for (auto x = val.theValue.array->cbegin(); x != val.theValue.array->cend() - 1; ++x) {
+					dump(*x);
+					this->writeCharacter(',');
 				}
 
 				dump(val.theValue.array->back());
 
-				outputAdapter.writeCharacter(']');
+				this->writeCharacter(']');
 
 				return;
 			}
 
 			case ValueType::String: {
-				outputAdapter.writeCharacter('\"');
+				this->writeCharacter('\"');
 				dumpEscaped(*val.theValue.string, false);
-				outputAdapter.writeCharacter('\"');
+				this->writeCharacter('\"');
 				return;
 			}
 
 			case ValueType::Bool: {
 				if (val.theValue.boolean) {
-					outputAdapter.writeCharacters("true", 4);
+					this->writeCharacters("true", 4);
 				} else {
-					outputAdapter.writeCharacters("false", 5);
+					this->writeCharacters("false", 5);
 				}
 				return;
 			}
@@ -460,109 +767,67 @@ class JsonSerializer {
 			}
 
 			case ValueType::Null: {
-				outputAdapter.writeCharacters("null", 4);
+				this->writeCharacters("null", 4);
 				return;
 			}
 		}
 	}
 
-	operator String() {
-		return std::move(this->outputAdapter.operator DiscordCoreAPI::String());
-	}
+	void dumpEscaped(const String& s, const bool ensure_ascii) {
+		std::size_t bytes{};
 
-	void dumpEscaped(const StringType& s, const bool ensure_ascii) {
-		std::uint32_t codepoint{};
-		std::uint8_t state = UTF8_ACCEPT;
-		std::size_t bytes = 0;
-
-		std::size_t postAcceptBytes = 0;
-		std::size_t nonDumpedCharacters = 0;
-
-		for (std::size_t i = 0; i < s.size(); ++i) {
-			const auto byte = static_cast<std::uint8_t>(s[i]);
-
-			switch (byte) {
+		for (std::size_t x = 0; x < s.size(); ++x) {
+			switch (static_cast<std::uint8_t>(s[x])) {
 				case 0x08: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = 'b';
 					break;
 				}
-
 				case 0x09: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = 't';
 					break;
 				}
-
 				case 0x0A: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = 'n';
 					break;
 				}
-
 				case 0x0C: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = 'f';
 					break;
 				}
-
 				case 0x0D: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = 'r';
 					break;
 				}
-
 				case 0x22: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = '\"';
 					break;
 				}
-
 				case 0x5C: {
 					stringBuffer[bytes++] = '\\';
 					stringBuffer[bytes++] = '\\';
 					break;
 				}
-
 				default: {
-					stringBuffer[bytes++] = s[i];
+					stringBuffer[bytes++] = s[x];
 					break;
 				}
 			}
 		}
 
 		if (bytes > 0) {
-			outputAdapter.writeCharacters(stringBuffer.data(), bytes);
+			this->writeCharacters(stringBuffer.data(), bytes);
 		}
 	}
 
-  private:
-	
-	template<typename NumberType,
-		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, UintType>::value || std::is_same<NumberType, IntType>::value, int> = 0>
-	void dumpInt(NumberType x) {
-		auto theFloat = std::to_string(x);
-		outputAdapter.writeCharacters(theFloat.data(), theFloat.size());
-		return;
-	}
-
-	void dumpFloat(FloatType x) {
-		auto theFloat = std::to_string(x);
-		outputAdapter.writeCharacters(theFloat.data(), theFloat.size());
-	}
-
-
-	void dumpFloat(FloatType x, std::false_type ) {
-		auto theFloat = std::to_string(x);
-		outputAdapter.writeCharacters(theFloat.data(), theFloat.size());
-	}
-
-  private:
-	OutputStringAdapter outputAdapter{};
 	std::array<char, 512> stringBuffer{};
+	String theString{};
 };
-;
-	
 	
 
 #endif// !ERL_PACKER

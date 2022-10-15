@@ -338,14 +338,14 @@ JsonObject& JsonObject::operator[](Uint64 index) {
 	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 }
 
-JsonObject& JsonSerializer::operator[](JsonObject::ObjectType::key_type theKey) {
-	if (this->theObject.theType == ValueType::Null) {
-		this->theObject.set(ValueType::Object);
-		this->theObject.theType = ValueType::Object;
+JsonObject& JsonObjectFinal::operator[](JsonObject::ObjectType::key_type theKey) {
+	if (this->theType == ValueType::Null) {
+		this->set(ValueType::Object);
+		this->theType = ValueType::Object;
 	}
 
-	if (this->theObject.theType == ValueType::Object) {
-		auto result = this->theObject.theValue.object->emplace(std::move(theKey), JsonObject{});
+	if (this->theType == ValueType::Object) {
+		auto result = this->theValue.object->emplace(std::move(theKey), JsonObject{});
 		return result.first->second;
 	}
 	throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -616,13 +616,12 @@ int32_t main() noexcept {
 		theDataBewTwo.currentShard = 23;
 		DiscordCoreAPI::StopWatch theStopWatch{ std::chrono::milliseconds{} };
 		Vector<String> theVector{};
-		auto theReferece = theDataBewTwo.operator JsonObject();
+		auto theReference = theDataBewTwo.operator JsonObject();
 		
 		size_t theSize{};
-		JsonSerializer theSerializer{ theReferece };
+		JsonObjectFinal theSerializer{ theReference, WebSocketOpCode::Op_Binary };
 		for (uint32_t x = 0; x < 1024 * 256; ++x) {
 			theSerializer.dump();
-			theSerializer["d"]["intents"] = x;
 			theVector.push_back(theSerializer.operator DiscordCoreAPI::String());
 			theSize += theVector.back().size();
 			if (x % 1000 == 0) {
