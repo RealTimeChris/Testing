@@ -282,11 +282,11 @@ class JsonSerializer {
 
 	JsonObject theObject{};
 
-	JsonSerializer(JsonObject&& theObjectNew) : loc(std::localeconv()), indentChar('\t') {
+	JsonSerializer(JsonObject&& theObjectNew)  {
 		this->theObject = std::move(theObjectNew);
 	}
 
-	JsonSerializer(const JsonObject& theObjectNew) : loc(std::localeconv()), indentChar('\t') {
+	JsonSerializer(const JsonObject& theObjectNew)  {
 		this->theObject = theObjectNew;
 	}
 	JsonSerializer(JsonSerializer&) noexcept = default;
@@ -481,92 +481,51 @@ class JsonSerializer {
 		for (std::size_t i = 0; i < s.size(); ++i) {
 			const auto byte = static_cast<std::uint8_t>(s[i]);
 
-			switch (decode(state, codepoint, byte)) {
-				case UTF8_ACCEPT:
-				{
-					switch (codepoint) {
-						case 0x08:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = 'b';
-							break;
-						}
-
-						case 0x09:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = 't';
-							break;
-						}
-
-						case 0x0A:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = 'n';
-							break;
-						}
-
-						case 0x0C:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = 'f';
-							break;
-						}
-
-						case 0x0D:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = 'r';
-							break;
-						}
-
-						case 0x22:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = '\"';
-							break;
-						}
-
-						case 0x5C:
-						{
-							stringBuffer[bytes++] = '\\';
-							stringBuffer[bytes++] = '\\';
-							break;
-						}
-
-						default: {
-							if ((codepoint <= 0x1F) || (ensure_ascii && (codepoint >= 0x7F))) {
-								if (codepoint <= 0xFFFF) {
-									static_cast<void>((std::snprintf)(stringBuffer.data() + bytes, 7, "\\u%04x", static_cast<std::uint16_t>(codepoint)));
-									bytes += 6;
-								} else {
-									static_cast<void>((std::snprintf)(stringBuffer.data() + bytes, 13, "\\u%04x\\u%04x", static_cast<std::uint16_t>(0xD7C0u + (codepoint >> 10u)),
-										static_cast<std::uint16_t>(0xDC00u + (codepoint & 0x3FFu))));
-									bytes += 12;
-								}
-							} else {
-								stringBuffer[bytes++] = s[i];
-							}
-							break;
-						}
-					}
-
-					if (stringBuffer.size() - bytes < 13) {
-						outputAdapter.writeCharacters(stringBuffer.data(), bytes);
-						bytes = 0;
-					}
-
-					postAcceptBytes = bytes;
-					nonDumpedCharacters = 0;
+			switch (byte) {
+				case 0x08: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = 'b';
 					break;
 				}
 
-				default:
-				{
-					if (!ensure_ascii) {
-						stringBuffer[bytes++] = s[i];
-					}
-					++nonDumpedCharacters;
+				case 0x09: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = 't';
+					break;
+				}
+
+				case 0x0A: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = 'n';
+					break;
+				}
+
+				case 0x0C: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = 'f';
+					break;
+				}
+
+				case 0x0D: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = 'r';
+					break;
+				}
+
+				case 0x22: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = '\"';
+					break;
+				}
+
+				case 0x5C: {
+					stringBuffer[bytes++] = '\\';
+					stringBuffer[bytes++] = '\\';
+					break;
+				}
+
+				default: {
+					stringBuffer[bytes++] = s[i];
 					break;
 				}
 			}
@@ -578,268 +537,29 @@ class JsonSerializer {
 	}
 
   private:
-
-	inline unsigned int countDigits(UintType x) noexcept {
-		unsigned int digitCount = 1;
-		for (;;) {
-			if (x < 10) {
-				return digitCount;
-			}
-			if (x < 100) {
-				return digitCount + 1;
-			}
-			if (x < 1000) {
-				return digitCount + 2;
-			}
-			if (x < 10000) {
-				return digitCount + 3;
-			}
-			x = x / 10000u;
-			digitCount += 4;
-		}
-	}
-
-	template<typename NumberType, std::enable_if_t<std::is_signed<NumberType>::value, int> = 0> bool is_negative_number(NumberType x) {
-		return x < 0;
-	}
-	template<typename NumberType, std::enable_if_t<std::is_unsigned<NumberType>::value, int> = 0> bool is_negative_number(NumberType /*unused*/) {
-		return false;
-	}
 	
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, UintType>::value || std::is_same<NumberType, IntType>::value, int> = 0>
 	void dumpInt(NumberType x) {
-		static constexpr std::array<std::array<char, 2>, 100> digits_to_99{ {
-			{ { '0', '0' } },
-			{ { '0', '1' } },
-			{ { '0', '2' } },
-			{ { '0', '3' } },
-			{ { '0', '4' } },
-			{ { '0', '5' } },
-			{ { '0', '6' } },
-			{ { '0', '7' } },
-			{ { '0', '8' } },
-			{ { '0', '9' } },
-			{ { '1', '0' } },
-			{ { '1', '1' } },
-			{ { '1', '2' } },
-			{ { '1', '3' } },
-			{ { '1', '4' } },
-			{ { '1', '5' } },
-			{ { '1', '6' } },
-			{ { '1', '7' } },
-			{ { '1', '8' } },
-			{ { '1', '9' } },
-			{ { '2', '0' } },
-			{ { '2', '1' } },
-			{ { '2', '2' } },
-			{ { '2', '3' } },
-			{ { '2', '4' } },
-			{ { '2', '5' } },
-			{ { '2', '6' } },
-			{ { '2', '7' } },
-			{ { '2', '8' } },
-			{ { '2', '9' } },
-			{ { '3', '0' } },
-			{ { '3', '1' } },
-			{ { '3', '2' } },
-			{ { '3', '3' } },
-			{ { '3', '4' } },
-			{ { '3', '5' } },
-			{ { '3', '6' } },
-			{ { '3', '7' } },
-			{ { '3', '8' } },
-			{ { '3', '9' } },
-			{ { '4', '0' } },
-			{ { '4', '1' } },
-			{ { '4', '2' } },
-			{ { '4', '3' } },
-			{ { '4', '4' } },
-			{ { '4', '5' } },
-			{ { '4', '6' } },
-			{ { '4', '7' } },
-			{ { '4', '8' } },
-			{ { '4', '9' } },
-			{ { '5', '0' } },
-			{ { '5', '1' } },
-			{ { '5', '2' } },
-			{ { '5', '3' } },
-			{ { '5', '4' } },
-			{ { '5', '5' } },
-			{ { '5', '6' } },
-			{ { '5', '7' } },
-			{ { '5', '8' } },
-			{ { '5', '9' } },
-			{ { '6', '0' } },
-			{ { '6', '1' } },
-			{ { '6', '2' } },
-			{ { '6', '3' } },
-			{ { '6', '4' } },
-			{ { '6', '5' } },
-			{ { '6', '6' } },
-			{ { '6', '7' } },
-			{ { '6', '8' } },
-			{ { '6', '9' } },
-			{ { '7', '0' } },
-			{ { '7', '1' } },
-			{ { '7', '2' } },
-			{ { '7', '3' } },
-			{ { '7', '4' } },
-			{ { '7', '5' } },
-			{ { '7', '6' } },
-			{ { '7', '7' } },
-			{ { '7', '8' } },
-			{ { '7', '9' } },
-			{ { '8', '0' } },
-			{ { '8', '1' } },
-			{ { '8', '2' } },
-			{ { '8', '3' } },
-			{ { '8', '4' } },
-			{ { '8', '5' } },
-			{ { '8', '6' } },
-			{ { '8', '7' } },
-			{ { '8', '8' } },
-			{ { '8', '9' } },
-			{ { '9', '0' } },
-			{ { '9', '1' } },
-			{ { '9', '2' } },
-			{ { '9', '3' } },
-			{ { '9', '4' } },
-			{ { '9', '5' } },
-			{ { '9', '6' } },
-			{ { '9', '7' } },
-			{ { '9', '8' } },
-			{ { '9', '9' } },
-		} };
-
-
-		if (x == 0) {
-			outputAdapter.writeCharacter('0');
-			return;
-		}
-
-		
-		auto buffer_ptr = numberBuffer.begin();
-
-		UintType abs_value;
-
-		unsigned int n_chars{};
-
-		if (is_negative_number(x)) {
-			*buffer_ptr = '-';
-			abs_value = removeSign(static_cast<IntType>(x));
-
-			n_chars = 1 + countDigits(abs_value);
-		} else {
-			abs_value = static_cast<UintType>(x);
-			n_chars = countDigits(abs_value);
-		}
-
-		buffer_ptr += n_chars;
-
-		while (abs_value >= 100) {
-			const auto digits_index = static_cast<unsigned>((abs_value % 100));
-			abs_value /= 100;
-			*(--buffer_ptr) = digits_to_99[digits_index][1];
-			*(--buffer_ptr) = digits_to_99[digits_index][0];
-		}
-
-		if (abs_value >= 10) {
-			const auto digits_index = static_cast<unsigned>(abs_value);
-			*(--buffer_ptr) = digits_to_99[digits_index][1];
-			*(--buffer_ptr) = digits_to_99[digits_index][0];
-		} else {
-			*(--buffer_ptr) = static_cast<char>('0' + abs_value);
-		}
-
-		outputAdapter.writeCharacters(numberBuffer.data(), n_chars);
+		auto theFloat = std::to_string(x);
+		outputAdapter.writeCharacters(theFloat.data(), theFloat.size());
+		return;
 	}
 
 	void dumpFloat(FloatType x) {
-		if (!std::isfinite(x)) {
-			outputAdapter.writeCharacters("null", 4);
-			return;
-		}
-
-		static constexpr bool is_ieee_single_or_double =
-			(std::numeric_limits<FloatType>::is_iec559 && std::numeric_limits<FloatType>::digits == 24 && std::numeric_limits<FloatType>::max_exponent == 128) ||
-			(std::numeric_limits<FloatType>::is_iec559 && std::numeric_limits<FloatType>::digits == 53 && std::numeric_limits<FloatType>::max_exponent == 1024);
+		auto theFloat = std::to_string(x);
+		outputAdapter.writeCharacters(theFloat.data(), theFloat.size());
 	}
 
 
 	void dumpFloat(FloatType x, std::false_type ) {
-		static constexpr auto d = std::numeric_limits<FloatType>::max_digits10;
-
-		std::ptrdiff_t len = (std::snprintf)(numberBuffer.data(), numberBuffer.size(), "%.*g", d, x);
-
-		if (thousandsSeparator != '\0') {
-			const auto end = std::remove(numberBuffer.begin(), numberBuffer.begin() + len, thousandsSeparator);
-			std::fill(end, numberBuffer.end(), '\0');
-			len = (end - numberBuffer.begin());
-		}
-
-		if (decimalPoint != '\0' && decimalPoint != '.') {
-			const auto dec_pos = std::find(numberBuffer.begin(), numberBuffer.end(), decimalPoint);
-			if (dec_pos != numberBuffer.end()) {
-				*dec_pos = '.';
-			}
-		}
-
-		outputAdapter.writeCharacters(numberBuffer.data(), static_cast<std::size_t>(len));
-
-		const bool value_is_int_like = std::none_of(numberBuffer.begin(), numberBuffer.begin() + len + 1, [](char c) {
-			return c == '.' || c == 'e';
-		});
-
-		if (value_is_int_like) {
-			outputAdapter.writeCharacters(".0", 2);
-		}
-	}
-
-	static std::uint8_t decode(std::uint8_t& state, std::uint32_t& codep, const std::uint8_t byte) noexcept {
-		static const std::array<std::uint8_t, 400> utf8d = { {
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9,
-			7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-			8, 8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-			0xA, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x4, 0x3, 0x3,
-			0xB, 0x6, 0x6, 0x6, 0x5, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8, 0x8,
-			0x0, 0x1, 0x2, 0x3, 0x5, 0x8, 0x7, 0x1, 0x1, 0x1, 0x4, 0x6, 0x1, 0x1, 0x1, 0x1,
-			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1,
-			1, 2, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1,
-			1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1,
-			1, 3, 1, 1, 1, 1, 1, 3, 1, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-		} };
-
-		const std::uint8_t type = utf8d[byte];
-
-		codep = (state != UTF8_ACCEPT) ? (byte & 0x3fu) | (codep << 6u) : (0xFFu >> type) & (byte);
-
-		const std::size_t index = 256u + static_cast<size_t>(state) * 16u + static_cast<size_t>(type);
-		state = utf8d[index];
-		return state;
-	}
-
-	UintType removeSign(UintType x) {
-		return x;
-	}
-
-	inline UintType removeSign(IntType x) noexcept {
-		return static_cast<UintType>(-(x + 1)) + 1;
+		auto theFloat = std::to_string(x);
+		outputAdapter.writeCharacters(theFloat.data(), theFloat.size());
 	}
 
   private:
 	OutputStringAdapter outputAdapter{};
-
-	std::array<char, 64> numberBuffer{};
-	const char thousandsSeparator{ '\0' };
-	const char decimalPoint{ '\0' };
-		const std::lconv* loc{ nullptr };
-		std::array<char, 512> stringBuffer{};
-		const char indentChar{};
+	std::array<char, 512> stringBuffer{};
 };
 ;
 	
