@@ -319,7 +319,6 @@ class JsonSerializer {
 	~JsonSerializer() noexcept;
 
   private:
-	std::array<char, 512> stringBuffer{};
 	String theString{};
 
 	template<typename NumberType,
@@ -334,7 +333,7 @@ class JsonSerializer {
 
 	void parseJsonToEtf(const JsonSerializer& dataToParse);
 
-	void parseJsonToJson(JsonSerializer& dataToParse);
+	void parseJsonToJson(const JsonSerializer& dataToParse);
 
 	void writeJsonObject(const JsonSerializer::ObjectType& theObjectNew);
 

@@ -82,24 +82,26 @@ JsonSerializer& JsonSerializer::operator=(JsonSerializer&& theKey) noexcept {
 			*this->theValue.string = std::move(*theKey.theValue.string);
 			break;
 		}
-		case ValueType::Uint64: {
-			this->theValue.numberUint = theKey.theValue.numberUint;
+		case ValueType::Bool: {
+			this->theValue.boolean = theKey.theValue.boolean;
 			break;
 		}
 		case ValueType::Int64: {
 			this->theValue.numberInt = theKey.theValue.numberInt;
 			break;
 		}
+		case ValueType::Uint64: {
+			this->theValue.numberUint = theKey.theValue.numberUint;
+			break;
+		}
 		case ValueType::Float: {
 			this->theValue.numberDouble = theKey.theValue.numberDouble;
 			break;
 		}
-		case ValueType::Bool: {
-			this->theValue.boolean = theKey.theValue.boolean;
+		case ValueType::Null: {
 			break;
 		}
 	}
-	this->theString = std::move(theKey.theString);
 	this->theType = theKey.theType;
 	return *this;
 }
@@ -113,36 +115,49 @@ JsonSerializer& JsonSerializer::operator=(const JsonSerializer& theKey) noexcept
 		case ValueType::Object: {
 			this->set(ValueType::Object);
 			*this->theValue.object = *theKey.theValue.object;
+			this->theType = ValueType::Object;
 			break;
 		}
 		case ValueType::Array: {
 			this->set(ValueType::Array);
 			*this->theValue.array = *theKey.theValue.array;
+			this->theType = ValueType::Array;
 			break;
 		}
 		case ValueType::String: {
 			this->set(ValueType::String);
 			*this->theValue.string = *theKey.theValue.string;
-			break;
-		}
-		case ValueType::Uint64: {
-			this->theValue.numberUint = theKey.theValue.numberUint;
-			break;
-		}
-		case ValueType::Int64: {
-			this->theValue.numberInt = theKey.theValue.numberInt;
-			break;
-		}
-		case ValueType::Float: {
-			this->theValue.numberDouble = theKey.theValue.numberDouble;
+			this->theType = ValueType::String;
 			break;
 		}
 		case ValueType::Bool: {
 			this->theValue.boolean = theKey.theValue.boolean;
+			this->theType = ValueType::Bool;
+			break;
+		}
+		case ValueType::Int64: {
+			this->theValue.numberInt = theKey.theValue.numberInt;
+			this->theType = ValueType::Int64;
+			break;
+		}
+		case ValueType::Uint64: {
+			this->theValue.numberUint = theKey.theValue.numberUint;
+			this->theType = ValueType::Uint64;
+			break;
+		}
+		case ValueType::Float: {
+			this->theValue.numberDouble = theKey.theValue.numberDouble;
+			this->theType = ValueType::Float;
+			break;
+		}
+		case ValueType::Null: {
+			this->theType = ValueType::Null;
+			break;
+		}
+		default: {
 			break;
 		}
 	}
-	this->theString = theKey.theString;
 	this->theType = theKey.theType;
 	return *this;
 }
@@ -488,24 +503,24 @@ void JsonSerializer::singleValueJsonToETF(const JsonSerializer& jsonData) {
 			this->writeArray(jsonData.theValue.array);
 			break;
 		}
-		case ValueType::String: {
-			this->writeString(jsonData.theValue.string);
-			break;
-		}
-		case ValueType::Uint64: {
-			this->writeUint(jsonData.theValue.numberUint);
-			break;
-		}
-		case ValueType::Int64: {
-			this->writeInt(jsonData.theValue.numberInt);
+		case ValueType::Bool: {
+			this->writeBool(jsonData.theValue.boolean);
 			break;
 		}
 		case ValueType::Float: {
 			this->writeFloat(jsonData.theValue.numberDouble);
 			break;
 		}
-		case ValueType::Bool: {
-			this->writeBool(jsonData.theValue.boolean);
+		case ValueType::Int64: {
+			this->writeInt(jsonData.theValue.numberInt);
+			break;
+		}
+		case ValueType::Uint64: {
+			this->writeUint(jsonData.theValue.numberUint);
+			break;
+		}
+		case ValueType::String: {
+			this->writeString(jsonData.theValue.string);
 			break;
 		}
 		case ValueType::Null: {
@@ -519,27 +534,27 @@ void JsonSerializer::singleValueJsonToETF(const JsonSerializer& jsonData) {
 	}
 }
 
-void JsonSerializer::parseJsonToJson(JsonSerializer& dataToParse) {
+void JsonSerializer::parseJsonToJson(const JsonSerializer& dataToParse) {
 	switch (dataToParse.theType) {
 		case ValueType::Object: {
-			dataToParse.writeJsonObject(*dataToParse.theValue.object);
+			this->writeJsonObject(*dataToParse.theValue.object);
 			break;
 		}
 		case ValueType::Array: {
-			dataToParse.writeJsonArray(*dataToParse.theValue.array);
+			this->writeJsonArray(*dataToParse.theValue.array);
 			break;
 		}
 		case ValueType::String: {
-			dataToParse.writeCharacter('\"');
+			this->writeCharacter('\"');
 			dumpEscaped(*dataToParse.theValue.string);
-			dataToParse.writeCharacter('\"');
+			this->writeCharacter('\"');
 			break;
 		}
 		case ValueType::Bool: {
 			if (dataToParse.theValue.boolean) {
-				dataToParse.writeCharacters("true", 4);
+				this->writeCharacters("true", 4);
 			} else {
-				dataToParse.writeCharacters("false", 5);
+				this->writeCharacters("false", 5);
 			}
 			break;
 		}
@@ -556,11 +571,11 @@ void JsonSerializer::parseJsonToJson(JsonSerializer& dataToParse) {
 			break;
 		}
 		case ValueType::Null: {
-			dataToParse.writeCharacters("null", 4);
+			this->writeCharacters("null", 4);
 			break;
 		}
 		case ValueType::Null_Ext: {
-			dataToParse.writeCharacters("[]", 2);
+			this->writeCharacters("[]", 2);
 			break;
 		}
 	}
@@ -679,15 +694,11 @@ void JsonSerializer::writeNull() {
 	this->appendNil();
 }
 
-void JsonSerializer::writeToBuffer(const String& bytes) {
-	this->writeCharacters(bytes.data(), bytes.size());
-}
-
 void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
 	storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(bufferNew);
-	this->writeToBuffer(bytes);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeCharacters(bytes.data(), bytes.size());
 }
 
 void JsonSerializer::appendUnsignedLongLong(const Uint64 value) {
@@ -707,7 +718,7 @@ void JsonSerializer::appendUnsignedLongLong(const Uint64 value) {
 	}
 	bufferNew[1] = bytesToEncode;
 	bufferNew[2] = 0;
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendNewFloatExt(const Double FloatValue) {
@@ -716,56 +727,56 @@ void JsonSerializer::appendNewFloatExt(const Double FloatValue) {
 
 	const void* punner{ &FloatValue };
 	storeBits(bufferNew, *static_cast<const Uint64*>(punner));
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendSmallIntegerExt(const Uint8 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Integer_Ext), static_cast<char>(value) };
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendIntegerExt(const Uint32 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Integer_Ext) };
 	storeBits(bufferNew, value);
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendListHeader(const Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::List_Ext) };
 	storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendMapHeader(const Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Map_Ext) };
 	storeBits(bufferNew, sizeNew);
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendVersion() {
 	String bufferNew{ static_cast<int8_t>(formatVersion) };
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendNilExt() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Nil_Ext) };
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendFalse() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
 		static_cast<Uint8>('e') };
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendTrue() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::appendNil() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('i'), static_cast<Uint8>('l') };
-	this->writeToBuffer(bufferNew);
+	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
 void JsonSerializer::writeCharacters(const char* theData, std::size_t length) {
@@ -777,47 +788,41 @@ void JsonSerializer::writeCharacter(const char theChar) {
 }
 
 void JsonSerializer::dumpEscaped(const String& string) {
-	std::size_t bytes{};
-
 	for (std::size_t x = 0; x < string.size(); ++x) {
 		switch (static_cast<std::uint8_t>(string[x])) {
 			case 0x08: {
-				stringBuffer[bytes++] = 'b';
+				this->writeCharacter('b');
 				break;
 			}
 			case 0x09: {
-				stringBuffer[bytes++] = 't';
+				this->writeCharacter('t');
 				break;
 			}
 			case 0x0A: {
-				stringBuffer[bytes++] = 'n';
+				this->writeCharacter('n');
 				break;
 			}
 			case 0x0C: {
-				stringBuffer[bytes++] = 'f';
+				this->writeCharacter('f');
 				break;
 			}
 			case 0x0D: {
-				stringBuffer[bytes++] = 'r';
+				this->writeCharacter('r');
 				break;
 			}
 			case 0x22: {
-				stringBuffer[bytes++] = '\"';
+				this->writeCharacter('\"');
 				break;
 			}
 			case 0x5C: {
-				stringBuffer[bytes++] = '\\';
+				this->writeCharacter('\\');
 				break;
 			}
 			default: {
-				stringBuffer[bytes++] = string[x];
+				this->writeCharacter(string[x]);
 				break;
 			}
 		}
-	}
-
-	if (bytes > 0) {
-		this->writeCharacters(stringBuffer.data(), bytes);
 	}
 }
 
@@ -1078,7 +1083,7 @@ int32_t main() noexcept {
 			if (x % 1000 == 0) {
 				//std::cout << theString << std::endl;
 			}
-			theVector.push_back(theReferenceTwo);
+			theVector.push_back(theReferenceTwo.dump());
 			theSize += theVector.back().size();
 		}
 		std::cout << "THE SIZE: " << theSize << std::endl;
