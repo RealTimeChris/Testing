@@ -63,26 +63,35 @@ using Snowflake = Uint64;
 using Bool = bool;
 using Void = void;
 
-
-	template<typename TimeType> class StopWatch {
+template<typename TimeType> class StopWatch {
   public:
 	StopWatch() = delete;
 
+	StopWatch<TimeType>& operator=(const StopWatch<TimeType>& other) {
+		this->maxNumberOfMs.store(other.maxNumberOfMs.load());
+		this->startTime.store(other.startTime.load());
+		return *this;
+	}
+
+	StopWatch(const StopWatch<TimeType>& other) {
+		*this = other;
+	}
+
 	StopWatch(TimeType maxNumberOfMsNew) {
-		this->maxNumberOfMs = maxNumberOfMsNew.count();
-		this->startTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
+		this->maxNumberOfMs.store(maxNumberOfMsNew.count());
+		this->startTime.store(static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count()));
 	}
 
 	Uint64 totalTimePassed() {
 		Uint64 currentTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
-		Uint64 elapsedTime = currentTime - this->startTime;
+		Uint64 elapsedTime = currentTime - this->startTime.load();
 		return elapsedTime;
 	}
 
 	bool hasTimePassed() {
 		Uint64 currentTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
-		Uint64 elapsedTime = currentTime - this->startTime;
-		if (elapsedTime >= this->maxNumberOfMs) {
+		Uint64 elapsedTime = currentTime - this->startTime.load();
+		if (elapsedTime >= this->maxNumberOfMs.load()) {
 			return true;
 		} else {
 			return false;
@@ -90,12 +99,12 @@ using Void = void;
 	}
 
 	void resetTimer() {
-		this->startTime = static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count());
+		this->startTime.store(static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count()));
 	}
 
   protected:
-	Uint64 maxNumberOfMs{ 0 };
-	Uint64 startTime{ 0 };
+	AtomicUint64 maxNumberOfMs{ 0 };
+	AtomicUint64 startTime{ 0 };
 };
 
 template<typename ReturnType> void storeBits(String& to, ReturnType num) {
@@ -213,6 +222,8 @@ class JsonSerializer {
 	JsonSerializer& operator=(JsonSerializer&&) noexcept;
 	JsonSerializer(JsonSerializer&&) noexcept;
 
+	operator String&&() noexcept;
+
 	operator String() noexcept;
 
 	void refreshString(WebSocketOpCode theOpCode);
@@ -324,11 +335,11 @@ class JsonSerializer {
 
 	void parseJsonToJson(const JsonSerializer* dataToParse);
 
-	void writeJsonObject(const JsonSerializer::ObjectType& theObjectNew);
+	void writeJsonObject(const JsonSerializer::ObjectType* theObjectNew);
 
-	void writeJsonArray(const JsonSerializer::ArrayType& theArray);
+	void writeJsonArray(const JsonSerializer::ArrayType* theArray);
 
-	void writeJsonString(const JsonSerializer::StringType& string);
+	void writeJsonString(const JsonSerializer::StringType* string);
 
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
