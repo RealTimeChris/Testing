@@ -945,8 +945,9 @@ int32_t main() noexcept {
 			theVector.push_back(theSerializer.operator String());
 			theSize += theVector.back().size();
 		}
-		std::cout << "THE SIZE: " << theSize << std::endl;
-		std::cout << "THE TIME: " << theStopWatch.totalTimePassed() << std::endl;
+		std::cout << "THE NUMBER OF BYTES THAT WERE PARSED: " << theSize << std::endl << std::endl;
+		std::cout << "THE TIME IT TOOK (In milliseconds): " << theStopWatch.totalTimePassed() << std::endl << std::endl;
+		std::cout << "WHAT WAS PARSED: " << theSerializer.operator DiscordCoreAPI::String() << std::endl << std::endl;
 
 
 		WebSocketIdentifyDataTwo theDataBewTwoReal{};
@@ -966,8 +967,9 @@ int32_t main() noexcept {
 			theVector.push_back(theReferenceTwo.dump());
 			theSize += theVector.back().size();
 		}
-		std::cout << "THE SIZE: " << theSize << std::endl;
-		std::cout << "THE TIME: " << theStopWatch.totalTimePassed() << std::endl;
+		std::cout << "THE NUMBER OF BYTES THAT WERE PARSED: " << theSize << std::endl << std::endl;
+		std::cout << "THE TIME IT TOOK (In milliseconds): " << theStopWatch.totalTimePassed() << std::endl << std::endl;
+		std::cout << "WHAT WAS PARSED: " << theReferenceTwo << std::endl;
 
 
 
