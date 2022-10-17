@@ -44,16 +44,16 @@ JsonSerializer& JsonSerializer::operator=(JsonSerializer&& theData) noexcept {
 			*this->theValue.string = std::move(*theData.theValue.string);
 			break;
 		}
+		case ValueType::Float: {
+			this->theValue.numberDouble = theData.theValue.numberDouble;
+			break;
+		}
 		case ValueType::Uint64: {
 			this->theValue.numberUint = theData.theValue.numberUint;
 			break;
 		}
 		case ValueType::Int64: {
 			this->theValue.numberInt = theData.theValue.numberInt;
-			break;
-		}
-		case ValueType::Float: {
-			this->theValue.numberDouble = theData.theValue.numberDouble;
 			break;
 		}
 		case ValueType::Bool: {
@@ -87,8 +87,8 @@ JsonSerializer& JsonSerializer::operator=(const JsonSerializer& theData) noexcep
 			*this->theValue.string = *theData.theValue.string;
 			break;
 		}
-		case ValueType::Bool: {
-			this->theValue.boolean = theData.theValue.boolean;
+		case ValueType::Float: {
+			this->theValue.numberDouble = theData.theValue.numberDouble;
 			break;
 		}
 		case ValueType::Int64: {
@@ -99,8 +99,8 @@ JsonSerializer& JsonSerializer::operator=(const JsonSerializer& theData) noexcep
 			this->theValue.numberUint = theData.theValue.numberUint;
 			break;
 		}
-		case ValueType::Float: {
-			this->theValue.numberDouble = theData.theValue.numberDouble;
+		case ValueType::Bool: {
+			this->theValue.boolean = theData.theValue.boolean;
 			break;
 		}
 	}
@@ -198,6 +198,26 @@ JsonSerializer::JsonSerializer(const char* theData) noexcept {
 	*this = theData;
 }
 
+JsonSerializer& JsonSerializer::operator=(Double theData) noexcept {
+	this->theValue.numberDouble = theData;
+	this->theType = ValueType::Float;
+	return *this;
+}
+
+JsonSerializer::JsonSerializer(Double theData) noexcept {
+	*this = theData;
+}
+
+JsonSerializer& JsonSerializer::operator=(Float theData) noexcept {
+	this->theValue.numberDouble = theData;
+	this->theType = ValueType::Float;
+	return *this;
+}
+
+JsonSerializer::JsonSerializer(Float theData) noexcept {
+	*this = theData;
+}
+
 JsonSerializer& JsonSerializer::operator=(Uint64 theData) noexcept {
 	this->theValue.numberUint = theData;
 	this->theType = ValueType::Uint64;
@@ -275,26 +295,6 @@ JsonSerializer& JsonSerializer::operator=(Int8 theData) noexcept {
 }
 
 JsonSerializer::JsonSerializer(Int8 theData) noexcept {
-	*this = theData;
-}
-
-JsonSerializer& JsonSerializer::operator=(Double theData) noexcept {
-	this->theValue.numberDouble = theData;
-	this->theType = ValueType::Float;
-	return *this;
-}
-
-JsonSerializer::JsonSerializer(Double theData) noexcept {
-	*this = theData;
-}
-
-JsonSerializer& JsonSerializer::operator=(Float theData) noexcept {
-	this->theValue.numberDouble = theData;
-	this->theType = ValueType::Float;
-	return *this;
-}
-
-JsonSerializer::JsonSerializer(Float theData) noexcept {
 	*this = theData;
 }
 
@@ -379,14 +379,14 @@ Void JsonSerializer::parseJsonToEtf(const JsonSerializer* dataToParse) {
 		case ValueType::String: {
 			return this->writeEtfString(dataToParse->theValue.string);
 		}
+		case ValueType::Float: {
+			return this->writeEtfFloat(dataToParse->theValue.numberDouble);
+		}
 		case ValueType::Uint64: {
 			return this->writeEtfUint(dataToParse->theValue.numberUint);
 		}
 		case ValueType::Int64: {
 			return this->writeEtfInt(dataToParse->theValue.numberInt);
-		}
-		case ValueType::Float: {
-			return this->writeEtfFloat(dataToParse->theValue.numberDouble);
 		}
 		case ValueType::Bool: {
 			return this->writeEtfBool(dataToParse->theValue.boolean);
@@ -411,14 +411,14 @@ Void JsonSerializer::parseJsonToJson(const JsonSerializer* dataToParse) {
 		case ValueType::String: {
 			return this->writeJsonString(dataToParse->theValue.string);
 		}
+		case ValueType::Float: {
+			return this->writeJsonFloat(dataToParse->theValue.numberDouble);
+		}
 		case ValueType::Uint64: {
 			return this->writeJsonInt(dataToParse->theValue.numberUint);
 		}
 		case ValueType::Int64: {
 			return this->writeJsonInt(dataToParse->theValue.numberInt);
-		}
-		case ValueType::Float: {
-			return this->writeJsonFloat(dataToParse->theValue.numberDouble);
 		}
 		case ValueType::Bool: {
 			return this->writeJsonBool(dataToParse->theValue.boolean);
@@ -627,6 +627,12 @@ bool operator==(const JsonSerializer& lhs, const JsonSerializer& rhs) {
 			}
 			break;
 		}
+		case ValueType::Float: {
+			if (lhs.theValue.numberDouble != rhs.theValue.numberDouble) {
+				return false;
+			}
+			break;
+		}
 		case ValueType::Uint64: {
 			if (lhs.theValue.numberUint != rhs.theValue.numberUint) {
 				return false;
@@ -635,12 +641,6 @@ bool operator==(const JsonSerializer& lhs, const JsonSerializer& rhs) {
 		}
 		case ValueType::Int64: {
 			if (lhs.theValue.numberInt != rhs.theValue.numberInt) {
-				return false;
-			}
-			break;
-		}
-		case ValueType::Float: {
-			if (lhs.theValue.numberDouble != rhs.theValue.numberDouble) {
 				return false;
 			}
 			break;

@@ -34,7 +34,7 @@
 #include <set>
 #include <charconv>
 
-template<typename ObjectType, typename DeleterType = Void> using UniquePtrD = std::unique_ptr<ObjectType, DeleterType>;
+template<typename ObjectType, typename DeleterType = void> using UniquePtrD = std::unique_ptr<ObjectType, DeleterType>;
 template<typename KeyType, typename ObjectType> using UMap = std::unordered_map<KeyType, ObjectType>;
 template<typename KeyType, typename ObjectType> using Map = std::map<KeyType, ObjectType>;
 template<typename ObjectType> using UniquePtr = std::unique_ptr<ObjectType>;
@@ -209,8 +209,8 @@ class JsonSerializer {
 	using ObjectType = std::map<String, JsonSerializer, std::less<>, AllocatorTypeMap>;
 	using ArrayType = std::vector<JsonSerializer, AllocatorType<JsonSerializer>>;
 	using StringType = String;
-	using UintType = Uint64;
 	using FloatType = Double;
+	using UintType = Uint64;
 	using IntType = Int64;
 	using BoolType = Bool;
 
@@ -281,6 +281,12 @@ class JsonSerializer {
 	JsonSerializer& operator=(const char* theData) noexcept;
 	JsonSerializer(const char* theData) noexcept;
 
+	JsonSerializer& operator=(Double theData) noexcept;
+	JsonSerializer(Double) noexcept;
+
+	JsonSerializer& operator=(Float theData) noexcept;
+	JsonSerializer(Float) noexcept;
+
 	JsonSerializer& operator=(Uint64 theData) noexcept;
 	JsonSerializer(Uint64) noexcept;
 
@@ -304,12 +310,6 @@ class JsonSerializer {
 
 	JsonSerializer& operator=(Int8 theData) noexcept;
 	JsonSerializer(Int8) noexcept;
-
-	JsonSerializer& operator=(Double theData) noexcept;
-	JsonSerializer(Double) noexcept;
-
-	JsonSerializer& operator=(Float theData) noexcept;
-	JsonSerializer(Float) noexcept;
 
 	JsonSerializer& operator=(Bool theData) noexcept;
 	JsonSerializer(Bool) noexcept;
