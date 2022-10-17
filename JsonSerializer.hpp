@@ -201,26 +201,26 @@ struct EnumConverter {
 
 enum class ValueType : Int8 { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8 };
 
-class JsonSerializer {
+class Jsonifier {
   public:
-	using AllocatorTypeMap = std::allocator<std::pair<const String, JsonSerializer>>;
+	using AllocatorTypeMap = std::allocator<std::pair<const String, Jsonifier>>;
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
 	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<std::allocator<ObjectType>>;
-	using ObjectType = std::map<String, JsonSerializer, std::less<>, AllocatorTypeMap>;
-	using ArrayType = std::vector<JsonSerializer, AllocatorType<JsonSerializer>>;
+	using ObjectType = std::map<String, Jsonifier, std::less<>, AllocatorTypeMap>;
+	using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
 	using StringType = String;
 	using FloatType = Double;
 	using UintType = Uint64;
 	using IntType = Int64;
 	using BoolType = Bool;
 
-	JsonSerializer() noexcept = default;
+	Jsonifier() noexcept = default;
 
-	JsonSerializer& operator=(const JsonSerializer&) noexcept;
-	JsonSerializer(const JsonSerializer&) noexcept;
+	Jsonifier& operator=(const Jsonifier&) noexcept;
+	Jsonifier(const Jsonifier&) noexcept;
 
-	JsonSerializer& operator=(JsonSerializer&&) noexcept;
-	JsonSerializer(JsonSerializer&&) noexcept;
+	Jsonifier& operator=(Jsonifier&&) noexcept;
+	Jsonifier(Jsonifier&&) noexcept;
 
 	operator String&&() noexcept;
 
@@ -242,19 +242,19 @@ class JsonSerializer {
 
 	JsonValue theValue{};
 
-	template<typename ObjectType> JsonSerializer& operator=(Vector<ObjectType> theData) noexcept {
+	template<typename ObjectType> Jsonifier& operator=(Vector<ObjectType> theData) noexcept {
 		this->setValue(ValueType::Array);
 		for (auto& value: theData) {
-			this->theValue.array->push_back(JsonSerializer{ value });
+			this->theValue.array->push_back(Jsonifier{ value });
 		}
 		return *this;
 	}
 
-	template<typename ObjectType> JsonSerializer(Vector<ObjectType> theData) noexcept {
+	template<typename ObjectType> Jsonifier(Vector<ObjectType> theData) noexcept {
 		*this = theData;
 	}
 
-	template<IsString KeyType, IsString ObjectType> JsonSerializer& operator=(UMap<KeyType, ObjectType> theData) noexcept {
+	template<IsString KeyType, IsString ObjectType> Jsonifier& operator=(UMap<KeyType, ObjectType> theData) noexcept {
 		this->setValue(ValueType::Object);
 		for (auto& [key, value]: theData) {
 			(*this->theValue.object)[key] = value;
@@ -262,84 +262,84 @@ class JsonSerializer {
 		return *this;
 	}
 
-	template<IsString KeyType, IsString ObjectType> JsonSerializer(UMap<KeyType, ObjectType> theData) noexcept {
+	template<IsString KeyType, IsString ObjectType> Jsonifier(UMap<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
 	};
 
-	JsonSerializer& operator=(EnumConverter&& theData) noexcept;
-	JsonSerializer(EnumConverter&&) noexcept;
+	Jsonifier& operator=(EnumConverter&& theData) noexcept;
+	Jsonifier(EnumConverter&&) noexcept;
 
-	JsonSerializer& operator=(const EnumConverter& theData) noexcept;
-	JsonSerializer(const EnumConverter&) noexcept;
+	Jsonifier& operator=(const EnumConverter& theData) noexcept;
+	Jsonifier(const EnumConverter&) noexcept;
 
-	JsonSerializer& operator=(StringType&& theData) noexcept;
-	JsonSerializer(StringType&&) noexcept;
+	Jsonifier& operator=(StringType&& theData) noexcept;
+	Jsonifier(StringType&&) noexcept;
 
-	JsonSerializer& operator=(const StringType& theData) noexcept;
-	JsonSerializer(const StringType&) noexcept;
+	Jsonifier& operator=(const StringType& theData) noexcept;
+	Jsonifier(const StringType&) noexcept;
 
-	JsonSerializer& operator=(const char* theData) noexcept;
-	JsonSerializer(const char* theData) noexcept;
+	Jsonifier& operator=(const char* theData) noexcept;
+	Jsonifier(const char* theData) noexcept;
 
-	JsonSerializer& operator=(Double theData) noexcept;
-	JsonSerializer(Double) noexcept;
+	Jsonifier& operator=(Double theData) noexcept;
+	Jsonifier(Double) noexcept;
 
-	JsonSerializer& operator=(Float theData) noexcept;
-	JsonSerializer(Float) noexcept;
+	Jsonifier& operator=(Float theData) noexcept;
+	Jsonifier(Float) noexcept;
 
-	JsonSerializer& operator=(Uint64 theData) noexcept;
-	JsonSerializer(Uint64) noexcept;
+	Jsonifier& operator=(Uint64 theData) noexcept;
+	Jsonifier(Uint64) noexcept;
 
-	JsonSerializer& operator=(Uint32 theData) noexcept;
-	JsonSerializer(Uint32) noexcept;
+	Jsonifier& operator=(Uint32 theData) noexcept;
+	Jsonifier(Uint32) noexcept;
 
-	JsonSerializer& operator=(Uint16 theData) noexcept;
-	JsonSerializer(Uint16) noexcept;
+	Jsonifier& operator=(Uint16 theData) noexcept;
+	Jsonifier(Uint16) noexcept;
 
-	JsonSerializer& operator=(Uint8 theData) noexcept;
-	JsonSerializer(Uint8) noexcept;
+	Jsonifier& operator=(Uint8 theData) noexcept;
+	Jsonifier(Uint8) noexcept;
 
-	JsonSerializer& operator=(Int64 theData) noexcept;
-	JsonSerializer(Int64) noexcept;
+	Jsonifier& operator=(Int64 theData) noexcept;
+	Jsonifier(Int64) noexcept;
 
-	JsonSerializer& operator=(Int32 theData) noexcept;
-	JsonSerializer(Int32) noexcept;
+	Jsonifier& operator=(Int32 theData) noexcept;
+	Jsonifier(Int32) noexcept;
 
-	JsonSerializer& operator=(Int16 theData) noexcept;
-	JsonSerializer(Int16) noexcept;
+	Jsonifier& operator=(Int16 theData) noexcept;
+	Jsonifier(Int16) noexcept;
 
-	JsonSerializer& operator=(Int8 theData) noexcept;
-	JsonSerializer(Int8) noexcept;
+	Jsonifier& operator=(Int8 theData) noexcept;
+	Jsonifier(Int8) noexcept;
 
-	JsonSerializer& operator=(Bool theData) noexcept;
-	JsonSerializer(Bool) noexcept;
+	Jsonifier& operator=(Bool theData) noexcept;
+	Jsonifier(Bool) noexcept;
 
-	JsonSerializer& operator=(ValueType) noexcept;
-	JsonSerializer(ValueType) noexcept;
+	Jsonifier& operator=(ValueType) noexcept;
+	Jsonifier(ValueType) noexcept;
 
-	JsonSerializer& operator[](typename ObjectType::key_type key);
+	Jsonifier& operator[](typename ObjectType::key_type key);
 
-	JsonSerializer& operator[](Uint64 index);
+	Jsonifier& operator[](Uint64 index);
 
-	Void pushBack(JsonSerializer&& other) noexcept;
-	Void pushBack(JsonSerializer& other) noexcept;
+	Void pushBack(Jsonifier&& other) noexcept;
+	Void pushBack(Jsonifier& other) noexcept;
 
-	friend bool operator==(const JsonSerializer&, const JsonSerializer&);
+	friend bool operator==(const Jsonifier&, const Jsonifier&);
 
-	~JsonSerializer() noexcept;
+	~Jsonifier() noexcept;
 
   private:
 	String theString{};
 
-	Void parseJsonToEtf(const JsonSerializer* dataToParse);
+	Void parseJsonToEtf(const Jsonifier* dataToParse);
 
-	Void parseJsonToJson(const JsonSerializer* dataToParse);
+	Void parseJsonToJson(const Jsonifier* dataToParse);
 
-	Void writeJsonObject(const JsonSerializer::ObjectType* theObjectNew);
+	Void writeJsonObject(const Jsonifier::ObjectType* theObjectNew);
 
-	Void writeJsonArray(const JsonSerializer::ArrayType* theArray);
+	Void writeJsonArray(const Jsonifier::ArrayType* theArray);
 
-	Void writeJsonString(const JsonSerializer::StringType* string);
+	Void writeJsonString(const Jsonifier::StringType* string);
 
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
@@ -348,27 +348,27 @@ class JsonSerializer {
 		this->writeString(theIntNew.data(), theIntNew.size());
 	}
 
-	Void writeJsonFloat(const JsonSerializer::FloatType theFloat);
+	Void writeJsonFloat(const Jsonifier::FloatType theFloat);
 
-	Void writeJsonBool(const JsonSerializer::BoolType jsonData);
+	Void writeJsonBool(const Jsonifier::BoolType jsonData);
 
 	Void writeJsonNullExt();
 
 	Void writeJsonNull();
 
-	Void writeEtfObject(const JsonSerializer::ObjectType* jsonData);
+	Void writeEtfObject(const Jsonifier::ObjectType* jsonData);
 
-	Void writeEtfArray(const JsonSerializer::ArrayType* jsonData);
+	Void writeEtfArray(const Jsonifier::ArrayType* jsonData);
 
-	Void writeEtfString(const JsonSerializer::StringType* jsonData);
+	Void writeEtfString(const Jsonifier::StringType* jsonData);
 
-	Void writeEtfUint(const JsonSerializer::UintType jsonData);
+	Void writeEtfUint(const Jsonifier::UintType jsonData);
 
-	Void writeEtfInt(const JsonSerializer::IntType jsonData);
+	Void writeEtfInt(const Jsonifier::IntType jsonData);
 
-	Void writeEtfFloat(const JsonSerializer::FloatType jsonData);
+	Void writeEtfFloat(const Jsonifier::FloatType jsonData);
 
-	Void writeEtfBool(const JsonSerializer::BoolType jsonData);
+	Void writeEtfBool(const Jsonifier::BoolType jsonData);
 
 	Void writeEtfNullExt();
 
