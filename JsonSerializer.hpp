@@ -34,7 +34,7 @@
 #include <set>
 #include <charconv>
 
-template<typename ObjectType, typename DeleterType = void> using UniquePtrD = std::unique_ptr<ObjectType, DeleterType>;
+template<typename ObjectType, typename DeleterType = Void> using UniquePtrD = std::unique_ptr<ObjectType, DeleterType>;
 template<typename KeyType, typename ObjectType> using UMap = std::unordered_map<KeyType, ObjectType>;
 template<typename KeyType, typename ObjectType> using Map = std::map<KeyType, ObjectType>;
 template<typename ObjectType> using UniquePtr = std::unique_ptr<ObjectType>;
@@ -98,7 +98,7 @@ template<typename TimeType> class StopWatch {
 		}
 	}
 
-	void resetTimer() {
+	Void resetTimer() {
 		this->startTime.store(static_cast<Uint64>(std::chrono::duration_cast<TimeType>(std::chrono::system_clock::now().time_since_epoch()).count()));
 	}
 
@@ -107,7 +107,7 @@ template<typename TimeType> class StopWatch {
 	AtomicUint64 startTime{ 0 };
 };
 
-template<typename ReturnType> void storeBits(String& to, ReturnType num) {
+template<typename ReturnType> Void storeBits(String& to, ReturnType num) {
 	const Uint8 byteSize{ 8 };
 	ReturnType newValue = reverseByteOrder<ReturnType>(num);
 	for (Uint32 x = 0; x < sizeof(ReturnType); ++x) {
@@ -226,7 +226,7 @@ class JsonSerializer {
 
 	operator String() noexcept;
 
-	void refreshString(WebSocketOpCode theOpCode);
+	Void refreshString(WebSocketOpCode theOpCode);
 
 	ValueType theType{ ValueType::Null };
 
@@ -331,78 +331,78 @@ class JsonSerializer {
   private:
 	String theString{};
 
-	void parseJsonToEtf(const JsonSerializer* dataToParse);
+	Void parseJsonToEtf(const JsonSerializer* dataToParse);
 
-	void parseJsonToJson(const JsonSerializer* dataToParse);
+	Void parseJsonToJson(const JsonSerializer* dataToParse);
 
-	void writeJsonObject(const JsonSerializer::ObjectType* theObjectNew);
+	Void writeJsonObject(const JsonSerializer::ObjectType* theObjectNew);
 
-	void writeJsonArray(const JsonSerializer::ArrayType* theArray);
+	Void writeJsonArray(const JsonSerializer::ArrayType* theArray);
 
-	void writeJsonString(const JsonSerializer::StringType* string);
+	Void writeJsonString(const JsonSerializer::StringType* string);
 
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
-	void writeJsonInt(NumberType theInt) {
+	Void writeJsonInt(NumberType theInt) {
 		auto theIntNew = std::to_string(theInt);
-		this->writeCharacters(theIntNew.data(), theIntNew.size());
+		this->writeString(theIntNew.data(), theIntNew.size());
 	}
 
-	void writeJsonFloat(const JsonSerializer::FloatType theFloat);
+	Void writeJsonFloat(const JsonSerializer::FloatType theFloat);
 
-	void writeJsonBool(const JsonSerializer::BoolType jsonData);
+	Void writeJsonBool(const JsonSerializer::BoolType jsonData);
 
-	void writeJsonNullExt();
+	Void writeJsonNullExt();
 
-	void writeJsonNull();
+	Void writeJsonNull();
 
-	void writeEtfObject(const JsonSerializer::ObjectType* jsonData);
+	Void writeEtfObject(const JsonSerializer::ObjectType* jsonData);
 
-	void writeEtfArray(const JsonSerializer::ArrayType* jsonData);
+	Void writeEtfArray(const JsonSerializer::ArrayType* jsonData);
 
-	void writeEtfString(const JsonSerializer::StringType* jsonData);
+	Void writeEtfString(const JsonSerializer::StringType* jsonData);
 
-	void writeEtfUint(const JsonSerializer::UintType jsonData);
+	Void writeEtfUint(const JsonSerializer::UintType jsonData);
 
-	void writeEtfInt(const JsonSerializer::IntType jsonData);
+	Void writeEtfInt(const JsonSerializer::IntType jsonData);
 
-	void writeEtfFloat(const JsonSerializer::FloatType jsonData);
+	Void writeEtfFloat(const JsonSerializer::FloatType jsonData);
 
-	void writeEtfBool(const JsonSerializer::BoolType jsonData);
+	Void writeEtfBool(const JsonSerializer::BoolType jsonData);
 
-	void writeEtfNullExt();
+	Void writeEtfNullExt();
 
-	void writeEtfNull();
+	Void writeEtfNull();
 
-	void writeCharacters(const char* theData, std::size_t length);
+	Void writeString(const char* theData, std::size_t length);
 
-	void writeCharacter(const char theChar);
+	Void writeCharacter(const char theChar);
 
-	void writeToBuffer(const String& bytes);
+	Void writeToBuffer(const String& bytes);
 
-	void appendBinaryExt(const String& bytes, Uint32 sizeNew);
+	Void appendBinaryExt(const String& bytes, Uint32 sizeNew);
 
-	void appendUnsignedLongLong(const Uint64 value);
+	Void appendUnsignedLongLong(const Uint64 value);
 
-	void appendNewFloatExt(const Double FloatValue);
+	Void appendNewFloatExt(const Double FloatValue);
 
-	void appendSmallIntegerExt(const Uint8 value);
+	Void appendSmallIntegerExt(const Uint8 value);
 
-	void appendListHeader(const Uint32 sizeNew);
+	Void appendListHeader(const Uint32 sizeNew);
 
-	void appendMapHeader(const Uint32 sizeNew);
+	Void appendMapHeader(const Uint32 sizeNew);
 
-	void appendIntegerExt(const Uint32 value);
+	Void appendIntegerExt(const Uint32 value);
 
-	void appendVersion();
+	Void appendVersion();
 
-	void appendNilExt();
+	Void appendNilExt();
 
-	void appendFalse();
+	Void appendFalse();
 
-	void appendTrue();
+	Void appendTrue();
 
-	void appendNil();
+	Void appendNil();
 
 	Void setValue(ValueType theTypeNew);
 

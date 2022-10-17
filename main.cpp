@@ -121,7 +121,7 @@ JsonSerializer::operator String() noexcept {
 	return this->theString;
 }
 
-void JsonSerializer::refreshString(WebSocketOpCode theOpCode) {
+Void JsonSerializer::refreshString(WebSocketOpCode theOpCode) {
 	this->theString.clear();
 	if (theOpCode == WebSocketOpCode::Op_Binary) {
 		this->appendVersion();
@@ -129,7 +129,6 @@ void JsonSerializer::refreshString(WebSocketOpCode theOpCode) {
 	} else {
 		this->parseJsonToJson(this);
 	}
-	return;
 }
 
 JsonSerializer& JsonSerializer::operator=(EnumConverter&& theData) noexcept {
@@ -369,7 +368,7 @@ Void JsonSerializer::pushBack(JsonSerializer& other) noexcept {
 	}
 }
 
-void JsonSerializer::parseJsonToEtf(const JsonSerializer* dataToParse) {
+Void JsonSerializer::parseJsonToEtf(const JsonSerializer* dataToParse) {
 	switch (dataToParse->theType) {
 		case ValueType::Object: {
 			return this->writeEtfObject(dataToParse->theValue.object);
@@ -399,10 +398,9 @@ void JsonSerializer::parseJsonToEtf(const JsonSerializer* dataToParse) {
 			return this->writeEtfNull();
 		}
 	}
-	return;
 }
 
-void JsonSerializer::parseJsonToJson(const JsonSerializer* dataToParse) {
+Void JsonSerializer::parseJsonToJson(const JsonSerializer* dataToParse) {
 	switch (dataToParse->theType) {
 		case ValueType::Object: {
 			return this->writeJsonObject(dataToParse->theValue.object);
@@ -434,9 +432,9 @@ void JsonSerializer::parseJsonToJson(const JsonSerializer* dataToParse) {
 	}
 }
 
-void JsonSerializer::writeJsonObject(const JsonSerializer::ObjectType* theObjectNew) {
+Void JsonSerializer::writeJsonObject(const JsonSerializer::ObjectType* theObjectNew) {
 	if (theObjectNew->empty()) {
-		this->writeCharacters("{}", 2);
+		this->writeString("{}", 2);
 		return;
 	}
 	this->writeCharacter('{');
@@ -456,9 +454,9 @@ void JsonSerializer::writeJsonObject(const JsonSerializer::ObjectType* theObject
 	this->writeCharacter('}');
 }
 
-void JsonSerializer::writeJsonArray(const JsonSerializer::ArrayType* theArray) {
+Void JsonSerializer::writeJsonArray(const JsonSerializer::ArrayType* theArray) {
 	if (theArray->empty()) {
-		this->writeCharacters("[]", 2);
+		this->writeString("[]", 2);
 		return;
 	}
 
@@ -476,7 +474,7 @@ void JsonSerializer::writeJsonArray(const JsonSerializer::ArrayType* theArray) {
 	this->writeCharacter(']');
 }
 
-void JsonSerializer::writeJsonString(const JsonSerializer::StringType* theStringNew) {
+Void JsonSerializer::writeJsonString(const JsonSerializer::StringType* theStringNew) {
 	this->writeCharacter('\"');
 	for (auto& value: *theStringNew) {
 		switch (static_cast<std::uint8_t>(value)) {
@@ -517,28 +515,28 @@ void JsonSerializer::writeJsonString(const JsonSerializer::StringType* theString
 	this->writeCharacter('\"');
 }
 
-void JsonSerializer::writeJsonFloat(const JsonSerializer::FloatType x) {
+Void JsonSerializer::writeJsonFloat(const JsonSerializer::FloatType x) {
 	auto theFloat = std::to_string(x);
-	this->writeCharacters(theFloat.data(), theFloat.size());
+	this->writeString(theFloat.data(), theFloat.size());
 }
 
-void JsonSerializer::writeJsonBool(const JsonSerializer::BoolType theValueNew) {
+Void JsonSerializer::writeJsonBool(const JsonSerializer::BoolType theValueNew) {
 	if (theValueNew) {
-		this->writeCharacters("true", 4);
+		this->writeString("true", 4);
 	} else {
-		this->writeCharacters("false", 5);
+		this->writeString("false", 5);
 	}
 }
 
-void JsonSerializer::writeJsonNullExt() {
-	this->writeCharacters("[]", 2);
+Void JsonSerializer::writeJsonNullExt() {
+	this->writeString("[]", 2);
 }
 
-void JsonSerializer::writeJsonNull() {
-	this->writeCharacters("null", 4);
+Void JsonSerializer::writeJsonNull() {
+	this->writeString("null", 4);
 }
 
-void JsonSerializer::writeEtfObject(const JsonSerializer::ObjectType* jsonData) {
+Void JsonSerializer::writeEtfObject(const JsonSerializer::ObjectType* jsonData) {
 	this->appendMapHeader(static_cast<Uint32>(jsonData->size()));
 	for (auto& [key, value]: *jsonData) {
 		this->appendBinaryExt(key, static_cast<Uint32>(key.size()));
@@ -546,7 +544,7 @@ void JsonSerializer::writeEtfObject(const JsonSerializer::ObjectType* jsonData) 
 	}
 }
 
-void JsonSerializer::writeEtfArray(const JsonSerializer::ArrayType* jsonData) {
+Void JsonSerializer::writeEtfArray(const JsonSerializer::ArrayType* jsonData) {
 	this->appendListHeader(static_cast<Uint32>(jsonData->size()));
 	for (auto& value: *jsonData) {
 		this->parseJsonToEtf(&value);
@@ -554,11 +552,11 @@ void JsonSerializer::writeEtfArray(const JsonSerializer::ArrayType* jsonData) {
 	this->appendNilExt();
 }
 
-void JsonSerializer::writeEtfString(const JsonSerializer::StringType* jsonData) {
+Void JsonSerializer::writeEtfString(const JsonSerializer::StringType* jsonData) {
 	this->appendBinaryExt(*jsonData, static_cast<Uint32>(jsonData->size()));
 }
 
-void JsonSerializer::writeEtfUint(const JsonSerializer::UintType jsonData) {
+Void JsonSerializer::writeEtfUint(const JsonSerializer::UintType jsonData) {
 	if (jsonData <= 255 && jsonData >= 0) {
 		this->appendSmallIntegerExt(static_cast<Uint8>(jsonData));
 	} else if (jsonData <= std::numeric_limits<Uint32>::max() && jsonData >= 0) {
@@ -568,7 +566,7 @@ void JsonSerializer::writeEtfUint(const JsonSerializer::UintType jsonData) {
 	}
 }
 
-void JsonSerializer::writeEtfInt(const JsonSerializer::IntType jsonData) {
+Void JsonSerializer::writeEtfInt(const JsonSerializer::IntType jsonData) {
 	if (jsonData <= 127 && jsonData >= -127) {
 		this->appendSmallIntegerExt(static_cast<Uint8>(jsonData));
 	} else if (jsonData <= std::numeric_limits<Int32>::max() && jsonData >= std::numeric_limits<Int32>::min()) {
@@ -578,11 +576,11 @@ void JsonSerializer::writeEtfInt(const JsonSerializer::IntType jsonData) {
 	}
 }
 
-void JsonSerializer::writeEtfFloat(const JsonSerializer::FloatType jsonData) {
+Void JsonSerializer::writeEtfFloat(const JsonSerializer::FloatType jsonData) {
 	this->appendNewFloatExt(jsonData);
 }
 
-void JsonSerializer::writeEtfBool(const JsonSerializer::BoolType jsonData) {
+Void JsonSerializer::writeEtfBool(const JsonSerializer::BoolType jsonData) {
 	if (jsonData) {
 		this->appendTrue();
 	} else {
@@ -590,19 +588,19 @@ void JsonSerializer::writeEtfBool(const JsonSerializer::BoolType jsonData) {
 	}
 }
 
-void JsonSerializer::writeEtfNullExt() {
+Void JsonSerializer::writeEtfNullExt() {
 	this->appendNilExt();
 }
 
-void JsonSerializer::writeEtfNull() {
+Void JsonSerializer::writeEtfNull() {
 	this->appendNil();
 }
 
-void JsonSerializer::writeCharacters(const char* theData, std::size_t length) {
+Void JsonSerializer::writeString(const char* theData, std::size_t length) {
 	this->theString.append(theData, length);
 }
 
-void JsonSerializer::writeCharacter(const char theChar) {
+Void JsonSerializer::writeCharacter(const char theChar) {
 	this->theString.push_back(theChar);
 }
 
@@ -657,14 +655,14 @@ bool operator==(const JsonSerializer& lhs, const JsonSerializer& rhs) {
 	return true;
 }
 
-void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
+Void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
 	storeBits(bufferNew, sizeNew);
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
-	this->writeCharacters(bytes.data(), bytes.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
+	this->writeString(bytes.data(), bytes.size());
 }
 
-void JsonSerializer::appendUnsignedLongLong(const Uint64 value) {
+Void JsonSerializer::appendUnsignedLongLong(const Uint64 value) {
 	String bufferNew{};
 	Uint64 theValueNew = value;
 	bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
@@ -681,63 +679,63 @@ void JsonSerializer::appendUnsignedLongLong(const Uint64 value) {
 	}
 	bufferNew[1] = bytesToEncode;
 	bufferNew[2] = 0;
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendNewFloatExt(const Double FloatValue) {
+Void JsonSerializer::appendNewFloatExt(const Double FloatValue) {
 	String bufferNew{ static_cast<unsigned char>(ETFTokenType::New_Float_Ext) };
-	const void* punner{ &FloatValue };
+	const Void* punner{ &FloatValue };
 	storeBits(bufferNew, *static_cast<const Uint64*>(punner));
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendSmallIntegerExt(const Uint8 value) {
+Void JsonSerializer::appendSmallIntegerExt(const Uint8 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Integer_Ext), static_cast<char>(value) };
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendIntegerExt(const Uint32 value) {
+Void JsonSerializer::appendIntegerExt(const Uint32 value) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Integer_Ext) };
 	storeBits(bufferNew, value);
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendListHeader(const Uint32 sizeNew) {
+Void JsonSerializer::appendListHeader(const Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::List_Ext) };
 	storeBits(bufferNew, sizeNew);
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendMapHeader(const Uint32 sizeNew) {
+Void JsonSerializer::appendMapHeader(const Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Map_Ext) };
 	storeBits(bufferNew, sizeNew);
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendVersion() {
+Void JsonSerializer::appendVersion() {
 	String bufferNew{ static_cast<int8_t>(formatVersion) };
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendNilExt() {
+Void JsonSerializer::appendNilExt() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Nil_Ext) };
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendFalse() {
+Void JsonSerializer::appendFalse() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
 		static_cast<Uint8>('e') };
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendTrue() {
+Void JsonSerializer::appendTrue() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::appendNil() {
+Void JsonSerializer::appendNil() {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('i'), static_cast<Uint8>('l') };
-	this->writeCharacters(bufferNew.data(), bufferNew.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
 Void JsonSerializer::setValue(ValueType theTypeNew) {
@@ -940,12 +938,11 @@ int32_t main() noexcept {
 		theStopWatch.resetTimer();
 		for (uint32_t x = 0; x < 1024 * 256; ++x) {
 			theSerializer["d"]["intents"] = x;
-			theSerializer["d"]["intents"].refreshString(WebSocketOpCode::Op_Text);
-			//theSerializer.refreshString(WebSocketOpCode::Op_Text);
+			theSerializer.refreshString(WebSocketOpCode::Op_Text);
 			if (x % 1000 == 0) {
-				std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
+				//std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
 			}
-			theVector.push_back(theSerializer.operator DiscordCoreAPI::String());
+			theVector.push_back(theSerializer.operator String());
 			theSize += theVector.back().size();
 		}
 		std::cout << "THE SIZE: " << theSize << std::endl;
