@@ -63,7 +63,8 @@ using Snowflake = Uint64;
 using Bool = bool;
 using Void = void;
 
-template<typename TimeType> class StopWatch {
+
+	template<typename TimeType> class StopWatch {
   public:
 	StopWatch() = delete;
 
@@ -214,7 +215,7 @@ class JsonSerializer {
 
 	operator String() noexcept;
 
-	void dump(WebSocketOpCode theOpCodeNew);
+	void refreshString(WebSocketOpCode theOpCode);
 
 	ValueType theType{ ValueType::Null };
 
@@ -231,7 +232,7 @@ class JsonSerializer {
 	JsonValue theValue{};
 
 	template<typename ObjectType> JsonSerializer& operator=(Vector<ObjectType> theData) noexcept {
-		this->set(ValueType::Array);
+		this->setValue(ValueType::Array);
 		for (auto& value: theData) {
 			this->theValue.array->push_back(JsonSerializer{ value });
 		}
@@ -243,7 +244,7 @@ class JsonSerializer {
 	}
 
 	template<IsString KeyType, IsString ObjectType> JsonSerializer& operator=(UMap<KeyType, ObjectType> theData) noexcept {
-		this->set(ValueType::Object);
+		this->setValue(ValueType::Object);
 		for (auto& [key, value]: theData) {
 			(*this->theValue.object)[key] = value;
 		}
@@ -312,8 +313,6 @@ class JsonSerializer {
 	Void pushBack(JsonSerializer&& other) noexcept;
 	Void pushBack(JsonSerializer& other) noexcept;
 
-	Void set(ValueType theTypeNew);
-
 	friend bool operator==(const JsonSerializer&, const JsonSerializer&);
 
 	~JsonSerializer() noexcept;
@@ -321,41 +320,52 @@ class JsonSerializer {
   private:
 	String theString{};
 
-	template<typename NumberType,
-		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
-	void dumpInt(NumberType theInt) {
-		auto theIntNew = std::to_string(theInt);
-		this->writeCharacters(theIntNew.data(), theIntNew.size());
-		return;
-	}
+	void parseJsonToEtf(const JsonSerializer* dataToParse);
 
-	void singleValueJsonToETF(const JsonSerializer& jsonData);
-
-	void parseJsonToEtf(const JsonSerializer& dataToParse);
-
-	void parseJsonToJson(const JsonSerializer& dataToParse);
+	void parseJsonToJson(const JsonSerializer* dataToParse);
 
 	void writeJsonObject(const JsonSerializer::ObjectType& theObjectNew);
 
 	void writeJsonArray(const JsonSerializer::ArrayType& theArray);
 
-	void writeObject(const JsonSerializer::ObjectType* jsonData);
+	void writeJsonString(const JsonSerializer::StringType& string);
 
-	void writeString(const JsonSerializer::StringType* jsonData);
+	template<typename NumberType,
+		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
+	void writeJsonInt(NumberType theInt) {
+		auto theIntNew = std::to_string(theInt);
+		this->writeCharacters(theIntNew.data(), theIntNew.size());
+	}
 
-	void writeFloat(const JsonSerializer::FloatType jsonData);
+	void writeJsonFloat(const JsonSerializer::FloatType theFloat);
 
-	void writeUint(const JsonSerializer::UintType jsonData);
+	void writeJsonBool(const JsonSerializer::BoolType jsonData);
 
-	void writeInt(const JsonSerializer::IntType jsonData);
+	void writeJsonNullExt();
 
-	void writeArray(const JsonSerializer::ArrayType* jsonData);
+	void writeJsonNull();
 
-	void writeBool(const JsonSerializer::BoolType jsonData);
+	void writeEtfObject(const JsonSerializer::ObjectType* jsonData);
 
-	void writeNullExt();
+	void writeEtfArray(const JsonSerializer::ArrayType* jsonData);
 
-	void writeNull();
+	void writeEtfString(const JsonSerializer::StringType* jsonData);
+
+	void writeEtfUint(const JsonSerializer::UintType jsonData);
+
+	void writeEtfInt(const JsonSerializer::IntType jsonData);
+
+	void writeEtfFloat(const JsonSerializer::FloatType jsonData);
+
+	void writeEtfBool(const JsonSerializer::BoolType jsonData);
+
+	void writeEtfNullExt();
+
+	void writeEtfNull();
+
+	void writeCharacters(const char* theData, std::size_t length);
+
+	void writeCharacter(const char theChar);
 
 	void writeToBuffer(const String& bytes);
 
@@ -383,18 +393,9 @@ class JsonSerializer {
 
 	void appendNil();
 
-	void writeCharacters(const char* theData, std::size_t length);
-
-	void writeCharacter(const char theChar);
-
-	void dumpEscaped(const String& string);
-
-	void dump(const JsonSerializer& theValue);
-
-	void dumpFloat(const Float theFloat);
+	Void setValue(ValueType theTypeNew);
 
 	Void destroy() noexcept;
 };
-	
 
 #endif// !ERL_PACKER

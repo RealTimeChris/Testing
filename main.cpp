@@ -31,11 +31,111 @@ bool EnumConverter::isItAVector() const noexcept {
 	return this->vectorType;
 }
 
+JsonSerializer& JsonSerializer::operator=(JsonSerializer&& theKey) noexcept {
+	switch (theKey.theType) {
+		case ValueType::Object: {
+			this->setValue(ValueType::Object);
+			*this->theValue.object = std::move(*theKey.theValue.object);
+			break;
+		}
+		case ValueType::Array: {
+			this->setValue(ValueType::Array);
+			*this->theValue.array = std::move(*theKey.theValue.array);
+			break;
+		}
+		case ValueType::String: {
+			this->setValue(ValueType::String);
+			*this->theValue.string = std::move(*theKey.theValue.string);
+			break;
+		}
+		case ValueType::Uint64: {
+			this->theValue.numberUint = theKey.theValue.numberUint;
+			break;
+		}
+		case ValueType::Int64: {
+			this->theValue.numberInt = theKey.theValue.numberInt;
+			break;
+		}
+		case ValueType::Float: {
+			this->theValue.numberDouble = theKey.theValue.numberDouble;
+			break;
+		}
+		case ValueType::Bool: {
+			this->theValue.boolean = theKey.theValue.boolean;
+			break;
+		}
+	}
+	this->theString = std::move(theKey.theString);
+	this->theType = theKey.theType;
+	return *this;
+}
+
+JsonSerializer::JsonSerializer(JsonSerializer&& theKey) noexcept {
+	*this = std::move(theKey);
+}
+
+JsonSerializer& JsonSerializer::operator=(const JsonSerializer& theKey) noexcept {
+	switch (theKey.theType) {
+		case ValueType::Object: {
+			this->setValue(ValueType::Object);
+			*this->theValue.object = *theKey.theValue.object;
+			break;
+		}
+		case ValueType::Array: {
+			this->setValue(ValueType::Array);
+			*this->theValue.array = *theKey.theValue.array;
+			break;
+		}
+		case ValueType::String: {
+			this->setValue(ValueType::String);
+			*this->theValue.string = *theKey.theValue.string;
+			break;
+		}
+		case ValueType::Bool: {
+			this->theValue.boolean = theKey.theValue.boolean;
+			break;
+		}
+		case ValueType::Int64: {
+			this->theValue.numberInt = theKey.theValue.numberInt;
+			break;
+		}
+		case ValueType::Uint64: {
+			this->theValue.numberUint = theKey.theValue.numberUint;
+			break;
+		}
+		case ValueType::Float: {
+			this->theValue.numberDouble = theKey.theValue.numberDouble;
+			break;
+		}
+	}
+	this->theString = theKey.theString;
+	this->theType = theKey.theType;
+	return *this;
+}
+
+JsonSerializer::JsonSerializer(const JsonSerializer& theKey) noexcept {
+	*this = theKey;
+}
+
+JsonSerializer::operator String() noexcept {
+	return std::move(this->theString);
+}
+
+void JsonSerializer::refreshString(WebSocketOpCode theOpCode) {
+	if (theOpCode == WebSocketOpCode::Op_Binary) {
+		this->appendVersion();
+		this->parseJsonToEtf(this);
+	} else {
+		this->parseJsonToJson(this);
+	}
+	return;
+}
+
 JsonSerializer& JsonSerializer::operator=(EnumConverter&& theData) noexcept {
 	if (theData.isItAVector()) {
-		this->set(ValueType::Array);
+		this->setValue(ValueType::Array);
 		for (auto& value: theData.operator Vector<Uint64>()) {
-			this->theValue.array->push_back(value);
+			this->theValue.array->emplace_back(std::move(value));
 		}
 	} else {
 		this->theValue.numberUint = Uint64{ theData };
@@ -50,9 +150,9 @@ JsonSerializer::JsonSerializer(EnumConverter&& theData) noexcept {
 
 JsonSerializer& JsonSerializer::operator=(const EnumConverter& theData) noexcept {
 	if (theData.isItAVector()) {
-		this->set(ValueType::Array);
+		this->setValue(ValueType::Array);
 		for (auto& value: theData.operator Vector<Uint64>()) {
-			this->theValue.array->push_back(value);
+			this->theValue.array->emplace_back(value);
 		}
 	} else {
 		this->theValue.numberUint = Uint64{ theData };
@@ -65,109 +165,8 @@ JsonSerializer::JsonSerializer(const EnumConverter& theData) noexcept {
 	*this = theData;
 }
 
-JsonSerializer& JsonSerializer::operator=(JsonSerializer&& theKey) noexcept {
-	switch (theKey.theType) {
-		case ValueType::Object: {
-			this->set(ValueType::Object);
-			*this->theValue.object = std::move(*theKey.theValue.object);
-			break;
-		}
-		case ValueType::Array: {
-			this->set(ValueType::Array);
-			*this->theValue.array = std::move(*theKey.theValue.array);
-			break;
-		}
-		case ValueType::String: {
-			this->set(ValueType::String);
-			*this->theValue.string = std::move(*theKey.theValue.string);
-			break;
-		}
-		case ValueType::Bool: {
-			this->theValue.boolean = theKey.theValue.boolean;
-			break;
-		}
-		case ValueType::Int64: {
-			this->theValue.numberInt = theKey.theValue.numberInt;
-			break;
-		}
-		case ValueType::Uint64: {
-			this->theValue.numberUint = theKey.theValue.numberUint;
-			break;
-		}
-		case ValueType::Float: {
-			this->theValue.numberDouble = theKey.theValue.numberDouble;
-			break;
-		}
-		case ValueType::Null: {
-			break;
-		}
-	}
-	this->theType = theKey.theType;
-	return *this;
-}
-
-JsonSerializer::JsonSerializer(JsonSerializer&& theKey) noexcept {
-	*this = std::move(theKey);
-}
-
-JsonSerializer& JsonSerializer::operator=(const JsonSerializer& theKey) noexcept {
-	switch (theKey.theType) {
-		case ValueType::Object: {
-			this->set(ValueType::Object);
-			*this->theValue.object = *theKey.theValue.object;
-			this->theType = ValueType::Object;
-			break;
-		}
-		case ValueType::Array: {
-			this->set(ValueType::Array);
-			*this->theValue.array = *theKey.theValue.array;
-			this->theType = ValueType::Array;
-			break;
-		}
-		case ValueType::String: {
-			this->set(ValueType::String);
-			*this->theValue.string = *theKey.theValue.string;
-			this->theType = ValueType::String;
-			break;
-		}
-		case ValueType::Bool: {
-			this->theValue.boolean = theKey.theValue.boolean;
-			this->theType = ValueType::Bool;
-			break;
-		}
-		case ValueType::Int64: {
-			this->theValue.numberInt = theKey.theValue.numberInt;
-			this->theType = ValueType::Int64;
-			break;
-		}
-		case ValueType::Uint64: {
-			this->theValue.numberUint = theKey.theValue.numberUint;
-			this->theType = ValueType::Uint64;
-			break;
-		}
-		case ValueType::Float: {
-			this->theValue.numberDouble = theKey.theValue.numberDouble;
-			this->theType = ValueType::Float;
-			break;
-		}
-		case ValueType::Null: {
-			this->theType = ValueType::Null;
-			break;
-		}
-		default: {
-			break;
-		}
-	}
-	this->theType = theKey.theType;
-	return *this;
-}
-
-JsonSerializer::JsonSerializer(const JsonSerializer& theKey) noexcept {
-	*this = theKey;
-}
-
 JsonSerializer& JsonSerializer::operator=(String&& theData) noexcept {
-	this->set(ValueType::String);
+	this->setValue(ValueType::String);
 	*this->theValue.string = std::move(theData);
 	this->theType = ValueType::String;
 	return *this;
@@ -178,7 +177,7 @@ JsonSerializer::JsonSerializer(String&& theData) noexcept {
 }
 
 JsonSerializer& JsonSerializer::operator=(const String& theData) noexcept {
-	this->set(ValueType::String);
+	this->setValue(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
 	return *this;
@@ -189,7 +188,7 @@ JsonSerializer::JsonSerializer(const String& theData) noexcept {
 }
 
 JsonSerializer& JsonSerializer::operator=(const char* theData) noexcept {
-	this->set(ValueType::String);
+	this->setValue(ValueType::String);
 	*this->theValue.string = theData;
 	this->theType = ValueType::String;
 	return *this;
@@ -320,7 +319,7 @@ JsonSerializer::JsonSerializer(ValueType theType) noexcept {
 
 JsonSerializer& JsonSerializer::operator[](typename ObjectType::key_type key) {
 	if (this->theType == ValueType::Null) {
-		this->set(ValueType::Object);
+		this->setValue(ValueType::Object);
 		this->theType = ValueType::Object;
 	}
 
@@ -333,7 +332,7 @@ JsonSerializer& JsonSerializer::operator[](typename ObjectType::key_type key) {
 
 JsonSerializer& JsonSerializer::operator[](Uint64 index) {
 	if (this->theType == ValueType::Null) {
-		this->set(ValueType::Array);
+		this->setValue(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
 
@@ -349,7 +348,7 @@ JsonSerializer& JsonSerializer::operator[](Uint64 index) {
 
 Void JsonSerializer::pushBack(JsonSerializer&& other) noexcept {
 	if (this->theType == ValueType::Null) {
-		this->set(ValueType::Array);
+		this->setValue(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
 
@@ -360,7 +359,7 @@ Void JsonSerializer::pushBack(JsonSerializer&& other) noexcept {
 
 Void JsonSerializer::pushBack(JsonSerializer& other) noexcept {
 	if (this->theType == ValueType::Null) {
-		this->set(ValueType::Array);
+		this->setValue(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
 
@@ -369,64 +368,245 @@ Void JsonSerializer::pushBack(JsonSerializer& other) noexcept {
 	}
 }
 
-Void JsonSerializer::set(ValueType theTypeNew) {
-	this->destroy();
-	switch (theTypeNew) {
+void JsonSerializer::parseJsonToEtf(const JsonSerializer* dataToParse) {
+	switch (dataToParse->theType) {
 		case ValueType::Object: {
-			AllocatorType<ObjectType> allocator{};
-			auto alloc = AllocatorTraits<ObjectType>{};
-			this->theValue.object = alloc.allocate(allocator, 1);
-			alloc.construct(allocator, this->theValue.object);
-			this->theType = theTypeNew;
-			break;
+			return this->writeEtfObject(dataToParse->theValue.object);
 		}
 		case ValueType::Array: {
-			AllocatorType<ArrayType> allocator{};
-			auto alloc = AllocatorTraits<ArrayType>{};
-			this->theValue.array = alloc.allocate(allocator, 1);
-			alloc.construct(allocator, this->theValue.array);
-			this->theType = theTypeNew;
-			break;
+			return this->writeEtfArray(dataToParse->theValue.array);
 		}
 		case ValueType::String: {
-			AllocatorType<StringType> allocator{};
-			auto alloc = AllocatorTraits<StringType>{};
-			this->theValue.string = alloc.allocate(allocator, 1);
-			alloc.construct(allocator, this->theValue.string);
-			this->theType = theTypeNew;
-			break;
+			return this->writeEtfString(dataToParse->theValue.string);
+		}
+		case ValueType::Uint64: {
+			return this->writeEtfUint(dataToParse->theValue.numberUint);
+		}
+		case ValueType::Int64: {
+			return this->writeEtfInt(dataToParse->theValue.numberInt);
+		}
+		case ValueType::Float: {
+			return this->writeEtfFloat(dataToParse->theValue.numberDouble);
+		}
+		case ValueType::Bool: {
+			return this->writeEtfBool(dataToParse->theValue.boolean);
+		}
+		case ValueType::Null_Ext: {
+			return this->writeEtfNullExt();
+		}
+		case ValueType::Null: {
+			return this->writeEtfNull();
+		}
+	}
+	return;
+}
+
+void JsonSerializer::parseJsonToJson(const JsonSerializer* dataToParse) {
+	switch (dataToParse->theType) {
+		case ValueType::Object: {
+			return this->writeJsonObject(*dataToParse->theValue.object);
+		}
+		case ValueType::Array: {
+			return this->writeJsonArray(*dataToParse->theValue.array);
+		}
+		case ValueType::String: {
+			return this->writeJsonString(*dataToParse->theValue.string);
+		}
+		case ValueType::Uint64: {
+			return this->writeJsonInt(dataToParse->theValue.numberUint);
+		}
+		case ValueType::Int64: {
+			return this->writeJsonInt(dataToParse->theValue.numberInt);
+		}
+		case ValueType::Float: {
+			return this->writeJsonFloat(dataToParse->theValue.numberDouble);
+		}
+		case ValueType::Bool: {
+			return this->writeJsonBool(dataToParse->theValue.boolean);
+		}
+		case ValueType::Null_Ext: {
+			return this->writeJsonNullExt();
+		}
+		case ValueType::Null: {
+			return this->writeJsonNull();
 		}
 	}
 }
 
-Void JsonSerializer::destroy() noexcept {
-	switch (this->theType) {
-		case ValueType::Object: {
-			AllocatorType<ObjectType> allocator{};
-			auto alloc = AllocatorTraits<ObjectType>{};
-			alloc.destroy(allocator, this->theValue.object);
-			alloc.deallocate(allocator, this->theValue.object, 1);
-			break;
+void JsonSerializer::writeJsonObject(const JsonSerializer::ObjectType& theObjectNew) {
+	if (theObjectNew.empty()) {
+		this->writeCharacters("{}", 2);
+		return;
+	}
+	this->writeCharacter('{');
+
+	Int32 theIndex{};
+	for (auto& [key, value]: theObjectNew) {
+		this->writeJsonString(key);
+		this->writeCharacter(':');
+		this->parseJsonToJson(&value);
+
+		if (theIndex != theObjectNew.size() - 1) {
+			this->writeCharacter(',');
 		}
-		case ValueType::Array: {
-			AllocatorType<ArrayType> allocator{};
-			auto alloc = AllocatorTraits<ArrayType>{};
-			alloc.destroy(allocator, this->theValue.array);
-			alloc.deallocate(allocator, this->theValue.array, 1);
-			break;
+		theIndex++;
+	}
+
+	this->writeCharacter('}');
+}
+
+void JsonSerializer::writeJsonArray(const JsonSerializer::ArrayType& theArray) {
+	if (theArray.empty()) {
+		this->writeCharacters("[]", 2);
+		return;
+	}
+
+	this->writeCharacter('[');
+
+	Int32 theIndex{};
+	for (auto& value: theArray) {
+		this->parseJsonToJson(&value);
+		if (theIndex != theArray.size() - 1) {
+			this->writeCharacter(',');
 		}
-		case ValueType::String: {
-			AllocatorType<StringType> allocator{};
-			auto alloc = AllocatorTraits<StringType>{};
-			alloc.destroy(allocator, this->theValue.string);
-			alloc.deallocate(allocator, this->theValue.string, 1);
-			break;
+		theIndex++;
+	}
+
+	this->writeCharacter(']');
+}
+
+void JsonSerializer::writeJsonString(const JsonSerializer::StringType& theStringNew) {
+	this->writeCharacter('\"');
+	for (auto& value: theStringNew) {
+		switch (static_cast<std::uint8_t>(value)) {
+			case 0x08: {
+				this->writeCharacter('b');
+				break;
+			}
+			case 0x09: {
+				this->writeCharacter('t');
+				break;
+			}
+			case 0x0A: {
+				this->writeCharacter('n');
+				break;
+			}
+			case 0x0C: {
+				this->writeCharacter('f');
+				break;
+			}
+			case 0x0D: {
+				this->writeCharacter('r');
+				break;
+			}
+			case 0x22: {
+				this->writeCharacter('\"');
+				break;
+			}
+			case 0x5C: {
+				this->writeCharacter('\\');
+				break;
+			}
+			default: {
+				this->writeCharacter(value);
+				break;
+			}
 		}
+	}
+	this->writeCharacter('\"');
+}
+
+void JsonSerializer::writeJsonFloat(const JsonSerializer::FloatType x) {
+	auto theFloat = std::to_string(x);
+	this->writeCharacters(theFloat.data(), theFloat.size());
+}
+
+void JsonSerializer::writeJsonBool(const JsonSerializer::BoolType theValueNew) {
+	if (theValueNew) {
+		this->writeCharacters("true", 4);
+	} else {
+		this->writeCharacters("false", 5);
 	}
 }
 
-JsonSerializer::~JsonSerializer() noexcept {
-	this->destroy();
+void JsonSerializer::writeJsonNullExt() {
+	this->writeCharacters("[]", 2);
+}
+
+void JsonSerializer::writeJsonNull() {
+	this->writeCharacters("null", 4);
+}
+
+void JsonSerializer::writeEtfObject(const JsonSerializer::ObjectType* jsonData) {
+	this->appendMapHeader(static_cast<Uint32>(jsonData->size()));
+	for (auto& field: *jsonData) {
+		this->appendBinaryExt(field.first, static_cast<Uint32>(field.first.size()));
+		this->parseJsonToEtf(&field.second);
+	}
+}
+
+void JsonSerializer::writeEtfArray(const JsonSerializer::ArrayType* jsonData) {
+	this->appendListHeader(static_cast<Uint32>(jsonData->size()));
+	for (auto& element: *jsonData) {
+		this->parseJsonToEtf(&element);
+	}
+	this->appendNilExt();
+}
+
+void JsonSerializer::writeEtfString(const JsonSerializer::StringType* jsonData) {
+	this->appendBinaryExt(*jsonData, static_cast<Uint32>(jsonData->size()));
+}
+
+void JsonSerializer::writeEtfUint(const JsonSerializer::UintType jsonData) {
+	auto theInt = jsonData;
+	if (theInt <= 255 && theInt >= 0) {
+		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
+	} else if (theInt <= std::numeric_limits<Uint32>::max() && theInt >= 0) {
+		this->appendIntegerExt(static_cast<Uint32>(theInt));
+	} else {
+		this->appendUnsignedLongLong(theInt);
+	}
+}
+
+void JsonSerializer::writeEtfInt(const JsonSerializer::IntType jsonData) {
+	auto theInt = jsonData;
+	if (theInt <= 127 && theInt >= -127) {
+		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
+	} else if (theInt <= std::numeric_limits<Int32>::max() && theInt >= std::numeric_limits<Int32>::min()) {
+		this->appendIntegerExt(static_cast<Uint32>(theInt));
+	} else {
+		this->appendUnsignedLongLong(static_cast<Uint64>(theInt));
+	}
+}
+
+void JsonSerializer::writeEtfFloat(const JsonSerializer::FloatType jsonData) {
+	auto theFloat = jsonData;
+	this->appendNewFloatExt(theFloat);
+}
+
+void JsonSerializer::writeEtfBool(const JsonSerializer::BoolType jsonData) {
+	auto theBool = jsonData;
+	if (theBool) {
+		this->appendTrue();
+	} else {
+		this->appendFalse();
+	}
+}
+
+void JsonSerializer::writeEtfNullExt() {
+	this->appendNilExt();
+}
+
+void JsonSerializer::writeEtfNull() {
+	this->appendNil();
+}
+
+void JsonSerializer::writeCharacters(const char* theData, std::size_t length) {
+	this->theString.append(theData, length);
+}
+
+void JsonSerializer::writeCharacter(const char theChar) {
+	this->theString.push_back(theChar);
 }
 
 bool operator==(const JsonSerializer& lhs, const JsonSerializer& rhs) {
@@ -480,220 +660,6 @@ bool operator==(const JsonSerializer& lhs, const JsonSerializer& rhs) {
 	return true;
 }
 
-JsonSerializer::operator String() noexcept {
-	return std::move(this->theString);
-}
-
-void JsonSerializer::dump(WebSocketOpCode theOpCodeNew) {
-	if (theOpCodeNew == WebSocketOpCode::Op_Binary) {
-		this->parseJsonToEtf(*this);
-	} else {
-		this->parseJsonToJson(*this);
-	}
-	return;
-}
-
-void JsonSerializer::singleValueJsonToETF(const JsonSerializer& jsonData) {
-	switch (jsonData.theType) {
-		case ValueType::Object: {
-			this->writeObject(jsonData.theValue.object);
-			break;
-		}
-		case ValueType::Array: {
-			this->writeArray(jsonData.theValue.array);
-			break;
-		}
-		case ValueType::Bool: {
-			this->writeBool(jsonData.theValue.boolean);
-			break;
-		}
-		case ValueType::Float: {
-			this->writeFloat(jsonData.theValue.numberDouble);
-			break;
-		}
-		case ValueType::Int64: {
-			this->writeInt(jsonData.theValue.numberInt);
-			break;
-		}
-		case ValueType::Uint64: {
-			this->writeUint(jsonData.theValue.numberUint);
-			break;
-		}
-		case ValueType::String: {
-			this->writeString(jsonData.theValue.string);
-			break;
-		}
-		case ValueType::Null: {
-			this->writeNull();
-			break;
-		}
-		case ValueType::Null_Ext: {
-			this->writeNullExt();
-			break;
-		}
-	}
-}
-
-void JsonSerializer::parseJsonToJson(const JsonSerializer& dataToParse) {
-	switch (dataToParse.theType) {
-		case ValueType::Object: {
-			this->writeJsonObject(*dataToParse.theValue.object);
-			break;
-		}
-		case ValueType::Array: {
-			this->writeJsonArray(*dataToParse.theValue.array);
-			break;
-		}
-		case ValueType::String: {
-			this->writeCharacter('\"');
-			dumpEscaped(*dataToParse.theValue.string);
-			this->writeCharacter('\"');
-			break;
-		}
-		case ValueType::Bool: {
-			if (dataToParse.theValue.boolean) {
-				this->writeCharacters("true", 4);
-			} else {
-				this->writeCharacters("false", 5);
-			}
-			break;
-		}
-		case ValueType::Int64: {
-			dumpInt(dataToParse.theValue.numberInt);
-			break;
-		}
-		case ValueType::Uint64: {
-			dumpInt(dataToParse.theValue.numberUint);
-			break;
-		}
-		case ValueType::Float: {
-			dumpFloat(dataToParse.theValue.numberDouble);
-			break;
-		}
-		case ValueType::Null: {
-			this->writeCharacters("null", 4);
-			break;
-		}
-		case ValueType::Null_Ext: {
-			this->writeCharacters("[]", 2);
-			break;
-		}
-	}
-}
-
-void JsonSerializer::parseJsonToEtf(const JsonSerializer& dataToParse) {
-	this->appendVersion();
-	this->singleValueJsonToETF(dataToParse);
-	return;
-}
-
-void JsonSerializer::writeJsonObject(const JsonSerializer::ObjectType& theObjectNew) {
-	if (theObjectNew.empty()) {
-		this->writeCharacters("{}", 2);
-		return;
-	}
-	this->writeCharacter('{');
-
-	Int32 theIndex{};
-	for (auto x = theObjectNew.cbegin(); x != theObjectNew.cend(); ++x) {
-		this->writeCharacter('\"');
-		dumpEscaped(x->first);
-		this->writeCharacters("\":", 2);
-		dump(x->second);
-
-		if (theIndex != theObjectNew.size() - 1) {
-			this->writeCharacter(',');
-		}
-		theIndex++;
-	}
-
-	this->writeCharacter('}');
-}
-
-void JsonSerializer::writeJsonArray(const JsonSerializer::ArrayType& theArray) {
-	if (theArray.empty()) {
-		this->writeCharacters("[]", 2);
-		return;
-	}
-
-	this->writeCharacter('[');
-
-	Int32 theIndex{};
-	for (auto x = theArray.cbegin(); x != theArray.cend(); ++x) {
-		dump(*x);
-		if (theIndex != theArray.size() - 1) {
-			this->writeCharacter(',');
-		}
-		theIndex++;
-	}
-
-	this->writeCharacter(']');
-}
-
-void JsonSerializer::writeObject(const JsonSerializer::ObjectType* jsonData) {
-	this->appendMapHeader(static_cast<Uint32>(jsonData->size()));
-	for (auto& field: *jsonData) {
-		this->appendBinaryExt(field.first, static_cast<Uint32>(field.first.size()));
-		this->singleValueJsonToETF(field.second);
-	}
-}
-
-void JsonSerializer::writeString(const JsonSerializer::StringType* jsonData) {
-	this->appendBinaryExt(*jsonData, static_cast<Uint32>(jsonData->size()));
-}
-
-void JsonSerializer::writeFloat(const JsonSerializer::FloatType jsonData) {
-	auto theFloat = jsonData;
-	this->appendNewFloatExt(theFloat);
-}
-
-void JsonSerializer::writeUint(const JsonSerializer::UintType jsonData) {
-	auto theInt = jsonData;
-	if (theInt <= 255 && theInt >= 0) {
-		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
-	} else if (theInt <= std::numeric_limits<Uint32>::max() && theInt >= 0) {
-		this->appendIntegerExt(static_cast<Uint32>(theInt));
-	} else {
-		this->appendUnsignedLongLong(theInt);
-	}
-}
-
-void JsonSerializer::writeInt(const JsonSerializer::IntType jsonData) {
-	auto theInt = jsonData;
-	if (theInt <= 127 && theInt >= -127) {
-		this->appendSmallIntegerExt(static_cast<Uint8>(theInt));
-	} else if (theInt <= std::numeric_limits<Int32>::max() && theInt >= std::numeric_limits<Int32>::min()) {
-		this->appendIntegerExt(static_cast<Uint32>(theInt));
-	} else {
-		this->appendUnsignedLongLong(static_cast<Uint64>(theInt));
-	}
-}
-
-void JsonSerializer::writeArray(const JsonSerializer::ArrayType* jsonData) {
-	this->appendListHeader(static_cast<Uint32>(jsonData->size()));
-	for (auto& element: *jsonData) {
-		this->singleValueJsonToETF(element);
-	}
-	this->appendNilExt();
-}
-
-void JsonSerializer::writeBool(const JsonSerializer::BoolType jsonData) {
-	auto theBool = jsonData;
-	if (theBool) {
-		this->appendTrue();
-	} else {
-		this->appendFalse();
-	}
-}
-
-void JsonSerializer::writeNullExt() {
-	this->appendNilExt();
-}
-
-void JsonSerializer::writeNull() {
-	this->appendNil();
-}
-
 void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
 	String bufferNew{ static_cast<Uint8>(ETFTokenType::Binary_Ext) };
 	storeBits(bufferNew, sizeNew);
@@ -703,17 +669,17 @@ void JsonSerializer::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
 
 void JsonSerializer::appendUnsignedLongLong(const Uint64 value) {
 	String bufferNew{};
-	Uint64 theValue = value;
+	Uint64 theValueNew = value;
 	bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
 	bufferNew[0] = static_cast<Uint8>(ETFTokenType::Small_Big_Ext);
 	StopWatch theStopWatch{ std::chrono::milliseconds{ 1500 } };
 	Uint8 bytesToEncode = 0;
-	while (theValue > 0) {
+	while (theValueNew > 0) {
 		if (theStopWatch.hasTimePassed()) {
 			break;
 		}
-		bufferNew[static_cast<Uint64>(3) + bytesToEncode] = theValue & 0xF;
-		theValue >>= 8;
+		bufferNew[static_cast<Uint64>(3) + bytesToEncode] = theValueNew & 0xF;
+		theValueNew >>= 8;
 		bytesToEncode++;
 	}
 	bufferNew[1] = bytesToEncode;
@@ -779,144 +745,64 @@ void JsonSerializer::appendNil() {
 	this->writeCharacters(bufferNew.data(), bufferNew.size());
 }
 
-void JsonSerializer::writeCharacters(const char* theData, std::size_t length) {
-	theString.append(theData, length);
-}
-
-void JsonSerializer::writeCharacter(const char theChar) {
-	theString.push_back(theChar);
-}
-
-void JsonSerializer::dumpEscaped(const String& string) {
-	for (std::size_t x = 0; x < string.size(); ++x) {
-		switch (static_cast<std::uint8_t>(string[x])) {
-			case 0x08: {
-				this->writeCharacter('b');
-				break;
-			}
-			case 0x09: {
-				this->writeCharacter('t');
-				break;
-			}
-			case 0x0A: {
-				this->writeCharacter('n');
-				break;
-			}
-			case 0x0C: {
-				this->writeCharacter('f');
-				break;
-			}
-			case 0x0D: {
-				this->writeCharacter('r');
-				break;
-			}
-			case 0x22: {
-				this->writeCharacter('\"');
-				break;
-			}
-			case 0x5C: {
-				this->writeCharacter('\\');
-				break;
-			}
-			default: {
-				this->writeCharacter(string[x]);
-				break;
-			}
-		}
-	}
-}
-
-void JsonSerializer::dump(const JsonSerializer& val) {
-	switch (val.theType) {
+Void JsonSerializer::setValue(ValueType theTypeNew) {
+	this->destroy();
+	switch (theTypeNew) {
 		case ValueType::Object: {
-			if (val.theValue.object->empty()) {
-				this->writeCharacters("{}", 2);
-				return;
-			}
-			this->writeCharacter('{');
-
-			Int32 theIndex{};
-			for (auto x = val.theValue.object->cbegin(); x != val.theValue.object->cend(); ++x) {
-				this->writeCharacter('\"');
-				dumpEscaped(x->first);
-				this->writeCharacters("\":", 2);
-				dump(x->second);
-
-				if (theIndex != val.theValue.object->size() - 1) {
-					this->writeCharacter(',');
-				}
-				theIndex++;
-			}
-
-			this->writeCharacter('}');
-			return;
+			AllocatorType<ObjectType> allocator{};
+			auto alloc = AllocatorTraits<ObjectType>{};
+			this->theValue.object = alloc.allocate(allocator, 1);
+			alloc.construct(allocator, this->theValue.object);
+			this->theType = theTypeNew;
+			break;
 		}
 		case ValueType::Array: {
-			if (val.theValue.array->empty()) {
-				this->writeCharacters("[]", 2);
-				return;
-			}
-
-			this->writeCharacter('[');
-
-			Int32 theIndex{};
-			for (auto x = val.theValue.array->cbegin(); x != val.theValue.array->cend(); ++x) {
-				dump(*x);
-				if (theIndex != val.theValue.array->size() - 1) {
-					this->writeCharacter(',');
-				}
-				theIndex++;
-			}
-
-			this->writeCharacter(']');
-			return;
+			AllocatorType<ArrayType> allocator{};
+			auto alloc = AllocatorTraits<ArrayType>{};
+			this->theValue.array = alloc.allocate(allocator, 1);
+			alloc.construct(allocator, this->theValue.array);
+			this->theType = theTypeNew;
+			break;
 		}
-
 		case ValueType::String: {
-			this->writeCharacter('\"');
-			dumpEscaped(*val.theValue.string);
-			this->writeCharacter('\"');
-			return;
-		}
-
-		case ValueType::Bool: {
-			if (val.theValue.boolean) {
-				this->writeCharacters("true", 4);
-			} else {
-				this->writeCharacters("false", 5);
-			}
-			return;
-		}
-
-		case ValueType::Int64: {
-			dumpInt(val.theValue.numberInt);
-			return;
-		}
-
-		case ValueType::Uint64: {
-			dumpInt(val.theValue.numberUint);
-			return;
-		}
-
-		case ValueType::Float: {
-			dumpFloat(val.theValue.numberDouble);
-			return;
-		}
-
-		case ValueType::Null: {
-			this->writeCharacters("null", 4);
-			return;
-		}
-		case ValueType::Null_Ext: {
-			this->writeCharacters("[]", 2);
-			return;
+			AllocatorType<StringType> allocator{};
+			auto alloc = AllocatorTraits<StringType>{};
+			this->theValue.string = alloc.allocate(allocator, 1);
+			alloc.construct(allocator, this->theValue.string);
+			this->theType = theTypeNew;
+			break;
 		}
 	}
 }
 
-void JsonSerializer::dumpFloat(const Float x) {
-	auto theFloat = std::to_string(x);
-	this->writeCharacters(theFloat.data(), theFloat.size());
+Void JsonSerializer::destroy() noexcept {
+	switch (this->theType) {
+		case ValueType::Object: {
+			AllocatorType<ObjectType> allocator{};
+			auto alloc = AllocatorTraits<ObjectType>{};
+			alloc.destroy(allocator, this->theValue.object);
+			alloc.deallocate(allocator, this->theValue.object, 1);
+			break;
+		}
+		case ValueType::Array: {
+			AllocatorType<ArrayType> allocator{};
+			auto alloc = AllocatorTraits<ArrayType>{};
+			alloc.destroy(allocator, this->theValue.array);
+			alloc.deallocate(allocator, this->theValue.array, 1);
+			break;
+		}
+		case ValueType::String: {
+			AllocatorType<StringType> allocator{};
+			auto alloc = AllocatorTraits<StringType>{};
+			alloc.destroy(allocator, this->theValue.string);
+			alloc.deallocate(allocator, this->theValue.string, 1);
+			break;
+		}
+	}
+}
+
+JsonSerializer::~JsonSerializer() noexcept {
+	this->destroy();
 }
 
 struct UpdatePresenceData {
@@ -1058,7 +944,7 @@ int32_t main() noexcept {
 		theStopWatch.resetTimer();
 		for (uint32_t x = 0; x < 1024 * 256; ++x) {
 			theSerializer["d"]["intents"] = x;
-			theSerializer.dump(WebSocketOpCode::Op_Text);
+			theSerializer.refreshString(WebSocketOpCode::Op_Text);
 			if (x % 1000 == 0) {
 				//std::cout << theString << std::endl;
 			}
