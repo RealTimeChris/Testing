@@ -938,11 +938,12 @@ int32_t main() noexcept {
 		JsonSerializer theSerializer{ theDataBewTwo.operator JsonSerializer() };
 		theSerializer.refreshString(WebSocketOpCode::Op_Text);
 		theStopWatch.resetTimer();
-		for (uint32_t x = 0; x < 1024 * 128; ++x) {
+		for (uint32_t x = 0; x < 1024 * 256; ++x) {
 			theSerializer["d"]["intents"] = x;
-			theSerializer.refreshString(WebSocketOpCode::Op_Text);
+			theSerializer["d"]["intents"].refreshString(WebSocketOpCode::Op_Text);
+			//theSerializer.refreshString(WebSocketOpCode::Op_Text);
 			if (x % 1000 == 0) {
-				//std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
+				std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
 			}
 			theVector.push_back(theSerializer.operator DiscordCoreAPI::String());
 			theSize += theVector.back().size();
@@ -960,7 +961,7 @@ int32_t main() noexcept {
 		auto theReferenceTwo = theDataBewTwoReal.operator nlohmann::json_abi_v3_11_2::json();
 		theSize = 0;
 		theStopWatch.resetTimer();
-		for (uint32_t x = 0; x < 1024 * 128; ++x) {
+		for (uint32_t x = 0; x < 1024 * 256; ++x) {
 			theReferenceTwo["d"]["intents"] = x;
 			if (x % 1000 == 0) {
 				//std::cout << theString << std::endl;
