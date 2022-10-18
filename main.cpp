@@ -937,7 +937,7 @@ int32_t main() noexcept {
 		theSerializer.refreshString(WebSocketOpCode::Op_Text);
 		theStopWatch.resetTimer();
 		for (uint32_t x = 0; x < 1024 * 256; ++x) {
-			theSerializer["d"]["intents"] = x;
+			theSerializer["d"]["intents"] = nullptr;
 			theSerializer.refreshString(WebSocketOpCode::Op_Text);
 			if (x % 1000 == 0) {
 				//std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
