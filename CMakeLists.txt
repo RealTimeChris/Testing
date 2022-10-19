@@ -47,28 +47,19 @@ elseif(EXISTS "${VCPKG_ROOT_DIR}")
 else()
 	message(FATAL_ERROR "Please, set the VCPKG base directory, or the location of the DiscordCoreAPIConfig.cmake file!")
 endif()
-#set(Jsonifier_DIR "C:/Users/Chris/source/repos/Jsonifier/Output Files/share/jsonifier/")
 find_package(DiscordCoreAPI CONFIG REQUIRED)
-#find_package(Jsonifier CONFIG REQUIRED)
 
 include(FetchContent)
-FetchContent_Declare(Jsonifier 
-	SOURCE_DIR "./Source"
-	BUILD_DIR "./Build"
-	BINARY_DIR "./Binary"
-	URL https://github.com/RealTimeChris/Jsonifier/releases/download/master/Jsonifier-src.zip
+FetchContent_Declare(
+  Jsonifier
+  GIT_REPOSITORY https://github.com/RealTimeChris/Jsonifier.git
+  GIT_TAG        6664db525c014b68ca017f38f79c1e43c88a2512
+  OVERRIDE_FIND_PACKAGE
 )
+
 
 FetchContent_MakeAvailable(Jsonifier)
 
 set(JSONIFIER_EXAMPLES OFF CACHE INTERNAL "")
-
-#FetchContent_GetProperties(Jsonifier)
-if(NOT Jsonifier_POPULATED)   
-  #FetchContent_Populate(Jsonifier)
-  message(STATUS "Jsonifier source dir: ${Jsonifier_SOURCE_DIR}")
-  message(STATUS "Jsonifier binary dir: ${Jsonifier_BINARY_DIR}")
-  add_subdirectory(${Jsonifier_SOURCE_DIR} ${Jsonifier_BINARY_DIR}) 
-endif()
 
 add_subdirectory(Executable)
