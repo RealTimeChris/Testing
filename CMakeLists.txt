@@ -55,4 +55,14 @@ include(FetchContent)
 FetchContent_Declare(Jsonifier URL https://github.com/RealTimeChris/Jsonifier/releases/download/main/Jsonifier-src.zip)
 FetchContent_MakeAvailable(Jsonifier)
 
+set(JSONIFIER_EXAMPLES OFF CACHE INTERNAL "")
+
+FetchContent_GetProperties(Jsonifier)
+if(NOT Jsonifier_POPULATED)   
+  FetchContent_Populate(Jsonifier)
+  message(STATUS "Jsonifier source dir: ${Jsonifier_SOURCE_DIR}")
+  message(STATUS "Jsonifier binary dir: ${Jsonifier_BINARY_DIR}")
+  add_subdirectory(${Jsonifier_SOURCE_DIR} ${Jsonifier_BINARY_DIR}) 
+endif()
+
 add_subdirectory(Executable)
