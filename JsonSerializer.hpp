@@ -407,8 +407,6 @@ class Jsonifier {
 
 	Void writeCharacter(const char theChar);
 
-	Void writeToBuffer(const String& bytes);
-
 	Void appendBinaryExt(const String& bytes, Uint32 sizeNew);
 
 	Void appendUnsignedLongLong(const Uint64 value);

@@ -961,12 +961,14 @@ int32_t main() noexcept {
 		///theSerializer["d"]["presence"]["activities"].get<std::vector<std::string>>();
 		for (uint32_t x = 0; x < 1024 * 128; ++x) {
 			theSerializer["d"]["intents"] = nullptr;
-			theSerializer.refreshString(JsonifierSerializeType::Json);
+			theSerializer.refreshString(JsonifierSerializeType::Etf);
 			if (x % 1000 == 0) {
 				//std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
 			}
-			theVector.push_back(theSerializer.operator String());
-			theSize += theVector.back().size();
+			DiscordCoreInternal::ErlPacker thePacker{};
+			nlohmann::json theDataNew{ nlohmann::json::parse(thePacker.parseEtfToJson(theSerializer.operator DiscordCoreAPI::String())) };
+			//theSize += theVector.back().size();
+			std::cout << theDataNew << std::endl;
 		}
 		std::cout << "THE NUMBER OF BYTES THAT WERE PARSED: " << theSize << std::endl << std::endl;
 		std::cout << "THE TIME IT TOOK (In milliseconds): " << theStopWatch.totalTimePassed() << std::endl << std::endl;
