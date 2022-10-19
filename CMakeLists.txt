@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 set(PROJECT_NAME "Testing")
 set(PRODUCT_VERSION "1.0.0.9")
 set(DESCRIPTION "A testing program for the Jsonifier library.")
-
+set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
 project(
 	"${PROJECT_NAME}"
 	VERSION "${PRODUCT_VERSION}"
@@ -40,9 +40,9 @@ if (DEFINED ENV{EnableASAN})
 endif()
 
 include(Jsonifier)
-
+find_package(nlohmann_json CONFIG REQUIRED)
 target_link_libraries("${PROJECT_NAME}" PUBLIC Jsonifier::Jsonifier)
-
+target_link_libraries("${PROJECT_NAME}" PUBLIC nlohmann_json::nlohmann_json)
 target_include_directories("${PROJECT_NAME}" PUBLIC "${jsonifier_SOURCE_DIR}")
 
 if (WIN32)
