@@ -115,8 +115,6 @@ template<typename ReturnType> Void storeBits(String& to, ReturnType num) {
 	}
 }
 
-enum class WebSocketOpCode : Int8 { Op_Continuation = 0x00, Op_Text = 0x01, Op_Binary = 0x02, Op_Close = 0x08, Op_Ping = 0x09, Op_Pong = 0x0a };
-
 constexpr Uint8 formatVersion{ 131 };
 
 enum class ETFTokenType : Uint8 {
@@ -199,14 +197,16 @@ struct EnumConverter {
 	Uint64 theUint{};
 };
 
-enum class ValueType : Int8 { Null = 0, Null_Ext = 1, Object = 2, Array = 3, Float = 4, String = 5, Bool = 6, Int64 = 7, Uint64 = 8 };
+enum class ValueType : Int8 { Unset = 0, Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
+
+enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
 class Jsonifier {
   public:
-	using AllocatorTypeMap = std::allocator<std::pair<const String, Jsonifier>>;
+	using MapAllocatorType = std::allocator<std::pair<const String, Jsonifier>>;
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
-	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<std::allocator<ObjectType>>;
-	using ObjectType = std::map<String, Jsonifier, std::less<>, AllocatorTypeMap>;
+	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<AllocatorType<ObjectType>>;
+	using ObjectType = std::map<String, Jsonifier, std::less<>, MapAllocatorType>;
 	using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
 	using StringType = String;
 	using FloatType = Double;
@@ -226,9 +226,11 @@ class Jsonifier {
 
 	operator String() noexcept;
 
-	Void refreshString(WebSocketOpCode theOpCode);
+	ValueType type() noexcept;
 
-	ValueType theType{ ValueType::Null };
+	Void refreshString(JsonifierSerializeType theOpCode);
+
+	template<typename ReturnObjectType> ReturnObjectType get();
 
 	union JsonValue {
 		ObjectType* object;
@@ -239,8 +241,6 @@ class Jsonifier {
 		IntType numberInt;
 		BoolType boolean;
 	};
-
-	JsonValue theValue{};
 
 	template<typename ObjectType> Jsonifier& operator=(Vector<ObjectType> theData) noexcept {
 		this->setValue(ValueType::Array);
@@ -263,6 +263,30 @@ class Jsonifier {
 	}
 
 	template<IsString KeyType, IsString ObjectType> Jsonifier(UMap<KeyType, ObjectType> theData) noexcept {
+		*this = theData;
+	}
+
+	template<IsString KeyType, IsEnum ObjectType> Jsonifier& operator=(UMap<KeyType, ObjectType> theData) noexcept {
+		this->setValue(ValueType::Object);
+		for (auto& [key, value]: theData) {
+			(*this->theValue.object)[key] = value;
+		}
+		return *this;
+	}
+
+	template<IsString KeyType, IsEnum ObjectType> Jsonifier(UMap<KeyType, ObjectType> theData) noexcept {
+		*this = theData;
+	};
+
+	template<IsString KeyType, IsEnum ObjectType> Jsonifier& operator=(Map<KeyType, ObjectType> theData) noexcept {
+		this->setValue(ValueType::Object);
+		for (auto& [key, value]: theData) {
+			(*this->theValue.object)[key] = value;
+		}
+		return *this;
+	}
+
+	template<IsString KeyType, IsEnum ObjectType> Jsonifier(Map<KeyType, ObjectType> theData) noexcept {
 		*this = theData;
 	};
 
@@ -317,23 +341,28 @@ class Jsonifier {
 	Jsonifier& operator=(ValueType) noexcept;
 	Jsonifier(ValueType) noexcept;
 
+	Jsonifier& operator=(std::nullptr_t) noexcept;
+	Jsonifier(std::nullptr_t) noexcept;
+
 	Jsonifier& operator[](typename ObjectType::key_type key);
 
 	Jsonifier& operator[](Uint64 index);
 
-	Void pushBack(Jsonifier&& other) noexcept;
-	Void pushBack(Jsonifier& other) noexcept;
+	Void emplaceBack(Jsonifier&& other) noexcept;
+	Void emplaceBack(Jsonifier& other) noexcept;
 
 	friend bool operator==(const Jsonifier&, const Jsonifier&);
 
 	~Jsonifier() noexcept;
 
   private:
+	ValueType theType{ ValueType::Unset };
+	JsonValue theValue{};
 	String theString{};
 
-	Void parseJsonToEtf(const Jsonifier* dataToParse);
+	Void serializeJsonToEtfString(const Jsonifier* dataToParse);
 
-	Void parseJsonToJson(const Jsonifier* dataToParse);
+	Void serializeJsonToJsonString(const Jsonifier* dataToParse);
 
 	Void writeJsonObject(const Jsonifier::ObjectType* theObjectNew);
 
@@ -352,7 +381,9 @@ class Jsonifier {
 
 	Void writeJsonBool(const Jsonifier::BoolType jsonData);
 
-	Void writeJsonNullExt();
+	Void writeJsonNullObject();
+
+	Void writeJsonNullArray();
 
 	Void writeJsonNull();
 
@@ -369,8 +400,6 @@ class Jsonifier {
 	Void writeEtfFloat(const Jsonifier::FloatType jsonData);
 
 	Void writeEtfBool(const Jsonifier::BoolType jsonData);
-
-	Void writeEtfNullExt();
 
 	Void writeEtfNull();
 
@@ -408,5 +437,4 @@ class Jsonifier {
 
 	Void destroy() noexcept;
 };
-
 #endif// !ERL_PACKER

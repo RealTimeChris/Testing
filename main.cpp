@@ -121,13 +121,25 @@ Jsonifier::operator String() noexcept {
 	return this->theString;
 }
 
-Void Jsonifier::refreshString(WebSocketOpCode theOpCode) {
+ValueType Jsonifier::type() noexcept {
+	return this->theType;
+}
+
+Void Jsonifier::refreshString(JsonifierSerializeType theOpCode) {
 	this->theString.clear();
-	if (theOpCode == WebSocketOpCode::Op_Binary) {
+	if (theOpCode == JsonifierSerializeType::Etf) {
 		this->appendVersion();
-		this->parseJsonToEtf(this);
+		this->serializeJsonToEtfString(this);
 	} else {
-		this->parseJsonToJson(this);
+		this->serializeJsonToJsonString(this);
+	}
+}
+
+template<> Jsonifier::ArrayType Jsonifier::get() {
+	if (this->theType == ValueType::Array) {
+		return *this->theValue.array;
+	} else {
+		throw std::runtime_error{ "Sorry, but this is not an object of type Array." };
 	}
 }
 
@@ -298,6 +310,15 @@ Jsonifier::Jsonifier(Int8 theData) noexcept {
 	*this = theData;
 }
 
+Jsonifier& Jsonifier::operator=(std::nullptr_t) noexcept {
+	this->theType = ValueType::Null;
+	return *this;
+}
+
+Jsonifier::Jsonifier(std::nullptr_t theData) noexcept {
+	*this = theData;
+}
+
 Jsonifier& Jsonifier::operator=(Bool theData) noexcept {
 	this->theValue.boolean = theData;
 	this->theType = ValueType::Bool;
@@ -318,7 +339,7 @@ Jsonifier::Jsonifier(ValueType theType) noexcept {
 }
 
 Jsonifier& Jsonifier::operator[](typename ObjectType::key_type key) {
-	if (this->theType == ValueType::Null) {
+	if (this->theType == ValueType::Unset) {
 		this->setValue(ValueType::Object);
 		this->theType = ValueType::Object;
 	}
@@ -331,7 +352,7 @@ Jsonifier& Jsonifier::operator[](typename ObjectType::key_type key) {
 }
 
 Jsonifier& Jsonifier::operator[](Uint64 index) {
-	if (this->theType == ValueType::Null) {
+	if (this->theType == ValueType::Unset) {
 		this->setValue(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
@@ -346,8 +367,8 @@ Jsonifier& Jsonifier::operator[](Uint64 index) {
 	throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 }
 
-Void Jsonifier::pushBack(Jsonifier&& other) noexcept {
-	if (this->theType == ValueType::Null) {
+Void Jsonifier::emplaceBack(Jsonifier&& other) noexcept {
+	if (this->theType == ValueType::Unset) {
 		this->setValue(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
@@ -357,8 +378,8 @@ Void Jsonifier::pushBack(Jsonifier&& other) noexcept {
 	}
 }
 
-Void Jsonifier::pushBack(Jsonifier& other) noexcept {
-	if (this->theType == ValueType::Null) {
+Void Jsonifier::emplaceBack(Jsonifier& other) noexcept {
+	if (this->theType == ValueType::Unset) {
 		this->setValue(ValueType::Array);
 		this->theType = ValueType::Array;
 	}
@@ -368,7 +389,7 @@ Void Jsonifier::pushBack(Jsonifier& other) noexcept {
 	}
 }
 
-Void Jsonifier::parseJsonToEtf(const Jsonifier* dataToParse) {
+Void Jsonifier::serializeJsonToEtfString(const Jsonifier* dataToParse) {
 	switch (dataToParse->theType) {
 		case ValueType::Object: {
 			return this->writeEtfObject(dataToParse->theValue.object);
@@ -391,16 +412,16 @@ Void Jsonifier::parseJsonToEtf(const Jsonifier* dataToParse) {
 		case ValueType::Bool: {
 			return this->writeEtfBool(dataToParse->theValue.boolean);
 		}
-		case ValueType::Null_Ext: {
-			return this->writeEtfNullExt();
-		}
 		case ValueType::Null: {
 			return this->writeEtfNull();
+		}
+		case ValueType::Unset: {
+			return;
 		}
 	}
 }
 
-Void Jsonifier::parseJsonToJson(const Jsonifier* dataToParse) {
+Void Jsonifier::serializeJsonToJsonString(const Jsonifier* dataToParse) {
 	switch (dataToParse->theType) {
 		case ValueType::Object: {
 			return this->writeJsonObject(dataToParse->theValue.object);
@@ -423,18 +444,18 @@ Void Jsonifier::parseJsonToJson(const Jsonifier* dataToParse) {
 		case ValueType::Bool: {
 			return this->writeJsonBool(dataToParse->theValue.boolean);
 		}
-		case ValueType::Null_Ext: {
-			return this->writeJsonNullExt();
-		}
 		case ValueType::Null: {
 			return this->writeJsonNull();
+		}
+		case ValueType::Unset: {
+			return;
 		}
 	}
 }
 
 Void Jsonifier::writeJsonObject(const Jsonifier::ObjectType* theObjectNew) {
 	if (theObjectNew->empty()) {
-		this->writeString("{}", 2);
+		this->writeJsonNullObject();
 		return;
 	}
 	this->writeCharacter('{');
@@ -443,7 +464,7 @@ Void Jsonifier::writeJsonObject(const Jsonifier::ObjectType* theObjectNew) {
 	for (auto& [key, value]: *theObjectNew) {
 		this->writeJsonString(&key);
 		this->writeCharacter(':');
-		this->parseJsonToJson(&value);
+		this->serializeJsonToJsonString(&value);
 
 		if (theIndex != theObjectNew->size() - 1) {
 			this->writeCharacter(',');
@@ -456,7 +477,7 @@ Void Jsonifier::writeJsonObject(const Jsonifier::ObjectType* theObjectNew) {
 
 Void Jsonifier::writeJsonArray(const Jsonifier::ArrayType* theArray) {
 	if (theArray->empty()) {
-		this->writeString("[]", 2);
+		this->writeJsonNullArray();
 		return;
 	}
 
@@ -464,7 +485,7 @@ Void Jsonifier::writeJsonArray(const Jsonifier::ArrayType* theArray) {
 
 	Int32 theIndex{};
 	for (auto& value: *theArray) {
-		this->parseJsonToJson(&value);
+		this->serializeJsonToJsonString(&value);
 		if (theIndex != theArray->size() - 1) {
 			this->writeCharacter(',');
 		}
@@ -528,8 +549,12 @@ Void Jsonifier::writeJsonBool(const Jsonifier::BoolType theValueNew) {
 	}
 }
 
-Void Jsonifier::writeJsonNullExt() {
+Void Jsonifier::writeJsonNullArray() {
 	this->writeString("[]", 2);
+}
+
+Void Jsonifier::writeJsonNullObject() {
+	this->writeString("{}", 2);
 }
 
 Void Jsonifier::writeJsonNull() {
@@ -540,14 +565,14 @@ Void Jsonifier::writeEtfObject(const Jsonifier::ObjectType* jsonData) {
 	this->appendMapHeader(static_cast<Uint32>(jsonData->size()));
 	for (auto& [key, value]: *jsonData) {
 		this->appendBinaryExt(key, static_cast<Uint32>(key.size()));
-		this->parseJsonToEtf(&value);
+		this->serializeJsonToEtfString(&value);
 	}
 }
 
 Void Jsonifier::writeEtfArray(const Jsonifier::ArrayType* jsonData) {
 	this->appendListHeader(static_cast<Uint32>(jsonData->size()));
 	for (auto& value: *jsonData) {
-		this->parseJsonToEtf(&value);
+		this->serializeJsonToEtfString(&value);
 	}
 	this->appendNilExt();
 }
@@ -586,10 +611,6 @@ Void Jsonifier::writeEtfBool(const Jsonifier::BoolType jsonData) {
 	} else {
 		this->appendFalse();
 	}
-}
-
-Void Jsonifier::writeEtfNullExt() {
-	this->appendNilExt();
 }
 
 Void Jsonifier::writeEtfNull() {
@@ -723,18 +744,17 @@ Void Jsonifier::appendNilExt() {
 }
 
 Void Jsonifier::appendFalse() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, static_cast<Uint8>('f'), static_cast<Uint8>('a'), static_cast<Uint8>('l'), static_cast<Uint8>('s'),
-		static_cast<Uint8>('e') };
+	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 5, 'f', 'a', 'l', 's', 'e' };
 	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
 Void Jsonifier::appendTrue() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, static_cast<Uint8>('t'), static_cast<Uint8>('r'), static_cast<Uint8>('u'), static_cast<Uint8>('e') };
+	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 4, 't', 'r', 'u', 'e' };
 	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
 Void Jsonifier::appendNil() {
-	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, static_cast<Uint8>('n'), static_cast<Uint8>('i'), static_cast<Uint8>('l') };
+	String bufferNew{ static_cast<Uint8>(ETFTokenType::Small_Atom_Ext), 3, 'n', 'i', 'l' };
 	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
@@ -833,13 +853,14 @@ UpdatePresenceData ::operator Jsonifier() {
 }
 
 struct WebSocketIdentifyDataTwo {
-	UpdatePresenceData presence{}; 
+	UpdatePresenceData presence{};
 	int32_t largeThreshold{ 250 };
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
-	int64_t intents{};
 	String theString{};
+	int64_t intents{};
+
 	operator nlohmann::json();
 };
 
@@ -849,14 +870,15 @@ struct WebSocketIdentifyData {
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
-	int64_t intents{};
 	String theString{};
+	int64_t intents{};
+
 	operator Jsonifier();
 };
 
 WebSocketIdentifyDataTwo::operator nlohmann::json(){
 	nlohmann::json theSerializer{};
-	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	theSerializer["d"]["intents"];
 	std::vector<DiscordCoreAPI::ChannelType> theMap{};
 	theMap.push_back(DiscordCoreAPI::ChannelType ::Dm);
 	theMap.push_back(DiscordCoreAPI::ChannelType ::Dm);
@@ -895,9 +917,9 @@ WebSocketIdentifyData::operator Jsonifier() {
 	theSerializer["d"]["large_threshold"] = theMap;
 
 	UpdatePresenceData theSerializer02{};
-	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
-	theSerializer["d"]["presence"]["activities"].pushBack(std::move(theSerializer02));
+	theSerializer["d"]["presence"]["activities"].emplaceBack(std::move(theSerializer02));
+	theSerializer["d"]["presence"]["activities"].emplaceBack(std::move(theSerializer02));
+	theSerializer["d"]["presence"]["activities"].emplaceBack(std::move(theSerializer02));
 	theSerializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
 			theSerializer["since"] = this->presence.since;
@@ -934,11 +956,12 @@ int32_t main() noexcept {
 		
 		size_t theSize{};
 		Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier() };
-		theSerializer.refreshString(WebSocketOpCode::Op_Text);
+		theSerializer.refreshString(JsonifierSerializeType::Json);
 		theStopWatch.resetTimer();
-		for (uint32_t x = 0; x < 1024 * 256; ++x) {
+		///theSerializer["d"]["presence"]["activities"].get<std::vector<std::string>>();
+		for (uint32_t x = 0; x < 1024 * 128; ++x) {
 			theSerializer["d"]["intents"] = nullptr;
-			theSerializer.refreshString(WebSocketOpCode::Op_Text);
+			theSerializer.refreshString(JsonifierSerializeType::Json);
 			if (x % 1000 == 0) {
 				//std::cout << theSerializer.operator DiscordCoreAPI::String()<< std::endl;
 			}
@@ -959,8 +982,8 @@ int32_t main() noexcept {
 		auto theReferenceTwo = theDataBewTwoReal.operator nlohmann::json_abi_v3_11_2::json();
 		theSize = 0;
 		theStopWatch.resetTimer();
-		for (uint32_t x = 0; x < 1024 * 256; ++x) {
-			theReferenceTwo["d"]["intents"] = x;
+		for (uint32_t x = 0; x < 1024 * 128; ++x) {
+			theReferenceTwo["d"]["intents"];
 			if (x % 1000 == 0) {
 				//std::cout << theString << std::endl;
 			}

@@ -227,8 +227,8 @@ class JsonObject {
 
 	operator String() noexcept;
 
-	void pushBack(JsonObject&& other) noexcept;
-	void pushBack(JsonObject& other) noexcept;
+	void emplaceBack(JsonObject&& other) noexcept;
+	void emplaceBack(JsonObject& other) noexcept;
 
 	void set(std::unique_ptr<String> p);
 
