@@ -52,14 +52,7 @@ find_package(DiscordCoreAPI CONFIG REQUIRED)
 #find_package(Jsonifier CONFIG REQUIRED)
 
 include(FetchContent)
-FetchContent_Declare(
-  Jsonifier
-  GIT_REPOSITORY https://github.com/realtimechris/jsonifier.git
-  GIT_TAG        64054938be5c8822f553ba02accd9a443d6b3838 # release-1.10.0
-  OVERRIDE_FIND_PACKAGE
-)
+FetchContent_Declare(Jsonifier URL https://github.com/RealTimeChris/Jsonifier/releases/download/main/Jsonifier-src.zip)
 FetchContent_MakeAvailable(Jsonifier)
-
-find_package(Jsonifier REQUIRED)
 
 add_subdirectory(Executable)
