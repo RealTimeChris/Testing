@@ -835,7 +835,7 @@ UpdatePresenceDataTwo ::operator nlohmann::json() {
 }
 
 struct WebSocketIdentifyDataTwo {
-	UpdatePresenceData presence{};
+	UpdatePresenceDataTwo presence{};
 	int32_t largeThreshold{ 250 };
 	int32_t numberOfShards{};
 	int32_t currentShard{};
