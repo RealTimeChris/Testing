@@ -950,6 +950,9 @@ int32_t main() noexcept {
 				theSerializer.refreshString(JsonifierSerializeType::Json);
 				theVector.push_back(theSerializer.operator String());
 				theSize += theVector.back().size();
+				if (x == 1024 * 128 - 2) {
+					std::cout << theVector.back() << std::endl;
+				}
 			}
 			theTotalTime += theStopWatch.totalTimePassed();
 			
@@ -968,6 +971,9 @@ int32_t main() noexcept {
 				theReferenceTwo["d"]["intents"] = x;
 				theVector.push_back(theReferenceTwo.dump());
 				theSize += theVector.back().size();
+				if (x == 1024 * 128 - 2) {
+					std::cout << theVector.back() << std::endl;
+				}
 			}
 			theTotalTime += theStopWatch.totalTimePassed();
 			
