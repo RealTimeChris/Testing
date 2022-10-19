@@ -1,5 +1,5 @@
 #include <scoped_allocator>
-#include "out/build/Windows-Release/_deps/jsonifier-src/Include/Jsonifier.hpp"
+#include "Include/Jsonifier.hpp"
 
 struct UpdatePresenceData {
 	String status{};
