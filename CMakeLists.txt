@@ -23,7 +23,7 @@ project(
 	HOMEPAGE_URL "https://discordcoreapi.com"
 	DESCRIPTION "${DESCRIPTION}"
 )
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake;${FFMPEG_DIR}") 
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake;${FFMPEG_DIR}") 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
 
 if (WIN32)
@@ -47,8 +47,19 @@ elseif(EXISTS "${VCPKG_ROOT_DIR}")
 else()
 	message(FATAL_ERROR "Please, set the VCPKG base directory, or the location of the DiscordCoreAPIConfig.cmake file!")
 endif()
-set(Jsonifier_DIR "C:/Users/Chris/source/repos/Jsonifier/Output Files/share/jsonifier/")
+#set(Jsonifier_DIR "C:/Users/Chris/source/repos/Jsonifier/Output Files/share/jsonifier/")
 find_package(DiscordCoreAPI CONFIG REQUIRED)
-find_package(Jsonifier CONFIG REQUIRED)
+#find_package(Jsonifier CONFIG REQUIRED)
+
+include(FetchContent)
+FetchContent_Declare(
+  Jsonifier
+  GIT_REPOSITORY https://github.com/realtimechris/jsonifier.git
+  GIT_TAG        64054938be5c8822f553ba02accd9a443d6b3838 # release-1.10.0
+  OVERRIDE_FIND_PACKAGE
+)
+FetchContent_MakeAvailable(Jsonifier)
+
+find_package(Jsonifier REQUIRED)
 
 add_subdirectory(Executable)
