@@ -863,11 +863,7 @@ WebSocketIdentifyDataTwo::operator nlohmann::json(){
 	theSerializer["d"]["status"] = this->presence.status;
 	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
 	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
-#ifdef _WIN32
 	theSerializer["d"]["properties"]["os"] = "Windows";
-#else
-	theSerializer["d"]["properties"]["os"] = "Linux";
-#endif
 	theSerializer["d"]["shard"].emplace_back(0);
 	theSerializer["d"]["shard"].emplace_back(1);
 	theSerializer["d"]["token"] = this->botToken;
@@ -920,11 +916,7 @@ WebSocketIdentifyData::operator Jsonifier() {
 	theSerializer["d"]["status"] = this->presence.status;
 	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
 	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
-#ifdef _WIN32
 	theSerializer["d"]["properties"]["os"] = "Windows";
-#else
-	theSerializer["d"]["properties"]["os"] = "Linux";
-#endif
 	theSerializer["d"]["shard"].emplaceBack(0);
 	theSerializer["d"]["shard"].emplaceBack(1);
 	theSerializer["d"]["token"] = this->botToken;
