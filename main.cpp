@@ -121,7 +121,7 @@ int32_t main() noexcept {
 			theStopWatch.resetTimer();
 			for (Uint32 x = 0; x < 1024 * 128; ++x) {
 				theSerializer["d"]["intents"] = x;
-				theSerializer.refreshString(JsonifierSerializeType::Etf);
+				theSerializer.refreshString(JsonifierSerializeType::Json);
 				theVector.push_back(theSerializer.operator String());
 				theSize += theVector.back().size();
 				if (x % 100000 == 0) {
