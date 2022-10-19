@@ -47,7 +47,8 @@ elseif(EXISTS "${VCPKG_ROOT_DIR}")
 else()
 	message(FATAL_ERROR "Please, set the VCPKG base directory, or the location of the DiscordCoreAPIConfig.cmake file!")
 endif()
-
+set(Jsonifier_DIR "C:/Users/Chris/source/repos/Jsonifier/Output Files/share/jsonifier/")
 find_package(DiscordCoreAPI CONFIG REQUIRED)
+find_package(Jsonifier CONFIG REQUIRED)
 
 add_subdirectory(Executable)
