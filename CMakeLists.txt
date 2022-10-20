@@ -10,7 +10,7 @@ project(
 	HOMEPAGE_URL "https://github.com/RealTimeChris/Jsonifier"
 	DESCRIPTION "${DESCRIPTION}"
 )
-
+set(Jsonifier_DIR "C:/Users/Chris/CMake/Jsonifier/share/jsonifier")
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake;") 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
 

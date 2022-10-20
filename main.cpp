@@ -1,4 +1,3 @@
-#include <scoped_allocator>
 #include "Include/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 struct UpdatePresenceData {
@@ -106,8 +105,6 @@ WebSocketIdentifyDataTwo::operator nlohmann::json() {
 	theSerializer["op"] = 2;
 	return theSerializer;
 }
-
-
 
 int32_t main() noexcept {
 	try {
