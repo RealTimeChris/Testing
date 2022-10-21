@@ -1,7 +1,7 @@
 # Set this value...
 set(VCPKG_ROOT_DIR "")
 # OR this value...
-set(CMAKE_CONFIG_FILE_DIR "C:/users/chris/cmake/discordcoreapi/share/discordcoreapi")
+set(CMAKE_CONFIG_FILE_DIR "/home/chris/cmake/discordcoreapi/share/discordcoreapi")
 # AND these values.
 set(FFMPEG_DIR "C:/Vcpkg/installed/x64-windows/share/ffmpeg") # Set this one to the folder location of the file "FindFFMPEG.cmake".
 set(Opus_DIR "C:/Vcpkg/installed/x64-windows/share/opus") # Set this one to the folder location of the file "OpusConfig.cmake".
