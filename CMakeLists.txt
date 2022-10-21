@@ -46,6 +46,7 @@ find_package(nlohmann_json REQUIRED)
 target_link_libraries("${PROJECT_NAME}" PUBLIC Jsonifier::Jsonifier)
 target_link_libraries("${PROJECT_NAME}" PUBLIC nlohmann_json::nlohmann_json)
 target_include_directories("${PROJECT_NAME}" PUBLIC "${jsonifier_SOURCE_DIR}")
+target_compile_options("${PROJECT_NAME}" PUBLIC "$<$<PLATFORM_ID:Linux>:-O2>")
 
 if (WIN32)
 	install(
