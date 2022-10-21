@@ -30,11 +30,6 @@ target_compile_features(
 if (WIN32 AND NOT EXISTS "${VCPKG_ROOT}")
 	install(
 		FILES 
-		"$<TARGET_PDB_FILE:${PROJECT_NAME}>"
-		DESTINATION "$<CONFIG>"
-	)
-	install(
-		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
 		DESTINATION "$<CONFIG>"
 	)	
