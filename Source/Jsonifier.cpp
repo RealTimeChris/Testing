@@ -420,9 +420,6 @@ Void Jsonifier::serializeJsonToEtfString(const Jsonifier* dataToParse) {
 		case JsonType::Null: {
 			return this->writeEtfNull();
 		}
-		case JsonType::Unset: {
-			return;
-		}
 	}
 }
 
@@ -451,9 +448,6 @@ Void Jsonifier::serializeJsonToJsonString(const Jsonifier* dataToParse) {
 		}
 		case JsonType::Null: {
 			return this->writeJsonNull();
-		}
-		case JsonType::Unset: {
-			return;
 		}
 	}
 }

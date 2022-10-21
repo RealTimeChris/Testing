@@ -195,7 +195,7 @@ struct EnumConverter {
 	Uint64 theUint{};
 };
 
-enum class JsonType : Int8 { Unset = 0, Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
+enum class JsonType : Int8 { Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
 
 enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
