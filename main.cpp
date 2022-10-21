@@ -1,5 +1,5 @@
-#include "ErlPacker.hpp"
-#include "JsonSerializer.hpp"
+#include "Build/Release/_deps/jsonifier-src/Include/Jsonifier.hpp"
+#include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
 

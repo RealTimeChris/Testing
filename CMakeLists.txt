@@ -41,7 +41,6 @@ else()
 		message(FATAL_ERROR "Sorry, but your OS is not supported!")
 endif()
 
-
 include(FetchContent)
 FetchContent_Declare(
 	Jsonifier 
