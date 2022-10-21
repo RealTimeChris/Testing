@@ -41,12 +41,4 @@ else()
 		message(FATAL_ERROR "Sorry, but your OS is not supported!")
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-	Jsonifier 
-	URL https://github.com/RealTimeChris/Jsonifier/releases/download/Master/Jsonifier-src.zip
-)
-
-FetchContent_MakeAvailable(Jsonifier)
-
 add_subdirectory(Executable)
