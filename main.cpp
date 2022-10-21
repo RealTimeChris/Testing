@@ -123,7 +123,7 @@ int32_t main() noexcept {
 				theVector.push_back(theSerializer.operator String());
 				theSize += theVector.back().size();
 				if (x == 1024 * 128 - 2) {
-					std::cout << theVector.back() << std::endl;
+					//std::cout << theVector.back() << std::endl;
 				}
 			}
 			theTotalTime += theStopWatch.totalTimePassed();
@@ -137,14 +137,14 @@ int32_t main() noexcept {
 		theStopWatch.resetTimer();
 		theSize = 0;
 		for (uint32_t x = 0; x < 50; ++x) {
-			auto theReferenceTwo = theDataBewTwoReal.operator nlohmann::json_abi_v3_11_2::json();	
+			auto theReferenceTwo = theDataBewTwoReal.operator nlohmann::json();
 			theStopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				theReferenceTwo["d"]["intents"] = x;
 				theVector.push_back(theReferenceTwo.dump());
 				theSize += theVector.back().size();
 				if (x == 1024 * 128 - 2) {
-					std::cout << theVector.back() << std::endl;
+					//std::cout << theVector.back() << std::endl;
 				}
 			}
 			theTotalTime += theStopWatch.totalTimePassed();
