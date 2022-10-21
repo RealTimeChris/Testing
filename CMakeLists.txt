@@ -41,14 +41,6 @@ else()
 		message(FATAL_ERROR "Sorry, but your OS is not supported!")
 endif()
 
-if(NOT EXISTS "${VCPKG_ROOT_DIR}" AND EXISTS "${CMAKE_CONFIG_FILE_DIR}")
-elseif(EXISTS "${VCPKG_ROOT_DIR}")
-	include("${VCPKG_ROOT_DIR}/scripts/buildsystems/vcpkg.cmake")
-	string(TOLOWER "${CMAKE_HOST_SYSTEM_NAME}" OS_NAME)
-	set(VCPKG_INSTALLED_DIR "${VCPKG_ROOT_DIR}/installed/x64-${OS_NAME}")
-else()
-	message(FATAL_ERROR "Please, set the VCPKG base directory, or the location of the DiscordCoreAPIConfig.cmake file!")
-endif()
 
 include(FetchContent)
 FetchContent_Declare(
