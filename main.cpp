@@ -1,6 +1,7 @@
 #include "Build/Release/_deps/jsonifier-src/Include/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
+#include <source_location>
 
 struct UpdatePresenceDataTwo {
 	String status{};///< Current status.
@@ -151,17 +152,26 @@ int32_t main() noexcept {
 			
 		}
 		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;
-		
-
-
-
-		
-		
+				
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
 
-
 	} catch (...) {
-		std::cout << "THERE'S AN ERROR!" << std::endl;
+		try {
+			auto currentException = std::current_exception();
+			if (currentException) {
+				std::rethrow_exception(currentException);
+			}
+		} catch (const std::exception& e) {
+			StringStream theStream{};
+			theStream << "Error Report: \n"
+					  << "Caught At: " << std::source_location::source_location().file_name() << " (" << std::to_string(std::source_location::source_location().line()) << ":"
+					  << std::to_string(std::source_location::source_location().column()) << ")"
+					  << "\nThe Error: \n"
+					  << e.what() << std::endl
+					  << std::endl;
+			auto theReturnString = theStream.str();
+			std::cout << theReturnString;
+		}
 	};
 
 	return 0;
