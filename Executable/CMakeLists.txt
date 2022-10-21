@@ -1,7 +1,6 @@
 ﻿add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
-	"${PRODUCT_INFO}"
 )
 
 if (DEFINED ENV{EnableASAN})
@@ -13,8 +12,6 @@ if (DEFINED ENV{EnableASAN})
 		target_link_options("${PROJECT_NAME}" PUBLIC "-fsanitize=address")
 	endif()
 endif()
-
-
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
