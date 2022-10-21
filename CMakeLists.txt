@@ -41,4 +41,6 @@ else()
 		message(FATAL_ERROR "Sorry, but your OS is not supported!")
 endif()
 
+include(Jsonifier)
+
 add_subdirectory(Executable)
