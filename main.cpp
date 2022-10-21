@@ -160,7 +160,9 @@ int32_t main() noexcept {
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
 
 
-	} catch (...) {	};
+	} catch (...) {
+		std::cout << "THERE'S AN ERROR!" << std::endl;
+	};
 
 	return 0;
 }
