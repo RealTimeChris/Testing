@@ -218,6 +218,11 @@ class Jsonifier {
 	using BoolType = Bool;
 
 	union JsonValue {
+		JsonValue() noexcept = default;
+		JsonValue& operator=(JsonValue&&) noexcept = delete;
+		JsonValue(JsonValue&&) noexcept = delete;
+		JsonValue& operator=(const JsonValue&) noexcept = delete;
+		JsonValue(const JsonValue&) noexcept = delete;
 		ObjectType* object;
 		StringType* string;
 		ArrayType* array;
