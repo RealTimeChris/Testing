@@ -117,6 +117,28 @@ int32_t main() noexcept {
 		Vector<String> theVector{};
 		Uint64 theTotalTime{};
 		size_t theSize{};
+		WebSocketIdentifyData theDataBewTwo{};
+
+		for (Uint32 x = 0; x < 50; ++x) {
+			Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier() };
+			theStopWatch.resetTimer();
+			for (uint32_t x = 0; x < 1024 * 128; ++x) {
+				theSerializer["d"]["intents"] = x;
+				theSerializer.refreshString(JsonifierSerializeType::Json);
+				theVector.push_back(theSerializer.operator String());
+				theSize += theVector.back().size();
+				if (x == 1024 * 128 - 2) {
+					//std::cout << theVector.back() << std::endl;
+				}
+			}
+			theTotalTime += theStopWatch.totalTimePassed();
+		}
+		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;
+		
+		theVector.clear();
+		theTotalTime = 0;
+		theStopWatch.resetTimer();
+		theSize = 0;
 		for (uint32_t x = 0; x < 50; ++x) {
 			auto theReferenceTwo = theDataBewTwoReal.operator nlohmann::json();
 			theStopWatch.resetTimer();
@@ -131,28 +153,7 @@ int32_t main() noexcept {
 			theTotalTime += theStopWatch.totalTimePassed();
 		}
 		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;
-		theVector.clear();
-		theTotalTime = 0;
-		theStopWatch.resetTimer();
-		theSize = 0;
-		WebSocketIdentifyData theDataBewTwo{};
 		
-		for (Uint32 x = 0; x < 50; ++x) {			
-			Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier() };	
-			theStopWatch.resetTimer();
-			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				theSerializer["d"]["intents"] = x;
-				theSerializer.refreshString(JsonifierSerializeType::Json);
-				theVector.push_back(theSerializer.operator String());
-				theSize += theVector.back().size();
-				if (x == 1024 * 128 - 2) {
-					//std::cout << theVector.back() << std::endl;
-				}
-			}
-			theTotalTime += theStopWatch.totalTimePassed();
-			
-		}
-		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;
 			
 				
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });

@@ -308,6 +308,7 @@ Jsonifier::Jsonifier(Bool theData) noexcept {
 
 Jsonifier& Jsonifier::operator=(JsonType theTypeNew) noexcept {
 	this->theType = theTypeNew;
+	this->setValue(this->theType);
 	return *this;
 }
 
