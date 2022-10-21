@@ -1,4 +1,4 @@
-include(fetchcontent)
+include(FetchContent)
 
 fetchcontent_declare(
 	Jsonifier
