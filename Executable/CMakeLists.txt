@@ -14,14 +14,13 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
-set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
+
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	${FFMPEG_LIBRARIES}
-	DiscordCoreAPI::DiscordCoreAPI
 	Jsonifier::Jsonifier
 	nlohmann_json::nlohmann_json 
 )
