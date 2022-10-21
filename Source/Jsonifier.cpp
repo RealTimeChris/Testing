@@ -559,55 +559,117 @@ Void Jsonifier::writeJsonNull() {
 }
 
 Void Jsonifier::writeEtfObject(const ObjectType& jsonData) {
-	this->appendMapHeader(static_cast<Uint32>(jsonData.size()));
+	String bufferNew{ static_cast<Uint8>(EtfType::Map_Ext) };
+	storeBits(bufferNew, jsonData.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 	for (auto& [key, value]: jsonData) {
-		this->appendBinaryExt(key, static_cast<Uint32>(key.size()));
+		String bufferNew{ static_cast<Uint8>(EtfType::Binary_Ext) };
+		storeBits(bufferNew, key.size());
+		this->writeString(bufferNew.data(), bufferNew.size());
+		this->writeString(key.data(), key.size());
 		this->serializeJsonToEtfString(&value);
 	}
 }
 
 Void Jsonifier::writeEtfArray(const ArrayType& jsonData) {
-	this->appendListHeader(static_cast<Uint32>(jsonData.size()));
+	String bufferNew{ static_cast<Uint8>(EtfType::List_Ext) };
+	storeBits(bufferNew, jsonData.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
 	for (auto& value: jsonData) {
 		this->serializeJsonToEtfString(&value);
 	}
-	this->appendNilExt();
+	this->writeCharacter(static_cast<Uint8>(EtfType::Nil_Ext));
 }
 
 Void Jsonifier::writeEtfString(const StringType& jsonData) {
-	this->appendBinaryExt(jsonData, static_cast<Uint32>(jsonData.size()));
+	String bufferNew{ static_cast<Uint8>(EtfType::Binary_Ext) };
+	storeBits(bufferNew, jsonData.size());
+	this->writeString(bufferNew.data(), bufferNew.size());
+	this->writeString(jsonData.data(), jsonData.size());
 }
 
 Void Jsonifier::writeEtfUint(const UintType jsonData) {
 	if (jsonData <= 255) {
-		this->appendSmallIntegerExt(static_cast<Uint8>(jsonData));
+		String bufferNew{ static_cast<Uint8>(EtfType::Small_Integer_Ext), static_cast<char>(jsonData) };
+		this->writeString(bufferNew.data(), bufferNew.size());
 	} else if (jsonData <= std::numeric_limits<Uint32>::max()) {
-		this->appendIntegerExt(static_cast<Uint32>(jsonData));
+		String bufferNew{ static_cast<Uint8>(EtfType::Integer_Ext) };
+		storeBits(bufferNew, jsonData);
+		this->writeString(bufferNew.data(), bufferNew.size());
 	} else {
-		this->appendUnsignedLongLong(jsonData);
+		String bufferNew{};
+		Uint64 theValueNew = jsonData;
+		bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
+		bufferNew[0] = static_cast<Uint8>(EtfType::Small_Big_Ext);
+		StopWatch theStopWatch{ std::chrono::milliseconds{ 1500 } };
+		Uint8 bytesToEncode = 0;
+		while (theValueNew > 0) {
+			if (theStopWatch.hasTimePassed()) {
+				break;
+			}
+			bufferNew[static_cast<Uint64>(3) + bytesToEncode] = theValueNew & 0xF;
+			theValueNew >>= 8;
+			bytesToEncode++;
+		}
+		bufferNew[1] = bytesToEncode;
+		bufferNew[2] = 0;
+		this->writeString(bufferNew.data(), bufferNew.size());
 	}
 }
 
 Void Jsonifier::writeEtfInt(const IntType jsonData) {
 	if (jsonData <= 127 && jsonData >= -127) {
-		this->appendSmallIntegerExt(static_cast<Uint8>(jsonData));
+		String bufferNew{ static_cast<Uint8>(EtfType::Small_Integer_Ext), static_cast<char>(jsonData) };
+		this->writeString(bufferNew.data(), bufferNew.size());
 	} else if (jsonData <= std::numeric_limits<Int32>::max() && jsonData >= std::numeric_limits<Int32>::min()) {
-		this->appendIntegerExt(static_cast<Uint32>(jsonData));
+		String bufferNew{ static_cast<Uint8>(EtfType::Integer_Ext) };
+		storeBits(bufferNew, jsonData);
+		this->writeString(bufferNew.data(), bufferNew.size());
 	} else {
-		this->appendUnsignedLongLong(static_cast<Uint64>(jsonData));
+		String bufferNew{};
+		Uint64 theValueNew = jsonData;
+		bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
+		bufferNew[0] = static_cast<Uint8>(EtfType::Small_Big_Ext);
+		StopWatch theStopWatch{ std::chrono::milliseconds{ 1500 } };
+		Uint8 bytesToEncode = 0;
+		while (theValueNew > 0) {
+			if (theStopWatch.hasTimePassed()) {
+				break;
+			}
+			bufferNew[static_cast<Uint64>(3) + bytesToEncode] = theValueNew & 0xF;
+			theValueNew >>= 8;
+			bytesToEncode++;
+		}
+		bufferNew[1] = bytesToEncode;
+		bufferNew[2] = 0;
+		this->writeString(bufferNew.data(), bufferNew.size());
 	}
 }
 
 Void Jsonifier::writeEtfFloat(const FloatType jsonData) {
-	this->appendNewFloatExt(jsonData);
+	String bufferNew{ static_cast<unsigned char>(EtfType::New_Float_Ext) };
+	const Void* punner{ &jsonData };
+	storeBits(bufferNew, *static_cast<const Uint64*>(punner));
+	this->writeString(bufferNew.data(), bufferNew.size());
 }
 
 Void Jsonifier::writeEtfBool(const BoolType jsonData) {
-	this->appendBool(jsonData);
+	if (jsonData) {
+		this->writeCharacter(static_cast<Uint8>(EtfType::Small_Atom_Ext));
+		this->writeCharacter(4);
+		this->writeString("true", 4);
+
+	} else {
+		this->writeCharacter(static_cast<Uint8>(EtfType::Small_Atom_Ext));
+		this->writeCharacter(5);
+		this->writeString("false", 5);
+	}
 }
 
 Void Jsonifier::writeEtfNull() {
-	this->appendNil();
+	this->writeCharacter(static_cast<Uint8>(EtfType::Small_Atom_Ext));
+	this->writeCharacter(3);
+	this->writeString("nil", 3);
 }
 
 Void Jsonifier::writeString(const char* theData, std::size_t length) {
@@ -669,89 +731,9 @@ bool operator==(const Jsonifier& lhs, const Jsonifier& rhs) {
 	return true;
 }
 
-Void Jsonifier::appendBinaryExt(const String& bytes, Uint32 sizeNew) {
-	String bufferNew{ static_cast<Uint8>(EtfType::Binary_Ext) };
-	storeBits(bufferNew, sizeNew);
-	this->writeString(bufferNew.data(), bufferNew.size());
-	this->writeString(bytes.data(), bytes.size());
-}
-
-Void Jsonifier::appendUnsignedLongLong(const Uint64 value) {
-	String bufferNew{};
-	Uint64 theValueNew = value;
-	bufferNew.resize(static_cast<Uint64>(1) + 2 + sizeof(Uint64));
-	bufferNew[0] = static_cast<Uint8>(EtfType::Small_Big_Ext);
-	StopWatch theStopWatch{ std::chrono::milliseconds{ 1500 } };
-	Uint8 bytesToEncode = 0;
-	while (theValueNew > 0) {
-		if (theStopWatch.hasTimePassed()) {
-			break;
-		}
-		bufferNew[static_cast<Uint64>(3) + bytesToEncode] = theValueNew & 0xF;
-		theValueNew >>= 8;
-		bytesToEncode++;
-	}
-	bufferNew[1] = bytesToEncode;
-	bufferNew[2] = 0;
-	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendNewFloatExt(const Double FloatValue) {
-	String bufferNew{ static_cast<unsigned char>(EtfType::New_Float_Ext) };
-	const Void* punner{ &FloatValue };
-	storeBits(bufferNew, *static_cast<const Uint64*>(punner));
-	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendSmallIntegerExt(const Uint8 value) {
-	String bufferNew{ static_cast<Uint8>(EtfType::Small_Integer_Ext), static_cast<char>(value) };
-	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendIntegerExt(const Uint32 value) {
-	String bufferNew{ static_cast<Uint8>(EtfType::Integer_Ext) };
-	storeBits(bufferNew, value);
-	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendListHeader(const Uint32 sizeNew) {
-	String bufferNew{ static_cast<Uint8>(EtfType::List_Ext) };
-	storeBits(bufferNew, sizeNew);
-	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendMapHeader(const Uint32 sizeNew) {
-	String bufferNew{ static_cast<Uint8>(EtfType::Map_Ext) };
-	storeBits(bufferNew, sizeNew);
-	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendBool(Bool theData) {
-	if (theData) {
-		this->writeCharacter(static_cast<Uint8>(EtfType::Small_Atom_Ext));
-		this->writeCharacter(4);
-		this->writeString("true", 4);
-
-	} else {
-		this->writeCharacter(static_cast<Uint8>(EtfType::Small_Atom_Ext));
-		this->writeCharacter(5);
-		this->writeString("false", 5);
-	}
-}
-
 Void Jsonifier::appendVersion() {
 	String bufferNew{ static_cast<int8_t>(formatVersion) };
 	this->writeString(bufferNew.data(), bufferNew.size());
-}
-
-Void Jsonifier::appendNilExt() {
-	this->writeCharacter(static_cast<Uint8>(EtfType::Nil_Ext));
-}
-
-Void Jsonifier::appendNil() {
-	this->writeCharacter(static_cast<Uint8>(EtfType::Small_Atom_Ext));
-	this->writeCharacter(3);
-	this->writeString("nil", 3);
 }
 
 Void Jsonifier::setValue(JsonType theTypeNew) {
