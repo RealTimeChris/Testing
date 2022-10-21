@@ -408,6 +408,7 @@ class Jsonifier {
 	Void writeJsonString(const StringType& theStringNew);
 
 	Void writeJsonFloat(const FloatType x);
+
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
 	Void writeJsonInt(NumberType theInt) {
