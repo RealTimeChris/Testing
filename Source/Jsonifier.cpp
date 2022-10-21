@@ -756,29 +756,24 @@ Void Jsonifier::appendNil() {
 
 Void Jsonifier::setValue(JsonType theTypeNew) {
 	this->destroy();
-	switch (theTypeNew) {
+	this->theType = theTypeNew;
+	switch (this->theType) {
 		case JsonType::Object: {
 			AllocatorType<ObjectType> allocator{};
-			auto alloc = AllocatorTraits<ObjectType>{};
-			this->theValue.object = alloc.allocate(allocator, 1);
-			alloc.construct(allocator, this->theValue.object);
-			this->theType = theTypeNew;
+			this->theValue.object = AllocatorTraits<ObjectType>::allocate(allocator, 1);
+			AllocatorTraits<ObjectType>::construct(allocator, this->theValue.object);
 			break;
 		}
 		case JsonType::Array: {
 			AllocatorType<ArrayType> allocator{};
-			auto alloc = AllocatorTraits<ArrayType>{};
-			this->theValue.array = alloc.allocate(allocator, 1);
-			alloc.construct(allocator, this->theValue.array);
-			this->theType = theTypeNew;
+			this->theValue.array = AllocatorTraits<ArrayType>::allocate(allocator, 1);
+			AllocatorTraits<ArrayType>::construct(allocator, this->theValue.array);
 			break;
 		}
 		case JsonType::String: {
 			AllocatorType<StringType> allocator{};
-			auto alloc = AllocatorTraits<StringType>{};
-			this->theValue.string = alloc.allocate(allocator, 1);
-			alloc.construct(allocator, this->theValue.string);
-			this->theType = theTypeNew;
+			this->theValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
+			AllocatorTraits<StringType>::construct(allocator, this->theValue.string);
 			break;
 		}
 	}
@@ -788,23 +783,20 @@ Void Jsonifier::destroy() noexcept {
 	switch (this->theType) {
 		case JsonType::Object: {
 			AllocatorType<ObjectType> allocator{};
-			auto alloc = AllocatorTraits<ObjectType>{};
-			alloc.destroy(allocator, this->theValue.object);
-			alloc.deallocate(allocator, this->theValue.object, 1);
+			AllocatorTraits<ObjectType>::destroy(allocator, this->theValue.object);
+			AllocatorTraits<ObjectType>::deallocate(allocator, this->theValue.object, 1);
 			break;
 		}
 		case JsonType::Array: {
 			AllocatorType<ArrayType> allocator{};
-			auto alloc = AllocatorTraits<ArrayType>{};
-			alloc.destroy(allocator, this->theValue.array);
-			alloc.deallocate(allocator, this->theValue.array, 1);
+			AllocatorTraits<ArrayType>::destroy(allocator, this->theValue.array);
+			AllocatorTraits<ArrayType>::deallocate(allocator, this->theValue.array, 1);
 			break;
 		}
 		case JsonType::String: {
 			AllocatorType<StringType> allocator{};
-			auto alloc = AllocatorTraits<StringType>{};
-			alloc.destroy(allocator, this->theValue.string);
-			alloc.deallocate(allocator, this->theValue.string, 1);
+			AllocatorTraits<StringType>::destroy(allocator, this->theValue.string);
+			AllocatorTraits<StringType>::deallocate(allocator, this->theValue.string, 1);
 			break;
 		}
 	}
