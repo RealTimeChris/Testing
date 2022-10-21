@@ -49,7 +49,7 @@ target_compile_options(
 	"$<$<PLATFORM_ID:Windows>:$<$<STREQUAL:$ENV{EnableASAN},true>:/Zi>>"
 	"$<$<PLATFORM_ID:Windows>:/MP>"
 	"$<$<PLATFORM_ID:Linux>:$<$<STREQUAL:$ENV{EnableASAN},true>:-fsanitize=address>>"
-	"$<$<PLATFORM_ID:Linux>:-fpermissive>"
+	#"$<$<PLATFORM_ID:Linux>:-fpermissive>"
 )
 
 target_link_options(
