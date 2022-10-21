@@ -65,7 +65,6 @@ using Int16 = int16_t;
 using Int8 = int8_t;
 using Float = float;
 using Double = double;
-using Snowflake = Uint64;
 using Bool = bool;
 using Void = void;
 
@@ -113,6 +112,24 @@ template<typename TimeType> class StopWatch {
 	AtomicUint64 startTime{ 0 };
 };
 
+template<typename ReturnType> ReturnType reverseByteOrder(const ReturnType net) {
+	switch (sizeof(ReturnType)) {
+		case 1: {
+			return net;
+		}
+		case 2: {
+			return ntohs(static_cast<Int16>(net));
+		}
+		case 4: {
+			return ntohl(static_cast<Uint32>(net));
+		}
+		case 8: {
+			return ntohll(static_cast<Uint64>(net));
+		}
+	}
+	return ReturnType{};
+}
+
 template<typename ReturnType> Void storeBits(String& to, ReturnType num) {
 	const Uint8 byteSize{ 8 };
 	ReturnType newValue = reverseByteOrder<ReturnType>(num);
@@ -142,31 +159,21 @@ enum class EtfType : Uint8 {
 	Atom_Utf8_Ext = 118
 };
 
-template<typename ReturnType> ReturnType reverseByteOrder(const ReturnType net) {
-	switch (sizeof(ReturnType)) {
-		case 1: {
-			return net;
-		}
-		case 2: {
-			return ntohs(static_cast<short int>(net));
-		}
-		case 4: {
-			return ntohl(static_cast<long int>(net));
-		}
-		case 8: {
-			return ntohll(static_cast<unsigned long long>(net));
-		}
-	}
-	return ReturnType{};
-}
-
 template<typename TheType>
 concept IsEnum = std::is_enum<TheType>::value;
 
-template<typename TheType>
-concept IsString = std::same_as<TheType, String>;
-
 struct EnumConverter {
+	template<IsEnum EnumType> EnumConverter& operator=(Vector<EnumType> other) {
+		for (auto& value: other) {
+			this->theVector.emplace_back(std::move(static_cast<Uint64>(value)));
+		}
+		return *this;
+	};
+
+	template<IsEnum EnumType> EnumConverter(Vector<EnumType> other) {
+		*this = other;
+	};
+
 	template<IsEnum EnumType> EnumConverter& operator=(EnumType other) {
 		this->theUint = static_cast<Uint64>(other);
 		return *this;
@@ -176,24 +183,9 @@ struct EnumConverter {
 		*this = other;
 	};
 
-	EnumConverter& operator=(EnumConverter&&) noexcept;
-	EnumConverter(EnumConverter&&) noexcept;
-
-	EnumConverter& operator=(const EnumConverter&) noexcept = delete;
-	EnumConverter(const EnumConverter&) noexcept = delete;
-
-	template<IsEnum EnumType> EnumConverter& operator=(Vector<EnumType> other) {
-		this->theVector = std::move(other);
-		return *this;
-	};
-
-	template<IsEnum EnumType> EnumConverter(Vector<EnumType> other) {
-		*this = other;
-	};
-
 	operator Vector<Uint64>() const noexcept;
 
-	explicit operator Uint64() const noexcept;
+	operator Uint64() const noexcept;
 
 	bool isItAVector() const noexcept;
 
@@ -207,11 +199,16 @@ enum class JsonType : Int8 { Unset = 0, Object = 1, Array = 2, String = 3, Float
 
 enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
+class Jsonifier;
+
+template<typename TheType>
+concept IsConvertibleToJsonifier = std::convertible_to<TheType, Jsonifier>;
+
 class Jsonifier {
   public:
 	using MapAllocatorType = std::allocator<std::pair<const String, Jsonifier>>;
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
-	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<AllocatorType<ObjectType>>;
+	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<std::allocator<ObjectType>>;
 	using ObjectType = std::map<String, Jsonifier, std::less<>, MapAllocatorType>;
 	using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
 	using StringType = String;
@@ -219,24 +216,6 @@ class Jsonifier {
 	using UintType = Uint64;
 	using IntType = Int64;
 	using BoolType = Bool;
-
-	Jsonifier() noexcept = default;
-
-	Jsonifier& operator=(const Jsonifier&) noexcept;
-	Jsonifier(const Jsonifier&) noexcept;
-
-	Jsonifier& operator=(Jsonifier&&) noexcept;
-	Jsonifier(Jsonifier&&) noexcept;
-
-	operator String&&() noexcept;
-
-	operator String() noexcept;
-
-	JsonType type() noexcept;
-
-	Void refreshString(JsonifierSerializeType theOpCode);
-
-	template<typename ReturnObjectType> ReturnObjectType get();
 
 	union JsonValue {
 		ObjectType* object;
@@ -248,19 +227,45 @@ class Jsonifier {
 		BoolType boolean;
 	};
 
-	template<typename ObjectType> Jsonifier& operator=(Vector<ObjectType> theData) noexcept {
+	Jsonifier() noexcept = default;
+
+	template<IsConvertibleToJsonifier ObjectType> Jsonifier& operator=(Vector<ObjectType>&& theData) noexcept {
 		this->setValue(JsonType::Array);
 		for (auto& value: theData) {
-			this->theValue.array->push_back(Jsonifier{ value });
+			this->theValue.array->push_back(std::move(value));
 		}
 		return *this;
 	}
 
-	template<typename ObjectType> Jsonifier(Vector<ObjectType> theData) noexcept {
+	template<IsConvertibleToJsonifier ObjectType> Jsonifier(Vector<ObjectType>&& theData) noexcept {
+		*this = std::move(theData);
+	}
+
+	template<IsConvertibleToJsonifier ObjectType> Jsonifier& operator=(Vector<ObjectType>& theData) noexcept {
+		this->setValue(JsonType::Array);
+		for (auto& value: theData) {
+			this->theValue.array->push_back(value);
+		}
+		return *this;
+	}
+
+	template<IsConvertibleToJsonifier ObjectType> Jsonifier(Vector<ObjectType>& theData) noexcept {
 		*this = theData;
 	}
 
-	template<IsString KeyType, IsString ObjectType> Jsonifier& operator=(UMap<KeyType, ObjectType> theData) noexcept {
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier& operator=(UMap<KeyType, ObjectType>&& theData) noexcept {
+		this->setValue(JsonType::Object);
+		for (auto& [key, value]: theData) {
+			(*this->theValue.object)[key] = std::move(value);
+		}
+		return *this;
+	}
+
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier(UMap<KeyType, ObjectType>&& theData) noexcept {
+		*this = std::move(theData);
+	};
+
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier& operator=(UMap<KeyType, ObjectType>& theData) noexcept {
 		this->setValue(JsonType::Object);
 		for (auto& [key, value]: theData) {
 			(*this->theValue.object)[key] = value;
@@ -268,23 +273,23 @@ class Jsonifier {
 		return *this;
 	}
 
-	template<IsString KeyType, IsString ObjectType> Jsonifier(UMap<KeyType, ObjectType> theData) noexcept {
-		*this = theData;
-	}
-
-	template<IsString KeyType, IsEnum ObjectType> Jsonifier& operator=(UMap<KeyType, ObjectType> theData) noexcept {
-		this->setValue(JsonType::Object);
-		for (auto& [key, value]: theData) {
-			(*this->theValue.object)[key] = value;
-		}
-		return *this;
-	}
-
-	template<IsString KeyType, IsEnum ObjectType> Jsonifier(UMap<KeyType, ObjectType> theData) noexcept {
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier(UMap<KeyType, ObjectType>& theData) noexcept {
 		*this = theData;
 	};
 
-	template<IsString KeyType, IsEnum ObjectType> Jsonifier& operator=(Map<KeyType, ObjectType> theData) noexcept {
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier& operator=(Map<KeyType, ObjectType>&& theData) noexcept {
+		this->setValue(JsonType::Object);
+		for (auto& [key, value]: theData) {
+			(*this->theValue.object)[key] = std::move(value);
+		}
+		return *this;
+	}
+
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier(Map<KeyType, ObjectType>&& theData) noexcept {
+		*this = std::move(theData);
+	};
+
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier& operator=(Map<KeyType, ObjectType>& theData) noexcept {
 		this->setValue(JsonType::Object);
 		for (auto& [key, value]: theData) {
 			(*this->theValue.object)[key] = value;
@@ -292,72 +297,98 @@ class Jsonifier {
 		return *this;
 	}
 
-	template<IsString KeyType, IsEnum ObjectType> Jsonifier(Map<KeyType, ObjectType> theData) noexcept {
+	template<IsConvertibleToJsonifier KeyType, IsConvertibleToJsonifier ObjectType> Jsonifier(Map<KeyType, ObjectType>& theData) noexcept {
 		*this = theData;
 	};
+
+	template<IsEnum TheType> Jsonifier& operator=(TheType theData) noexcept {
+		this->theValue.numberUint = static_cast<Uint64>(theData);
+		this->theType = JsonType::Uint64;
+		return *this;
+	}
+
+	template<IsEnum TheType> Jsonifier(TheType theData) noexcept {
+		*this = theData;
+	}
+
+	Jsonifier& operator=(Jsonifier&& theData) noexcept;
+
+	Jsonifier(Jsonifier&& theData) noexcept;
+
+	Jsonifier& operator=(const Jsonifier& theData) noexcept;
+
+	Jsonifier(const Jsonifier& theData) noexcept;
+
+	operator String&&() noexcept;
+
+	operator String() noexcept;
+
+	Void refreshString(JsonifierSerializeType theOpCode);
 
 	Jsonifier& operator=(EnumConverter&& theData) noexcept;
-	Jsonifier(EnumConverter&&) noexcept;
+	Jsonifier(EnumConverter&& theData) noexcept;
 
 	Jsonifier& operator=(const EnumConverter& theData) noexcept;
-	Jsonifier(const EnumConverter&) noexcept;
+	Jsonifier(const EnumConverter& theData) noexcept;
 
-	Jsonifier& operator=(StringType&& theData) noexcept;
-	Jsonifier(StringType&&) noexcept;
+	Jsonifier& operator=(String&& theData) noexcept;
+	Jsonifier(String&& theData) noexcept;
 
-	Jsonifier& operator=(const StringType& theData) noexcept;
-	Jsonifier(const StringType&) noexcept;
+	Jsonifier& operator=(const String& theData) noexcept;
+	Jsonifier(const String& theData) noexcept;
 
 	Jsonifier& operator=(const char* theData) noexcept;
 	Jsonifier(const char* theData) noexcept;
 
 	Jsonifier& operator=(Double theData) noexcept;
-	Jsonifier(Double) noexcept;
+	Jsonifier(Double theData) noexcept;
 
 	Jsonifier& operator=(Float theData) noexcept;
-	Jsonifier(Float) noexcept;
+	Jsonifier(Float theData) noexcept;
 
 	Jsonifier& operator=(Uint64 theData) noexcept;
-	Jsonifier(Uint64) noexcept;
+	Jsonifier(Uint64 theData) noexcept;
 
 	Jsonifier& operator=(Uint32 theData) noexcept;
-	Jsonifier(Uint32) noexcept;
+	Jsonifier(Uint32 theData) noexcept;
 
 	Jsonifier& operator=(Uint16 theData) noexcept;
-	Jsonifier(Uint16) noexcept;
+	Jsonifier(Uint16 theData) noexcept;
 
 	Jsonifier& operator=(Uint8 theData) noexcept;
-	Jsonifier(Uint8) noexcept;
+	Jsonifier(Uint8 theData) noexcept;
 
 	Jsonifier& operator=(Int64 theData) noexcept;
-	Jsonifier(Int64) noexcept;
+	Jsonifier(Int64 theData) noexcept;
 
 	Jsonifier& operator=(Int32 theData) noexcept;
-	Jsonifier(Int32) noexcept;
+	Jsonifier(Int32 theData) noexcept;
 
 	Jsonifier& operator=(Int16 theData) noexcept;
-	Jsonifier(Int16) noexcept;
+	Jsonifier(Int16 theData) noexcept;
 
 	Jsonifier& operator=(Int8 theData) noexcept;
-	Jsonifier(Int8) noexcept;
+	Jsonifier(Int8 theData) noexcept;
 
 	Jsonifier& operator=(Bool theData) noexcept;
-	Jsonifier(Bool) noexcept;
+	Jsonifier(Bool theData) noexcept;
 
-	Jsonifier& operator=(JsonType) noexcept;
-	Jsonifier(JsonType) noexcept;
+	Jsonifier& operator=(JsonType theTypeNew) noexcept;
+	Jsonifier(JsonType theType) noexcept;
 
 	Jsonifier& operator=(std::nullptr_t) noexcept;
-	Jsonifier(std::nullptr_t) noexcept;
+	Jsonifier(std::nullptr_t theData) noexcept;
 
 	Jsonifier& operator[](typename ObjectType::key_type key);
 
 	Jsonifier& operator[](Uint64 index);
 
+	template<typename TheType> TheType& get();
+
+	JsonType type() noexcept;
+
 	Void emplaceBack(Jsonifier&& other) noexcept;
 	Void emplaceBack(Jsonifier& other) noexcept;
-
-	friend bool operator==(const Jsonifier&, const Jsonifier&);
 
 	~Jsonifier() noexcept;
 
@@ -374,8 +405,9 @@ class Jsonifier {
 
 	Void writeJsonArray(const ArrayType& theArray);
 
-	Void writeJsonString(const StringType& string);
+	Void writeJsonString(const StringType& theStringNew);
 
+	Void writeJsonFloat(const FloatType x);
 	template<typename NumberType,
 		std::enable_if_t<std::is_integral<NumberType>::value || std::is_same<NumberType, Uint64>::value || std::is_same<NumberType, Int64>::value, int> = 0>
 	Void writeJsonInt(NumberType theInt) {
@@ -383,13 +415,7 @@ class Jsonifier {
 		this->writeString(theIntNew.data(), theIntNew.size());
 	}
 
-	Void writeJsonFloat(const FloatType theFloat);
-
-	Void writeJsonBool(const BoolType jsonData);
-
-	Void writeJsonNullObject();
-
-	Void writeJsonNullArray();
+	Void writeJsonBool(const BoolType theValueNew);
 
 	Void writeJsonNull();
 
@@ -413,9 +439,31 @@ class Jsonifier {
 
 	Void writeCharacter(const char theChar);
 
+	Void appendBinaryExt(const String& bytes, Uint32 sizeNew);
+
+	Void appendUnsignedLongLong(const Uint64 value);
+
+	Void appendNewFloatExt(const Double FloatValue);
+
+	Void appendSmallIntegerExt(const Uint8 value);
+
+	Void appendListHeader(const Uint32 sizeNew);
+
+	Void appendMapHeader(const Uint32 sizeNew);
+
+	Void appendIntegerExt(const Uint32 value);
+
+	Void appendBool(Bool theData);
+
 	Void appendVersion();
+
+	Void appendNilExt();
+
+	Void appendNil();
 
 	Void setValue(JsonType theTypeNew);
 
 	Void destroy() noexcept;
+
+	friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
 };
