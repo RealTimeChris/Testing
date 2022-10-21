@@ -163,9 +163,9 @@ int32_t main() noexcept {
 			}
 		} catch (const std::exception& e) {
 			StringStream theStream{};
+			std::source_location theLocation{};
 			theStream << "Error Report: \n"
-					  << "Caught At: " << std::source_location::source_location().file_name() << " (" << std::to_string(std::source_location::source_location().line()) << ":"
-					  << std::to_string(std::source_location::source_location().column()) << ")"
+					  << "Caught At: " << theLocation.file_name() << " (" << std::to_string(theLocation.line()) << ":" << std::to_string(theLocation.column()) << ")"
 					  << "\nThe Error: \n"
 					  << e.what() << std::endl
 					  << std::endl;
