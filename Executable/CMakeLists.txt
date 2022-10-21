@@ -27,13 +27,6 @@ target_compile_features(
 	"cxx_std_20"
 )
 
-set_target_properties(
-	"${PROJECT_NAME}" PROPERTIES 
-	OUTPUT_NAME "${PROJECT_NAME}-Cpp"
-	VS_GLOBAL_VcpkgEnabled true
-	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/$<CONFIG>"
-)
-
 if (WIN32 AND NOT EXISTS "${VCPKG_ROOT}")
 	install(
 		FILES 

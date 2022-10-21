@@ -50,5 +50,4 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Jsonifier)
 
-
 add_subdirectory(Executable)
