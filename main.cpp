@@ -1,5 +1,6 @@
 #include "Include/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
+
 struct UpdatePresenceData {
 	String status{};
 	Int64 since{ 0 };
@@ -136,7 +137,7 @@ int32_t main() noexcept {
 		theSize = 0;
 		theStopWatch.resetTimer();
 		for (Uint32 x = 0; x < 50; ++x) {
-			nlohmann::json theSerializer = theData02.operator nlohmann::json_abi_v3_11_2::json();
+			nlohmann::json theSerializer = theData02.operator nlohmann::json();
 			theStopWatch.resetTimer();
 			for (Uint32 x = 0; x < 1024 * 128; ++x) {
 				theSerializer["d"]["intents"] = x;
