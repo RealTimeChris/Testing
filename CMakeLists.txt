@@ -31,6 +31,35 @@ endif()
 
 add_executable("${PROJECT_NAME}" "main.cpp")
 
+target_compile_features(
+	"${PROJECT_NAME}" PRIVATE
+	"cxx_std_20"
+)
+
+target_compile_definitions(
+	"${PROJECT_NAME}" PRIVATE
+	"$<$<STREQUAL:${VCPKG_TARGET_TRIPLET},x64-uwp>:UWP>"
+	"$<$<PLATFORM_ID:Windows>:SIMDJSON_USING_WINDOWS_DYNAMIC_LIBRARY=1>"
+)
+
+target_compile_options(
+	"${PROJECT_NAME}" PRIVATE
+	"$<$<NOT:$<PLATFORM_ID:Linux>>:/bigobj>"
+	"$<$<PLATFORM_ID:Windows>:$<$<STREQUAL:$ENV{EnableASAN},true>:/fsanitize=address>>"
+	"$<$<PLATFORM_ID:Windows>:$<$<STREQUAL:$ENV{EnableASAN},true>:/Zi>>"
+	"$<$<PLATFORM_ID:Windows>:/MP>"
+	"$<$<PLATFORM_ID:Linux>:$<$<STREQUAL:$ENV{EnableASAN},true>:-fsanitize=address>>"
+	"$<$<PLATFORM_ID:Linux>:-fpermissive>"
+)
+
+target_link_options(
+	"${PROJECT_NAME}" PRIVATE
+	"$<$<PLATFORM_ID:Windows>:$<$<STREQUAL:$ENV{EnableASAN},true>:/Debug>>"
+	"$<$<PLATFORM_ID:Windows>:/DEBUG>"
+	"$<$<PLATFORM_ID:Linux>:$<$<STREQUAL:$ENV{EnableASAN},true>:-fsanitize=address>>"
+)
+
+
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
