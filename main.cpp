@@ -123,7 +123,7 @@ int32_t main() noexcept {
 				theVector.push_back(theSerializer.operator String());
 				theSize += theVector.back().size();
 				if (x % 100000 == 0) {
-					std::cout << theVector.back() << std::endl;
+					//std::cout << theVector.back() << std::endl;
 				}			
 			}
 			theTotalTime += theStopWatch.totalTimePassed();
@@ -144,7 +144,7 @@ int32_t main() noexcept {
 				theVector.push_back(theSerializer.dump());
 				theSize += theVector.back().size();
 				if (x % 100000 == 0) {
-					std::cout << theVector.back() << std::endl;
+					//std::cout << theVector.back() << std::endl;
 				}
 			}
 			theTotalTime += theStopWatch.totalTimePassed();
