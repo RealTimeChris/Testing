@@ -17,16 +17,17 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 add_library(Jsonifier_Dll "../Source/DllMain.cpp")
 
-#add_library(Jsonifier "../Source/Jsonifier.cpp")
+add_library(Jsonifier "../Source/Jsonifier.cpp")
 
-#target_link_libraries(
-	#Jsonifier PUBLIC
-	#Jsonifier_Dll
-#)
+target_link_libraries(
+	Jsonifier PUBLIC
+	Jsonifier_Dll
+)
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
-	Jsonifier::Jsonifier
+	Jsonifier
+	Jsonifier_Dll
 	nlohmann_json::nlohmann_json 
 )
 
