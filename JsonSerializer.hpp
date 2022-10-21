@@ -26,13 +26,41 @@
 #ifndef JSON_SERIALIZER
 #define JSON_SERIALIZER
 
+#ifdef _WIN32
+	#pragma comment(lib, "Ws2_32.lib")
+	#include <WinSock2.h>
+	#include <process.h>
+	#ifdef max
+		#undef max
+	#endif
+	#ifdef min
+		#undef min
+	#endif
+	#ifdef Jsonifier_EXPORTS
+		#define Jsonifier_Dll __declspec(dllexport)
+	#else
+		#define Jsonifier_Dll __declspec(dllimport)
+	#endif
+#else
+	#define Jsonifier_Dll
+inline uint64_t ntohll(uint64_t x) {
+	uint8_t theData[8]{};
+	std::copy(&(x), &(x) + sizeof(x), theData);
+	uint64_t theValue{};
+	for (uint32_t y = 0; y < sizeof(uint64_t); ++y) {
+		theValue |= static_cast<uint64_t>(theData[y]) << 8 * (sizeof(uint64_t) - y - 1);
+	}
+	return theValue;
+}
+	#include <arpa/inet.h>
+#endif 
+
+
 #include <concepts>
 #include <coroutine>
 #include <string_view>
 #include <stdint.h>
 #include <variant>
-#include <WinSock2.h>
-#pragma comment(lib, "Ws2_32.lib")
 #include <set>
 #include <charconv>
 #include <deque>
