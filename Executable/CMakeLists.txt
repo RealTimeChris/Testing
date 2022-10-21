@@ -15,15 +15,6 @@ endif()
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
-add_library(Jsonifier_Dll "../Source/DllMain.cpp")
-
-#add_library(Jsonifier "../Source/Jsonifier.cpp")
-
-#target_link_libraries(
-	#Jsonifier PUBLIC
-	#Jsonifier_Dll
-#)
-
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
@@ -36,30 +27,20 @@ target_compile_features(
 )
 
 target_compile_features(
-	Jsonifier_Dll PUBLIC
-	"cxx_std_20"
-)
-
-target_compile_features(
 	"${PROJECT_NAME}" PUBLIC
 	"cxx_std_20"
 )
 
-if (WIN32 AND NOT EXISTS "${VCPKG_ROOT}")
+message(${Testing_BINARY_DIR})
+if (WIN32)
 	install(
 		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
-		DESTINATION "$<CONFIG>"
+		DESTINATION "../"
 	)	
 	install(
 		FILES 
 		"$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>"
-		DESTINATION "$<CONFIG>"
+		DESTINATION "../"
 	)
 endif()
-
-install(
-	FILES 
-	"$<TARGET_FILE:${PROJECT_NAME}>"
-	DESTINATION "$<CONFIG>"
-)

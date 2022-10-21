@@ -1,13 +1,13 @@
-#include "Include/Jsonifier.hpp"
+#include "Build/Release/_deps/jsonifier-src/Include/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
 
 struct UpdatePresenceDataTwo {
-	String status{};///< Current status.
-	Int64 since{ 0 };///< When was the activity started?
-	Bool afk{ false };///< Are we afk.
-	String theString{};
+	Jsonifier::String status{};///< Current status.
+	Jsonifier::Int64 since{ 0 };///< When was the activity started?
+	Jsonifier::Bool afk{ false };///< Are we afk.
+	Jsonifier::String theString{};
 	operator nlohmann::json();
 };
 
@@ -25,7 +25,7 @@ struct WebSocketIdentifyDataTwo {
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
-	String theString{};
+	Jsonifier::String theString{};
 	int64_t intents{};
 
 	operator nlohmann::json();
@@ -55,15 +55,15 @@ WebSocketIdentifyDataTwo::operator nlohmann::json(){
 }
 
 struct UpdatePresenceData {
-	String status{};
-	Int64 since{ 0 };
-	Bool afk{ false };
-	String theString{};
-	operator Jsonifier();
+	Jsonifier::String status{};
+	Jsonifier::Int64 since{ 0 };
+	Jsonifier::Bool afk{ false };
+	Jsonifier::String theString{};
+	operator Jsonifier::Jsonifier();
 };
 
-UpdatePresenceData::operator Jsonifier() {
-	Jsonifier theData{};
+UpdatePresenceData::operator Jsonifier::Jsonifier() {
+	Jsonifier::Jsonifier theData{};
 	theData["status"] = this->status;
 	theData["since"] = this->since;
 	theData["afk"] = this->afk;
@@ -76,14 +76,14 @@ struct WebSocketIdentifyData {
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
-	String theString{};
+	Jsonifier::String theString{};
 	int64_t intents{};
 
-	operator Jsonifier();
+	operator Jsonifier::Jsonifier();
 };
 
-WebSocketIdentifyData::operator Jsonifier() {
-	Jsonifier theSerializer{};
+WebSocketIdentifyData::operator Jsonifier::Jsonifier() {
+	Jsonifier::Jsonifier theSerializer{};
 	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 
 	UpdatePresenceData theData{};
@@ -102,30 +102,28 @@ WebSocketIdentifyData::operator Jsonifier() {
 	theSerializer["d"]["shard"].emplaceBack(1);
 	theSerializer["d"]["token"] = this->botToken;
 	theSerializer["op"] = 2;
-	theSerializer.refreshString(JsonifierSerializeType::Json);
+	theSerializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 	return theSerializer;
 }
-
-
 
 int32_t main() noexcept {
 	try {
 
 		WebSocketIdentifyDataTwo theDataBewTwoReal{};
 
-		StopWatch theStopWatch{ std::chrono::milliseconds{} };
-		Vector<String> theVector{};
-		Uint64 theTotalTime{};
+		Jsonifier::StopWatch theStopWatch{ std::chrono::milliseconds{} };
+		Jsonifier::Vector<Jsonifier::String> theVector{};
+		Jsonifier::Uint64 theTotalTime{};
 		size_t theSize{};
 		WebSocketIdentifyData theDataBewTwo{};
 
-		for (Uint32 x = 0; x < 50; ++x) {
-			Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier() };
+		for (Jsonifier::Uint32 x = 0; x < 50; ++x) {
+			Jsonifier::Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier::Jsonifier() };
 			theStopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				theSerializer["d"]["intents"] = x;
-				theSerializer.refreshString(JsonifierSerializeType::Json);
-				theVector.push_back(theSerializer.operator String());
+				theSerializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
+				theVector.push_back(theSerializer.operator std::string());
 				theSize += theVector.back().size();
 				if (x == 1024 * 128 - 2) {
 					//std::cout << theVector.back() << std::endl;
@@ -165,7 +163,7 @@ int32_t main() noexcept {
 				std::rethrow_exception(currentException);
 			}
 		} catch (const std::exception& e) {
-			StringStream theStream{};
+			Jsonifier::StringStream theStream{};
 			std::source_location theLocation{};
 			theStream << "Error Report: \n"
 					  << "Caught At: " << theLocation.file_name() << " (" << std::to_string(theLocation.line()) << ":" << std::to_string(theLocation.column()) << ")"
