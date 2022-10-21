@@ -110,31 +110,11 @@ WebSocketIdentifyDataTwo::operator nlohmann::json() {
 int32_t main() noexcept {
 	try {
 		StopWatch theStopWatch{ std::chrono::milliseconds{} };
-		WebSocketIdentifyData theData01{};
+		
+		WebSocketIdentifyDataTwo theData02{};
 		Vector<String> theVector{};
 		Uint64 theTotalTime{};
 		size_t theSize{};
-		for (Uint32 x = 0; x < 50; ++x) {			
-			Jsonifier theSerializer = theData01.operator Jsonifier();
-			theStopWatch.resetTimer();
-			for (Uint32 x = 0; x < 1024 * 128; ++x) {
-				theSerializer["d"]["intents"] = x;
-				theSerializer.refreshString(JsonifierSerializeType::Json);
-				theVector.push_back(theSerializer.operator String());
-				theSize += theVector.back().size();
-				if (x % 100000 == 0) {
-					//std::cout << theVector.back() << std::endl;
-				}			
-			}
-			theTotalTime += theStopWatch.totalTimePassed();
-			
-		}
-		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;	
-		
-		WebSocketIdentifyDataTwo theData02{};
-		theVector.clear();		
-		theTotalTime = 0;
-		theSize = 0;
 		theStopWatch.resetTimer();
 		for (Uint32 x = 0; x < 50; ++x) {
 			nlohmann::json theSerializer = theData02.operator nlohmann::json();
@@ -152,6 +132,26 @@ int32_t main() noexcept {
 		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;	
 
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
+
+		WebSocketIdentifyData theData01{};
+		theVector.clear();
+		theTotalTime = 0;
+		theSize = 0;
+		for (Uint32 x = 0; x < 50; ++x) {
+			Jsonifier theSerializer = theData01.operator Jsonifier();
+			theStopWatch.resetTimer();
+			for (Uint32 x = 0; x < 1024 * 128; ++x) {
+				theSerializer["d"]["intents"] = x;
+				theSerializer.refreshString(JsonifierSerializeType::Json);
+				theVector.push_back(theSerializer.operator String());
+				theSize += theVector.back().size();
+				if (x % 100000 == 0) {
+					//std::cout << theVector.back() << std::endl;
+				}
+			}
+			theTotalTime += theStopWatch.totalTimePassed();
+		}
+		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;	
 
 
 	} catch (...) {
