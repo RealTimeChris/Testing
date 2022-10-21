@@ -208,7 +208,7 @@ class Jsonifier {
   public:
 	using MapAllocatorType = std::allocator<std::pair<const String, Jsonifier>>;
 	template<typename ObjectType> using AllocatorType = std::allocator<ObjectType>;
-	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<AllocatorType<ObjectType>>;
+	template<typename ObjectType> using AllocatorTraits = std::allocator_traits<std::allocator<ObjectType>>;
 	using ObjectType = std::map<String, Jsonifier, std::less<>, MapAllocatorType>;
 	using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
 	using StringType = String;
