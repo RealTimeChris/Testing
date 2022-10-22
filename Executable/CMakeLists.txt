@@ -19,6 +19,7 @@ target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
 	nlohmann_json::nlohmann_json 
+	glaze
 )
 
 target_compile_features(
