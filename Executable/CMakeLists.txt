@@ -14,7 +14,7 @@ if (DEFINED ENV{EnableASAN})
 endif()
 
 find_package(nlohmann_json CONFIG REQUIRED)
-
+find_package(Jsonifier CONFIG REQUIRED)
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier

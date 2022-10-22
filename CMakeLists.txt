@@ -14,6 +14,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake")
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
 
 if (WIN32)
+	set(jsonifier_DIR "C:/users/chris/cmake/jsonifier/share/jsonifier")
 	set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 		cmake_path(GET CMAKE_ROOT ROOT_PATH ROOT_DRIVE)
@@ -27,7 +28,5 @@ elseif(UNIX)
 else()
 		message(FATAL_ERROR "Sorry, but your OS is not supported!")
 endif()
-
-include(Jsonifier)
 
 add_subdirectory(Executable)

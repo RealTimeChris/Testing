@@ -4,10 +4,10 @@
 #include <source_location>
 
 struct UpdatePresenceDataTwo {
-	Jsonifier::String status{};///< Current status.
+	Jsonifier::std::string status{};///< Current status.
 	Jsonifier::Int64 since{ 0 };///< When was the activity started?
 	Jsonifier::Bool afk{ false };///< Are we afk.
-	Jsonifier::String theString{};
+	Jsonifier::std::string theString{};
 	operator nlohmann::json();
 };
 
@@ -25,7 +25,7 @@ struct WebSocketIdentifyDataTwo {
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
-	Jsonifier::String theString{};
+	Jsonifier::std::string theString{};
 	int64_t intents{};
 
 	operator nlohmann::json();
@@ -55,10 +55,10 @@ WebSocketIdentifyDataTwo::operator nlohmann::json(){
 }
 
 struct UpdatePresenceData {
-	Jsonifier::String status{};
+	Jsonifier::std::string status{};
 	Jsonifier::Int64 since{ 0 };
 	Jsonifier::Bool afk{ false };
-	Jsonifier::String theString{};
+	Jsonifier::std::string theString{};
 	operator Jsonifier::Jsonifier();
 };
 
@@ -76,7 +76,7 @@ struct WebSocketIdentifyData {
 	int32_t numberOfShards{};
 	int32_t currentShard{};
 	std::string botToken{};
-	Jsonifier::String theString{};
+	Jsonifier::std::string theString{};
 	int64_t intents{};
 
 	operator Jsonifier::Jsonifier();
@@ -112,12 +112,12 @@ int32_t main() noexcept {
 		WebSocketIdentifyDataTwo theDataBewTwoReal{};
 
 		Jsonifier::StopWatch theStopWatch{ std::chrono::milliseconds{} };
-		Jsonifier::Vector<Jsonifier::String> theVector{};
+		Jsonifier::std::vector<Jsonifier::std::string> theVector{};
 		Jsonifier::Uint64 theTotalTime{};
 		size_t theSize{};
 		WebSocketIdentifyData theDataBewTwo{};
 
-		for (Jsonifier::Uint32 x = 0; x < 50; ++x) {
+		for (Jsonifier::uint32_t x = 0; x < 50; ++x) {
 			Jsonifier::Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier::Jsonifier() };
 			theStopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
@@ -163,7 +163,7 @@ int32_t main() noexcept {
 				std::rethrow_exception(currentException);
 			}
 		} catch (const std::exception& e) {
-			Jsonifier::StringStream theStream{};
+			Jsonifier::std::stringstream theStream{};
 			std::source_location theLocation{};
 			theStream << "Error Report: \n"
 					  << "Caught At: " << theLocation.file_name() << " (" << std::to_string(theLocation.line()) << ":" << std::to_string(theLocation.column()) << ")"
