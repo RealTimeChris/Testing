@@ -12,7 +12,7 @@ if (DEFINED ENV{EnableASAN})
 		target_link_options("${PROJECT_NAME}" PUBLIC "-fsanitize=address")
 	endif()
 endif()
-find_package(RapidJSON CONFIG REQUIRED)
+#find_package(RapidJSON CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Jsonifier CONFIG REQUIRED)
 target_link_libraries(

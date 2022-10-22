@@ -12,7 +12,7 @@ project(
 )
 
 if (UNIX)
-	set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake") 
@@ -20,11 +20,11 @@ set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
 
 include(CPM)
 
-CPMAddPackage(
-   NAME glaze
-   GIT_REPOSITORY https://github.com/stephenberry/glaze
-   GIT_TAG main
-)
+#CPMAddPackage(
+   #NAME glaze
+   #GIT_REPOSITORY https://github.com/stephenberry/glaze
+   #GIT_TAG main
+#)
 
 if (WIN32)
 	set(Jsonifier_DIR "C:/Users/Chris/CMake/Jsonifier/share/jsonifier/")
