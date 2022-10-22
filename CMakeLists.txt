@@ -12,7 +12,7 @@ project(
 )
 
 if (UNIX)
-	set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+	set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake") 
