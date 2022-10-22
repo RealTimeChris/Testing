@@ -119,7 +119,7 @@ int32_t main() noexcept {
 		WebSocketIdentifyData theDataBewTwo{};
 
 		for (uint32_t x = 0; x < 50; ++x) {
-			Jsonifier::Jsonifier theSerializer{ theDataBewTwo.operator Jsonifier::Jsonifier() };
+			Jsonifier::Jsonifier theSerializer = theDataBewTwo.operator Jsonifier::Jsonifier();
 			theStopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				theSerializer["d"]["intents"] = x;
