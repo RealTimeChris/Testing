@@ -38,3 +38,5 @@ if (WIN32)
 		DESTINATION "${CMAKE_BINARY_DIR}/Executable/Release"
 	)
 endif()
+set(OUT_VAR "")
+get_target_property(OUT_VAR "${PROJECT_NAME}" COMPILE_DEFINITIONS  )
