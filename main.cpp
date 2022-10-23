@@ -1,9 +1,10 @@
-#include "Jsonifier.hpp"
+#include "Build/Release/_deps/jsonifier-src/Include/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
 #include <rapidjson/rapidjson.h>
-#include <xmmintrin.h>
+#include <immintrin.h>
+
 struct UpdatePresenceDataTwo {
 	std::string status{};///< Current status.
 	int64_t since{ 0 };///< When was the activity started?
@@ -33,26 +34,27 @@ struct WebSocketIdentifyDataTwo {
 };
 
 WebSocketIdentifyDataTwo::operator nlohmann::json(){
-	nlohmann::json theSerializer{};
-	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	nlohmann::json serializer{};
+	serializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 
 	UpdatePresenceDataTwo theData{};
-	theSerializer["d"]["presence"]["activities"].emplace_back(theData);
-	theSerializer["d"]["presence"]["activities"].emplace_back(theData);
-	theSerializer["d"]["presence"]["activities"].emplace_back(std::move(theData));
-	theSerializer["d"]["afk"] = this->presence.afk;
+	serializer["d"]["presence"]["activities"].emplace_back(theData);
+	serializer["d"]["presence"]["activities"].emplace_back(theData);
+	serializer["d"]["presence"]["activities"].emplace_back(theData);
+	serializer["d"]["presence"]["activities"].emplace_back(theData);
+	serializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
-		theSerializer["since"] = this->presence.since;
+		serializer["since"] = this->presence.since;
 	}
-	theSerializer["d"]["status"] = this->presence.status;
-	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
-	theSerializer["d"]["properties"]["os"] = "Windows";
-	theSerializer["d"]["shard"].emplace_back(0);
-	theSerializer["d"]["shard"].emplace_back(1);
-	theSerializer["d"]["token"] = this->botToken;
-	theSerializer["op"] = 2;
-	return theSerializer;
+	serializer["d"]["status"] = this->presence.status;
+	serializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	serializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+	serializer["d"]["properties"]["os"] = "Windows";
+	serializer["d"]["shard"].emplace_back(0);
+	serializer["d"]["shard"].emplace_back(1);
+	serializer["d"]["token"] = this->botToken;
+	serializer["op"] = 2;
+	return serializer;
 }
 
 struct UpdatePresenceData {
@@ -84,74 +86,68 @@ struct WebSocketIdentifyData {
 };
 
 WebSocketIdentifyData::operator Jsonifier::Jsonifier() {
-	Jsonifier::Jsonifier theSerializer{};
-	theSerializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	Jsonifier::Jsonifier serializer{};
+	serializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
 
 	UpdatePresenceData theData{};
-	theSerializer["d"]["presence"]["activities"].emplaceBack(theData);
-	theSerializer["d"]["presence"]["activities"].emplaceBack(theData);
-	theSerializer["d"]["presence"]["activities"].emplaceBack(std::move(theData));
-	theSerializer["d"]["afk"] = this->presence.afk;
+	serializer["d"]["presence"]["activities"].emplaceBack(theData);
+	serializer["d"]["presence"]["activities"].emplaceBack(theData);
+	serializer["d"]["presence"]["activities"].emplaceBack(theData);
+	serializer["d"]["presence"]["activities"].emplaceBack(theData);
+	serializer["d"]["afk"] = this->presence.afk;
 	if (this->presence.since != 0) {
-		theSerializer["since"] = this->presence.since;
+		serializer["since"] = this->presence.since;
 	}
-	theSerializer["d"]["status"] = this->presence.status;
-	theSerializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
-	theSerializer["d"]["properties"]["device"] = "DiscordCoreAPI";
-	theSerializer["d"]["properties"]["os"] = "Windows";
-	theSerializer["d"]["shard"].emplaceBack(0);
-	theSerializer["d"]["shard"].emplaceBack(1);
-	theSerializer["d"]["token"] = this->botToken;
-	theSerializer["op"] = 2;
-	theSerializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-	return theSerializer;
+	serializer["d"]["status"] = this->presence.status;
+	serializer["d"]["properties"]["browser"] = "DiscordCoreAPI";
+	serializer["d"]["properties"]["device"] = "DiscordCoreAPI";
+	serializer["d"]["properties"]["os"] = "Windows";
+	serializer["d"]["shard"].emplaceBack(0);
+	serializer["d"]["shard"].emplaceBack(1);
+	serializer["d"]["token"] = this->botToken;
+	serializer["op"] = 2;
+	serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
+	return serializer;
 }
 
 int32_t main() noexcept {
 	try {
 
-		WebSocketIdentifyDataTwo theDataBewTwoReal{};
-
-		Jsonifier::StopWatch theStopWatch{ std::chrono::milliseconds{} };
-		std::vector<std::string> theVector{};
-		uint64_t theTotalTime{};
-		size_t theSize{};
-		WebSocketIdentifyData theDataBewTwo{};
-
+		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatch{ std::chrono::milliseconds{ 1 } };
+		std::vector<std::string> vector{};
+		uint64_t totalTime{};
+		size_t size{};
+		WebSocketIdentifyData data{};
+		auto serializer = data.operator Jsonifier::Jsonifier();
+		stopWatch.resetTimer();
 		for (uint32_t x = 0; x < 50; ++x) {
-			Jsonifier::Jsonifier theSerializer = theDataBewTwo.operator Jsonifier::Jsonifier();
-			theStopWatch.resetTimer();
+			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				theSerializer["d"]["intents"] = x;
-				theSerializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-				theVector.push_back(theSerializer.operator std::string());
-				theSize += theVector.back().size();
-				if (x == 1024 * 128 - 2) {
-					//std::cout << theVector.back() << std::endl;
-				}
+				serializer["d"]["intents"] = x;
+				serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
+				vector.push_back(serializer.operator std::string());
+				size += vector.back().size();
 			}
-			theTotalTime += theStopWatch.totalTimePassed();
+			totalTime += stopWatch.totalTimePassed();
 		}
-		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;
+		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 		
-		theVector.clear();
-		theTotalTime = 0;
-		theStopWatch.resetTimer();
-		theSize = 0;
-		for (uint32_t x = 0; x < 50; ++x) {
-			auto theReferenceTwo = theDataBewTwoReal.operator nlohmann::json();
-			theStopWatch.resetTimer();
+		vector.clear();
+		totalTime = 0;
+		size = 0;
+		WebSocketIdentifyDataTwo dataTwo{};
+		auto serializerTwo = dataTwo.operator nlohmann::json();
+		stopWatch.resetTimer();
+		for (uint32_t x = 0; x < 50; ++x) {			
+			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				theReferenceTwo["d"]["intents"] = x;
-				theVector.push_back(theReferenceTwo.dump());
-				theSize += theVector.back().size();
-				if (x == 1024 * 128 - 2) {
-					//std::cout << theVector.back() << std::endl;
-				}
+				serializerTwo["d"]["intents"] = x;
+				vector.push_back(serializerTwo.dump());
+				size += vector.back().size();
 			}
-			theTotalTime += theStopWatch.totalTimePassed();
+			totalTime += stopWatch.totalTimePassed();
 		}
-		std::cout << "The time it took (In milliseconds): " << theTotalTime / 50 << ", with a total number of bytes serialized: " << theSize << std::endl;
+		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 		
 			
 				

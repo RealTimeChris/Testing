@@ -12,14 +12,15 @@ if (DEFINED ENV{EnableASAN})
 		target_link_options("${PROJECT_NAME}" PUBLIC "-fsanitize=address")
 	endif()
 endif()
-#find_package(RapidJSON CONFIG REQUIRED)
+
+include(Jsonifier)
+
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(Jsonifier CONFIG REQUIRED)
+
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
 	nlohmann_json::nlohmann_json 
-	#glaze
 )
 
 target_compile_features(
@@ -27,17 +28,16 @@ target_compile_features(
 	"cxx_std_20"
 )
 
+message(${Testing_BINARY_DIR})
 if (WIN32)
 	install(
 		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
-		DESTINATION "${CMAKE_BINARY_DIR}/Executable/Release"
+		DESTINATION "../"
 	)	
 	install(
 		FILES 
 		"$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_BINARY_DIR}/Executable/Release"
+		DESTINATION "../"
 	)
 endif()
-set(OUT_VAR "")
-get_target_property(OUT_VAR "${PROJECT_NAME}" COMPILE_DEFINITIONS  )

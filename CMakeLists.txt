@@ -10,45 +10,22 @@ project(
 	HOMEPAGE_URL "https://discordcoreapi.com"
 	DESCRIPTION "${DESCRIPTION}"
 )
-
-if (UNIX)
-	set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
-endif()
-
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake") 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
 
-include(CPM)
-
-#CPMAddPackage(
-   #NAME glaze
-   #GIT_REPOSITORY https://github.com/stephenberry/glaze
-   #GIT_TAG main
-#)
-
 if (WIN32)
-	set(Jsonifier_DIR "C:/Users/Chris/CMake/Jsonifier/share/jsonifier/")
 	set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
-	set(RapidJSON_DIR "C:/vcpkg/installed/x64-windows/share/rapidjson")
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 		cmake_path(GET CMAKE_ROOT ROOT_PATH ROOT_DRIVE)
-		if (DEFINED ENV{EnableASAN})
-			set(CMAKE_INSTALL_PREFIX "${ROOT_DRIVE}Users/$ENV{USERNAME}/CMake/${PROJECT_NAME}/ASAN" CACHE PATH "The CMake install prefix." FORCE)
-		else()
-			set(CMAKE_INSTALL_PREFIX "${ROOT_DRIVE}Users/$ENV{USERNAME}/CMake/${PROJECT_NAME}" CACHE PATH "The CMake install prefix." FORCE)
-		endif()
+		set(CMAKE_INSTALL_PREFIX "./Executable/Release/Testing/" CACHE PATH "The CMake install prefix." FORCE)
 	endif()
 elseif(UNIX)
 	set(nlohmann_json_DIR "/home/chris/vcpkg/installed/x64-linux/share/nlohmann_json")
-	set(Jsonifier_DIR "/home/chris/CMake/Jsonifier/share/jsonifier")
-	set(RapidJSON_DIR "/home/chris/vcpkg/installed/x64-linux/share/rapidjson")
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-		if (DEFINED ENV{EnableASAN})
-			set(CMAKE_INSTALL_PREFIX "/home/$ENV{USERNAME}/CMake/${PROJECT_NAME}/ASAN" CACHE PATH "The CMake install prefix." FORCE)
-		else()
-			set(CMAKE_INSTALL_PREFIX "/home/$ENV{USERNAME}/CMake/${PROJECT_NAME}" CACHE PATH "The CMake install prefix." FORCE)
-		endif()
+		set(CMAKE_INSTALL_PREFIX "./Executable/Release/Testing/" CACHE PATH "The CMake install prefix." FORCE)
 	endif()
+else()
+		message(FATAL_ERROR "Sorry, but your OS is not supported!")
 endif()
- 
+
 add_subdirectory(Executable)
