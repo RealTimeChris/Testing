@@ -1,4 +1,4 @@
-#include "Build/Release/_deps/jsonifier-src/Include/Jsonifier.hpp"
+#include <include/jsonifier/Jsonifier.hpp>
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
@@ -35,7 +35,7 @@ struct WebSocketIdentifyDataTwo {
 
 WebSocketIdentifyDataTwo::operator nlohmann::json(){
 	nlohmann::json serializer{};
-	serializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	serializer["d"]["intents"] = this->intents;
 
 	UpdatePresenceDataTwo theData{};
 	serializer["d"]["presence"]["activities"].emplace_back(theData);
@@ -81,13 +81,12 @@ struct WebSocketIdentifyData {
 	std::string botToken{};
 	std::string theString{};
 	int64_t intents{};
-
 	operator Jsonifier::Jsonifier();
 };
 
 WebSocketIdentifyData::operator Jsonifier::Jsonifier() {
 	Jsonifier::Jsonifier serializer{};
-	serializer["d"]["intents"] = static_cast<uint32_t>(this->intents);
+	serializer["d"]["intents"] = this->intents;
 
 	UpdatePresenceData theData{};
 	serializer["d"]["presence"]["activities"].emplaceBack(theData);
@@ -106,7 +105,6 @@ WebSocketIdentifyData::operator Jsonifier::Jsonifier() {
 	serializer["d"]["shard"].emplaceBack(1);
 	serializer["d"]["token"] = this->botToken;
 	serializer["op"] = 2;
-	serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 	return serializer;
 }
 
@@ -148,8 +146,6 @@ int32_t main() noexcept {
 			totalTime += stopWatch.totalTimePassed();
 		}
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
-		
-			
 				
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
 

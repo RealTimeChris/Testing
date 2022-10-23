@@ -17,6 +17,12 @@ include(Jsonifier)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
+target_include_directories(
+	"${PROJECT_NAME}" 
+	PUBLIC 
+	"${CMAKE_INSTALL_PREFIX}"
+)
+
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
@@ -28,16 +34,20 @@ target_compile_features(
 	"cxx_std_20"
 )
 
-message(${Testing_BINARY_DIR})
 if (WIN32)
 	install(
 		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
-		DESTINATION "../"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/"
 	)	
 	install(
 		FILES 
 		"$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>"
-		DESTINATION "../"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/"
 	)
 endif()
+install(
+		FILES 
+		"$<TARGET_FILE:${PROJECT_NAME}>"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/"
+	)
