@@ -1,4 +1,4 @@
-#include <include/jsonifier/Jsonifier.hpp>
+#include "Include/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
@@ -146,7 +146,6 @@ int32_t main() noexcept {
 			totalTime += stopWatch.totalTimePassed();
 		}
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
-				
 		std::this_thread::sleep_for(std::chrono::milliseconds{ 2000 });
 
 	} catch (...) {

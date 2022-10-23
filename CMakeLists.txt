@@ -1,9 +1,7 @@
 if (WIN32)
 	set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}" CACHE PATH "The CMake install prefix." FORCE)
 elseif(UNIX)
 	set(nlohmann_json_DIR "/home/chris/vcpkg/installed/x64-linux/share/nlohmann_json")
-	set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}" CACHE PATH "The CMake install prefix." FORCE)
 endif()
 
 cmake_minimum_required(VERSION 3.20)

@@ -20,7 +20,7 @@ find_package(nlohmann_json CONFIG REQUIRED)
 target_include_directories(
 	"${PROJECT_NAME}" 
 	PUBLIC 
-	"${CMAKE_INSTALL_PREFIX}"
+	"${CMAKE_SOURCE_DIR}/Build/Release/_deps/jsonifier-src/"
 )
 
 target_link_libraries(
@@ -38,16 +38,17 @@ if (WIN32)
 	install(
 		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
-		DESTINATION "${CMAKE_INSTALL_PREFIX}/"
+		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
 	)	
 	install(
 		FILES 
 		"$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_INSTALL_PREFIX}/"
+		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
 	)
 endif()
+
 install(
 		FILES 
 		"$<TARGET_FILE:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_INSTALL_PREFIX}/"
-	)
+		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+)
