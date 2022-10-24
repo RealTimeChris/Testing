@@ -3,7 +3,6 @@
 #include <scoped_allocator>
 #include <source_location>
 #include <rapidjson/rapidjson.h>
-#include <immintrin.h>
 #include <simdjson.h>
 
 struct UpdatePresenceDataTwo {
@@ -108,7 +107,7 @@ WebSocketIdentifyData::operator Jsonifier::Jsonifier() {
 	serializer["op"] = 2;
 	return serializer;
 }
-/*
+
 int32_t main() noexcept {
 	try {
 
@@ -170,7 +169,7 @@ int32_t main() noexcept {
 
 	return 0;
 }
-*/
+/*w
 #include <immintrin.h>//SSE Extensions
 
 
@@ -268,3 +267,4 @@ int main() {
 
 	return 0;
 }
+*/
