@@ -25,5 +25,5 @@ endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake") 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
-find_package(Jsonifier CONFIG REQUIRED)
+find_package(Jsonifier CONFIG)
 add_subdirectory(Executable)
