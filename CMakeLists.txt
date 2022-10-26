@@ -1,6 +1,5 @@
 if (WIN32)
 	set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
-	set(Jsonifier_DIR "C:/Users/Chris/CMake/Jsonifier/share/jsonifier")
 elseif(UNIX)
 	set(nlohmann_json_DIR "/home/chris/vcpkg/installed/x64-linux/share/nlohmann_json")
 endif()
@@ -27,5 +26,4 @@ endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake") 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
-find_package(Jsonifier CONFIG)
 add_subdirectory(Executable)
