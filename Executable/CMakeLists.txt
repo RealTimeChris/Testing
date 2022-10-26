@@ -29,6 +29,14 @@ target_link_libraries(
 	nlohmann_json::nlohmann_json 
 )
 
+target_compile_options(
+	"${PROJECT_NAME}" PRIVATE
+	"$<$<PLATFORM_ID:Windows>:/MP>"
+	"$<$<PLATFORM_ID:Linux>:-fpermissive>"
+	"$<$<PLATFORM_ID:Linux>:-mavx2>"
+	"$<$<PLATFORM_ID:Linux>:-mavx>"
+)
+
 target_compile_features(
 	"${PROJECT_NAME}" PUBLIC
 	"cxx_std_20"
