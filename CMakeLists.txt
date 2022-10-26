@@ -5,6 +5,8 @@ elseif(UNIX)
 	set(nlohmann_json_DIR "/home/chris/vcpkg/installed/x64-linux/share/nlohmann_json")
 endif()
 
+set(DOWNLOAD_EXTRACT_TIMESTAMP true)
+
 cmake_minimum_required(VERSION 3.20)
 set(PROJECT_NAME "Testing")
 set(PRODUCT_VERSION "1.0.0.9")
