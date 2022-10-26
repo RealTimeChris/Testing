@@ -13,14 +13,14 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
-include(Jsonifier)
+#include(Jsonifier)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
 target_include_directories(
 	"${PROJECT_NAME}" 
 	PUBLIC 
-	"${CMAKE_SOURCE_DIR}/Build/Release/_deps/jsonifier-src/"
+	Jsonifier_INTERFACE_INCLUDE_DIR
 )
 
 target_link_libraries(
