@@ -190,7 +190,7 @@ struct PackedValues {
 	size_t currentIndex{};
 	size_t currentSize{};
 };
-
+/*
 void storeBits(PackedValues values, bool reverse) {
 	__m256i value{ _mm256_set_epi8(values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(),
 		values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(),
