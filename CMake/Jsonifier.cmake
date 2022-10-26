@@ -3,7 +3,7 @@ include(FetchContent)
 fetchcontent_declare(
 	Jsonifier
 	URL https://github.com/RealTimeChris/Jsonifier/releases/download/Master/Jsonifier-src.zip
-	GIT_TAG 5421d1fecd48475079c0363d9b5d10597d1da493
+	GIT_TAG 1f52dc8042ca3e1f488d08170f08d2e88fba04e1
 )
 
 fetchcontent_makeavailable(Jsonifier)
