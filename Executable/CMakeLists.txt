@@ -17,12 +17,6 @@ include(Jsonifier)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
-target_include_directories(
-	"${PROJECT_NAME}" 
-	PUBLIC 
-	"${Jsonifier_INTERFACE_INCLUDE_DIR}"
-)
-
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
