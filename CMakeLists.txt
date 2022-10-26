@@ -21,7 +21,7 @@ project(
 )
 
 if (UNIX)
-	set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Ofast -mavx -mavx2")
+	set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Ofast")
 	set(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG -O1")
 endif()
 
