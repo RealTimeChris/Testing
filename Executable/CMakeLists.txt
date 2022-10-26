@@ -24,9 +24,8 @@ target_link_libraries(
 )
 
 target_compile_options(
-	"${PROJECT_NAME}" PRIVATE
+	"${PROJECT_NAME}" PUBLIC
 	"$<$<PLATFORM_ID:Windows>:/MP>"
-	"$<$<PLATFORM_ID:Linux>:-fpermissive>"
 	"$<$<PLATFORM_ID:Linux>:-mavx2>"
 	"$<$<PLATFORM_ID:Linux>:-mavx>"
 )
