@@ -2,7 +2,7 @@
 	"${PROJECT_NAME}"
 	"../main.cpp"
 )
-
+set(DOWNLOAD_EXTRACT_TIMESTAMP true)
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
