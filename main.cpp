@@ -230,7 +230,7 @@ int32_t main() noexcept {
 		auto serializer = data.operator Jsonifier::Jsonifier();
 		stopWatch.resetTimer();
 
-		
+		std::cout << "WERE HERE THIS SI IT!" << std::endl;
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
 
@@ -239,7 +239,6 @@ int32_t main() noexcept {
 				serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 				vector.push_back(serializer.operator std::string());
 				size += vector.back().size();
-				
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
