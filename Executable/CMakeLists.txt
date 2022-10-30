@@ -13,7 +13,7 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
-include(Jsonifier)
+#include(Jsonifier)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
@@ -25,9 +25,10 @@ target_link_libraries(
 
 target_compile_options(
 	"${PROJECT_NAME}" PUBLIC
+	"$<$<PLATFORM_ID:Windows>:/arch:AVX2>"
+	"$<$<PLATFORM_ID:Windows>:/fp:fast>"
 	"$<$<PLATFORM_ID:Windows>:/MP>"
 	"$<$<PLATFORM_ID:Linux>:-mavx2>"
-	"$<$<PLATFORM_ID:Linux>:-mavx>"
 )
 
 target_compile_features(
