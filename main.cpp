@@ -219,6 +219,41 @@ int32_t main() noexcept {
 }
 */
 
+class Simd8 {
+  public:
+	Simd8(const void* ptr) {
+		this->values = _mm256_loadu_si256(static_cast<const __m256i*>(ptr));
+		//__mmask32 theValues = _mm256_cmpeq_epi8(this->values, this->E);
+	}
+	operator std::string() {
+		std::string string{};
+		for (size_t x = 0; x < 32; ++x) {
+			if (this->B.m256i_i8[x]) {
+				string.push_back('r');
+			}
+			
+		}
+		return string;
+	}
+
+  protected:
+	__mmask32 valueMask{};
+	__m256i values{};
+	__m256i B{};
+	__m256i E{};
+	__m256i O{};
+	__m256i S{};
+	__m256i ES{};
+	__m256i EC{};
+	__m256i OD1{};
+	__m256i OS1{};
+	__m256i OC{};
+	__m256i OCE{};
+	__m256i OD2{};
+	__m256i OD{};
+
+};
+
 int32_t main() noexcept {
 	try {
 
