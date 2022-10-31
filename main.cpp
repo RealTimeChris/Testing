@@ -222,23 +222,36 @@ int32_t main() noexcept {
 class Simd8 {
   public:
 	Simd8(const void* ptr) {
+		this->backslashes = _mm256_set1_epi8('\\');
 		this->values = _mm256_loadu_si256(static_cast<const __m256i*>(ptr));
-		//__mmask32 theValues = _mm256_cmpeq_epi8(this->values, this->E);
+		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
+		__m256i originalValues{ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3',
+			'4', '5', '6' };
+		__m256i shiftValues{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,28, 29, 30, 31 };
+		this->BShift = _mm256_shuffle_epi8(originalValues, shiftValues);
+		this->E = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
+		this->O = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
+		this->S = _mm256_and_si256(this->B, _mm256_andnot_si256(this->BShift, this->BShift));
 	}
 	operator std::string() {
 		std::string string{};
 		for (size_t x = 0; x < 32; ++x) {
-			if (this->B.m256i_i8[x]) {
-				string.push_back('r');
-			}
+			std::cout << "VALUE 02: " << x << " " << static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
 			
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE 02: " << x << " "<<  static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
 		}
 		return string;
 	}
 
   protected:
 	__mmask32 valueMask{};
+	__m256i backslashes{};
 	__m256i values{};
+	__m256i BShift{};
 	__m256i B{};
 	__m256i E{};
 	__m256i O{};
@@ -259,46 +272,15 @@ int32_t main() noexcept {
 
 		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatch{ std::chrono::milliseconds{ 1 } };
 		std::vector<std::string> vector{};
-		char values[32]{
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-		};
+		char values[32]{ '\\', 'N', 'a', 'm', '[', '{', '"', ':', '[', '1', '1', '6', '"', '\\', '\\', '"', '2', '3', '4', '"', 't', 'r', 'u', 'e', '"', 'f', 'a', 'l', 's', 'e',
+			']', '"' };
 		Simd8 simd8Test{ values };
 		uint64_t totalTime{};
+		std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
 		size_t size{};
 		WebSocketIdentifyData data{};
 		auto serializer = data.operator Jsonifier::Jsonifier();
 		stopWatch.resetTimer();
-
 		std::cout << "WERE HERE THIS SI IT!" << std::endl;
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
