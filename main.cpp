@@ -259,6 +259,40 @@ int32_t main() noexcept {
 
 		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatch{ std::chrono::milliseconds{ 1 } };
 		std::vector<std::string> vector{};
+		char values[32]{
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+		};
+		Simd8 simd8Test{ values };
 		uint64_t totalTime{};
 		size_t size{};
 		WebSocketIdentifyData data{};
