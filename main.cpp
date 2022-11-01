@@ -225,24 +225,26 @@ class Simd8 {
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->values = _mm256_loadu_si256(static_cast<const __m256i*>(ptr));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
-		__m256i originalValues{ 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3',
-			'4', '5', '6' };
-		__m256i shiftValues{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,28, 29, 30, 31 };
-		this->BShift = _mm256_shuffle_epi8(originalValues, shiftValues);
+		
+		this->BShift = _mm256_loadu_epi8(reinterpret_cast<uint8_t*>(&this->B) + 1);
 		this->E = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
 		this->O = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
-		this->S = _mm256_and_si256(this->B, _mm256_andnot_si256(this->BShift, this->BShift));
+		this->S = _mm256_and_si256(this->B,_mm256_not _mm256_and_epi32(this->BShift, this->B));
+
 	}
 	operator std::string() {
 		std::string string{};
 		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE 02: " << x << " " << static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE 01: " << x << " " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
 			
 		}
 		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE 02: " << x << " "<<  static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE 02: " << x << " " << +static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE 03: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
 		}
 		return string;
 	}
@@ -267,13 +269,119 @@ class Simd8 {
 
 };
 
+
+void copy256Data(void*dst, const void*src,size_t length) {
+	if (length > 32) {
+		_mm256_store_si256(static_cast<__m256i*>(dst), _mm256_load_si256(static_cast<const __m256i*>(src)));
+	} else {
+		for (size_t x = 0; x < length; ++x) {
+			static_cast<uint8_t*>(dst)[x] = static_cast<const uint8_t*>(src)[x];
+		}
+	}
+}
+
+struct LengthData {
+	uint64_t offSet{};
+	uint64_t length{};
+};
+
+class StringBuffer {
+  public:
+	StringBuffer() noexcept;
+
+	std::string_view operator[](LengthData);
+
+	char operator[](uint64_t);
+
+	void writeDataReal(const char*, uint64_t);
+
+	void writeData(const char*, uint64_t);
+
+	std::string::iterator begin();
+
+	std::string::iterator end();
+
+	void erase(uint64_t);
+
+	uint64_t size();
+
+	void clear();
+
+	char* data();
+
+  protected:
+	std::string string01{};
+	uint64_t sizeValue{};
+};
+
+StringBuffer::StringBuffer() noexcept {
+	this->string01.resize(1024 * 16);
+}
+
+std::string_view StringBuffer::operator[](LengthData size) {
+	std::string_view string{ this->string01.data() + size.offSet, size.length };
+	return string;
+}
+
+char StringBuffer::operator[](uint64_t index) {
+	return this->string01[index];
+}
+
+void StringBuffer::writeDataReal(const char* ptr, uint64_t size) {
+	if (this->sizeValue + size > this->string01.size()) {
+		this->string01.resize(this->string01.size() + size);
+	}
+	while (size > 0) {
+		copy256Data(reinterpret_cast<void*>(this->string01.data() + size), reinterpret_cast<const void*>(ptr + size), static_cast<size_t>(size));
+		if (size > 32) {
+			size -= 32;
+		} else {
+			size = 0;
+		}
+	}
+	this->sizeValue += size;
+}
+
+void StringBuffer::writeData(const char* ptr, uint64_t size) {
+	if (this->sizeValue + size > this->string01.size()) {
+		this->string01.resize(this->string01.size() + size);
+	}
+	std::copy(ptr, ptr + size, this->string01.data() + this->sizeValue);
+	this->sizeValue += size;
+}
+
+std::string::iterator StringBuffer::begin() {
+	return this->string01.begin();
+}
+
+std::string::iterator StringBuffer::end() {
+	return this->string01.end();
+}
+
+void StringBuffer::erase(uint64_t amount) {
+	std::copy(this->string01.data() + amount, this->string01.data() + this->sizeValue, this->string01.data());
+	this->sizeValue = this->sizeValue - amount;
+}
+
+uint64_t StringBuffer::size() {
+	return this->sizeValue;
+}
+
+void StringBuffer::clear() {
+	this->sizeValue = 0;
+}
+
+char* StringBuffer::data() {
+	return this->string01.data();
+}
+
 int32_t main() noexcept {
 	try {
 
-		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatch{ std::chrono::milliseconds{ 1 } };
+		Jsonifier::StopWatch<std::chrono::microseconds> stopWatch{ std::chrono::microseconds{ 1 } };
 		std::vector<std::string> vector{};
-		char values[32]{ '\\', 'N', 'a', 'm', '[', '{', '"', ':', '[', '1', '1', '6', '"', '\\', '\\', '"', '2', '3', '4', '"', 't', 'r', 'u', 'e', '"', 'f', 'a', 'l', 's', 'e',
-			']', '"' };
+		char values[64]{ '{', '"', '\\', '\\', '\\', '"', 'N', 'a', 'm', '[', '{', '"', ':', '[', '1', '1', '6', '"', '\\', '\\', '\\', '\\', ' "', '2', '3', '4', '" ', ' t ',
+			' r ', ' u', ' e ', ' "', 'f', 'a', 'l', 's', 'e', ']', '"', 't', '"', ':', '"', '\\', '\\', '"', '"', '\'', '}', ',', ':' };
 		Simd8 simd8Test{ values };
 		uint64_t totalTime{};
 		std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
@@ -282,19 +390,18 @@ int32_t main() noexcept {
 		auto serializer = data.operator Jsonifier::Jsonifier();
 		stopWatch.resetTimer();
 		std::cout << "WERE HERE THIS SI IT!" << std::endl;
+		StringBuffer stringBuffer{};
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
 
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				serializer["d"]["intents"] = x;
-				serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-				vector.push_back(serializer.operator std::string());
-				size += vector.back().size();
+				stringBuffer.clear();
+				stringBuffer.writeData(values, std::size(values));
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
 		int32_t x{ 0 };
-		std::cout << vector.back() << std::endl;
+		std::cout << std::string_view{ stringBuffer.data(), stringBuffer.size() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 		
 		vector.clear();
@@ -304,17 +411,16 @@ int32_t main() noexcept {
 		nlohmann::json stringBufferTwo = dataOne;
 		stopWatch.resetTimer();
 
-		
+		StringBuffer stringBuffer02{};
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				stringBufferTwo["d"]["intents"] = x;
-				vector.push_back(stringBufferTwo.dump());
-				size += vector.back().size();
+				stringBuffer02.clear();
+				stringBuffer02.writeDataReal(values, std::size(values));
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
-		std::cout << vector.back() << std::endl;
+		std::cout << std::string_view{ stringBuffer02.data(), stringBuffer02.size() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 		vector.clear();
