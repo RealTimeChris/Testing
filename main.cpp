@@ -225,14 +225,16 @@ class Simd8 {
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->values = _mm256_loadu_si256(static_cast<const __m256i*>(ptr));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
-		
-		this->BShift = _mm256_loadu_epi8(reinterpret_cast<uint8_t*>(&this->B) + 1);
-		this->E = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+		auto shiftValue = _mm256_set_epi8(30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,6, 5, 4, 3, 2, 1, 0, 0);
+		this->BShift = _mm256_shuffle_epi8(this->B, shiftValue);
+		this->O = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
-		this->O = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
-		this->S = _mm256_and_si256(this->B,_mm256_not _mm256_and_epi32(this->BShift, this->B));
 
+		this->S = _mm256_and_si256(this->B, _mm256_andnot_si256(this->BShift, this->B));
+		this->ES = _mm256_and_si256(this->S, this->E);
+		
 	}
 	operator std::string() {
 		std::string string{};
@@ -244,7 +246,10 @@ class Simd8 {
 			std::cout << "VALUE 02: " << x << " " << +static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
 		}
 		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE 03: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
+			//std::cout << "VALUE 03: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			//std::cout << "VALUE 03: " << x << " " << +static_cast<uint8_t>(this->ES.m256i_i8[x]) << std::endl;
 		}
 		return string;
 	}
@@ -380,8 +385,36 @@ int32_t main() noexcept {
 
 		Jsonifier::StopWatch<std::chrono::microseconds> stopWatch{ std::chrono::microseconds{ 1 } };
 		std::vector<std::string> vector{};
-		char values[64]{ '{', '"', '\\', '\\', '\\', '"', 'N', 'a', 'm', '[', '{', '"', ':', '[', '1', '1', '6', '"', '\\', '\\', '\\', '\\', ' "', '2', '3', '4', '" ', ' t ',
-			' r ', ' u', ' e ', ' "', 'f', 'a', 'l', 's', 'e', ']', '"', 't', '"', ':', '"', '\\', '\\', '"', '"', '\'', '}', ',', ':' };
+		char values[64]{
+			'{',
+			' ',
+			'"',
+			'\\',
+			'\\',
+			'\\',
+			'"',
+			'N',
+			'a',
+			'm',
+			'[',
+			'{',
+			':',
+			' ',
+			' ',
+			'[',
+			' ',
+			' ',
+			'1',
+			'1',
+			'6',
+			',',
+			'"',
+			'\\',
+			'\\',
+			'\\',
+			'\\',
+		};
+			
 		Simd8 simd8Test{ values };
 		uint64_t totalTime{};
 		std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
