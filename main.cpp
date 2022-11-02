@@ -218,11 +218,89 @@ int32_t main() noexcept {
 
 }
 */
+template<typename OTy> class AtomicWrapper { 
+  public:
+	AtomicWrapper() noexcept = default;
+	AtomicWrapper& operator=(AtomicWrapper&& data) noexcept {
+		this->ptr.swap(data.ptr);
+		return *this;
+	}
+
+	AtomicWrapper(AtomicWrapper&& data) noexcept {
+		*this = std::move(data);
+	}
+	AtomicWrapper& operator=(const AtomicWrapper&data) {
+		this->ptr.get()->store(data.ptr.get()->load());
+		return *this;
+	}
+
+	AtomicWrapper(const AtomicWrapper&data) {
+		*this = data;
+	}
+	void store(OTy&& data) {
+		this->ptr.get()->store(std ::move(data));
+	}
+	OTy load() {
+		return this->ptr.get()->load();
+	}
+	void store(OTy& data) {
+		this->ptr.get()->store(data);
+	}
+	AtomicWrapper(OTy&& data) {
+		this->ptr.get()->store(data);
+	}
+
+  protected:
+	std::unique_ptr<std::atomic<OTy>> ptr{ std::make_unique<std::atomic<OTy>>() };
+};
+
+template<typename OTy> class TSVector {
+  public:
+	OTy operator[](size_t index) {
+		return this->vector[index].load();
+	}
+	void insert(OTy* data, size_t length) {
+		size_t oldSize = this->vector.size();
+		this->vector.resize(this->vector.size() + length);
+		for (size_t x = 0; x < length; ++x) {
+			(this->vector.data() + oldSize)->store(data[x]);
+			std::cout << "THE NEW VALUE: " << (this->vector.data() + oldSize)->load() << std::endl;
+		}
+	}
+	void emplaceBack(OTy&& object) {
+		this->vector.emplace_back(std::move(object));
+	}
+
+	auto data() {
+		return this->vector.data();
+	}
+
+	size_t size() {
+		return this->vector.size();
+	}
+
+	void resize(size_t size) {
+		this->vector.resize(size);
+	}
+
+	auto end() {
+		return this->vector.end();
+	}
+
+	auto begin() {
+		return this->vector.begin();
+	}
+  protected:
+	std::vector<AtomicWrapper<OTy>> vector{};
+
+};
 
 class Simd8 {
   public:
 	Simd8(std::string& stringNew) {
-		this->string = stringNew;
+		for (int32_t x = 0; x < 32; ++x){
+			this->string.push_back(stringNew[x]);
+		}
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->quotes = _mm256_set1_epi8('"');
 		this->values = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(stringNew.data()));
@@ -250,7 +328,7 @@ class Simd8 {
 		this->OD = _mm256_or_si256(this->OD1, this->OD2);
 		this->Q = _mm256_cmpeq_epi8(this->values, this->quotes);
 		this->Q = _mm256_andnot_si256(this->OD, this->Q);
-		*reinterpret_cast<__m128i*>(&this->Q) = _mm_clmulepi64_si128(*reinterpret_cast<__m128i*>(&this->Q), *reinterpret_cast<__m128i*>(&this->Q), ~1);
+		*reinterpret_cast<__m128i*>(&this->Q) = _mm_clmulepi64_si128(*reinterpret_cast<__m128i*>(&this->Q), *reinterpret_cast<__m128i*>(&this->Q), ~0);
 
 	}
 	operator std::string() {
@@ -344,10 +422,9 @@ class Simd8 {
 
 int32_t main() noexcept {
 	try {
-
 		Jsonifier::StopWatch<std::chrono::microseconds> stopWatch{ std::chrono::microseconds{ 1 } };
 		std::vector<std::string> vector{};
-		std::string string{ "{ \" \\\ \" Nam [{\" : [ 116, \" \\\\ \", 234, \" true \", false ], \"t\"" };
+		std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		char values[24]{};
 		Simd8 simd8Test{ string };
 		uint64_t totalTime{};
