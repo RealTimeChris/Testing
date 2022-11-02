@@ -221,10 +221,11 @@ int32_t main() noexcept {
 
 class Simd8 {
   public:
-	Simd8(void* ptr) {
+	Simd8(std::string& stringNew) {
+		this->string = stringNew;
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->quotes = _mm256_set1_epi8('"');
-		this->values = _mm256_loadu_si256(static_cast<__m256i*>(ptr));
+		this->values = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(stringNew.data()));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
 		auto negatives = _mm256_set1_epi8(-1);
 		this->B = _mm256_sign_epi8(this->B, negatives);
@@ -253,42 +254,52 @@ class Simd8 {
 
 	}
 	operator std::string() {
-		std::string string{};
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE B: " << x << " " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
 			
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE B SHIFT: " << x << " " << +static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
 		} 
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE S: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE ES: " << x << " " << +static_cast<uint8_t>(this->ES.m256i_i8[x]) << std::endl;
 		} 
+		std::cout << "THE STRING: " << string << std::endl;
 
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE EC: " << x << " " << +static_cast<uint8_t>(this->EC.m256i_i8[x]) << ", VALUE B: " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE ECE: " << x << " " << +static_cast<uint8_t>(this->ECE.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE SO: " << x << " " << +static_cast<uint8_t>(this->SO.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE OC: " << x << " " << +static_cast<uint8_t>(this->OC.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE OCE: " << x << " " << +static_cast<uint8_t>(this->OCE.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE OD2: " << x << " " << +static_cast<uint8_t>(this->OD2.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE OD: " << x << " " << +static_cast<uint8_t>(this->OD.m256i_i8[x]) << std::endl;
 		}
+		std::cout << "THE STRING: " << string << std::endl;
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE Q: " << x << " " << +static_cast<uint8_t>(this->Q.m256i_i8[x]) << std::endl;
 		}
@@ -307,6 +318,7 @@ class Simd8 {
 	}
 
   protected:
+	std::string string{};
 	__mmask32 valueMask{};
 	__m256i backslashes{};
 	__m256i quotes{};
@@ -337,7 +349,7 @@ int32_t main() noexcept {
 		std::vector<std::string> vector{};
 		std::string string{ "{ \" \\\ \" Nam [{\" : [ 116, \" \\\\ \", 234, \" true \", false ], \"t\"" };
 		char values[24]{};
-		Simd8 simd8Test{ string.data() };
+		Simd8 simd8Test{ string };
 		uint64_t totalTime{};
 		std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
 		std::cout << "THE STRING: " << string << std::endl;
@@ -353,31 +365,31 @@ int32_t main() noexcept {
 			stopWatch.resetTimer();
 
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				stringBuffer.clear();
+				//stringBuffer.clear();
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
 		int32_t x{ 0 };
-		std::cout << std::string_view{ stringBuffer.data(), stringBuffer.size() } << std::endl;
+		//std::cout << std::string_view{ stringBuffer.data(), stringBuffer.size() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 		
 		vector.clear();
 		totalTime = 0;
 		size = 0;
 		WebSocketIdentifyDataTwo dataOne{};
-		nlohmann::json stringBufferTwo = dataOne;
-		stopWatch.resetTimer();
+		//nlohmann::json stringBufferTwo = dataOne;
+		//stopWatch.resetTimer();
 
-		std::string stringBuffer02{};
+		//std::string stringBuffer02{};
 		for (uint32_t x = 0; x < 50; ++x) {
-			stopWatch.resetTimer();
+			//			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				stringBuffer02.clear();
+				//stringBuffer02.clear();
 				//stringBuffer02.writeDataReal(values, std::size(values));
 			}
-			totalTime += stopWatch.totalTimePassed();
+			//totalTime += stopWatch.totalTimePassed();
 		}
-		std::cout << std::string_view{ stringBuffer02.data(), stringBuffer02.size() } << std::endl;
+		//std::cout << std::string_view{ stringBuffer02.data(), stringBuffer02.size() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 		vector.clear();
@@ -391,15 +403,15 @@ int32_t main() noexcept {
 		for (uint32_t x = 0; x < 50; ++x) {			
 			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				dataTwo.intents = x;
-				rapidjson::StringBuffer stringBuffer = dataTwo;
-				vector.push_back(stringBuffer.GetString());
-				size += vector.back().size();
+				//dataTwo.intents = x;
+				//rapidjson::StringBuffer stringBuffer = dataTwo;
+				//vector.push_back(stringBuffer.GetString());
+				//size += vector.back().size();
 				
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
-		std::cout << vector.back() << std::endl;
+		//std::cout << vector.back() << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 	} catch (...) {
