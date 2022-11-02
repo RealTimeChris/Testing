@@ -7,7 +7,7 @@
 #include <rapidjson/prettywriter.h>
 #include <simdjson.h>
 #include <iostream>
-
+#include <bitset>
 struct UpdatePresenceDataTwo {
 	std::string status{};
 	int64_t since{ 0 };
@@ -225,32 +225,52 @@ class Simd8 {
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->values = _mm256_loadu_si256(static_cast<const __m256i*>(ptr));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
-		auto shiftValue = _mm256_set_epi8(30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7,6, 5, 4, 3, 2, 1, 0, 0);
-		this->BShift = _mm256_shuffle_epi8(this->B, shiftValue);
-		this->O = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
-			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
+		auto negatives = _mm256_set1_epi8(-1);
+		this->B = _mm256_sign_epi8(this->B, negatives);
+		this->O = _mm256_set_epi8(0xff,0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
 		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
-
-		this->S = _mm256_and_si256(this->B, _mm256_andnot_si256(this->BShift, this->B));
-		this->ES = _mm256_and_si256(this->S, this->E);
+		
+		auto shiftValue = _mm256_set_epi8(30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1);
+		
+		this->BShift = _mm256_shuffle_epi8(this->B, shiftValue);
+		this->S = _mm256_andnot_si256(this->BShift, this->B);
+		
+		this->ES = _mm256_and_si256(this->E, this->S);
+		this->EC = _mm256_add_epi8(this->B, this->ES);
 		
 	}
 	operator std::string() {
 		std::string string{};
 		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE 01: " << x << " " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE B: " << x << " " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
 			
 		}
 		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE 02: " << x << " " << +static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE B SHIFT: " << x << " " << +static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
+		} 
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE S: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
 		}
 		for (size_t x = 0; x < 32; ++x) {
-			//std::cout << "VALUE 03: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE ES: " << x << " " << +static_cast<uint8_t>(this->ES.m256i_i8[x]) << std::endl;
+		} 
+		/*
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE E: " << x << " " << +static_cast<uint8_t>(this->E.m256i_i8[x]) << std::endl;
 		}
 		for (size_t x = 0; x < 32; ++x) {
-			//std::cout << "VALUE 03: " << x << " " << +static_cast<uint8_t>(this->ES.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE O: " << x << " " << +static_cast<uint8_t>(this->O.m256i_i8[x]) << std::endl;
 		}
+		
+		
+		
+		
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE EC: " << x << " " << +static_cast<uint8_t>(this->EC.m256i_i8[x]) << std::endl;
+		}
+		*/
 		return string;
 	}
 
@@ -385,39 +405,14 @@ int32_t main() noexcept {
 
 		Jsonifier::StopWatch<std::chrono::microseconds> stopWatch{ std::chrono::microseconds{ 1 } };
 		std::vector<std::string> vector{};
-		char values[64]{
-			'{',
-			' ',
-			'"',
-			'\\',
-			'\\',
-			'\\',
-			'"',
-			'N',
-			'a',
-			'm',
-			'[',
-			'{',
-			':',
-			' ',
-			' ',
-			'[',
-			' ',
-			' ',
-			'1',
-			'1',
-			'6',
-			',',
-			'"',
-			'\\',
-			'\\',
-			'\\',
-			'\\',
-		};
-			
-		Simd8 simd8Test{ values };
+		std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\"" };
+		char values[24]{};
+		Simd8 simd8Test{ string.data() };
 		uint64_t totalTime{};
 		std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
+		std::cout << "THE STRING: " << string << std::endl;
+
+		std::cout << "NOT 1: " << std::bitset<8>(~1) << std::endl;
 		size_t size{};
 		WebSocketIdentifyData data{};
 		auto serializer = data.operator Jsonifier::Jsonifier();
