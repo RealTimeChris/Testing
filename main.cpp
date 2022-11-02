@@ -221,9 +221,10 @@ int32_t main() noexcept {
 
 class Simd8 {
   public:
-	Simd8(const void* ptr) {
+	Simd8(void* ptr) {
 		this->backslashes = _mm256_set1_epi8('\\');
-		this->values = _mm256_loadu_si256(static_cast<const __m256i*>(ptr));
+		this->quotes = _mm256_set1_epi8('"');
+		this->values = _mm256_loadu_si256(static_cast<__m256i*>(ptr));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
 		auto negatives = _mm256_set1_epi8(-1);
 		this->B = _mm256_sign_epi8(this->B, negatives);
@@ -232,14 +233,24 @@ class Simd8 {
 		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
 		
-		auto shiftValue = _mm256_set_epi8(30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, -1);
+		auto shiftValue = _mm256_set_epi8(30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0);
 		
-		this->BShift = _mm256_shuffle_epi8(this->B, shiftValue);
+		this->BShift = _mm256_sllv_epi64(this->B, _mm256_set1_epi64x(8));
 		this->S = _mm256_andnot_si256(this->BShift, this->B);
 		
 		this->ES = _mm256_and_si256(this->E, this->S);
 		this->EC = _mm256_add_epi8(this->B, this->ES);
 		
+		this->ECE = _mm256_andnot_si256(this->B, this->EC);
+		this->SO = _mm256_and_si256(this->S, this->O);
+		this->OC = _mm256_add_epi8(this->B, this->SO);
+		this->OCE = _mm256_andnot_si256(this->B, this->OC);
+		this->OD2 = _mm256_and_si256(this->OCE, this->E);
+		this->OD = _mm256_or_si256(this->OD1, this->OD2);
+		this->Q = _mm256_cmpeq_epi8(this->values, this->quotes);
+		this->Q = _mm256_andnot_si256(this->OD, this->Q);
+		*reinterpret_cast<__m128i*>(&this->Q) = _mm_clmulepi64_si128(*reinterpret_cast<__m128i*>(&this->Q), *reinterpret_cast<__m128i*>(&this->Q), ~1);
+
 	}
 	operator std::string() {
 		std::string string{};
@@ -256,10 +267,33 @@ class Simd8 {
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE ES: " << x << " " << +static_cast<uint8_t>(this->ES.m256i_i8[x]) << std::endl;
 		} 
-		/*
+
 		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE E: " << x << " " << +static_cast<uint8_t>(this->E.m256i_i8[x]) << std::endl;
+			std::cout << "VALUE EC: " << x << " " << +static_cast<uint8_t>(this->EC.m256i_i8[x]) << ", VALUE B: " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
 		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE ECE: " << x << " " << +static_cast<uint8_t>(this->ECE.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE SO: " << x << " " << +static_cast<uint8_t>(this->SO.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE OC: " << x << " " << +static_cast<uint8_t>(this->OC.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE OCE: " << x << " " << +static_cast<uint8_t>(this->OCE.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE OD2: " << x << " " << +static_cast<uint8_t>(this->OD2.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE OD: " << x << " " << +static_cast<uint8_t>(this->OD.m256i_i8[x]) << std::endl;
+		}
+		for (size_t x = 0; x < 32; ++x) {
+			std::cout << "VALUE Q: " << x << " " << +static_cast<uint8_t>(this->Q.m256i_i8[x]) << std::endl;
+		}
+		/*
+		
 		for (size_t x = 0; x < 32; ++x) {
 			std::cout << "VALUE O: " << x << " " << +static_cast<uint8_t>(this->O.m256i_i8[x]) << std::endl;
 		}
@@ -267,9 +301,7 @@ class Simd8 {
 		
 		
 		
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE EC: " << x << " " << +static_cast<uint8_t>(this->EC.m256i_i8[x]) << std::endl;
-		}
+		
 		*/
 		return string;
 	}
@@ -277,6 +309,7 @@ class Simd8 {
   protected:
 	__mmask32 valueMask{};
 	__m256i backslashes{};
+	__m256i quotes{};
 	__m256i values{};
 	__m256i BShift{};
 	__m256i B{};
@@ -289,123 +322,20 @@ class Simd8 {
 	__m256i OS1{};
 	__m256i OC{};
 	__m256i OCE{};
+	__m256i SO{};
+	__m256i ECE{};
 	__m256i OD2{};
 	__m256i OD{};
+	__m256i Q{};
 
 };
-
-
-void copy256Data(void*dst, const void*src,size_t length) {
-	if (length > 32) {
-		_mm256_store_si256(static_cast<__m256i*>(dst), _mm256_load_si256(static_cast<const __m256i*>(src)));
-	} else {
-		for (size_t x = 0; x < length; ++x) {
-			static_cast<uint8_t*>(dst)[x] = static_cast<const uint8_t*>(src)[x];
-		}
-	}
-}
-
-struct LengthData {
-	uint64_t offSet{};
-	uint64_t length{};
-};
-
-class StringBuffer {
-  public:
-	StringBuffer() noexcept;
-
-	std::string_view operator[](LengthData);
-
-	char operator[](uint64_t);
-
-	void writeDataReal(const char*, uint64_t);
-
-	void writeData(const char*, uint64_t);
-
-	std::string::iterator begin();
-
-	std::string::iterator end();
-
-	void erase(uint64_t);
-
-	uint64_t size();
-
-	void clear();
-
-	char* data();
-
-  protected:
-	std::string string01{};
-	uint64_t sizeValue{};
-};
-
-StringBuffer::StringBuffer() noexcept {
-	this->string01.resize(1024 * 16);
-}
-
-std::string_view StringBuffer::operator[](LengthData size) {
-	std::string_view string{ this->string01.data() + size.offSet, size.length };
-	return string;
-}
-
-char StringBuffer::operator[](uint64_t index) {
-	return this->string01[index];
-}
-
-void StringBuffer::writeDataReal(const char* ptr, uint64_t size) {
-	if (this->sizeValue + size > this->string01.size()) {
-		this->string01.resize(this->string01.size() + size);
-	}
-	while (size > 0) {
-		copy256Data(reinterpret_cast<void*>(this->string01.data() + size), reinterpret_cast<const void*>(ptr + size), static_cast<size_t>(size));
-		if (size > 32) {
-			size -= 32;
-		} else {
-			size = 0;
-		}
-	}
-	this->sizeValue += size;
-}
-
-void StringBuffer::writeData(const char* ptr, uint64_t size) {
-	if (this->sizeValue + size > this->string01.size()) {
-		this->string01.resize(this->string01.size() + size);
-	}
-	std::copy(ptr, ptr + size, this->string01.data() + this->sizeValue);
-	this->sizeValue += size;
-}
-
-std::string::iterator StringBuffer::begin() {
-	return this->string01.begin();
-}
-
-std::string::iterator StringBuffer::end() {
-	return this->string01.end();
-}
-
-void StringBuffer::erase(uint64_t amount) {
-	std::copy(this->string01.data() + amount, this->string01.data() + this->sizeValue, this->string01.data());
-	this->sizeValue = this->sizeValue - amount;
-}
-
-uint64_t StringBuffer::size() {
-	return this->sizeValue;
-}
-
-void StringBuffer::clear() {
-	this->sizeValue = 0;
-}
-
-char* StringBuffer::data() {
-	return this->string01.data();
-}
 
 int32_t main() noexcept {
 	try {
 
 		Jsonifier::StopWatch<std::chrono::microseconds> stopWatch{ std::chrono::microseconds{ 1 } };
 		std::vector<std::string> vector{};
-		std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\"" };
+		std::string string{ "{ \" \\\ \" Nam [{\" : [ 116, \" \\\\ \", 234, \" true \", false ], \"t\"" };
 		char values[24]{};
 		Simd8 simd8Test{ string.data() };
 		uint64_t totalTime{};
@@ -418,13 +348,12 @@ int32_t main() noexcept {
 		auto serializer = data.operator Jsonifier::Jsonifier();
 		stopWatch.resetTimer();
 		std::cout << "WERE HERE THIS SI IT!" << std::endl;
-		StringBuffer stringBuffer{};
+		std::string stringBuffer{};
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
 
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				stringBuffer.clear();
-				stringBuffer.writeData(values, std::size(values));
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
@@ -439,12 +368,12 @@ int32_t main() noexcept {
 		nlohmann::json stringBufferTwo = dataOne;
 		stopWatch.resetTimer();
 
-		StringBuffer stringBuffer02{};
+		std::string stringBuffer02{};
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				stringBuffer02.clear();
-				stringBuffer02.writeDataReal(values, std::size(values));
+				//stringBuffer02.writeDataReal(values, std::size(values));
 			}
 			totalTime += stopWatch.totalTimePassed();
 		}
