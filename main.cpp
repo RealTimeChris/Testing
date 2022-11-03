@@ -258,7 +258,9 @@ class Simd8 {
 		printValueAsString(this->S, "S VALUES:");
 		
 		this->ES = _mm256_and_si256(this->S, this->E);
+		printValueAsString(this->ES, "ES VALUES:");
 		this->EC = _mm256_adds_epi8(this->B, this->ES);
+		printValueAsString(this->EC, "EC VALUES:");
 		
 		
 		this->ECE = _mm256_andnot_si256(this->B, this->EC);
