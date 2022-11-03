@@ -242,15 +242,15 @@ class Simd8 {
 			*reinterpret_cast<int64_t*>(stringNew.data() + 16), *reinterpret_cast<int64_t*>(stringNew.data() + 24));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
 		printValueAsString(this->values, "VALUES:");
-		this->O = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
-		this->E = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+		this->O = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
-		this->BShift = _mm256_set_epi8(this->B.m256i_i8[16], this->B.m256i_i8[31], this->B.m256i_i8[30], this->B.m256i_i8[29], this->B.m256i_i8[28], this->B.m256i_i8[27],
-			this->B.m256i_i8[26], this->B.m256i_i8[25], this->B.m256i_i8[24], this->B.m256i_i8[23], this->B.m256i_i8[22], this->B.m256i_i8[21], this->B.m256i_i8[20],
-			this->B.m256i_i8[19], this->B.m256i_i8[18], this->B.m256i_i8[17], this->B.m256i_i8[0], this->B.m256i_i8[15], this->B.m256i_i8[14], this->B.m256i_i8[13],
-			this->B.m256i_i8[12], this->B.m256i_i8[11], this->B.m256i_i8[10], this->B.m256i_i8[9], this->B.m256i_i8[8], this->B.m256i_i8[7], this->B.m256i_i8[6],
-			this->B.m256i_i8[5], this->B.m256i_i8[4], this->B.m256i_i8[3], this->B.m256i_i8[2], this->B.m256i_i8[1]);
+		this->BShift = _mm256_set_epi8(this->B.m256i_i8[30], this->B.m256i_i8[29], this->B.m256i_i8[28], this->B.m256i_i8[27], this->B.m256i_i8[26], this->B.m256i_i8[25],
+			this->B.m256i_i8[24], this->B.m256i_i8[23], this->B.m256i_i8[22], this->B.m256i_i8[21], this->B.m256i_i8[20], this->B.m256i_i8[19], this->B.m256i_i8[18],
+			this->B.m256i_i8[17], this->B.m256i_i8[31], this->B.m256i_i8[16], this->B.m256i_i8[14], this->B.m256i_i8[13], this->B.m256i_i8[12],
+			this->B.m256i_i8[11], this->B.m256i_i8[10], this->B.m256i_i8[9], this->B.m256i_i8[8], this->B.m256i_i8[7], this->B.m256i_i8[6], this->B.m256i_i8[5], this->B.m256i_i8[4], this->B.m256i_i8[3],
+			this->B.m256i_i8[2], this->B.m256i_i8[1], this->B.m256i_i8[0], this->B.m256i_i8[15]);
 		printValueAsString(this->E, "E VALUES:");
 		printValueAsString(this->O, "O VALUES:");
 		printValueAsString(this->BShift, "B-SHIFT VALUES:");
@@ -260,7 +260,7 @@ class Simd8 {
 		
 		this->ES = _mm256_and_si256(this->E, this->S);
 		printValueAsString(this->ES, "ES VALUES:");
-		this->EC = _mm256_add_epi8(this->B, this->ES);
+		this->EC = _mm256_add_epi8(this->ES, this->B);
 		printValueAsString(this->EC, "EC VALUES:");
 		
 		this->ECE = _mm256_andnot_si256(this->B, this->EC);
@@ -308,7 +308,7 @@ int32_t main() noexcept {
 	try {
 		Jsonifier::StopWatch<std::chrono::microseconds> stopWatch{ std::chrono::microseconds{ 1 } };
 		std::vector<std::string> vector{};
-		std::string string{ "{  \"\\\\\\\"Nam[{\":[ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+		std::string string{ "{ \"\\\\\\\"Nam[{\":[ 116, \"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		char values[24]{};
 		Simd8 simd8Test{ string };
 		uint64_t totalTime{};
