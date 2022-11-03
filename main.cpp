@@ -218,6 +218,15 @@ int32_t main() noexcept {
 
 }
 */
+
+void printValueAsString(__m256i in,std::string values) {
+	alignas(16) uint8_t v[32];
+	_mm256_store_si256(( __m256i* )v, in);
+	printf(std::string{ values.c_str() + std::string{ "v32_u8: %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c %c\n" } }.c_str(),
+		v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0],
+		v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
+}
+
 class Simd8 {
   public:
 	Simd8(std::string& stringNew) {
@@ -226,22 +235,26 @@ class Simd8 {
 		}
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->quotes = _mm256_set1_epi8('"');
-		this->values = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(stringNew.data()));
+		this->values = _mm256_set_epi64x(*reinterpret_cast<int64_t*>(stringNew.data()), *reinterpret_cast<int64_t*>(stringNew.data() + 8),
+			*reinterpret_cast<int64_t*>(stringNew.data() + 16), *reinterpret_cast<int64_t*>(stringNew.data() + 24));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
-		auto negatives = _mm256_set1_epi8(-1);
-		this->B = _mm256_sign_epi8(this->B, negatives);
-		this->O = _mm256_set_epi8(0xff,0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
-			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
-		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
+		printValueAsString(this->values, "VALUES:");
+		this->E = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
+		this->O = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
-		
-		auto shiftValue = _mm256_set_epi8(30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 0);
-		
-		this->BShift = _mm256_sllv_epi64(this->B, _mm256_set1_epi64x(8));
+		this->BShift = _mm256_setr_epi8(this->B.m256i_i8[1], this->B.m256i_i8[2], this->B.m256i_i8[3], this->B.m256i_i8[4], this->B.m256i_i8[5], this->B.m256i_i8[6],
+			this->B.m256i_i8[7], this->B.m256i_i8[8], this->B.m256i_i8[9], this->B.m256i_i8[10], this->B.m256i_i8[11], this->B.m256i_i8[12], this->B.m256i_i8[13],
+			this->B.m256i_i8[14], this->B.m256i_i8[15], this->B.m256i_i8[16], this->B.m256i_i8[17], this->B.m256i_i8[18], this->B.m256i_i8[19], this->B.m256i_i8[20],
+			this->B.m256i_i8[21], this->B.m256i_i8[22], this->B.m256i_i8[23], this->B.m256i_i8[24], this->B.m256i_i8[25], this->B.m256i_i8[26], this->B.m256i_i8[27],
+			this->B.m256i_i8[28], this->B.m256i_i8[29], this->B.m256i_i8[30], this->B.m256i_i8[31], this->B.m256i_i8[0]);
+		printValueAsString(this->B, "B VALUES:");
 		this->S = _mm256_andnot_si256(this->BShift, this->B);
+		printValueAsString(this->S, "S VALUES:");
 		
-		this->ES = _mm256_and_si256(this->E, this->S);
-		this->EC = _mm256_add_epi8(this->B, this->ES);
+		this->ES = _mm256_and_si256(this->S, this->E);
+		this->EC = _mm256_adds_epi8(this->B, this->ES);
+		
 		
 		this->ECE = _mm256_andnot_si256(this->B, this->EC);
 		this->SO = _mm256_and_si256(this->S, this->O);
@@ -255,66 +268,6 @@ class Simd8 {
 
 	}
 	operator std::string() {
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE B: " << x << " " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
-			
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE B SHIFT: " << x << " " << +static_cast<uint8_t>(this->BShift.m256i_i8[x]) << std::endl;
-		} 
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE S: " << x << " " << +static_cast<uint8_t>(this->S.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE ES: " << x << " " << +static_cast<uint8_t>(this->ES.m256i_i8[x]) << std::endl;
-		} 
-		std::cout << "THE STRING: " << string << std::endl;
-
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE EC: " << x << " " << +static_cast<uint8_t>(this->EC.m256i_i8[x]) << ", VALUE B: " << +static_cast<uint8_t>(this->B.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE ECE: " << x << " " << +static_cast<uint8_t>(this->ECE.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE SO: " << x << " " << +static_cast<uint8_t>(this->SO.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE OC: " << x << " " << +static_cast<uint8_t>(this->OC.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE OCE: " << x << " " << +static_cast<uint8_t>(this->OCE.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE OD2: " << x << " " << +static_cast<uint8_t>(this->OD2.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE OD: " << x << " " << +static_cast<uint8_t>(this->OD.m256i_i8[x]) << std::endl;
-		}
-		std::cout << "THE STRING: " << string << std::endl;
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE Q: " << x << " " << +static_cast<uint8_t>(this->Q.m256i_i8[x]) << std::endl;
-		}
-		/*
-		
-		for (size_t x = 0; x < 32; ++x) {
-			std::cout << "VALUE O: " << x << " " << +static_cast<uint8_t>(this->O.m256i_i8[x]) << std::endl;
-		}
-		
-		
-		
-		
-		
-		*/
 		return string;
 	}
 
@@ -351,8 +304,10 @@ int32_t main() noexcept {
 		char values[24]{};
 		Simd8 simd8Test{ string };
 		uint64_t totalTime{};
-		std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
-		std::cout << "THE STRING: " << string << std::endl;
+		auto stringNew = simd8Test.operator std::string(); 
+		std::bitset<8> value{ 0xff };
+		std::cout << "THE STRING: " << value << std::endl;
+		std::cout << "THE STRING: " << stringNew << std::endl;
 
 		std::cout << "NOT 1: " << std::bitset<8>(~1) << std::endl;
 		size_t size{};
