@@ -225,6 +225,9 @@ void printValueAsString(__m256i in,std::string values) {
 	printf(std::string{ values.c_str() + std::string{ " v32_u8: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" } }.c_str(),
 		v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0],
 		v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
+	printf(std::string{ values.c_str() + std::string{ " (DIGITS) v32_u8: %d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }.c_str(), v[24], v[25], v[26], v[27], v[28],
+		v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0], v[1], v[2], v[3], v[4], v[5], v[6],
+		v[7]);
 }
 
 class Simd8 {
@@ -243,11 +246,13 @@ class Simd8 {
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
 		this->O = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
-		this->BShift = _mm256_setr_epi8(this->B.m256i_i8[1], this->B.m256i_i8[2], this->B.m256i_i8[3], this->B.m256i_i8[4], this->B.m256i_i8[5], this->B.m256i_i8[6],
-			this->B.m256i_i8[7], this->B.m256i_i8[8], this->B.m256i_i8[9], this->B.m256i_i8[10], this->B.m256i_i8[11], this->B.m256i_i8[12], this->B.m256i_i8[13],
-			this->B.m256i_i8[14], this->B.m256i_i8[15], this->B.m256i_i8[16], this->B.m256i_i8[17], this->B.m256i_i8[18], this->B.m256i_i8[19], this->B.m256i_i8[20],
-			this->B.m256i_i8[21], this->B.m256i_i8[22], this->B.m256i_i8[23], this->B.m256i_i8[24], this->B.m256i_i8[25], this->B.m256i_i8[26], this->B.m256i_i8[27],
-			this->B.m256i_i8[28], this->B.m256i_i8[29], this->B.m256i_i8[30], this->B.m256i_i8[31], this->B.m256i_i8[0]);
+		this->BShift = _mm256_set_epi8(this->B.m256i_i8[16], this->B.m256i_i8[31], this->B.m256i_i8[30], this->B.m256i_i8[29], this->B.m256i_i8[28], this->B.m256i_i8[27],
+			this->B.m256i_i8[26],
+			this->B.m256i_i8[25], this->B.m256i_i8[31], this->B.m256i_i8[23], this->B.m256i_i8[22], this->B.m256i_i8[21], this->B.m256i_i8[20], this->B.m256i_i8[19],
+			this->B.m256i_i8[18], this->B.m256i_i8[17],   this->B.m256i_i8[0], this->B.m256i_i8[15], this->B.m256i_i8[14], this->B.m256i_i8[13],
+			this->B.m256i_i8[12], this->B.m256i_i8[11], this->B.m256i_i8[10], this->B.m256i_i8[9], this->B.m256i_i8[8], this->B.m256i_i8[7], this->B.m256i_i8[6],
+			this->B.m256i_i8[5], this->B.m256i_i8[4], this->B.m256i_i8[3], this->B.m256i_i8[2], this->B.m256i_i8[1]);
+		printValueAsString(this->BShift, "B-SHIFT VALUES:");
 		printValueAsString(this->B, "B VALUES:");
 		this->S = _mm256_andnot_si256(this->BShift, this->B);
 		printValueAsString(this->S, "S VALUES:");
