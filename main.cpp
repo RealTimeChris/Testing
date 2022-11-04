@@ -205,7 +205,8 @@ void printValueAsString(__m256i in,std::string values) {
 void printValueAsString(uint32_t in, std::string values) {
 	alignas(16) uint8_t v[32]{};
 	for (size_t x = 0; x < 32; ++x) {
-		if (static_cast<uint8_t>(static_cast<uint8_t>(in) >> x)) {
+		std::cout << +(static_cast<uint32_t>(in >> x) & 0x01) << std::endl;
+		if ((static_cast<uint32_t>(in >> x) & 0x01) == 1 << 0) {
 			v[x] = 1;
 		}
 	}
@@ -222,11 +223,11 @@ uint32_t convertTo32BitUint(__m256i inputA){
 	uint32_t value{};
 	for (size_t x = 0; x < 32; ++x) {
 		if (static_cast<uint8_t>(inputA.m256i_i8[x]) == 0xff) {
-			//std::cout << "WERE HERE THIS IS IT: " << x << ", " << +(static_cast<uint8_t>(inputA.m256i_i8[x]) >> x) << std::endl;
-			value |= static_cast<uint32_t>(1 << x);
+			std::cout << "WERE HERE THIS IS IT: " << x << ", " << +static_cast<uint8_t>(inputA.m256i_i8[x]) << std::endl;
+			value |= (static_cast<uint32_t>(1) << x);
 		}
 	}
-	//std::cout << std::bitset<32>{ value } << std::endl;
+	std::cout << std::bitset<32>{ value } << std::endl;
 	return value;
 }
 
@@ -260,8 +261,9 @@ class Simd8 {
 			*reinterpret_cast<int64_t*>(stringNew.data() + 16), *reinterpret_cast<int64_t*>(stringNew.data() + 24));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
 		convertTo32BitUint(this->B);
-		//printValueAsString(this->values, "VALUES:");
-		//printValueAsString(convertTo32BitUint(this->B), "B VALUES");
+		printValueAsString(this->values, "VALUES:");
+		printValueAsString(this->B, "B VALUES");
+		printValueAsString(convertTo32BitUint(this->B), "B VALUES");
 		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
 		this->O = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
