@@ -230,6 +230,49 @@ void printValueAsString(__m256i in,std::string values) {
 		v[7]);
 }
 
+void printValueAsString(uint64_t values) {
+	alignas(16) uint8_t v[64];
+	for (size_t x = 0; x < 64; ++x) {
+		if (values << x) {
+			v[x] = 1;
+		}
+	}
+	printf(std::string{ " v32_u8: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" }.c_str(), v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[16],
+		v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
+	printf(std::string{ " (DIGITS) v32_u8: %d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" }.c_str(), v[24], v[25], v[26], v[27],
+		v[28], v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0], v[1], v[2], v[3], v[4],
+		v[5], v[6], v[7]);
+}
+
+uint64_t convertTo64BitUint(__m256i inputA){
+	uint64_t value{};
+	for (size_t x = 0; x < 64; ++x) {
+		if (inputA.m256i_i8[x] == -1) {
+			value |= static_cast<uint64_t>(1 << x);
+		}
+	}
+	std::cout << std::bitset<64>{ value } << std::endl;
+	return value;
+}
+
+__m256i convertToM256(uint64_t inputA) {
+	__m256i value{};
+	for (size_t x = 0; x < 64; ++x) {
+		if ((inputA >> x) == 1) {
+			std::cout << "WERE HERE THIS IS IT!" << x << std::endl;
+			value.m256i_i8[x] = 255;
+		}
+	}
+	return value;
+}
+
+void collectCarries(uint64_t inputA, uint64_t inputB, __m256i* outputValue) {
+	uint64_t value{};
+	_addcarry_u64(0, inputA, inputB, reinterpret_cast<unsigned __int64*>(&value));
+	*outputValue = convertToM256(value);
+}
+
+
 class Simd8 {
   public:
 	Simd8(std::string& stringNew) {
@@ -260,16 +303,25 @@ class Simd8 {
 		
 		this->ES = _mm256_and_si256(this->E, this->S);
 		printValueAsString(this->ES, "ES VALUES:");
-		this->EC = _mm256_add_epi8(this->ES, this->B);
+		collectCarries(convertTo64BitUint(this->B), convertTo64BitUint(this->ES), &this->EC);
 		printValueAsString(this->EC, "EC VALUES:");
 		
 		this->ECE = _mm256_andnot_si256(this->B, this->EC);
 		printValueAsString(this->ECE, "ECE VALUES:");
-		this->SO = _mm256_and_si256(this->S, this->O);
-		this->OC = _mm256_add_epi8(this->B, this->SO);
+		this->OS = _mm256_and_si256(this->S, this->O);
+		printValueAsString(this->OS, "OS VALUES:");
+		this->OC = _mm256_add_epi8(this->B, this->OS);
+		collectCarries(convertTo64BitUint(this->B), convertTo64BitUint(this->OS), &this->OC);
+		printValueAsString(this->OC, "OC VALUES:");
 		this->OCE = _mm256_andnot_si256(this->B, this->OC);
+		printValueAsString(this->OCE, "OCE VALUES:");
+		this->OD1 = _mm256_andnot_si256(this->E, this->ECE);
+
+		printValueAsString(this->OD1, "OD1 VALUES:");
 		this->OD2 = _mm256_and_si256(this->OCE, this->E);
+		printValueAsString(this->OD2, "OD2 VALUES:");
 		this->OD = _mm256_or_si256(this->OD1, this->OD2);
+		printValueAsString(this->OD, "OD VALUES:");
 		this->Q = _mm256_cmpeq_epi8(this->values, this->quotes);
 		this->Q = _mm256_andnot_si256(this->OD, this->Q);
 		*reinterpret_cast<__m128i*>(&this->Q) = _mm_clmulepi64_si128(*reinterpret_cast<__m128i*>(&this->Q), *reinterpret_cast<__m128i*>(&this->Q), ~0);
@@ -296,7 +348,7 @@ class Simd8 {
 	__m256i OS1{};
 	__m256i OC{};
 	__m256i OCE{};
-	__m256i SO{};
+	__m256i OS{};
 	__m256i ECE{};
 	__m256i OD2{};
 	__m256i OD{};
@@ -312,7 +364,7 @@ int32_t main() noexcept {
 		char values[24]{};
 		Simd8 simd8Test{ string };
 		uint64_t totalTime{};
-		auto stringNew = simd8Test.operator std::string(); 
+		auto stringNew = simd8Test.operator std::string();
 		std::bitset<8> value{ 0xff };
 		std::cout << "THE STRING: " << value << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
@@ -322,7 +374,6 @@ int32_t main() noexcept {
 		WebSocketIdentifyData data{};
 		auto serializer = data.operator Jsonifier::Jsonifier();
 		stopWatch.resetTimer();
-		std::cout << "WERE HERE THIS SI IT!" << std::endl;
 		std::string stringBuffer{};
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
