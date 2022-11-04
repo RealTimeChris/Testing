@@ -230,36 +230,39 @@ void printValueAsString(__m256i in,std::string values) {
 		v[7]);
 }
 
-void printValueAsString(uint64_t values) {
-	alignas(16) uint8_t v[64];
-	for (size_t x = 0; x < 64; ++x) {
-		if (values << x) {
+void printValueAsString(uint32_t in, std::string values) {
+	alignas(16) uint8_t v[32];
+	for (size_t x = 0; x < 32; ++x) {
+		if (in<< x) {
 			v[x] = 1;
 		}
 	}
-	printf(std::string{ " v32_u8: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" }.c_str(), v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[16],
-		v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
-	printf(std::string{ " (DIGITS) v32_u8: %d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" }.c_str(), v[24], v[25], v[26], v[27],
-		v[28], v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0], v[1], v[2], v[3], v[4],
-		v[5], v[6], v[7]);
+	printf(std::string{ values.c_str() + std::string{ " v32_u8: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" } }.c_str(), v[24], v[25], v[26], v[27], v[28],
+		v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0], v[1], v[2], v[3], v[4], v[5], v[6],
+		v[7]);
+	printf(std::string{ values.c_str() + std::string{ " (DIGITS) v32_u8: %d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }
+			   .c_str(),
+		v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0],
+		v[1], v[2], v[3], v[4], v[5], v[6], v[7]);
 }
 
-uint64_t convertTo64BitUint(__m256i inputA){
-	uint64_t value{};
-	for (size_t x = 0; x < 64; ++x) {
-		if (inputA.m256i_i8[x] == -1) {
+uint32_t convertTo64BitUint(__m256i inputA){
+	uint32_t value{};
+	for (size_t x = 0; x < 32; ++x) {
+		if (inputA.m256i_i8[x] == 0xff) {
 			value |= static_cast<uint64_t>(1 << x);
 		}
 	}
-	std::cout << std::bitset<64>{ value } << std::endl;
+	std::cout << std::bitset<32>{ value } << std::endl;
 	return value;
 }
 
-__m256i convertToM256(uint64_t inputA) {
+__m256i convertToM256(uint32_t inputA) {
 	__m256i value{};
-	for (size_t x = 0; x < 64; ++x) {
-		if ((inputA >> x) == 1) {
-			std::cout << "WERE HERE THIS IS IT!" << x << std::endl;
+	std::cout << std::bitset<32>{ inputA } << std::endl;
+	for (size_t x = 0; x < 32; ++x) {
+		if ((static_cast<uint8_t>(inputA) >> x)) {
+			std::cout << "WERE HERE THIS IS IT: " << x << ", " << +(static_cast<uint8_t>(inputA) >> x) << std::endl;
 			value.m256i_i8[x] = 255;
 		}
 	}
@@ -269,6 +272,7 @@ __m256i convertToM256(uint64_t inputA) {
 void collectCarries(uint64_t inputA, uint64_t inputB, __m256i* outputValue) {
 	uint64_t value{};
 	_addcarry_u64(0, inputA, inputB, reinterpret_cast<unsigned __int64*>(&value));
+	std::cout << std::bitset<32>{ value } << std::endl;
 	*outputValue = convertToM256(value);
 }
 
@@ -284,15 +288,17 @@ class Simd8 {
 		this->values = _mm256_set_epi64x(*reinterpret_cast<int64_t*>(stringNew.data()), *reinterpret_cast<int64_t*>(stringNew.data() + 8),
 			*reinterpret_cast<int64_t*>(stringNew.data() + 16), *reinterpret_cast<int64_t*>(stringNew.data() + 24));
 		this->B = _mm256_cmpeq_epi8(this->values, this->backslashes);
+		convertTo64BitUint(this->B);
 		printValueAsString(this->values, "VALUES:");
+		printValueAsString(convertTo64BitUint(this->B), "B VALUES");
 		this->E = _mm256_set_epi8(0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff,
 			0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff);
 		this->O = _mm256_set_epi8(0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
 			0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00);
 		this->BShift = _mm256_set_epi8(this->B.m256i_i8[30], this->B.m256i_i8[29], this->B.m256i_i8[28], this->B.m256i_i8[27], this->B.m256i_i8[26], this->B.m256i_i8[25],
 			this->B.m256i_i8[24], this->B.m256i_i8[23], this->B.m256i_i8[22], this->B.m256i_i8[21], this->B.m256i_i8[20], this->B.m256i_i8[19], this->B.m256i_i8[18],
-			this->B.m256i_i8[17], this->B.m256i_i8[31], this->B.m256i_i8[16], this->B.m256i_i8[14], this->B.m256i_i8[13], this->B.m256i_i8[12],
-			this->B.m256i_i8[11], this->B.m256i_i8[10], this->B.m256i_i8[9], this->B.m256i_i8[8], this->B.m256i_i8[7], this->B.m256i_i8[6], this->B.m256i_i8[5], this->B.m256i_i8[4], this->B.m256i_i8[3],
+			this->B.m256i_i8[17], this->B.m256i_i8[31], this->B.m256i_i8[16], this->B.m256i_i8[14], this->B.m256i_i8[13], this->B.m256i_i8[12], this->B.m256i_i8[11],
+			this->B.m256i_i8[10], this->B.m256i_i8[9], this->B.m256i_i8[8], this->B.m256i_i8[7], this->B.m256i_i8[6], this->B.m256i_i8[5], this->B.m256i_i8[4], this->B.m256i_i8[3],
 			this->B.m256i_i8[2], this->B.m256i_i8[1], this->B.m256i_i8[0], this->B.m256i_i8[15]);
 		printValueAsString(this->E, "E VALUES:");
 		printValueAsString(this->O, "O VALUES:");
@@ -325,6 +331,8 @@ class Simd8 {
 		this->Q = _mm256_cmpeq_epi8(this->values, this->quotes);
 		this->Q = _mm256_andnot_si256(this->OD, this->Q);
 		*reinterpret_cast<__m128i*>(&this->Q) = _mm_clmulepi64_si128(*reinterpret_cast<__m128i*>(&this->Q), *reinterpret_cast<__m128i*>(&this->Q), ~0);
+		std::cout << std::bitset<64>{ convertTo64BitUint(this->Q) } << std::endl;
+		printValueAsString(this->Q, "Q VALUES:");
 
 	}
 	operator std::string() {
