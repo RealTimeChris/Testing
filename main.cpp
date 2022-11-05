@@ -124,10 +124,17 @@ std::string reverseString(std::string inputString) {
 	return newString;
 }
 
+uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
+	uint64_t returnValue{};
+	_addcarry_u64(0, inputA, inputB, reinterpret_cast<unsigned __int64*>(&returnValue));
+	return returnValue;
+}
+
 class Simd8 {
   public:
 	Simd8(std::string& stringNewer) {
 		auto stringNew = reverseString(stringNewer);
+		std::cout << "THE ORIGINAL STRING: " << stringNewer << std::endl;
 		std::cout << "THE NEW STRING: " << stringNew << std::endl;
 		this->string = stringNew;
 		this->backslashes[0] = _mm256_set1_epi8('\\');
@@ -145,16 +152,21 @@ class Simd8 {
 		printValueAsString(convertTo32BitUint(this->B[0]), "B0 VALUES: ");
 		printValueAsString(convertTo32BitUint(this->B[1]), "B1 VALUES: ");
 		printValueAsString(convertTo64BitUint(this->B[0], this->B[1]), "TEST VALUES REAL: ");
-		this->O[0] = _mm256_set1_epi16(0xff);
-		this->O[1] = _mm256_set1_epi16(0xff00);
-		this->E[0] = _mm256_set1_epi16(0x00ff);
-		this->E[1] = _mm256_set1_epi16(0x00ff);
-		printValueAsString(convertTo64BitUint(this->O[0], this->O[1]), "O VALUES: ");
-		printValueAsString(convertTo64BitUint(this->E[0], this->E[1]), "E VALUES: ");
 		
 		this->B64 = convertTo64BitUint(this->B[0], this->B[1]);
 		printValueAsString(this->B64, "B64 VALUES: ");
-		printValueAsString(this->B64 << 1, "B64-SHIFT VALUES: ");
+		printValueAsString(this->B64 >> 1, "B64-SHIFT VALUES: ");
+		this->S = this->B64 & ~(this->B64 >> 1);
+		printValueAsString(this->S, "S VALUES: ");
+		this->ES = this->S & this->E;
+		printValueAsString(this->ES, "ES VALUES: ");
+
+		//uint64_t odd_sequence_starts = this->B64 & ~;
+		this->EC = collectCarries(this->ES, this->B64);
+
+		//this->EC = collectCarries(this->ES, this->B64);
+		printValueAsString(this->EC, "EC VALUES: ");
+
 
 	}
 	operator std::string() {
@@ -167,8 +179,8 @@ class Simd8 {
 	__m256i quotes[2]{};
 	__m256i values[2]{};
 	__m256i B[2]{};
-	__m256i E[2]{};
-	__m256i O[2]{};
+	uint64_t E{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
+	uint64_t O{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
 	uint64_t B64{};
 	uint64_t BShift{};
 	uint64_t S{};
