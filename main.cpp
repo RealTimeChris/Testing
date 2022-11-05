@@ -160,7 +160,6 @@ class Simd8 {
 		printValueAsString(this->B[0], "B0 VALUES: ");
 		printValueAsString(this->B[1], "B1 VALUES: ");
 		printValueAsString(convertTo64BitUint(this->B[0], this->B[1]), "TEST VALUES REAL: ");
-		this->BShift = this->B64 >> 1;
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
 		printValueAsString(this->B64, "B64 VALUES: ");
 		printValueAsString(this->B64 << 1, "B64-SHIFT VALUES: ");
@@ -185,6 +184,15 @@ class Simd8 {
 		printValueAsString(this->OD2, "OD2 VALUES: ");
 		this->OD = this->OD1 | this->OD2;
 		printValueAsString(this->OD, "OD VALUES: ");
+		this->Q[0] = _mm256_cmpeq_epi8(this->quotes[0], this->values[0]);
+		this->Q[1] = _mm256_cmpeq_epi8(this->quotes[1], this->values[1]);
+		this->Q64 = convertTo64BitUint(this->Q[1], this->Q[0]);
+		this->R64 &= ~this->OD;
+		printValueAsString(this->Q64, "Q VALUES: ");
+		__m128i all_ones = _mm_set1_epi8('\xFF');
+		__m128i result = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->Q64), all_ones, 0);
+		printValueAsString(( uint64_t )_mm_cvtsi128_si64(result), "THE VALUES: ");
+
 
 
 
@@ -199,10 +207,10 @@ class Simd8 {
 	__m256i quotes[2]{};
 	__m256i values[2]{};
 	__m256i B[2]{};
+	__m256i Q[2]{};
 	uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
 	uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
 	uint64_t B64{};
-	uint64_t BShift{};
 	uint64_t S{};
 	uint64_t ES{};
 	uint64_t EC{};
@@ -214,7 +222,8 @@ class Simd8 {
 	uint64_t ECE{};
 	uint64_t OD2{};
 	uint64_t OD{};
-	uint64_t Q{};
+	uint64_t Q64{};
+	uint64_t R64{};
 
 };
 
