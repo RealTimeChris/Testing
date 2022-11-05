@@ -145,8 +145,6 @@ class Simd8 {
   public:
 	Simd8(std::string& stringNewer) {
 		auto stringNew = stringNewer;
-		std::cout << "THE ORIGINAL STRING: " << stringNewer << std::endl;
-		std::cout << "THE NEW STRING: " << stringNew << std::endl;
 		this->string = stringNew;
 		this->backslashes[0] = _mm256_set1_epi8('\\');
 		this->backslashes[1] = _mm256_set1_epi8('\\');
@@ -156,32 +154,17 @@ class Simd8 {
 		this->values[1] = packStringIntoValue(stringNewer.data() + 32);
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes[0]);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes[1]);
-		printValueAsString(this->B[0], "B0 VALUES: ");
-		printValueAsString(this->B[1], "B1 VALUES: ");
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
-		printValueAsString(this->B64, "B64 VALUES: ");
-		printValueAsString(this->B64 << 1, "B64-SHIFT VALUES: ");
 		this->S = this->B64 & ~(this->B64 << 1);
-		printValueAsString(this->S, "S VALUES: ");
 		this->ES = this->S & this->E;
-		printValueAsString(this->ES, "ES VALUES: ");
-		printValueAsString(this->B64, "B64 VALUES: ");
 		this->EC = collectCarries(this->ES, this->B64);
-		printValueAsString(this->EC, "EC VALUES: ");
 		this->ECE = this->EC & ~this->B64;
-		printValueAsString(this->ECE, "ECE VALUES: ");
 		this->OD1 = this->ECE & ~this->E;
-		printValueAsString(this->OD1, "OD1 VALUES: ");
 		this->OS = this->S & this->O;
-		printValueAsString(this->OS, "OS VALUES: ");
 		this->OC = this->B64 + this->OS;
-		printValueAsString(this->OC, "OC VALUES: ");
 		this->OCE = this->OC & ~this->B64;
-		printValueAsString(this->OCE, "OCE VALUES: ");
 		this->OD2 = this->OCE & this->E;
-		printValueAsString(this->OD2, "OD2 VALUES: ");
 		this->OD = this->OD1 | this->OD2;
-		printValueAsString(this->OD, "OD VALUES: ");
 		this->Q[0] = _mm256_cmpeq_epi8(this->quotes[0], this->values[0]);
 		this->Q[1] = _mm256_cmpeq_epi8(this->quotes[1], this->values[1]);
 		this->Q64 = convertTo64BitUint(this->Q[1], this->Q[0]);
