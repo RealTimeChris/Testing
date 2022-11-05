@@ -169,21 +169,23 @@ class Simd8 {
 		this->ES = this->S & this->E;
 		printValueAsString(this->ES, "ES VALUES: ");
 		printValueAsString(this->B64, "B64 VALUES: ");
-		//uint64_t odd_sequence_starts = this->B64 & ~;
 		this->EC = collectCarries(this->ES, this->B64);
-		uint64_t follows_escape = this->B64 >> 1;
-
-		// Get sequences starting on even bits by clearing out the odd series using +
-		const uint64_t even_bits = 0x5555555555555555ULL;
-		uint64_t odd_sequence_starts = this->B64 & ~even_bits & ~follows_escape;
-		auto sequences_starting_on_even_bits = collectCarries(odd_sequence_starts, this->B64);
-		uint64_t invert_mask = sequences_starting_on_even_bits << 1;// The mask we want to return is the *escaped* bits, not escapes.
-
-		// Mask every other backslashed character as an escaped character
-		// Flip the mask for sequences that start on even bits, to correct them
-		printValueAsString(even_bits ^ invert_mask, "THE VALUES: ");
-		//this->EC = collectCarries(this->ES, this->B64);
 		printValueAsString(this->EC, "EC VALUES: ");
+		this->ECE = this->EC & ~this->B64;
+		printValueAsString(this->ECE, "ECE VALUES: ");
+		this->OD1 = this->ECE & ~this->E;
+		printValueAsString(this->OD1, "OD1 VALUES: ");
+		this->OS = this->S & this->O;
+		printValueAsString(this->OS, "OS VALUES: ");
+		this->OC = this->B64 + this->OS;
+		printValueAsString(this->OC, "OC VALUES: ");
+		this->OCE = this->OC & ~this->B64;
+		printValueAsString(this->OCE, "OCE VALUES: ");
+		this->OD2 = this->OCE & this->E;
+		printValueAsString(this->OD2, "OD2 VALUES: ");
+		this->OD = this->OD1 | this->OD2;
+		printValueAsString(this->OD, "OD VALUES: ");
+
 
 
 	}
