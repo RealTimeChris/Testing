@@ -133,10 +133,20 @@ class Simd8 {
 		this->string = stringNew;
 		this->backslashes[0] = _mm256_set1_epi8('\\');
 		this->backslashes[1] = _mm256_set1_epi8('\\');
+		this->StructuralTest[0] = _mm256_set1_epi8(0b00000111);
+		this->StructuralTest[1] = _mm256_set1_epi8(0b00000111);
 		this->quotes[0] = _mm256_set1_epi8('"');
 		this->quotes[1] = _mm256_set1_epi8('"');
 		this->values[0] = packStringIntoValue(stringNewer.data());
 		this->values[1] = packStringIntoValue(stringNewer.data() + 32);
+		this->Structural[0] = _mm256_and_si256(this->values[0], this->StructuralTest[0]);
+		this->Structural[1] = _mm256_and_si256(this->values[1], this->StructuralTest[1]);
+		this->S64 = convertTo64BitUint(this->Structural[1], this->Structural[0]);
+		printValueAsString(this->values[1], "THE VALUES: ");
+		printValueAsString(this->values[0], "THE VALUES: ");
+		printValueAsString(this->Structural[1], "STRUCTURAL VALUES: ");
+		printValueAsString(this->Structural[0], "STRUCTURAL VALUES: ");
+		printValueAsString(this->S64, "STRUCTURAL VALUES: ");
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes[0]);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes[1]);
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
@@ -168,7 +178,9 @@ class Simd8 {
 
   protected:
 	std::string string{};
+	__m256i StructuralTest[2]{};
 	__m256i backslashes[2]{};
+	__m256i Structural[2]{};
 	__m256i quotes[2]{};
 	__m256i values[2]{};
 	__m256i B[2]{};
@@ -186,9 +198,11 @@ class Simd8 {
 	uint64_t OS{};
 	uint64_t ECE{};
 	uint64_t OD2{};
+	uint64_t W{};
 	uint64_t OD{};
 	uint64_t Q64{};
 	uint64_t R64{};
+	uint64_t S64{};
 
 };
 
