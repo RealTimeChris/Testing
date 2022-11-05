@@ -187,10 +187,10 @@ class Simd8 {
 		this->Q[0] = _mm256_cmpeq_epi8(this->quotes[0], this->values[0]);
 		this->Q[1] = _mm256_cmpeq_epi8(this->quotes[1], this->values[1]);
 		this->Q64 = convertTo64BitUint(this->Q[1], this->Q[0]);
-		this->R64 &= ~this->OD;
 		printValueAsString(this->Q64, "Q VALUES: ");
+		this->R64 = this->Q64 & ~this->OD;
 		__m128i all_ones = _mm_set1_epi8('\xFF');
-		__m128i result = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->Q64), all_ones, 0);
+		__m128i result = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), all_ones, 0);
 		printValueAsString(( uint64_t )_mm_cvtsi128_si64(result), "THE VALUES: ");
 
 
