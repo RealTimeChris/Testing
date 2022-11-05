@@ -96,13 +96,10 @@ void collectCarries(uint64_t inputA, uint64_t inputB, uint64_t* outputValue) {
 class Simd8 {
   public:
 	Simd8(std::string& stringNew) {
-		for (int32_t x = 0; x < 64; ++x) {
-			this->string.push_back(stringNew[x]);
-		}
-		std::cout << stringNew << std::endl;
 		this->backslashes[0] = _mm256_set1_epi8('\\');
 		this->backslashes[1] = _mm256_set1_epi8('\\');
-		this->quotes = _mm256_set1_epi8('"');
+		this->quotes[0] = _mm256_set1_epi8('"');
+		this->quotes[1] = _mm256_set1_epi8('"');
 		this->values[0] = _mm256_set_epi64x(*reinterpret_cast<int64_t*>(stringNew.data()), *reinterpret_cast<int64_t*>(stringNew.data() + 8),
 			*reinterpret_cast<int64_t*>(stringNew.data() + 16), *reinterpret_cast<int64_t*>(stringNew.data() + 24));
 		this->values[1] = _mm256_set_epi64x(*reinterpret_cast<int64_t*>(stringNew.data() + 32), *reinterpret_cast<int64_t*>(stringNew.data() + 40),
@@ -145,7 +142,7 @@ class Simd8 {
 	std::string string{};
 	__mmask32 valueMask{};
 	__m256i backslashes[2]{};
-	__m256i quotes{};
+	__m256i quotes[2]{};
 	__m256i values[2]{};
 	__m256i BShift{};
 	__m256i B[2]{};
