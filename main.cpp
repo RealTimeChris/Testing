@@ -53,7 +53,7 @@ void printValueAsString(uint64_t inA,std::string values) {
 		v[42], v[43], v[44], v[45], v[46], v[47], v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39]);
 	printf(std::string{ values.c_str() +
 			   std::string{ " (DIGITS) v32_u8: "
-							"%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%"
+							"%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%"
 							"d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }
 			   .c_str(),
 		v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[0],
@@ -72,13 +72,9 @@ uint32_t convertTo32BitUint(__m256i inputA) {
 }
 
 uint64_t convertTo64BitUint(__m256i inputA, __m256i inputB) {
-	uint64_t value{};
-	value |= _mm256_movemask_epi8(inputA);
-	std::cout << std::bitset<64>{ static_cast<uint64_t>(_mm256_movemask_epi8(inputA)) } << std::endl;
-	value |= static_cast<uint64_t>(_mm256_movemask_epi8(inputB)) << 32;
-	std::cout << std::bitset<64>{ static_cast<uint64_t>(_mm256_movemask_epi8(inputB)) << 32 } << std::endl;
-	std::cout << std::bitset<64>{ value } << std::endl;
-	return value;
+	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
+	uint64_t r_hi = _mm256_movemask_epi8(inputB);
+	return r_lo | (r_hi << 32);
 }
 
 __m256i convertToM256(uint32_t inputA) {
@@ -109,6 +105,13 @@ class Simd8 {
 			*reinterpret_cast<int64_t*>(stringNew.data() + 48), *reinterpret_cast<int64_t*>(stringNew.data() + 56));
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes[0]);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes[1]);
+		this->E = 0b1010101010101010101010101010101010101010101010101010101010101010;
+		this->O = 0b0101010101010101010101010101010101010101010101010101010101010101;
+		this->B64 = convertTo64BitUint(this->B[0], this->B[1]);
+		printValueAsString(this->B64, "B VALUES: ");
+		printValueAsString(~(this->B64 << 1), "B-SHIFT VALUES: ");
+		this->S = this->B64 & ~(this->B64 << 1);
+		printValueAsString(this->S, "S VALUES: ");
 
 	}
 	operator std::string() {
@@ -117,26 +120,26 @@ class Simd8 {
 
   protected:
 	std::string string{};
-	__mmask32 valueMask{};
 	__m256i backslashes[2]{};
 	__m256i quotes[2]{};
 	__m256i values[2]{};
-	__m256i BShift{};
 	__m256i B[2]{};
-	__m256i E{};
-	__m256i O{};
-	__m256i S{};
-	__m256i ES{};
-	__m256i EC{};
-	__m256i OD1{};
-	__m256i OS1{};
-	__m256i OC{};
-	__m256i OCE{};
-	__m256i OS{};
-	__m256i ECE{};
-	__m256i OD2{};
-	__m256i OD{};
-	__m256i Q{};
+	uint64_t B64{};
+	uint64_t BShift{};
+	uint64_t E{};
+	uint64_t O{};
+	uint64_t S{};
+	uint64_t ES{};
+	uint64_t EC{};
+	uint64_t OD1{};
+	uint64_t OS1{};
+	uint64_t OC{};
+	uint64_t OCE{};
+	uint64_t OS{};
+	uint64_t ECE{};
+	uint64_t OD2{};
+	uint64_t OD{};
+	uint64_t Q{};
 
 };
 
