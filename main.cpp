@@ -33,7 +33,7 @@ template<typename OTy> struct SimdBase {
 	inline OTy operator^(const OTy other) const {
 		return _mm256_xor_si256(*this, other);
 	}
-	inline OTy bit_andnot(const OTy other) const {
+	inline OTy bitAndNot(const OTy other) const {
 		return _mm256_andnot_si256(other, *this);
 	}
 	inline OTy& operator|=(const OTy other) {
@@ -154,12 +154,12 @@ class Simd8 {
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes[1]);
 		this->O[0] = _mm256_set1_epi16(0xff00);
 		this->O[1] = _mm256_set1_epi16(0xff00);
-		printValueAsString(this->E[0], "E0 VALUES: ");
-		printValueAsString(this->E[1], "E1 VALUES: ");
 		this->E[0] = _mm256_set1_epi16(0x00ff);
 		this->E[1] = _mm256_set1_epi16(0x00ff);
 		printValueAsString(this->O[0], "O0 VALUES: ");
 		printValueAsString(this->O[1], "O1 VALUES: ");
+		printValueAsString(this->E[0], "E0 VALUES: ");
+		printValueAsString(this->E[1], "E1 VALUES: ");
 		
 		this->B64 = convertTo64BitUint(this->B[0], this->B[1]);
 		
