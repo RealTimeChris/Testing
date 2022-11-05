@@ -195,7 +195,7 @@ class Simd8 {
 int32_t main() noexcept {
 	std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	Simd8 simd8Test{ string };
-	std::cout << "THE STRING: " << simd8Test.operator std::string() << std::endl;
+	std::cout << "A VALUES:  (DIGITS) v64_u8: " << simd8Test.operator std::string() << std::endl;
 
 	return 0;
 }
