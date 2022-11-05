@@ -126,6 +126,7 @@ std::string reverseString(std::string inputString) {
 	}
 	return newString;
 }
+
 __m256i packStringIntoValue(const char* string) {
 	__m256i value{};
 	for (size_t x = 0; x < 32; ++x) {
@@ -133,10 +134,10 @@ __m256i packStringIntoValue(const char* string) {
 	}
 	return value;
 }
+
 uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
 	uint64_t returnValue{};
-	
-	std::cout << "THE CARRY BIT: " << +_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue)) << std::endl;
+	_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue));
 	return returnValue;
 }
 
@@ -153,13 +154,10 @@ class Simd8 {
 		this->quotes[1] = _mm256_set1_epi8('"');
 		this->values[0] = packStringIntoValue(stringNewer.data());
 		this->values[1] = packStringIntoValue(stringNewer.data() + 32);
-		printValueAsString(this->values[0], "VALUES 0: ");
-		printValueAsString(this->values[1], "VALUES 1: ");
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes[0]);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes[1]);
 		printValueAsString(this->B[0], "B0 VALUES: ");
 		printValueAsString(this->B[1], "B1 VALUES: ");
-		printValueAsString(convertTo64BitUint(this->B[0], this->B[1]), "TEST VALUES REAL: ");
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
 		printValueAsString(this->B64, "B64 VALUES: ");
 		printValueAsString(this->B64 << 1, "B64-SHIFT VALUES: ");
@@ -190,7 +188,7 @@ class Simd8 {
 		printValueAsString(this->Q64, "Q VALUES: ");
 		this->R64 = this->Q64 & ~this->OD;
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
-		printValueAsString(this->R64, "THE VALUES: ");
+		printValueAsString(this->R64, "R VALUES: ");
 
 
 
