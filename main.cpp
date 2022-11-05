@@ -76,8 +76,7 @@ void printValueAsString(uint64_t inA, std::string values) {
 	}
 	printf(std::string{ values.c_str() +
 			   std::string{ " (DIGITS) v64_u8: "
-							"%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d"
-							"%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" } }
+							"%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" } }
 			   .c_str(),
 		v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39], v[40], v[41], v[42], v[43], v[44], v[45], v[46], v[47], v[48], v[49], v[50], v[51], v[52], v[53], v[54], v[55],
 		v[56], v[57], v[58], v[59], v[60], v[61], v[62], v[63], v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17],
@@ -173,7 +172,14 @@ class Simd8 {
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
 		printValueAsString(this->R64, "R VALUES: ");
 
-
+		const auto whitespaceTable = _mm256_set_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t',
+			'\n', 112, 100, '\r', 100, 100);
+		auto whiteSpace00 = _mm256_shuffle_epi8(whitespaceTable, this->values[0]);
+		auto whiteSpace01 = _mm256_shuffle_epi8(whitespaceTable, this->values[1]);
+		const uint64_t whitespace = convertTo64BitUint(whiteSpace01, whiteSpace00);
+		
+		printValueAsString(whitespace, "WHITESPACE VALUES: ");
+		const auto opTable = _mm256_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0);
 
 
 	}
