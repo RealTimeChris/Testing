@@ -184,6 +184,8 @@ class Simd8 {
 		//printValueAsString(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), "WHITESPACE 01");
 		printValueAsString(whiteSpace00, "WHITESPACE VALUES 01: ");
 		printValueAsString(whiteSpace01, "WHITESPACE VALUES 01: ");
+		auto whiteSpaceFinal = convertTo64BitUint(whiteSpace01, whiteSpace00);
+		printValueAsString(whiteSpaceFinal, "WHITESPACE FINAL VALUES: ");
 		const auto opTable = _mm256_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0);
 
 
