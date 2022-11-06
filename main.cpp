@@ -172,16 +172,18 @@ class Simd8 {
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
 		printValueAsString(this->R64, "R VALUES: ");
 
-		const auto whitespaceTable = _mm256_set_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t',
+		const auto whitespaceTable = _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t',
 			'\n', 112, 100, '\r', 100, 100);
 		printValueAsString(whitespaceTable, "WHITESPACE TABLE: ");
 		//printValueAsString(this->values[0], "VALUES TABLE: ");
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), _mm256_shuffle_epi8(whitespaceTable, this->values[1]));
-		const uint64_t whitespace = convertTo64BitUint(whiteSpace00, whiteSpace00);
+		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
+		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), this->values[1]);
+		//auto whiteSpaceReal01 = _mm256_cmpeq_epi8(whiteSpace00, this->values[0]);
+		//printValueAsString(whiteSpaceReal01, "WHITESPACE 20");
 		//printValueAsString(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), "WHITESPACE 00");
-		printValueAsString(whiteSpace00, "WHITESPACE 22");
 		//printValueAsString(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), "WHITESPACE 01");
-		printValueAsString(whiteSpace00, "WHITESPACE VALUES: ");
+		printValueAsString(whiteSpace00, "WHITESPACE VALUES 01: ");
+		printValueAsString(whiteSpace01, "WHITESPACE VALUES 01: ");
 		const auto opTable = _mm256_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0);
 
 
