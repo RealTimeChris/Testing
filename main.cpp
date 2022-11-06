@@ -9,58 +9,14 @@
 #include <iostream>
 #include <bitset>
 
-template<typename OTy> struct SimdBase {
-	__m256i value{};
-	inline SimdBase() : value{ __m256i() } {}
-
-	inline SimdBase(const __m256i _value) : value(_value) {
-	}
-
-	inline operator const __m256i&() const {
-		return this->value;
-	}
-
-	inline operator __m256i&() {
-		return this->value;
-	}
-
-	inline OTy operator|(const OTy other) const {
-		return _mm256_or_si256(*this, other);
-	}
-	inline OTy operator&(const OTy other) const {
-		return _mm256_and_si256(*this, other);
-	}
-	inline OTy operator^(const OTy other) const {
-		return _mm256_xor_si256(*this, other);
-	}
-	inline OTy bitAndNot(const OTy other) const {
-		return _mm256_andnot_si256(other, *this);
-	}
-	inline OTy& operator|=(const OTy other) {
-		auto thisCasted = static_cast<OTy*>(this);
-		*thisCasted = *thisCasted | other;
-		return *thisCasted;
-	}
-	inline OTy& operator&=(const OTy other) {
-		auto thisCasted = static_cast<OTy*>(this);
-		*thisCasted = *thisCasted & other;
-		return *thisCasted;
-	}
-	inline OTy& operator^=(const OTy other) {
-		auto thisCasted = static_cast<OTy*>(this);
-		*thisCasted = *thisCasted ^ other;
-		return *thisCasted;
-	}
-};
-
-void printValueAsString(__m256i in,std::string values) {
+void printValueAsString(__m256i in, std::string values) {
 	printf(std::string{ values.c_str() + std::string{ " (CHARACTERS) v32_u8: %c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c%c\n" } }.c_str(), in.m256i_i8[0],
 		in.m256i_i8[1], in.m256i_i8[2], in.m256i_i8[3], in.m256i_i8[4], in.m256i_i8[5], in.m256i_i8[6], in.m256i_i8[7], in.m256i_i8[8], in.m256i_i8[9], in.m256i_i8[10],
 		in.m256i_i8[11], in.m256i_i8[12], in.m256i_i8[13], in.m256i_i8[14], in.m256i_i8[15], in.m256i_i8[16], in.m256i_i8[17], in.m256i_i8[18], in.m256i_i8[19], in.m256i_i8[20],
 		in.m256i_i8[21], in.m256i_i8[22], in.m256i_i8[23], in.m256i_i8[24], in.m256i_i8[25], in.m256i_i8[26], in.m256i_i8[27], in.m256i_i8[28], in.m256i_i8[29], in.m256i_i8[30],
 		in.m256i_i8[31]);
-	printf(
-		std::string{ values.c_str() + std::string{ " (DIGITS) v32_u8: '%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }.c_str(),
+	printf(std::string{ values.c_str() + std::string{ " (DIGITS) v32_u8: '%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }
+			   .c_str(),
 		in.m256i_i8[0], in.m256i_i8[1], in.m256i_i8[2], in.m256i_i8[3], in.m256i_i8[4], in.m256i_i8[5], in.m256i_i8[6], in.m256i_i8[7], in.m256i_i8[8], in.m256i_i8[9],
 		in.m256i_i8[10], in.m256i_i8[11], in.m256i_i8[12], in.m256i_i8[13], in.m256i_i8[14], in.m256i_i8[15], in.m256i_i8[16], in.m256i_i8[17], in.m256i_i8[18], in.m256i_i8[19],
 		in.m256i_i8[20], in.m256i_i8[21], in.m256i_i8[22], in.m256i_i8[23], in.m256i_i8[24], in.m256i_i8[25], in.m256i_i8[26], in.m256i_i8[27], in.m256i_i8[28], in.m256i_i8[29],
@@ -76,12 +32,23 @@ void printValueAsString(uint64_t inA, std::string values) {
 	}
 	printf(std::string{ values.c_str() +
 			   std::string{ " (DIGITS) v64_u8: "
-							"'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }
+							"'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%"
+							"d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d'%d\n" } }
 			   .c_str(),
 		v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39], v[40], v[41], v[42], v[43], v[44], v[45], v[46], v[47], v[48], v[49], v[50], v[51], v[52], v[53], v[54], v[55],
 		v[56], v[57], v[58], v[59], v[60], v[61], v[62], v[63], v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17],
 		v[18], v[19], v[20], v[21], v[22], v[23], v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31]);
 }
+
+void printBitsAsString(__m256i value, std::string valuesTitle){
+	std::cout << valuesTitle;
+	for (size_t x = 0; x < 32; ++x) {
+		for (size_t y = 0; y < 8; ++y) {
+			std::cout << std::bitset<1>{ static_cast<uint64_t>(value.m256i_i8[x]) >> y };
+		}
+	}
+	std::cout << std::endl;
+};
 
 void printValueAsString(uint32_t inA, std::string values) {
 	alignas(32) uint8_t v[32]{};
@@ -98,6 +65,7 @@ void printValueAsString(uint32_t inA, std::string values) {
 		v[6], v[5], v[4], v[3], v[2], v[1], v[0]);
 }
 
+
 uint32_t convertTo32BitUint(__m256i inputA) {
 	return static_cast<uint32_t>(_mm256_movemask_epi8(inputA));
 }
@@ -107,6 +75,61 @@ uint64_t convertTo64BitUint(__m256i inputA, __m256i inputB) {
 	uint64_t r_hi = static_cast<uint64_t>(_mm256_movemask_epi8(inputB));
 	return r_lo | (r_hi << 32);
 }
+
+
+struct Simd256Base {
+	__m256i value{};
+	inline Simd256Base() : value{__m256i{} } {};
+
+	inline Simd256Base(const __m256i _value) : value(_value) {
+	}
+
+	inline Simd256Base(uint64_t value01, uint64_t value02, uint64_t value03, uint64_t value04) {
+		this->value = _mm256_insert_epi64(this->value, value01, 0);
+		this->value = _mm256_insert_epi64(this->value, value02, 1);
+		this->value = _mm256_insert_epi64(this->value, value03, 2);
+		this->value = _mm256_insert_epi64(this->value, value04, 3);
+		printBitsAsString(this->value, "THE TESTING VALUES: ");
+	}
+
+	inline operator const __m256i&() const {
+		return this->value;
+	}
+
+	inline operator __m256i&() {
+		return this->value;
+	}
+
+	inline Simd256Base operator|(const Simd256Base other) const {
+		return _mm256_or_si256(*this, other);
+	}
+	inline Simd256Base operator&(const Simd256Base other) const {
+		return _mm256_and_si256(*this, other);
+	}
+	inline Simd256Base operator^(const Simd256Base other) const {
+		return _mm256_xor_si256(*this, other);
+	}
+	inline Simd256Base bitAndNot(const Simd256Base other) const {
+		return _mm256_andnot_si256(other, *this);
+	}
+	inline Simd256Base& operator|=(const Simd256Base other) {
+		auto thisCasted = static_cast<Simd256Base*>(this);
+		*thisCasted = *thisCasted | other;
+		return *thisCasted;
+	}
+	inline Simd256Base& operator&=(const Simd256Base other) {
+		auto thisCasted = static_cast<Simd256Base*>(this);
+		*thisCasted = *thisCasted & other;
+		return *thisCasted;
+	}
+	inline Simd256Base& operator^=(const Simd256Base other) {
+		auto thisCasted = static_cast<Simd256Base*>(this);
+		*thisCasted = *thisCasted ^ other;
+		return *thisCasted;
+	}
+};
+
+
 
 std::string reverseString(std::string inputString) {
 	std::string newString{};
@@ -228,6 +251,8 @@ int32_t main() noexcept {
 	std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	Simd8 simd8Test{ string };
 	std::cout << "A VALUES:  (DIGITS) v64_u8: " << simd8Test.operator std::string() << std::endl;
-
+	uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
+	uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
+	Simd256Base value{ O, O, E, E };
 	return 0;
 }
