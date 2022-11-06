@@ -132,6 +132,7 @@ struct Simd256Base {
 		this->values[7] = packStringIntoValue(valueNew.data() + 224);
 
 		__m256i Structural[8]{};
+		__m256i B[8]{};
 		__m256i S256{};
 
 		Structural[0] = _mm256_and_si256(this->values[0], StructuralTest);
@@ -152,7 +153,34 @@ struct Simd256Base {
 		printValueAsString(Structural[0], "STRUCTURAL VALUES: ");
 		printValueAsString(S64_01, "STRUCTURAL VALUES: ");
 		
-		
+		B[0] = _mm256_cmpeq_epi8(this->values[0], backslashes);
+		B[1] = _mm256_cmpeq_epi8(this->values[1], backslashes);
+		auto B64_01 = convertTo64BitUint(B[1], B[0]);
+		B[2] = _mm256_cmpeq_epi8(this->values[2], backslashes);
+		B[3] = _mm256_cmpeq_epi8(this->values[3], backslashes);
+		auto B64_02 = convertTo64BitUint(B[3], B[2]);
+		B[4] = _mm256_cmpeq_epi8(this->values[4], backslashes);
+		B[5] = _mm256_cmpeq_epi8(this->values[5], backslashes);
+		auto B64_03 = convertTo64BitUint(B[5], B[4]);
+		B[6] = _mm256_cmpeq_epi8(this->values[6], backslashes);
+		B[7] = _mm256_cmpeq_epi8(this->values[7], backslashes);
+		auto B64_04 = convertTo64BitUint(B[7], B[6]);
+		printValueAsString(B64_01, "THE B VALUES 00: ");
+		printValueAsString(B64_02, "THE B VALUES 01: ");
+		printValueAsString(B64_03, "THE B VALUES 02: ");
+		printValueAsString(B64_04, "THE B VALUES 03: ");
+		/*
+		this->S = this->B64 & ~(this->B64 << 1);
+		this->ES = this->S & this->E;
+		this->EC = collectCarries(this->ES, this->B64);
+		this->ECE = this->EC & ~this->B64;
+		this->OD1 = this->ECE & ~this->E;
+		this->OS = this->S & this->O;
+		this->OC = this->B64 + this->OS;
+		this->OCE = this->OC & ~this->B64;
+		this->OD2 = this->OCE & this->E;
+		this->OD = this->OD1 | this->OD2;
+		*/
 
 	}
 
@@ -291,10 +319,10 @@ class Simd64Base {
 };
 
 int32_t main() noexcept {
-	std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+	std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	Simd64Base simd8Test{ string };
 	std::cout << "A VALUES:  (DIGITS) v64_u8: " << simd8Test.operator std::string() << std::endl;
-	Simd256Base value{ string };
+	//Simd256Base value{ string };
 	std::cout << "THE STRING: " << string << std::endl;
 	
 	return 0;
