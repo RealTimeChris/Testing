@@ -175,11 +175,13 @@ class Simd8 {
 		const auto whitespaceTable = _mm256_set_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t',
 			'\n', 112, 100, '\r', 100, 100);
 		printValueAsString(whitespaceTable, "WHITESPACE TABLE: ");
-		printValueAsString(this->values[0], "VALUES TABLE: ");
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_and_si256(whitespaceTable, this->values[0]), _mm256_shuffle_epi8(whitespaceTable, this->values[1]));
+		//printValueAsString(this->values[0], "VALUES TABLE: ");
+		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), _mm256_shuffle_epi8(whitespaceTable, this->values[1]));
 		const uint64_t whitespace = convertTo64BitUint(whiteSpace00, whiteSpace00);
-		
-		printValueAsString(whitespace, "WHITESPACE VALUES: ");
+		//printValueAsString(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), "WHITESPACE 00");
+		printValueAsString(whiteSpace00, "WHITESPACE 22");
+		//printValueAsString(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), "WHITESPACE 01");
+		printValueAsString(whiteSpace00, "WHITESPACE VALUES: ");
 		const auto opTable = _mm256_set_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0);
 
 
