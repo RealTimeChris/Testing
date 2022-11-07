@@ -154,10 +154,10 @@ struct Simd256Base {
 	inline Simd256Base(const __m256i _value){};
 
 	inline Simd256Base(uint64_t value00,uint64_t value01, uint64_t value02, uint64_t value03){
-		this->values256 = _mm256_insert_epi64(this->values256, value00, 0);
-		this->values256 = _mm256_insert_epi64(this->values256, value01, 1);
-		this->values256 = _mm256_insert_epi64(this->values256, value02, 2);
-		this->values256 = _mm256_insert_epi64(this->values256, value03, 3);
+		this->B256 = _mm256_insert_epi64(this->B256, value00, 0);
+		this->B256 = _mm256_insert_epi64(this->B256, value01, 1);
+		this->B256 = _mm256_insert_epi64(this->B256, value02, 2);
+		this->B256 = _mm256_insert_epi64(this->B256, value03, 3);
 	}
 
 	inline Simd256Base(std::string& valueNew) {
