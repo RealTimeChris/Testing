@@ -17,18 +17,16 @@ endif()
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
+target_include_directories(
+	"${PROJECT_NAME}" 
+	PUBLIC 
+	Jsonifier_INTERFACE_INCLUDE_DIR
+)
+
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
 	nlohmann_json::nlohmann_json 
-)
-
-target_compile_options(
-	"${PROJECT_NAME}" PUBLIC
-	"$<$<PLATFORM_ID:Windows>:/arch:AVX2>"
-	"$<$<PLATFORM_ID:Windows>:/fp:fast>"
-	"$<$<PLATFORM_ID:Windows>:/MP>"
-	"$<$<PLATFORM_ID:Linux>:-mavx2>"
 )
 
 target_compile_features(
