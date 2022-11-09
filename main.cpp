@@ -172,18 +172,18 @@ struct Simd256 {
 	inline Simd256 operator<<(size_t amount) {
 		__m256i newValue{};
 		for (size_t x = 0; x < 32; ++x) {
-			newValue.m256i_i8[x] |= this->value.m256i_i8[static_cast<int64_t>(x + floor(static_cast<float>(amount % 8))) - 1] >> amount % 8;
+			newValue.m256i_i8[x] |= this->value.m256i_i8[static_cast<int64_t>(x + floor(static_cast<float>(amount % 8))) - 1] << amount % 8 & 0xff;
+			newValue.m256i_i8[x] |= newValue.m256i_i8[x] >> amount % 8 & 0b00000001;
 		}
 		return newValue;
 	}
 
 	inline Simd256 operator~() {
-		__m256i newValue{ _mm256_set1_epi8(0xff) };
+		__m256i newValue{};
 		for (size_t x = 0; x < 32; ++x) {
-			newValue.m256i_i8[x] ^= this->value.m256i_i8[x] ^ 0xff;
+			newValue.m256i_i8[x] = ~this->value.m256i_i8[x];
 		}
-		this->value = newValue;
-		return *this;
+		return newValue;
 	}
 
 	void printBits(std::string valuesTitle) {
