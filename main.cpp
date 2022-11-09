@@ -113,18 +113,18 @@ struct Simd256 {
 
 	operator std::vector<uint64_t>() {
 		std::vector<uint64_t> returnValue{};
-		uint64_t returnValue64 = _mm256_extract_epi64(this->value, 0);
-		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
-		returnValue.push_back(returnValue64);
-		returnValue64 = _mm256_extract_epi64(this->value, 1);
-		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
-		returnValue.push_back(returnValue64);
-		returnValue64 = _mm256_extract_epi64(this->value, 2);
-		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
-		returnValue.push_back(returnValue64);
-		returnValue64 = _mm256_extract_epi64(this->value, 3);
-		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
-		returnValue.push_back(returnValue64);
+		uint64_t returnValue6401 = _mm256_extract_epi64(this->value, 0);
+		printValueAsString(returnValue6401, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue6401);
+		uint64_t returnValue6402 = _mm256_extract_epi64(this->value, 1);
+		printValueAsString(returnValue6402, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue6402);
+		uint64_t returnValue6403 = _mm256_extract_epi64(this->value, 2);
+		printValueAsString(returnValue6403, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue6403);
+		uint64_t returnValue6404 = _mm256_extract_epi64(this->value, 3);
+		printValueAsString(returnValue6404, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue6404);
 		return returnValue;
 	}
 
@@ -211,9 +211,9 @@ struct Simd256 {
 		auto value02 = inputA.operator std::vector<uint64_t>();
 		uint64_t returnValue64{};
 		for (size_t x = 0; x < 4; ++x) {
-			_addcarry_u64(0, value02[x], value01[x], reinterpret_cast<unsigned __int64*>(&returnValue64));
+			_addcarry_u64(0, value02[x], value01[x], reinterpret_cast<unsigned __int64*>(&returnValue64)); 
 			value01[x] = returnValue64;
-			printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
+			printValueAsString(value01[x], "THE 64 BIT VALUES: ");
 		}
 		return { value01[0], value01[1], value01[2], value01[3] };
 	}
@@ -274,13 +274,13 @@ struct Simd256Base {
 			convertTo64BitUint(this->B[6], this->B[7]) };
 		this->B256.printBits("THE TESTING VALUES: ");
 		this->S = this->B256 & ~(this->B256 << 1);
-		this->B256.printBits("THE TESTING VALUES: ");
+		this->B256.printBits("THE TESTING VALUES B256: ");
 		this->S.printBits("THE TESTING VALUES: ");
 		this->ES = this->S & this->E;
-		this->ES.printBits("THE TESTING VALUES: ");
+		this->ES.printBits("THE TESTING VALUES (ES): ");
 		this->EC = this->EC + this->ES;
 		this->EC.collectCarries(this->ES + this->B256);
-		this->EC.printBits("THE TESTING VALUES: ");
+		this->EC.printBits("THE TESTING VALUES (EC): ");
 		/*
 		
 		this->ECE = this->EC & ~this->B64;
