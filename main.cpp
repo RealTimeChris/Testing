@@ -58,12 +58,6 @@ __m256i packStringIntoValue(const char* string) {
 	return value;
 }
 
-uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
-	uint64_t returnValue{};
-	_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue));
-	return returnValue;
-}
-
 void printValueAsString(uint32_t inA, std::string values) {
 	alignas(32) uint8_t v[32]{};
 	for (size_t x = 0; x < 32; ++x) {
@@ -117,7 +111,23 @@ struct Simd256 {
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
 	}
 
-	
+	operator std::vector<uint64_t>() {
+		std::vector<uint64_t> returnValue{};
+		uint64_t returnValue64 = _mm256_extract_epi64(this->value, 0);
+		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue64);
+		returnValue64 = _mm256_extract_epi64(this->value, 1);
+		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue64);
+		returnValue64 = _mm256_extract_epi64(this->value, 2);
+		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue64);
+		returnValue64 = _mm256_extract_epi64(this->value, 3);
+		printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
+		returnValue.push_back(returnValue64);
+		return returnValue;
+	}
+
 	template<>
 	inline Simd256(__m256i other) {
 		this->value = other;
@@ -129,10 +139,6 @@ struct Simd256 {
 
 	inline operator __m256i&() {
 		return this->value;
-	}
-
-	explicit operator uint64_t(){
-		return uint64_t{};
 	}
 
 	inline Simd256 operator | (const OTy other) const {
@@ -149,6 +155,10 @@ struct Simd256 {
 
 	inline Simd256 bit_andnot(const OTy other) const {
 		return _mm256_andnot_si256(other, *this);
+	}
+
+	inline Simd256 operator+(const OTy other) const {
+		return _mm256_add_epi8(*this, other);
 	}
 
 	inline Simd256 operator|=(const OTy other) {
@@ -170,12 +180,12 @@ struct Simd256 {
 	}
 
 	inline Simd256 operator<<(size_t amount) {
-		__m256i newValue{};
+		__m256i this_cast{};
 		for (size_t x = 0; x < 32; ++x) {
-			newValue.m256i_i8[x] |= this->value.m256i_i8[static_cast<int64_t>(x + floor(static_cast<float>(amount % 8))) - 1] << amount % 8 & 0xff;
-			newValue.m256i_i8[x] |= newValue.m256i_i8[x] >> amount % 8 & 0b00000001;
+			this_cast.m256i_i8[x] |= this->value.m256i_i8[static_cast<int64_t>(x + floor(static_cast<float>(amount % 8))) - 1] << amount % 8 & 0xff;
+			this_cast.m256i_i8[x] |= this->value.m256i_i8[x] >> amount % 8 & 0b00000001;
 		}
-		return newValue;
+		return this_cast;
 	}
 
 	inline Simd256 operator~() {
@@ -195,6 +205,18 @@ struct Simd256 {
 		}
 		std::cout << std::endl;
 	};
+
+	Simd256 collectCarries(Simd256 inputA) {
+		auto value01 = this->operator std::vector<uint64_t>();
+		auto value02 = inputA.operator std::vector<uint64_t>();
+		uint64_t returnValue64{};
+		for (size_t x = 0; x < 4; ++x) {
+			_addcarry_u64(0, value02[x], value01[x], reinterpret_cast<unsigned __int64*>(&returnValue64));
+			value01[x] = returnValue64;
+			printValueAsString(returnValue64, "THE 64 BIT VALUES: ");
+		}
+		return { value01[0], value01[1], value01[2], value01[3] };
+	}
 };
 
 struct Simd256Base {
@@ -234,6 +256,7 @@ struct Simd256Base {
 		this->B[5] = _mm256_cmpeq_epi8(this->values[5], this->backslashes);
 		this->B[6] = _mm256_cmpeq_epi8(this->values[6], this->backslashes);
 		this->B[7] = _mm256_cmpeq_epi8(this->values[7], this->backslashes);
+		/*
 		printValueAsString(this->B[0], "THE VALUES 00");
 		printValueAsString(this->B[1], "THE VALUES 01");
 		printValueAsString(this->B[2], "THE VALUES 02");
@@ -246,15 +269,20 @@ struct Simd256Base {
 		printValueAsString(convertTo64BitUint(this->B[3], this->B[2]), "THE VALUES 01");
 		printValueAsString(convertTo64BitUint(this->B[5], this->B[4]), "THE VALUES 02");
 		printValueAsString(convertTo64BitUint(this->B[7], this->B[6]), "THE VALUES 03");
+		*/
 		this->B256 = Simd256<__m256i>{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
 			convertTo64BitUint(this->B[6], this->B[7]) };
 		this->B256.printBits("THE TESTING VALUES: ");
 		this->S = this->B256 & ~(this->B256 << 1);
 		this->B256.printBits("THE TESTING VALUES: ");
 		this->S.printBits("THE TESTING VALUES: ");
-		/*
 		this->ES = this->S & this->E;
-		this->EC = collectCarries(this->ES, this->B64);
+		this->ES.printBits("THE TESTING VALUES: ");
+		this->EC = this->EC + this->ES;
+		this->EC.collectCarries(this->ES + this->B256);
+		this->EC.printBits("THE TESTING VALUES: ");
+		/*
+		
 		this->ECE = this->EC & ~this->B64;
 		this->OD1 = this->ECE & ~this->E;
 		this->OS = this->S & this->O;
@@ -268,42 +296,6 @@ struct Simd256Base {
 			*/
 	}
 
-	inline operator const __m256i&() const {
-		return this->B256;
-	}
-
-	inline operator __m256i&() {
-		return this->B256;
-	}
-
-	inline Simd256Base operator|(const Simd256Base other) const {
-		return _mm256_or_si256(*this, other);
-	}
-	inline Simd256Base operator&(const Simd256Base other) const {
-		return _mm256_and_si256(*this, other);
-	}
-	inline Simd256Base operator^(const Simd256Base other) const {
-		return _mm256_xor_si256(*this, other);
-	}
-	inline Simd256Base bitAndNot(const Simd256Base other) const {
-		return _mm256_andnot_si256(other, *this);
-	}
-	inline Simd256Base& operator|=(const Simd256Base other) {
-		auto thisCasted = static_cast<Simd256Base*>(this);
-		*thisCasted = *thisCasted | other;
-		return *thisCasted;
-	}
-	inline Simd256Base& operator&=(const Simd256Base other) {
-		auto thisCasted = static_cast<Simd256Base*>(this);
-		*thisCasted = *thisCasted & other;
-		return *thisCasted;
-	}
-	inline Simd256Base& operator^=(const Simd256Base other) {
-		auto thisCasted = static_cast<Simd256Base*>(this);
-		*thisCasted = *thisCasted ^ other;
-		return *thisCasted;
-	}
-
   protected:
 	__m256i values[8]{};
 	std::string string{};
@@ -314,8 +306,8 @@ struct Simd256Base {
 	__m256i E{ _mm256_set1_epi8(0b01010101) };
 	__m256i O{ _mm256_set1_epi8(0b10101010) };
 	Simd256<__m256i> B256{};
-	__m256i ES{};
-	__m256i EC{};
+	Simd256<__m256i> ES{};
+	Simd256<__m256i> EC{};
 	Simd256<__m256i> S{};
 	__m256i OD1{};
 	__m256i OS1{};
@@ -336,6 +328,12 @@ class Simd64Base {
 
 	inline operator uint64_t() {
 		return convertTo64BitUint(this->values[1].operator __m256i&(), this->values[0].operator __m256i&());
+	}
+	
+	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
+		uint64_t returnValue{};
+		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue));
+		return returnValue;
 	}
 
 	void printBits(std::string valuesTitle) {
