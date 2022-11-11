@@ -219,12 +219,102 @@ int32_t main() noexcept {
 }
 */
 
+template<typename TimeType> class StopWatch {
+  public:
+	StopWatch() = delete;
+
+	using SysClock = std::chrono::system_clock;
+
+	StopWatch<TimeType>& operator=(const StopWatch<TimeType>& data) {
+		std::unique_lock lock{ this->accessMutex };
+		this->maxNumberOfMs = data.maxNumberOfMs;
+		this->startTime = data.startTime;
+		return *this;
+	}
+
+	StopWatch(const StopWatch<TimeType>& data) {
+		*this = data;
+	}
+
+	StopWatch<TimeType>& operator=(uint64_t maxNumberOfMsNew) {
+		std::unique_lock lock{ this->accessMutex };
+		this->maxNumberOfMs = TimeType{ maxNumberOfMsNew };
+		this->startTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
+		return *this;
+	}
+
+	StopWatch(uint64_t maxNumberOfMsNew) {
+		*this = maxNumberOfMsNew;
+	}
+
+	StopWatch<TimeType>& operator=(TimeType maxNumberOfMsNew) {
+		std::unique_lock lock{ this->accessMutex };
+		this->maxNumberOfMs = std::chrono::duration_cast<TimeType>(maxNumberOfMsNew);
+		this->startTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
+		return *this;
+	}
+	StopWatch(TimeType maxNumberOfMsNew) {
+
+		*this = maxNumberOfMsNew;
+	}
+
+	auto totalTimePassed() {
+		std::unique_lock lock{ this->accessMutex };
+		auto currentTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
+		auto elapsedTime = currentTime - this->startTime;
+		return elapsedTime;
+	}
+
+	auto getTotalWaitTime() {
+		std::unique_lock lock{ this->accessMutex };
+		return this->maxNumberOfMs;
+	}
+
+	bool hasTimePassed() {
+		std::unique_lock lock{ this->accessMutex };
+		auto currentTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
+		auto elapsedTime = currentTime - this->startTime;
+		if (elapsedTime.count() >= this->maxNumberOfMs.count()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	void resetTimer() {
+		std::unique_lock lock{ this->accessMutex };
+		this->startTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
+	}
+
+  protected:
+	TimeType maxNumberOfMs{};
+	std::mutex accessMutex{};
+	TimeType startTime{};
+};
+
+class DCAException : public std::exception, std::string {
+  public:
+	DCAException(const std::string, std::source_location = std::source_location::current()) noexcept;
+};
+
+DCAException::DCAException(std::string error, std::source_location location) noexcept  {
+	std::stringstream stream{};
+	stream << "Error Report: \n"
+		   << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column()) << ")"
+		   << "\nThe Error: \n"
+		   << error << std::endl
+		   << std::endl;
+	*static_cast<std::exception*>(this) = std::exception{ stream.str().c_str() };
+}
+
 int32_t main() noexcept {
 	try {
 
-		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatch{ std::chrono::milliseconds{ 1 } };
+		throw DCAException{ "THE ERROR IS" };
+		StopWatch<std::chrono::nanoseconds> stopWatchNew{ std::chrono::microseconds{ 10000000 } };
+		StopWatch<std::chrono::duration<double, std::micro>> stopWatch{ 1000000 };
 		std::vector<std::string> vector{};
-		uint64_t totalTime{};
+		std::chrono::duration<double, std::nano> totalTime{};
 		size_t size{};
 		WebSocketIdentifyDataTwo dataOne{};
 		nlohmann::json stringBufferTwo = dataOne;
@@ -233,6 +323,10 @@ int32_t main() noexcept {
 		for (uint32_t x = 0; x < 50; ++x) {
 			stopWatch.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
+				if (stopWatchNew.hasTimePassed()) {
+					stopWatchNew.resetTimer();
+					std::cout << "IT'S PASSED!" << std::endl;
+				}
 				stringBufferTwo["d"]["intents"] = x;
 				vector.push_back(stringBufferTwo.dump());
 				size += vector.back().size();
@@ -243,7 +337,7 @@ int32_t main() noexcept {
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 		vector.clear();
-		totalTime = 0;
+		totalTime = totalTime.zero();
 		size = 0;
 		WebSocketIdentifyDataThree dataTwo{};
 		
@@ -270,7 +364,7 @@ int32_t main() noexcept {
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 		vector.clear();
-		totalTime = 0;
+		totalTime = totalTime.zero();
 		size = 0;
 		
 
@@ -289,27 +383,8 @@ int32_t main() noexcept {
 		std::cout << vector.back() << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
-	} catch (...) {
-		try {
-			auto currentException = std::current_exception();
-			if (currentException) {
-				std::rethrow_exception(currentException);
-			}
-		} catch (const std::exception& e) {
-			std::stringstream theStream{};
-			std::source_location theLocation{};
-			theStream << "Error Report: \n"
-					  << "Caught At: " << theLocation.file_name() << " (" << std::to_string(theLocation.line()) << ":" << std::to_string(theLocation.column()) << ")"
-					  << "\nThe Error: \n"
-					  << e.what() << std::endl
-					  << std::endl;
-			auto theReturnString = theStream.str();
-			std::cout << theReturnString;
-			auto currentException = std::current_exception();
-			if (currentException) {
-				std::rethrow_exception(currentException);
-			}
-		}
+	} catch (std::exception&e) {
+		std::cout << e.what() << std::endl;
 	};
 
 	return 0;
