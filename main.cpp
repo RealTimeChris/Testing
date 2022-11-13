@@ -193,12 +193,15 @@ struct Simd256 {
 			std::cout << "CURRENT INDEX: " << x << std::endl;
 			std::cout << "CURRENT INPUT: " << std::bitset<8>(this->value.m256i_i8[x]) << std::endl;
 			if (x < 32) {
-				this_cast.m256i_i8[x] |= (this->value.m256i_i8[x + 1] << (amount % 8)) & 0xff;
+				this_cast.m256i_i8[x] |= (this->value.m256i_i8[x] << (amount % 8)) & 0xff;
 			}
 			
 			std::cout << "CURRENT OUTPUT: " << std::bitset<8>(this_cast.m256i_i8[x]) << std::endl;
 			std::cout << "CURRENT AMOUNT: " << amount % 8 << std::endl;
-			this_cast.m256i_i8[x] |= (this->value.m256i_i8[x] >> 7) & 0b00000001;
+			if (x > 0) {
+				this_cast.m256i_i8[x] |= (this->value.m256i_i8[x - 1] >> 7) & 0b00000001;
+			}
+			
 			std::cout << "CURRENT OUTPUT: " << std::bitset<8>(this_cast.m256i_i8[x]) << std::endl;
 			if (x < 32) {
 				std::cout << "FALSE OUTPUT: " << std::bitset<8>((this->value.m256i_i8[x + 1] >> 7) & 0b00000001) << std::endl;
