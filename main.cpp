@@ -288,25 +288,27 @@ struct Simd256StringScanner {
 			convertTo64BitUint(this->B[6], this->B[7]) };
 		this->B256.printBits("THE TESTING VALUES B256: ");
 		this->S = this->B256 & ~(this->B256 << 1);
-		this->B256.printBits("THE TESTING VALUES B256: ");
 		this->S.printBits("THE TESTING VALUES (S): ");
 		this->ES = this->E & this->S;
 		this->ES.printBits("THE TESTING VALUES (ES): ");
 		this->EC = collectCarries(this->ES, this->B256);
 		this->EC.printBits("THE TESTING VALUES (EC): ");
-		/*
+		this->ECE = this->EC & ~this->B256;
+		this->ECE.printBits("THE TESTING VALUES (ECE): ");
 		
-		this->ECE = this->EC & ~this->B64;
+		
 		this->OD1 = this->ECE & ~this->E;
+		this->OD1.printBits("THE TESTING VALUES (OD1): ");
 		this->OS = this->S & this->O;
-		this->OC = this->B64 + this->OS;
-		this->OCE = this->OC & ~this->B64;
+		this->OS.printBits("THE TESTING VALUES (OS): ");
+		this->OC = this->B256 + this->OS;
+		this->OC.printBits("THE TESTING VALUES (OC): ");
+		this->OCE = this->OC & ~this->B256;
+		this->OCE.printBits("THE TESTING VALUES (OCE): ");
 		this->OD2 = this->OCE & this->E;
+		this->OCE.printBits("THE TESTING VALUES (OD2): ");
 		this->OD = this->OD1 | this->OD2;
-		printValueAsString(Simd256StringScanner{ convertTo64BitUint(this->B[7], this->B[6]), convertTo64BitUint(this->B[5], this->B[4]), convertTo64BitUint(this->B[3], this->B[2]),
-							   convertTo64BitUint(this->B[1], this->B[0]) },
-			"THE VALUES 03");
-			*/
+		this->OD.printBits("THE TESTING VALUES (OD): ");
 	}
 
   protected:
