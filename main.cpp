@@ -293,29 +293,18 @@ struct Simd256StringScanner {
 
 		this->B256 = Simd256{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
 			convertTo64BitUint(this->B[6], this->B[7]) };
-		this->B256.printBits("THE TESTING VALUES B256: ");
 		this->S = this->B256 & ~(this->B256 << 1);
-		this->S.printBits("THE TESTING VALUES (S): ");
 		this->ES = this->E & this->S;
-		this->ES.printBits("THE TESTING VALUES (ES): ");
 		this->EC = collectCarries(this->ES, this->B256);
-		this->EC.printBits("THE TESTING VALUES (EC): ");
 		this->ECE = this->EC & ~this->B256;
-		this->ECE.printBits("THE TESTING VALUES (ECE): ");
 		
 		
 		this->OD1 = this->ECE & ~this->E;
-		this->OD1.printBits("THE TESTING VALUES (OD1): ");
 		this->OS = this->S & this->O;
-		this->OS.printBits("THE TESTING VALUES (OS): ");
 		this->OC = this->B256 + this->OS;
-		this->OC.printBits("THE TESTING VALUES (OC): ");
 		this->OCE = this->OC & ~this->B256;
-		this->OCE.printBits("THE TESTING VALUES (OCE): ");
 		this->OD2 = this->OCE & this->E;
-		this->OCE.printBits("THE TESTING VALUES (OD2): ");
 		this->OD = this->OD1 | this->OD2;
-		this->OD.printBits("THE TESTING VALUES (OD): ");
 
 		this->Q[0] = _mm256_cmpeq_epi8(this->quotes, this->values[0]);
 		this->Q[1] = _mm256_cmpeq_epi8(this->quotes, this->values[1]);
@@ -365,10 +354,10 @@ struct Simd256StringScanner {
 		this->S256 = { convertTo64BitUint(structural00, structural01), convertTo64BitUint(structural02, structural03), convertTo64BitUint(structural04, structural05),
 			convertTo64BitUint(structural06, structural07) };
 		
-		this->Q256.printBits("Q FINAL VALUES: ");
-		this->R256.printBits("R FINAL VALUES: ");
-		this->S256.printBits("S FINAL VALUES: ");
-		this->W256.printBits("W FINAL VALUES: ");
+		//this->Q256.printBits("Q FINAL VALUES: ");
+		//this->R256.printBits("R FINAL VALUES: ");
+		//this->S256.printBits("S FINAL VALUES: ");
+		//this->W256.printBits("W FINAL VALUES: ");
 	}
 
   protected:
@@ -411,9 +400,6 @@ class Simd64Base {
 	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
 		uint64_t returnValue{};
 		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue));
-		printValueAsString(inputA, "INPUTA");
-		printValueAsString(inputB, "INPUTB");
-		printValueAsString(returnValue, "RETURNVALUE64");
 		return returnValue;
 	}
 
@@ -470,10 +456,10 @@ class Simd64Base {
 		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
 		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
 		this->S64 = convertTo64BitUint(structural01, structural00);
-		printValueAsString(this->Q64, "Q FINAL VALUES: ");
-		printValueAsString(this->R64, "R FINAL VALUES: ");
-		printValueAsString(this->S64, "S FINAL VALUES: ");
-		printValueAsString(this->W64, "W FINAL VALUES: ");
+		//printValueAsString(this->Q64, "Q FINAL VALUES: ");
+		//printValueAsString(this->R64, "R FINAL VALUES: ");
+		//printValueAsString(this->S64, "S FINAL VALUES: ");
+		//printValueAsString(this->W64, "W FINAL VALUES: ");
 	}
 	operator std::string() {
 		return string;
