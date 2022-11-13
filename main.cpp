@@ -421,7 +421,7 @@ class Simd64StringScanner {
 
 	};
 
-	inline Simd64StringScanner(__m256i value01, __m256i value02) {
+	inline Simd64StringScanner(Simd256 value01, Simd256 value02) {
 		this->values[0] = value01;
 		this->values[1] = value02;
 	}
@@ -430,8 +430,8 @@ class Simd64StringScanner {
 		this->string = stringNewer;
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->quotes = _mm256_set1_epi8('"');
-		packStringIntoValue(&this->values[0] ,stringNewer.data());
-		packStringIntoValue(&this->values[1], stringNewer.data() + 32);
+		packStringIntoValue(&this->values[0].operator __m256i&(), stringNewer.data());
+		packStringIntoValue(&this->values[1].operator __m256i&(), stringNewer.data() + 32);
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1],this->backslashes);
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
@@ -468,15 +468,15 @@ class Simd64StringScanner {
 	}
 
   protected:
-	__m256i values[2]{};
+	Simd256 values[2]{};
 	std::string string{};
-	__m256i backslashes{};
-	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
+	Simd256 backslashes{};
+	Simd256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
 		112, 100, '\r', 100, 100) };
-	__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
-	__m256i quotes{};
-	__m256i B[2]{};
-	__m256i Q[2]{};
+	Simd256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
+	Simd256 quotes{};
+	Simd256 B[2]{};
+	Simd256 Q[2]{};
 	uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
 	uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
 	uint64_t B64{};
