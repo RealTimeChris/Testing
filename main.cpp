@@ -50,12 +50,10 @@ std::string reverseString(std::string inputString) {
 	return newString;
 }
 
-__m256i packStringIntoValue(const char* string) {
-	__m256i value{};
+void packStringIntoValue(__m256i*theValue, const char* string) {
 	for (size_t x = 0; x < 32; ++x) {
-		value.m256i_i8[x] = string[x];
+		theValue->m256i_i8[x] = string[x];
 	}
-	return value;
 }
 
 void printValueAsString(uint32_t inA, std::string values) {
@@ -89,34 +87,6 @@ void printBits(std::string valuesTitle,__m256i values) {
 	}
 	std::cout << std::endl;
 };
-
-template<typename RTy> void reverseByteOrder(RTy& net) {
-	if constexpr (std::endian::native == std::endian::little) {
-		switch (sizeof(RTy)) {
-			case 1: {
-				return;
-			}
-			case 2: {
-				__m256i value{ _mm256_set1_epi16(net) };
-				__m256i indexes{ _mm256_set_epi8(0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1) };
-				net = _mm256_extract_epi16(_mm256_shuffle_epi8(value, indexes), 0);
-				return;
-			}
-			case 4: {
-				__m256i value{ _mm256_set1_epi32(net) };
-				__m256i indexes{ _mm256_set_epi8(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3) };
-				net = _mm256_extract_epi32(_mm256_shuffle_epi8(value, indexes), 0);
-				return;
-			}
-			case 8: {
-				__m256i value{ _mm256_set1_epi64x(net) };
-				__m256i indexes{ _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7) };
-				net = _mm256_extract_epi64(_mm256_shuffle_epi8(value, indexes), 0);
-				return;
-			}
-		}
-	}
-}
 
 struct Simd256 {
 	__m256i value{};
@@ -269,18 +239,17 @@ struct Simd256StringScanner {
 		std::cout << std::endl;
 	};
 
-	inline Simd256StringScanner(std::string& valueNew) {
+	inline Simd256StringScanner(const std::string& valueNew) {
 		this->backslashes = '\\';
 		this->quotes = '"';
-		this->values[0] = packStringIntoValue(valueNew.data());
-		this->values[1] = packStringIntoValue(valueNew.data() + 32);
-		this->values[2] = packStringIntoValue(valueNew.data() + 64);
-		this->values[3] = packStringIntoValue(valueNew.data() + 96);
-		this->values[4] = packStringIntoValue(valueNew.data() + 128);
-		this->values[5] = packStringIntoValue(valueNew.data() + 160);
-		this->values[6] = packStringIntoValue(valueNew.data() + 192);
-		this->values[7] = packStringIntoValue(valueNew.data() + 224);
-
+		packStringIntoValue(&this->values[0].operator __m256i&(), valueNew.data());
+		packStringIntoValue(&this->values[1].operator __m256i&(), valueNew.data() + 32);
+		packStringIntoValue(&this->values[2].operator __m256i&(), valueNew.data() + 64);
+		packStringIntoValue(&this->values[3].operator __m256i&(), valueNew.data() + 96);
+		packStringIntoValue(&this->values[4].operator __m256i&(), valueNew.data() + 128);
+		packStringIntoValue(&this->values[5].operator __m256i&(), valueNew.data() + 160);
+		packStringIntoValue(&this->values[6].operator __m256i&(), valueNew.data() + 192);
+		packStringIntoValue(&this->values[7].operator __m256i&(), valueNew.data() + 224);
 		
 		this->B[0] = this->values[0] == this->backslashes;
 		this->B[1] = this->values[1] == this->backslashes;
@@ -428,8 +397,8 @@ class Simd64Base {
 		this->string = stringNewer;
 		this->backslashes = _mm256_set1_epi8('\\');
 		this->quotes = _mm256_set1_epi8('"');
-		this->values[0] = packStringIntoValue(stringNewer.data());
-		this->values[1] = packStringIntoValue(stringNewer.data() + 32);
+		packStringIntoValue(&this->values[0] ,stringNewer.data());
+		packStringIntoValue(&this->values[1], stringNewer.data() + 32);
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1],this->backslashes);
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
@@ -497,11 +466,28 @@ class Simd64Base {
 };
 
 int32_t main() noexcept {
-	std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	Simd64Base simd8Test{ string };
-	std::cout << "A VALUES:  (DIGITS) v64_u8: " << simd8Test.operator std::string() << std::endl;
-	Simd256StringScanner value{ string };
-	std::cout << "THE STRING: " << string << std::endl;
+	std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+	std::string string256{
+		"{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], "
+		"\"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , "
+		"234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
+	};
+	Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+	stopWatch.resetTimer();
+	size_t totalTime{};
+	for (size_t x = 0; x < 256 * 2047; ++x) {
+		Simd64Base simd8Test{ string64 };
+		totalTime += stopWatch.totalTimePassed();
+		stopWatch.resetTimer();
+	}
+	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT!" << std::endl;
+	stopWatch.resetTimer();
+	for (size_t x = 0; x < 256 * 2048 / 4; ++x) {
+		Simd256StringScanner value{ string256 };
+		totalTime += stopWatch.totalTimePassed();
+		stopWatch.resetTimer();
+	}
+	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT!" << std::endl;
 	
 	return 0;
 };
