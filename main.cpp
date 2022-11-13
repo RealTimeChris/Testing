@@ -149,191 +149,111 @@ WebSocketIdentifyData::operator Jsonifier::Jsonifier() {
 	serializer["op"] = 2;
 	return serializer;
 }
+template<typename OTy> class AtomicWrapper {
+  public:
 
-struct PackedValues {
-	PackedValues(char* string, size_t length) {
-		for (size_t x = 0; x < length; ++x) {
-			this->values.push_back(string + this->currentSize);
-			this->currentSize++;
-		}
+	AtomicWrapper& operator=(const AtomicWrapper& other) {
+		this->object.store(other.object.load());
+		return *this;
 	}
 
-	char getNextValue() {
-		if (this->currentIndex >= this->currentSize) {
-			return '0';
+	AtomicWrapper(const AtomicWrapper& other) {
+		*this = other;
+	}
+
+	AtomicWrapper& operator=(OTy objectNew) noexcept {
+		this->object.store(objectNew);
+		return *this;
+	};
+
+	AtomicWrapper(OTy objectNew) noexcept {
+		*this = objectNew;
+	};
+
+	operator OTy() {
+		return this->object.load();
+	}
+
+  protected:
+	std::atomic<OTy> object{};
+
+};
+
+class TSString {
+  public:
+	TSString& operator=(const TSString& other) {
+		this->string = other.string;
+		return *this;
+	}
+
+	TSString(const TSString& other) {
+		*this = other;
+	}
+
+	TSString& operator=(const std::string& newString) {
+		std::unique_lock lock{ this->accessMutex };
+		this->string.clear();
+		for (auto& value: newString) {
+			this->string.emplace_back(value);
 		}
-		auto returnValue = *this->values[this->currentIndex];
-		this->currentIndex++;
+		return *this;
+	}
+
+	TSString(const std::string& newString) {
+		*this = newString;
+	}
+
+	const size_t size() {
+		std::unique_lock lock{ this->accessMutex };
+		size_t currentSize{ this->string.size() };
+		return currentSize;
+	}
+
+	operator std::string() {
+		std::unique_lock lock{ this->accessMutex };
+		std::string returnValue{};
+		for (auto& value: this->string) {
+			returnValue.push_back(value.operator char());
+		}
 		return returnValue;
 	}
 
-	void resetIndex() {
-		this->currentIndex = 0;
-	}
-
-	uint8_t getNextIndex() {
-		auto currentIndexNew = this->currentIndex + 2;
-		this->currentIndex++;
-		return currentIndexNew;
-	}
-
-	void setNextValue(uint8_t value) {
-		if (this->currentIndex >= this->currentSize) {
-			return;
-		}
-		*this->values[this->currentIndex] = value;
-		this->currentIndex++;
-	}
-
   protected:
-	std::vector<char*> values{};
-	size_t currentIndex{};
-	size_t currentSize{};
-};
-
-void storeBits(PackedValues values, bool reverse) {
-	__m256i value{ _mm256_set_epi8(values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(),
-		values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(),
-		values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(),
-		values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(),
-		values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue(), values.getNextValue()) };
-	values.resetIndex();
-	__m256i indexes{ _mm256_set_epi8(values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(),
-		values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(),
-		values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(),
-		values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(),
-		values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex(), values.getNextIndex()) };
-	values.resetIndex();
-	__m256i result{ _mm256_shuffle_epi8(value, indexes) };
-	for (size_t x = 0; x < 32; ++x) {
-		values.setNextValue(result.m256i_i8[x]);
-	}
-}
-/*
-int32_t main() noexcept {
-	std::string testString{ "TEST STRING" };
-	PackedValues values{ testString.data(), testString.size() };
-	storeBits(values, false);
-	std::cout << testString << std::endl;
-
-}
-*/
-
-template<typename TimeType> class StopWatch {
-  public:
-	StopWatch() = delete;
-
-	using SysClock = std::chrono::system_clock;
-
-	StopWatch<TimeType>& operator=(const StopWatch<TimeType>& data) {
-		std::unique_lock lock{ this->accessMutex };
-		this->maxNumberOfMs = data.maxNumberOfMs;
-		this->startTime = data.startTime;
-		return *this;
-	}
-
-	StopWatch(const StopWatch<TimeType>& data) {
-		*this = data;
-	}
-
-	StopWatch<TimeType>& operator=(uint64_t maxNumberOfMsNew) {
-		std::unique_lock lock{ this->accessMutex };
-		this->maxNumberOfMs = TimeType{ maxNumberOfMsNew };
-		this->startTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
-		return *this;
-	}
-
-	StopWatch(uint64_t maxNumberOfMsNew) {
-		*this = maxNumberOfMsNew;
-	}
-
-	StopWatch<TimeType>& operator=(TimeType maxNumberOfMsNew) {
-		std::unique_lock lock{ this->accessMutex };
-		this->maxNumberOfMs = std::chrono::duration_cast<TimeType>(maxNumberOfMsNew);
-		this->startTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
-		return *this;
-	}
-	StopWatch(TimeType maxNumberOfMsNew) {
-
-		*this = maxNumberOfMsNew;
-	}
-
-	auto totalTimePassed() {
-		std::unique_lock lock{ this->accessMutex };
-		auto currentTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
-		auto elapsedTime = currentTime - this->startTime;
-		return elapsedTime;
-	}
-
-	auto getTotalWaitTime() {
-		std::unique_lock lock{ this->accessMutex };
-		return this->maxNumberOfMs;
-	}
-
-	bool hasTimePassed() {
-		std::unique_lock lock{ this->accessMutex };
-		auto currentTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
-		auto elapsedTime = currentTime - this->startTime;
-		if (elapsedTime.count() >= this->maxNumberOfMs.count()) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	void resetTimer() {
-		std::unique_lock lock{ this->accessMutex };
-		this->startTime = std::chrono::duration_cast<TimeType>(SysClock::now().time_since_epoch());
-	}
-
-  protected:
-	TimeType maxNumberOfMs{};
+	std::vector<AtomicWrapper<char>> string{};
 	std::mutex accessMutex{};
-	TimeType startTime{};
 };
-
-class DCAException : public std::exception, std::string {
-  public:
-	DCAException(const std::string, std::source_location = std::source_location::current()) noexcept;
-};
-
-DCAException::DCAException(std::string error, std::source_location location) noexcept  {
-	std::stringstream stream{};
-	stream << "Error Report: \n"
-		   << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column()) << ")"
-		   << "\nThe Error: \n"
-		   << error << std::endl
-		   << std::endl;
-	*static_cast<std::exception*>(this) = std::exception{ stream.str().c_str() };
-}
 
 int32_t main() noexcept {
 	try {
-
-		throw DCAException{ "THE ERROR IS" };
-		StopWatch<std::chrono::nanoseconds> stopWatchNew{ std::chrono::microseconds{ 10000000 } };
-		StopWatch<std::chrono::duration<double, std::micro>> stopWatch{ 1000000 };
-		std::vector<std::string> vector{};
-		std::chrono::duration<double, std::nano> totalTime{};
+		TSString currentFile{ "testing" };
+		;
+		{ std::source_location location = std::source_location::current();
+			currentFile = location.file_name();
+		}
+		std::cout << "CURRENT FILE: " << std::string{ currentFile } << std::endl;
+		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatchNew{ std::chrono::milliseconds{ 1000 } };
+		Jsonifier::StopWatch<std::chrono::milliseconds> stopWatch{ std::chrono::milliseconds{ 1000 } };
+		std::vector<TSString> vector{};
+		std::chrono::duration<unsigned long long, std::milli> totalTime{};
 		size_t size{};
 		WebSocketIdentifyDataTwo dataOne{};
 		nlohmann::json stringBufferTwo = dataOne;
-		stopWatch.resetTimer();
+		stopWatchNew.resetTimer();
 		
 		for (uint32_t x = 0; x < 50; ++x) {
-			stopWatch.resetTimer();
-			for (uint32_t x = 0; x < 1024 * 128; ++x) {
-				if (stopWatchNew.hasTimePassed()) {
-					stopWatchNew.resetTimer();
+			stopWatchNew.resetTimer();
+			for (uint32_t x = 0; x < 1024 *128; ++x) {
+				if (stopWatch.hasTimePassed()) {
+					stopWatch.resetTimer();
 					std::cout << "IT'S PASSED!" << std::endl;
 				}
 				stringBufferTwo["d"]["intents"] = x;
 				vector.push_back(stringBufferTwo.dump());
 				size += vector.back().size();
 			}
-			totalTime += stopWatch.totalTimePassed();
+			totalTime += stopWatchNew.totalTimePassed();
 		}
-		std::cout << vector.back() << std::endl;
+		std::cout << std::string{ vector.back() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 		vector.clear();
@@ -341,15 +261,15 @@ int32_t main() noexcept {
 		size = 0;
 		WebSocketIdentifyDataThree dataTwo{};
 		
-		stopWatch.resetTimer();
+		stopWatchNew.resetTimer();
 
 		WebSocketIdentifyData data{};
 		auto serializer = data.operator Jsonifier::Jsonifier();
-		stopWatch.resetTimer();
+		stopWatchNew.resetTimer();
 
 
 		for (uint32_t x = 0; x < 50; ++x) {
-			stopWatch.resetTimer();
+			stopWatchNew.resetTimer();
 
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				serializer["d"]["intents"] = x;
@@ -357,10 +277,10 @@ int32_t main() noexcept {
 				vector.push_back(serializer.operator std::string());
 				size += vector.back().size();
 			}
-			totalTime += stopWatch.totalTimePassed();
+			totalTime += stopWatchNew.totalTimePassed();
 		}
 		int32_t x{ 0 };
-		std::cout << vector.back() << std::endl;
+		std::cout << std::string{ vector.back() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 		vector.clear();
@@ -370,17 +290,17 @@ int32_t main() noexcept {
 
 		
 		for (uint32_t x = 0; x < 50; ++x) {			
-			stopWatch.resetTimer();
+			stopWatchNew.resetTimer();
 			for (uint32_t x = 0; x < 1024 * 128; ++x) {
 				dataTwo.intents = x;
 				rapidjson::StringBuffer stringBuffer = dataTwo;
-				vector.push_back(stringBuffer.GetString());
+				vector.push_back(std::string{ stringBuffer.GetString() });
 				size += vector.back().size();
 				
 			}
-			totalTime += stopWatch.totalTimePassed();
+			totalTime += stopWatchNew.totalTimePassed();
 		}
-		std::cout << vector.back() << std::endl;
+		std::cout << std::string{ vector.back() } << std::endl;
 		std::cout << "The time it took (In milliseconds, on average): " << totalTime / 50 << ", with a total number of bytes serialized: " << size << std::endl;
 
 	} catch (std::exception&e) {
