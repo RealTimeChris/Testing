@@ -129,7 +129,11 @@ struct Simd256 {
 		return returnValue;
 	}
 
-	inline Simd256(__m256i other) {
+	inline Simd256(__m256i&& other) {
+		this->value = other;
+	}
+
+	inline Simd256(__m256i& other) {
 		this->value = other;
 	}
 
@@ -141,45 +145,45 @@ struct Simd256 {
 		return this->value;
 	}
 
-	inline Simd256 operator | (const __m256i other) const {
+	inline Simd256 operator | (const __m256i& other) const {
 		return _mm256_or_si256(*this, other);
 	}
 
-	inline Simd256 operator&(const __m256i other) const {
+	inline Simd256 operator&(const __m256i& other) const {
 		return _mm256_and_si256(*this, other);
 	}
 
-	inline Simd256 operator^(const __m256i other) const {
+	inline Simd256 operator^(const __m256i& other) const {
 		return _mm256_xor_si256(*this, other);
 	}
 
-	inline Simd256 bit_andnot(const __m256i other) const {
+	inline Simd256 bit_andnot(const __m256i& other) const {
 		return _mm256_andnot_si256(other, *this);
 	}
 
-	inline Simd256 operator+(const __m256i other) const {
+	inline Simd256 operator+(const __m256i& other) const {
 		return _mm256_add_epi8(*this, other);
 	}
 
-	inline Simd256 operator|=(const __m256i other) {
+	inline Simd256 operator|=(const __m256i& other) {
 		auto this_cast = static_cast<Simd256*>(this);
 		*this_cast = *this_cast | other;
 		return *this_cast;
 	}
 
-	inline Simd256 operator&=(const __m256i other) {
+	inline Simd256 operator&=(const __m256i& other) {
 		auto this_cast = static_cast<Simd256*>(this);
 		*this_cast = *this_cast & other;
 		return *this_cast;
 	}
 
-	inline Simd256 operator^=(const __m256i other) {
+	inline Simd256 operator^=(const __m256i& other) {
 		auto this_cast = static_cast<Simd256*>(this);
 		*this_cast = *this_cast ^ other;
 		return *this_cast;
 	}
 
-	friend inline Simd256 operator==(const Simd256 lhs, const Simd256 rhs) {
+	friend inline Simd256 operator==(const Simd256& lhs, const Simd256& rhs) {
 		return _mm256_cmpeq_epi8(lhs, rhs);
 	}
 
@@ -475,19 +479,25 @@ int32_t main() noexcept {
 	Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	stopWatch.resetTimer();
 	size_t totalTime{};
-	for (size_t x = 0; x < 256 * 2047; ++x) {
-		Simd64Base simd8Test{ string64 };
-		totalTime += stopWatch.totalTimePassed();
-		stopWatch.resetTimer();
-	}
-	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT!" << std::endl;
-	stopWatch.resetTimer();
+	size_t totalSize{};
+	
 	for (size_t x = 0; x < 256 * 2048 / 4; ++x) {
 		Simd256StringScanner value{ string256 };
-		totalTime += stopWatch.totalTimePassed();
-		stopWatch.resetTimer();
+		totalSize += string256.size();
 	}
-	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT!" << std::endl;
+	totalTime += stopWatch.totalTimePassed();
+	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+	
+	stopWatch.resetTimer();
+	totalSize = 0;
+	totalTime = 0;
+	for (size_t x = 0; x < 256 * 2048; ++x) {
+		Simd64Base simd8Test{ string64 };
+		totalSize += string64.size();
+	}
+	totalTime += stopWatch.totalTimePassed();
+	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+	
 	
 	return 0;
 };
