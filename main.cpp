@@ -347,9 +347,24 @@ struct Simd256StringScanner {
 			convertTo64BitUint(whiteSpace00, whiteSpace01) };
 		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
 		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
+		auto valuesNew02 = _mm256_or_si256(this->values[2], _mm256_set1_epi8(0x20));
+		auto valuesNew03 = _mm256_or_si256(this->values[3], _mm256_set1_epi8(0x20));
+		auto valuesNew04 = _mm256_or_si256(this->values[4], _mm256_set1_epi8(0x20));
+		auto valuesNew05 = _mm256_or_si256(this->values[5], _mm256_set1_epi8(0x20));
+		auto valuesNew06 = _mm256_or_si256(this->values[6], _mm256_set1_epi8(0x20));
+		auto valuesNew07 = _mm256_or_si256(this->values[7], _mm256_set1_epi8(0x20));
 		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
 		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
-		this->S256 = convertTo64BitUint(structural01, structural00);
+		auto structural02 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[2]), valuesNew02);
+		auto structural03 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[3]), valuesNew03);
+		auto structural04 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[4]), valuesNew04);
+		auto structural05 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[5]), valuesNew05);
+		auto structural06 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[6]), valuesNew06);
+		auto structural07 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[7]), valuesNew07);
+
+		this->S256 = { convertTo64BitUint(structural00, structural01), convertTo64BitUint(structural02, structural03), convertTo64BitUint(structural04, structural05),
+			convertTo64BitUint(structural06, structural07) };
+		
 		this->Q256.printBits("Q FINAL VALUES: ");
 		this->R256.printBits("R FINAL VALUES: ");
 		this->S256.printBits("S FINAL VALUES: ");
