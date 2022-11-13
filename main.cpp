@@ -137,57 +137,50 @@ struct Simd256 {
 		this->value = other;
 	}
 
-	inline operator const __m256i&() const {
-		return this->value;
-	}
-
 	inline operator __m256i&() {
 		return this->value;
 	}
 
-	inline Simd256 operator | (const __m256i& other) const {
+	inline __m256i operator | (const __m256i& other) {
 		return _mm256_or_si256(*this, other);
 	}
 
-	inline Simd256 operator&(const __m256i& other) const {
+	inline __m256i operator&(const __m256i& other) {
 		return _mm256_and_si256(*this, other);
 	}
 
-	inline Simd256 operator^(const __m256i& other) const {
+	inline __m256i operator^(const __m256i& other) {
 		return _mm256_xor_si256(*this, other);
 	}
 
-	inline Simd256 bit_andnot(const __m256i& other) const {
+	inline __m256i bit_andnot(const __m256i& other) {
 		return _mm256_andnot_si256(other, *this);
 	}
 
-	inline Simd256 operator+(const __m256i& other) const {
+	inline __m256i operator+(const __m256i& other) {
 		return _mm256_add_epi8(*this, other);
 	}
 
-	inline Simd256 operator|=(const __m256i& other) {
-		auto this_cast = static_cast<Simd256*>(this);
-		*this_cast = *this_cast | other;
-		return *this_cast;
+	inline __m256i operator|=(const __m256i& other) {
+		*this = *this | other;
+		return *this;
 	}
 
-	inline Simd256 operator&=(const __m256i& other) {
-		auto this_cast = static_cast<Simd256*>(this);
-		*this_cast = *this_cast & other;
-		return *this_cast;
+	inline __m256i operator&=(const __m256i& other) {
+		*this = *this & other;
+		return *this;
 	}
 
-	inline Simd256 operator^=(const __m256i& other) {
-		auto this_cast = static_cast<Simd256*>(this);
-		*this_cast = *this_cast ^ other;
-		return *this_cast;
+	inline __m256i operator^=(const __m256i& other) {
+		*this = *this ^ other;
+		return *this;
 	}
 
-	friend inline Simd256 operator==(const Simd256& lhs, const Simd256& rhs) {
-		return _mm256_cmpeq_epi8(lhs, rhs);
+	inline __m256i operator==(Simd256& rhs) {
+		return _mm256_cmpeq_epi8(*this, rhs);
 	}
 
-	inline Simd256 operator<<(size_t amount) {
+	inline __m256i operator<<(size_t amount) {
 		__m256i this_cast{};
 		for (size_t x = 0; x < 32; ++x) {
 			this_cast.m256i_i8[x] |= this->value.m256i_i8[x] << (amount % 8);
@@ -198,7 +191,7 @@ struct Simd256 {
 		return this_cast;
 	}
 
-	inline Simd256 operator~() {
+	inline __m256i operator~() {
 		__m256i newValue{};
 		for (size_t x = 0; x < 32; ++x) {
 			newValue.m256i_i8[x] = ~this->value.m256i_i8[x];
@@ -266,7 +259,7 @@ struct Simd256StringScanner {
 
 		this->B256 = Simd256{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
 			convertTo64BitUint(this->B[6], this->B[7]) };
-		this->S = this->B256 & ~(this->B256 << 1);
+		this->S = this->B256 & ~Simd256{ (this->B256 << 1) };
 		this->ES = this->E & this->S;
 		this->EC = collectCarries(this->ES, this->B256);
 		this->ECE = this->EC & ~this->B256;
