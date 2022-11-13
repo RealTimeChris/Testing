@@ -75,21 +75,29 @@ void printBits(std::string valuesTitle,__m256i values) {
 	}
 	std::cout << std::endl;
 };
-template<typename OTy>
+
 struct Simd256 {
 	__m256i value{};
 
 	Simd256() noexcept = default;
-	template<typename OTy>
-	inline Simd256(OTy other) {
-		this->value = _mm256_set1_epi8(static_cast<char>(other));
+
+	inline Simd256(char other) {
+		this->value = _mm256_set1_epi8(other);
 	}
 
 	inline Simd256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
+		printValueAsString(value00, "THE VALUE 01: ");
+		printValueAsString(this->value, "THE VALUE 01: ");
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
+		printValueAsString(value01, "THE VALUE 02: ");
+		printValueAsString(this->value, "THE VALUE 02: ");
 		this->value = _mm256_insert_epi64(this->value, value02, 2);
+		printValueAsString(value02, "THE VALUE 03: ");
+		printValueAsString(this->value, "THE VALUE 03: ");
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
+		printValueAsString(value03, "THE VALUE 04: ");
+		printValueAsString(this->value, "THE VALUE 04: ");
 	}
 
 	operator std::vector<uint64_t>() {
@@ -109,7 +117,6 @@ struct Simd256 {
 		return returnValue;
 	}
 
-	template<>
 	inline Simd256(__m256i other) {
 		this->value = other;
 	}
@@ -122,39 +129,39 @@ struct Simd256 {
 		return this->value;
 	}
 
-	inline Simd256 operator | (const OTy other) const {
+	inline Simd256 operator | (const __m256i other) const {
 		return _mm256_or_si256(*this, other);
 	}
 
-	inline Simd256 operator&(const OTy other) const {
+	inline Simd256 operator&(const __m256i other) const {
 		return _mm256_and_si256(*this, other);
 	}
 
-	inline Simd256 operator^(const OTy other) const {
+	inline Simd256 operator^(const __m256i other) const {
 		return _mm256_xor_si256(*this, other);
 	}
 
-	inline Simd256 bit_andnot(const OTy other) const {
+	inline Simd256 bit_andnot(const __m256i other) const {
 		return _mm256_andnot_si256(other, *this);
 	}
 
-	inline Simd256 operator+(const OTy other) const {
+	inline Simd256 operator+(const __m256i other) const {
 		return _mm256_add_epi8(*this, other);
 	}
 
-	inline Simd256 operator|=(const OTy other) {
+	inline Simd256 operator|=(const __m256i other) {
 		auto this_cast = static_cast<Simd256*>(this);
 		*this_cast = *this_cast | other;
 		return *this_cast;
 	}
 
-	inline Simd256 operator&=(const OTy other) {
+	inline Simd256 operator&=(const __m256i other) {
 		auto this_cast = static_cast<Simd256*>(this);
 		*this_cast = *this_cast & other;
 		return *this_cast;
 	}
 
-	inline Simd256 operator^=(const OTy other) {
+	inline Simd256 operator^=(const __m256i other) {
 		auto this_cast = static_cast<Simd256*>(this);
 		*this_cast = *this_cast ^ other;
 		return *this_cast;
@@ -163,8 +170,15 @@ struct Simd256 {
 	inline Simd256 operator<<(size_t amount) {
 		__m256i this_cast{};
 		for (size_t x = 0; x < 32; ++x) {
-			this_cast.m256i_i8[x] |= this->value.m256i_i8[static_cast<int64_t>(x + floor(static_cast<float>(amount % 8))) - 1] << amount % 8 & 0xff;
-			this_cast.m256i_i8[x] |= this->value.m256i_i8[x] >> amount % 8 & 0b00000001;
+			std::cout << "CURRENT INPUT: " << std::bitset<8>(this->value.m256i_i8[x]) << std::endl;
+			this_cast.m256i_i8[x] |= (this->value.m256i_i8[x] << (amount % 8) - 1) & 0xff;
+			std::cout << "CURRENT OUTPUT: " << std::bitset<8>(this_cast.m256i_i8[x]) << std::endl;
+			if (x > 0) {
+				this_cast.m256i_i8[x + 1] |= (this->value.m256i_i8[x] >> 7 - 1) & 0b00000001;
+			}
+			std::cout << "CURRENT OUTPUT: " << std::bitset<8>(this_cast.m256i_i8[x]) << std::endl;
+			std::cout << "FALSE OUTPUT: " << std::bitset<8>((this->value.m256i_i8[x + 1] >> 7) & 0b00000001) << std::endl;
+			//this_cast.m256i_i8[x] |= this->value.m256i_i8[x + 1] << (1) & 0xff;
 		}
 		return this_cast;
 	}
@@ -251,16 +265,17 @@ struct Simd256Base {
 		printValueAsString(convertTo64BitUint(this->B[5], this->B[4]), "THE VALUES 02");
 		printValueAsString(convertTo64BitUint(this->B[7], this->B[6]), "THE VALUES 03");
 		*/
-		this->B256 = Simd256<__m256i>{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
+		this->B256 = Simd256{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
 			convertTo64BitUint(this->B[6], this->B[7]) };
-		this->B256.printBits("THE TESTING VALUES: ");
-		this->S = this->B256 & ~(this->B256 << 1);
 		this->B256.printBits("THE TESTING VALUES B256: ");
-		this->S.printBits("THE TESTING VALUES: ");
-		this->ES = this->S & this->E;
+		this->S = this->B256 & ~(this->B256 << 2);
+		this->B256.printBits("THE TESTING VALUES B256: ");
+		this->B256 = this->B256 << 2;
+		this->B256.printBits("THE TESTING VALUES B256: ");
+		this->S.printBits("THE TESTING VALUES (S): ");
+		this->ES = this->E & this->S;
 		this->ES.printBits("THE TESTING VALUES (ES): ");
-		this->EC = this->EC + this->ES;
-		this->EC.collectCarries(this->ES + this->B256);
+		this->EC = this->ES + this->B256;
 		this->EC.printBits("THE TESTING VALUES (EC): ");
 		/*
 		
@@ -278,37 +293,37 @@ struct Simd256Base {
 	}
 
   protected:
-	__m256i values[8]{};
+	Simd256 values[8]{};
 	std::string string{};
-	__m256i backslashes{};
-	__m256i quotes{};
-	__m256i B[8]{};
-	__m256i Q[8]{};
-	__m256i E{ _mm256_set1_epi8(0b01010101) };
-	__m256i O{ _mm256_set1_epi8(0b10101010) };
-	Simd256<__m256i> B256{};
-	Simd256<__m256i> ES{};
-	Simd256<__m256i> EC{};
-	Simd256<__m256i> S{};
-	__m256i OD1{};
-	__m256i OS1{};
-	__m256i OC{};
-	__m256i OCE{};
-	__m256i OS{};
-	__m256i ECE{};
-	__m256i OD2{};
-	__m256i OD{};
-	__m256i Q256{};
-	__m256i R256{};
-	__m256i S256{};
-	__m256i W256{};
+	Simd256 backslashes{};
+	Simd256 quotes{};
+	Simd256 B[8]{};
+	Simd256 Q[8]{};
+	Simd256 E{ _mm256_set1_epi8(0b01010101) };
+	Simd256 O{ _mm256_set1_epi8(0b10101010) };
+	Simd256 B256{};
+	Simd256 ES{};
+	Simd256 EC{};
+	Simd256 S{};
+	Simd256 OD1{};
+	Simd256 OS1{};
+	Simd256 OC{};
+	Simd256 OCE{};
+	Simd256 OS{};
+	Simd256 ECE{};
+	Simd256 OD2{};
+	Simd256 OD{};
+	Simd256 Q256{};
+	Simd256 R256{};
+	Simd256 S256{};
+	Simd256 W256{};
 };
 
 class Simd64Base {
   public:
 
 	inline operator uint64_t() {
-		return convertTo64BitUint(this->values[1].operator __m256i&(), this->values[0].operator __m256i&());
+		return convertTo64BitUint(this->values[1], this->values[0]);
 	}
 	
 	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
@@ -344,8 +359,8 @@ class Simd64Base {
 		this->quotes = _mm256_set1_epi8('"');
 		this->values[0] = packStringIntoValue(stringNewer.data());
 		this->values[1] = packStringIntoValue(stringNewer.data() + 32);
-		this->B[0] = _mm256_cmpeq_epi8(this->values[0].operator __m256i&(), this->backslashes);
-		this->B[1] = _mm256_cmpeq_epi8(this->values[1].operator __m256i&(), this->backslashes);
+		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
+		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
 		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
 		this->S = this->B64 & ~(this->B64 << 1);
 		this->ES = this->S & this->E;
@@ -357,18 +372,18 @@ class Simd64Base {
 		this->OCE = this->OC & ~this->B64;
 		this->OD2 = this->OCE & this->E;
 		this->OD = this->OD1 | this->OD2;
-		this->Q[0] = _mm256_cmpeq_epi8(this->quotes, this->values[0].operator __m256i&());
-		this->Q[1] = _mm256_cmpeq_epi8(this->quotes, this->values[1].operator __m256i&());
+		this->Q[0] = _mm256_cmpeq_epi8(this->quotes, this->values[0]);
+		this->Q[1] = _mm256_cmpeq_epi8(this->quotes, this->values[1]);
 		this->Q64 = convertTo64BitUint(this->Q[1], this->Q[0]);
 		this->R64 = this->Q64 & ~this->OD;
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0].operator __m256i&()), this->values[0].operator __m256i&());
-		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1].operator __m256i&()), this->values[1].operator __m256i&());
+		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
+		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
 		this->W64 = convertTo64BitUint(whiteSpace01, whiteSpace00);
-		auto valuesNew00 = _mm256_or_si256(this->values[0].operator __m256i&(), _mm256_set1_epi8(0x20));
-		auto valuesNew01 = _mm256_or_si256(this->values[1].operator __m256i&(), _mm256_set1_epi8(0x20));
-		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0].operator __m256i&()), valuesNew00);
-		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1].operator __m256i&()), valuesNew01);
+		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
+		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
+		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
+		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
 		this->S64 = convertTo64BitUint(structural01, structural00);
 		printValueAsString(this->Q64, "Q FINAL VALUES: ");
 		printValueAsString(this->R64, "R FINAL VALUES: ");
@@ -380,7 +395,7 @@ class Simd64Base {
 	}
 
   protected:
-	Simd256<__m256i> values[2]{};
+	__m256i values[2]{};
 	std::string string{};
 	__m256i backslashes{};
 	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
