@@ -100,38 +100,31 @@ struct Simd256 {
 
 	Simd256() noexcept = default;
 
-	inline Simd256(char other) {
+	inline Simd256& operator=(char other) {
 		this->value = _mm256_set1_epi8(other);
+		return *this;
+	}
+
+	inline Simd256(char other) {
+		*this = other;
 	}
 
 	inline Simd256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
-		printValueAsString(value00, "THE VALUE 01: ");
-		printValueAsString(this->value, "THE VALUE 01: ");
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
-		printValueAsString(value01, "THE VALUE 02: ");
-		printValueAsString(this->value, "THE VALUE 02: ");
 		this->value = _mm256_insert_epi64(this->value, value02, 2);
-		printValueAsString(value02, "THE VALUE 03: ");
-		printValueAsString(this->value, "THE VALUE 03: ");
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
-		printValueAsString(value03, "THE VALUE 04: ");
-		printValueAsString(this->value, "THE VALUE 04: ");
 	}
 
 	operator std::vector<uint64_t>() {
 		std::vector<uint64_t> returnValue{};
 		uint64_t returnValue6401 = _mm256_extract_epi64(this->value, 0);
-		printValueAsString(returnValue6401, "THE 64 BIT VALUES: ");
 		returnValue.push_back(returnValue6401);
 		uint64_t returnValue6402 = _mm256_extract_epi64(this->value, 1);
-		printValueAsString(returnValue6402, "THE 64 BIT VALUES: ");
 		returnValue.push_back(returnValue6402);
 		uint64_t returnValue6403 = _mm256_extract_epi64(this->value, 2);
-		printValueAsString(returnValue6403, "THE 64 BIT VALUES: ");
 		returnValue.push_back(returnValue6403);
 		uint64_t returnValue6404 = _mm256_extract_epi64(this->value, 3);
-		printValueAsString(returnValue6404, "THE 64 BIT VALUES: ");
 		returnValue.push_back(returnValue6404);
 		return returnValue;
 	}
@@ -186,6 +179,10 @@ struct Simd256 {
 		return *this_cast;
 	}
 
+	friend inline Simd256 operator==(const Simd256 lhs, const Simd256 rhs) {
+		return _mm256_cmpeq_epi8(lhs, rhs);
+	}
+
 	inline Simd256 operator<<(size_t amount) {
 		__m256i this_cast{};
 		for (size_t x = 0; x < 32; ++x) {
@@ -228,9 +225,9 @@ struct Simd256 {
 	}
 };
 
-struct Simd256Base {
+struct Simd256StringScanner {
 
-	inline Simd256Base(){};
+	inline Simd256StringScanner(){};
 
 	void printBits(std::string valuesTitle) {
 		std::cout << valuesTitle;
@@ -242,11 +239,9 @@ struct Simd256Base {
 		std::cout << std::endl;
 	};
 
-	inline Simd256Base(const __m256i _value){};
-
-	inline Simd256Base(std::string& valueNew) {
-		this->backslashes = _mm256_set1_epi8('\\');
-		this->quotes = _mm256_set1_epi8('"');
+	inline Simd256StringScanner(std::string& valueNew) {
+		this->backslashes = '\\';
+		this->quotes = '"';
 		this->values[0] = packStringIntoValue(valueNew.data());
 		this->values[1] = packStringIntoValue(valueNew.data() + 32);
 		this->values[2] = packStringIntoValue(valueNew.data() + 64);
@@ -257,28 +252,15 @@ struct Simd256Base {
 		this->values[7] = packStringIntoValue(valueNew.data() + 224);
 
 		
-		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
-		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
-		this->B[2] = _mm256_cmpeq_epi8(this->values[2], this->backslashes);
-		this->B[3] = _mm256_cmpeq_epi8(this->values[3], this->backslashes);
-		this->B[4] = _mm256_cmpeq_epi8(this->values[4], this->backslashes);
-		this->B[5] = _mm256_cmpeq_epi8(this->values[5], this->backslashes);
-		this->B[6] = _mm256_cmpeq_epi8(this->values[6], this->backslashes);
-		this->B[7] = _mm256_cmpeq_epi8(this->values[7], this->backslashes);
-		/*
-		printValueAsString(this->B[0], "THE VALUES 00");
-		printValueAsString(this->B[1], "THE VALUES 01");
-		printValueAsString(this->B[2], "THE VALUES 02");
-		printValueAsString(this->B[3], "THE VALUES 03");
-		printValueAsString(this->B[4], "THE VALUES 04");
-		printValueAsString(this->B[5], "THE VALUES 05");
-		printValueAsString(this->B[6], "THE VALUES 06");
-		printValueAsString(this->B[7], "THE VALUES 07");
-		printValueAsString(convertTo64BitUint(this->B[1], this->B[0]), "THE VALUES 00");
-		printValueAsString(convertTo64BitUint(this->B[3], this->B[2]), "THE VALUES 01");
-		printValueAsString(convertTo64BitUint(this->B[5], this->B[4]), "THE VALUES 02");
-		printValueAsString(convertTo64BitUint(this->B[7], this->B[6]), "THE VALUES 03");
-		*/
+		this->B[0] = this->values[0] == this->backslashes;
+		this->B[1] = this->values[1] == this->backslashes;
+		this->B[2] = this->values[2] == this->backslashes;
+		this->B[3] = this->values[3] == this->backslashes;
+		this->B[4] = this->values[4] == this->backslashes;
+		this->B[5] = this->values[5] == this->backslashes;
+		this->B[6] = this->values[6] == this->backslashes;
+		this->B[7] = this->values[7] == this->backslashes;
+
 		this->B256 = Simd256{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
 			convertTo64BitUint(this->B[6], this->B[7]) };
 		this->B256.printBits("THE TESTING VALUES B256: ");
@@ -289,7 +271,7 @@ struct Simd256Base {
 		this->S.printBits("THE TESTING VALUES (S): ");
 		this->ES = this->E & this->S;
 		this->ES.printBits("THE TESTING VALUES (ES): ");
-		this->EC = this->ES + this->B256;
+		this->EC = this->B256.collectCarries(this->ES);
 		this->EC.printBits("THE TESTING VALUES (EC): ");
 		/*
 		
@@ -300,7 +282,7 @@ struct Simd256Base {
 		this->OCE = this->OC & ~this->B64;
 		this->OD2 = this->OCE & this->E;
 		this->OD = this->OD1 | this->OD2;
-		printValueAsString(Simd256Base{ convertTo64BitUint(this->B[7], this->B[6]), convertTo64BitUint(this->B[5], this->B[4]), convertTo64BitUint(this->B[3], this->B[2]),
+		printValueAsString(Simd256StringScanner{ convertTo64BitUint(this->B[7], this->B[6]), convertTo64BitUint(this->B[5], this->B[4]), convertTo64BitUint(this->B[3], this->B[2]),
 							   convertTo64BitUint(this->B[1], this->B[0]) },
 			"THE VALUES 03");
 			*/
@@ -309,28 +291,28 @@ struct Simd256Base {
   protected:
 	Simd256 values[8]{};
 	std::string string{};
-	__m256i backslashes{};
-	__m256i quotes{};
-	__m256i B[8]{};
-	__m256i Q[8]{};
+	Simd256 backslashes{};
+	Simd256 quotes{};
+	Simd256 B[8]{};
+	Simd256 Q[8]{};
 	Simd256 E{ _mm256_set1_epi8(0b01010101) };
 	Simd256 O{ _mm256_set1_epi8(0b10101010) };
 	Simd256 B256{};
 	Simd256 ES{};
 	Simd256 EC{};
 	Simd256 S{};
-	__m256i OD1{};
-	__m256i OS1{};
-	__m256i OC{};
-	__m256i OCE{};
-	__m256i OS{};
-	__m256i ECE{};
-	__m256i OD2{};
-	__m256i OD{};
-	__m256i Q256{};
-	__m256i R256{};
-	__m256i S256{};
-	__m256i W256{};
+	Simd256 OD1{};
+	Simd256 OS1{};
+	Simd256 OC{};
+	Simd256 OCE{};
+	Simd256 OS{};
+	Simd256 ECE{};
+	Simd256 OD2{};
+	Simd256 OD{};
+	Simd256 Q256{};
+	Simd256 R256{};
+	Simd256 S256{};
+	Simd256 W256{};
 };
 
 class Simd64Base {
@@ -443,7 +425,7 @@ int32_t main() noexcept {
 	std::string string{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	Simd64Base simd8Test{ string };
 	std::cout << "A VALUES:  (DIGITS) v64_u8: " << simd8Test.operator std::string() << std::endl;
-	Simd256Base value{ string };
+	Simd256StringScanner value{ string };
 	std::cout << "THE STRING: " << string << std::endl;
 	
 	return 0;
