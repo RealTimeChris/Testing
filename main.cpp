@@ -230,166 +230,88 @@ struct Simd256StringScanner {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->B256.operator __m256i&().m256i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->B64) >> y };
 			}
 		}
 		std::cout << std::endl;
 	};
 
 	inline Simd256StringScanner(const std::string& valueNew, bool isItFirst) {
-		this->backslashes = '\\';
-		this->quotes = '"';
-		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
-		stopWatch.resetTimer();
-		packStringIntoValue(&this->values[0], valueNew.data());
-		packStringIntoValue(&this->values[1], valueNew.data() + 32);
-		packStringIntoValue(&this->values[2], valueNew.data() + 64);
-		packStringIntoValue(&this->values[3], valueNew.data() + 96);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0101" << std::endl;
-		}
-		stopWatch.resetTimer();
+		this->string = valueNew;
+		this->backslashes = _mm256_set1_epi8('\\');
+		this->quotes = _mm256_set1_epi8('"');
+		packStringIntoValue(&this->values[0].operator __m256i&(), valueNew.data());
+		packStringIntoValue(&this->values[1].operator __m256i&(), valueNew.data() + 32);
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
-		this->B[2] = _mm256_cmpeq_epi8(this->values[2], this->backslashes);
-		this->B[3] = _mm256_cmpeq_epi8(this->values[3], this->backslashes);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0202" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->B256 = Simd256{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
-			convertTo64BitUint(this->B[6], this->B[7]) };
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0303" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->S = this->B256 & ~Simd256{ (this->B256 << 1) };
-		this->ES = this->E & this->S;
-		this->EC = collectCarries(this->ES, this->B256);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0404" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->ECE = this->EC & ~this->B256;
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0505" << std::endl;
-		}
-		stopWatch.resetTimer();
-		
+		this->B64 = convertTo64BitUint(this->B[1], this->B[0]);
+		this->S = this->B64 & ~(this->B64 << 1);
+		this->ES = this->S & this->E;
+		this->EC = collectCarries(this->ES, this->B64);
+		this->ECE = this->EC & ~this->B64;
 		this->OD1 = this->ECE & ~this->E;
 		this->OS = this->S & this->O;
-		this->OC = this->B256 + this->OS;
-		this->OCE = this->OC & ~this->B256;
+		this->OC = this->B64 + this->OS;
+		this->OCE = this->OC & ~this->B64;
 		this->OD2 = this->OCE & this->E;
 		this->OD = this->OD1 | this->OD2;
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0404" << std::endl;
-		}
-		stopWatch.resetTimer();
 		this->Q[0] = _mm256_cmpeq_epi8(this->quotes, this->values[0]);
 		this->Q[1] = _mm256_cmpeq_epi8(this->quotes, this->values[1]);
-		this->Q[2] = _mm256_cmpeq_epi8(this->quotes, this->values[2]);
-		this->Q[3] = _mm256_cmpeq_epi8(this->quotes, this->values[3]);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0505" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->Q256[0] = convertTo64BitUint(this->Q[1], this->Q[0]);
-		this->Q256[1] = convertTo64BitUint(this->Q[2], this->Q[3]);
-		this->Q256[2] = convertTo64BitUint(this->Q[4], this->Q[5]);
-		this->Q256[3] = convertTo64BitUint(this->Q[6], this->Q[7]);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0606" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->R256[0] = this->Q256[0] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[0];
-		this->R256[1] = this->Q256[1] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[1];
-		this->R256[2] = this->Q256[2] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[2];
-		this->R256[3] = this->Q256[2] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[3];
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0707" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->R256[0] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[3]), _mm_set1_epi8('\xFF'), 0));
-		this->R256[1] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[2]), _mm_set1_epi8('\xFF'), 0));
-		this->R256[2] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[1]), _mm_set1_epi8('\xFF'), 0));
-		this->R256[3] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[0]), _mm_set1_epi8('\xFF'), 0));
-		if (isItFirst) {
-		std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0808" << std::endl;
-		}
-		stopWatch.resetTimer();
+		this->Q64 = convertTo64BitUint(this->Q[1], this->Q[0]);
+		this->R64 = this->Q64 & ~this->OD;
+		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
 		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
 		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
-		auto whiteSpace02 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[2]), this->values[2]);
-		auto whiteSpace03 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[3]), this->values[3]);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0909" << std::endl;
-		}
-		stopWatch.resetTimer();
-		this->W256[2] = convertTo64BitUint(whiteSpace02, whiteSpace03);
-		this->W256[1] = convertTo64BitUint(whiteSpace00, whiteSpace01);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 101010" << std::endl;
-		}
-		stopWatch.resetTimer();
+		this->W64 = convertTo64BitUint(whiteSpace01, whiteSpace00);
 		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
 		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
-		auto valuesNew02 = _mm256_or_si256(this->values[2], _mm256_set1_epi8(0x20));
-		auto valuesNew03 = _mm256_or_si256(this->values[3], _mm256_set1_epi8(0x20));
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 11111" << std::endl;
-		}
-		stopWatch.resetTimer();
 		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
 		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
-		auto structural02 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[2]), valuesNew02);
-		auto structural03 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[3]), valuesNew03);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 121212" << std::endl;
-		}
-		stopWatch.resetTimer();
+		this->S64 = convertTo64BitUint(structural01, structural00);
+		//printValueAsString(this->Q64, "Q FINAL VALUES: ");
+		//printValueAsString(this->R64, "R FINAL VALUES: ");
+		//printValueAsString(this->S64, "S FINAL VALUES: ");
+		//printValueAsString(this->W64, "W FINAL VALUES: ");
+	}
 
-		this->S256[0] = convertTo64BitUint(structural00, structural01);
-		this->S256[1] = convertTo64BitUint(structural02, structural03);
-		if (isItFirst) {
-			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 131313" << std::endl;
-		}
-		stopWatch.resetTimer();
-		
-		//this->Q256.printBits("Q FINAL VALUES: ");
-		//this->R256.printBits("R FINAL VALUES: ");
-		//this->S256.printBits("S FINAL VALUES: ");
-		//this->W256.printBits("W FINAL VALUES: ");
+	operator std::string() {
+		return string;
+	}
+
+	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
+		uint64_t returnValue{};
+		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue));
+		return returnValue;
 	}
 
   protected:
-	__m256i values[4]{};
+	Simd256 values[2]{};
 	std::string string{};
 	Simd256 backslashes{};
-	uint64_t Q256[4]{};
-	uint64_t R256[4]{};
-	uint64_t W256[4]{};
-	Simd256 quotes{};
-	Simd256 B[8]{};
-	Simd256 Q[8]{};
-	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
+	Simd256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
 		112, 100, '\r', 100, 100) };
-	__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
-	Simd256 E{ _mm256_set1_epi8(0b01010101) };
-	Simd256 O{ _mm256_set1_epi8(0b10101010) };
-	Simd256 B256{};
-	Simd256 ES{};
-	Simd256 EC{};
-	Simd256 S{};
-	Simd256 OD1{};
-	Simd256 OS1{};
-	Simd256 OC{};
-	Simd256 OCE{};
-	Simd256 OS{};
-	Simd256 ECE{};
-	Simd256 OD2{};
-	Simd256 OD{};
-	uint64_t S256[4]{};
+	Simd256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
+	Simd256 quotes{};
+	Simd256 B[2]{};
+	Simd256 Q[2]{};
+	uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
+	uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
+	uint64_t B64{};
+	uint64_t ES{};
+	uint64_t EC{};
+	uint64_t S{};
+	uint64_t OD1{};
+	uint64_t OS1{};
+	uint64_t OC{};
+	uint64_t OCE{};
+	uint64_t OS{};
+	uint64_t ECE{};
+	uint64_t OD2{};
+	uint64_t OD{};
+	uint64_t Q64{};
+	uint64_t R64{};
+	uint64_t S64{};
+	uint64_t W64{};
 };
 
 class Simd64StringScanner {
@@ -510,14 +432,14 @@ int32_t main() noexcept {
 	size_t totalTime{};
 	size_t totalSize{};
 	
-	for (size_t x = 0; x < 256 * 2048 / 4; ++x) {
+	for (size_t x = 0; x < 256 * 2048; ++x) {
 		if (x == 0) {
-			Simd256StringScanner value{ string256, true };
+			Simd256StringScanner value{ string64, true };
 		} else {
-			Simd256StringScanner value{ string256, false };
+			Simd256StringScanner value{ string64, false };
 		}
 		
-		totalSize += string256.size();
+		totalSize += string64.size();
 	}
 	
 	totalTime += stopWatch.totalTimePassed();
