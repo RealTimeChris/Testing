@@ -73,11 +73,6 @@ void printValueAsString(uint32_t inA, std::string values) {
 		v[6], v[5], v[4], v[3], v[2], v[1], v[0]);
 }
 
-
-uint32_t convertTo32BitUint(__m256i inputA) {
-	return static_cast<uint32_t>(_mm256_movemask_epi8(inputA));
-}
-
 uint64_t convertTo64BitUint(__m256i inputA, __m256i inputB) {
 	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
 	uint64_t r_hi = _mm256_movemask_epi8(inputB);
@@ -95,6 +90,34 @@ void printBits(std::string valuesTitle,__m256i values) {
 	std::cout << std::endl;
 };
 
+template<typename RTy> void reverseByteOrder(RTy& net) {
+	if constexpr (std::endian::native == std::endian::little) {
+		switch (sizeof(RTy)) {
+			case 1: {
+				return;
+			}
+			case 2: {
+				__m256i value{ _mm256_set1_epi16(net) };
+				__m256i indexes{ _mm256_set_epi8(0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1) };
+				net = _mm256_extract_epi16(_mm256_shuffle_epi8(value, indexes), 0);
+				return;
+			}
+			case 4: {
+				__m256i value{ _mm256_set1_epi32(net) };
+				__m256i indexes{ _mm256_set_epi8(0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3) };
+				net = _mm256_extract_epi32(_mm256_shuffle_epi8(value, indexes), 0);
+				return;
+			}
+			case 8: {
+				__m256i value{ _mm256_set1_epi64x(net) };
+				__m256i indexes{ _mm256_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7) };
+				net = _mm256_extract_epi64(_mm256_shuffle_epi8(value, indexes), 0);
+				return;
+			}
+		}
+	}
+}
+
 struct Simd256 {
 	__m256i value{};
 
@@ -111,21 +134,34 @@ struct Simd256 {
 
 	inline Simd256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
+		this->printBits("THE 64 BIT VALUES: 01REAL ");
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
+		this->printBits("THE 64 BIT VALUES: 02REAL ");
 		this->value = _mm256_insert_epi64(this->value, value02, 2);
+		this->printBits("THE 64 BIT VALUES: 03REAL ");
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
+		this->printBits("THE 64 BIT VALUES: 04REAL ");
 	}
 
 	operator std::vector<uint64_t>() {
 		std::vector<uint64_t> returnValue{};
-		uint64_t returnValue6401 = _mm256_extract_epi64(this->value, 0);
-		returnValue.push_back(returnValue6401);
-		uint64_t returnValue6402 = _mm256_extract_epi64(this->value, 1);
-		returnValue.push_back(returnValue6402);
-		uint64_t returnValue6403 = _mm256_extract_epi64(this->value, 2);
+		printValueAsString(this->operator __m256i&(), "THE REAL VALUES: ");
+		uint64_t returnValue6400 = _mm256_extract_epi64(this->value, 0);
+		printValueAsString(returnValue6400, "THE 64 BIT VALUES: 01 ");
+		this->printBits("THE 64 BIT VALUES: 01REAL ");
+		uint64_t returnValue6401 = _mm256_extract_epi64(this->value, 1);
+		printValueAsString(returnValue6401, "THE 64 BIT VALUES: 02 ");
+		this->printBits("THE 64 BIT VALUES: 02REAL ");
+		uint64_t returnValue6402 = _mm256_extract_epi64(this->value, 2);
+		printValueAsString(returnValue6402, "THE 64 BIT VALUES: 03 ");		
+		this->printBits("THE 64 BIT VALUES: 03REAL ");
+		uint64_t returnValue6403 = _mm256_extract_epi64(this->value, 3);
+		printValueAsString(returnValue6403, "THE 64 BIT VALUES: 04 ");
+		this->printBits("THE 64 BIT VALUES: 04REAL ");
 		returnValue.push_back(returnValue6403);
-		uint64_t returnValue6404 = _mm256_extract_epi64(this->value, 3);
-		returnValue.push_back(returnValue6404);
+		returnValue.push_back(returnValue6402);
+		returnValue.push_back(returnValue6401);
+		returnValue.push_back(returnValue6400);
 		return returnValue;
 	}
 
@@ -213,14 +249,14 @@ struct Simd256 {
 	};
 
 	Simd256 collectCarries(Simd256 inputA) {
-		auto value01 = this->operator std::vector<uint64_t>();
-		auto value02 = inputA.operator std::vector<uint64_t>();
-		uint64_t returnValue64{};
-		for (size_t x = 0; x < 4; ++x) {
-			_addcarry_u64(0, value02[x], value01[x], reinterpret_cast<unsigned __int64*>(&returnValue64)); 
+		auto value02 = this->operator std::vector<uint64_t>();
+		auto value01 = inputA.operator std::vector<uint64_t>();
+		for (size_t x = 4; x > 0; --x) {
+			uint64_t returnValue64{};
+			_addcarry_u64(0, value01[x], value02[x], reinterpret_cast<unsigned __int64*>(&returnValue64));
 			value01[x] = returnValue64;
-			printValueAsString(value01[x], "THE 64 BIT VALUES: ");
 		}
+		std::cout << "WERE HERE THIS IS NOT IT!" << std::endl;
 		return { value01[0], value01[1], value01[2], value01[3] };
 	}
 };
@@ -271,7 +307,7 @@ struct Simd256StringScanner {
 		this->S.printBits("THE TESTING VALUES (S): ");
 		this->ES = this->E & this->S;
 		this->ES.printBits("THE TESTING VALUES (ES): ");
-		this->EC = this->B256.collectCarries(this->ES);
+		this->EC = this->ES.collectCarries(this->B256);
 		this->EC.printBits("THE TESTING VALUES (EC): ");
 		/*
 		
