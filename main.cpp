@@ -71,7 +71,7 @@ void printValueAsString(uint32_t inA, std::string values) {
 		v[6], v[5], v[4], v[3], v[2], v[1], v[0]);
 }
 
-uint64_t convertTo64BitUint(__m256i inputA, __m256i inputB) {
+uint64_t convertTo64BitUint(const __m256i& inputA, const __m256i& inputB) {
 	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
 	uint64_t r_hi = _mm256_movemask_epi8(inputB);
 	return r_lo | (r_hi << 32);
@@ -116,7 +116,7 @@ struct Simd256 {
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
 	}
 
-	operator std::vector<uint64_t>() {
+	operator std::vector<uint64_t>() const  {
 		std::vector<uint64_t> returnValue{};
 		uint64_t returnValue6400 = _mm256_extract_epi64(this->value, 0) ;
 		uint64_t returnValue6401 = _mm256_extract_epi64(this->value, 1) ;
@@ -211,7 +211,7 @@ struct Simd256 {
 
 };
 
-Simd256 collectCarries(Simd256 inputA, Simd256 inputB) {
+Simd256 collectCarries(const Simd256& inputA,const Simd256& inputB) {
 	auto value01 = inputB.operator std::vector<uint64_t>();
 	auto value02 = inputA.operator std::vector<uint64_t>();
 	for (size_t x = 0; x < 4; ++x) {
@@ -236,9 +236,11 @@ struct Simd256StringScanner {
 		std::cout << std::endl;
 	};
 
-	inline Simd256StringScanner(const std::string& valueNew) {
+	inline Simd256StringScanner(const std::string& valueNew, bool isItFirst) {
 		this->backslashes = '\\';
 		this->quotes = '"';
+		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+		stopWatch.resetTimer();
 		packStringIntoValue(&this->values[0].operator __m256i&(), valueNew.data());
 		packStringIntoValue(&this->values[1].operator __m256i&(), valueNew.data() + 32);
 		packStringIntoValue(&this->values[2].operator __m256i&(), valueNew.data() + 64);
@@ -247,7 +249,10 @@ struct Simd256StringScanner {
 		packStringIntoValue(&this->values[5].operator __m256i&(), valueNew.data() + 160);
 		packStringIntoValue(&this->values[6].operator __m256i&(), valueNew.data() + 192);
 		packStringIntoValue(&this->values[7].operator __m256i&(), valueNew.data() + 224);
-		
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0101" << std::endl;
+		}
+		stopWatch.resetTimer();
 		this->B[0] = this->values[0] == this->backslashes;
 		this->B[1] = this->values[1] == this->backslashes;
 		this->B[2] = this->values[2] == this->backslashes;
@@ -256,14 +261,28 @@ struct Simd256StringScanner {
 		this->B[5] = this->values[5] == this->backslashes;
 		this->B[6] = this->values[6] == this->backslashes;
 		this->B[7] = this->values[7] == this->backslashes;
-
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0202" << std::endl;
+		}
+		stopWatch.resetTimer();
 		this->B256 = Simd256{ convertTo64BitUint(this->B[0], this->B[1]), convertTo64BitUint(this->B[2], this->B[3]), convertTo64BitUint(this->B[4], this->B[5]),
 			convertTo64BitUint(this->B[6], this->B[7]) };
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0303" << std::endl;
+		}
+		stopWatch.resetTimer();
 		this->S = this->B256 & ~Simd256{ (this->B256 << 1) };
 		this->ES = this->E & this->S;
 		this->EC = collectCarries(this->ES, this->B256);
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0404" << std::endl;
+		}
+		stopWatch.resetTimer();
 		this->ECE = this->EC & ~this->B256;
-		
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0505" << std::endl;
+		}
+		stopWatch.resetTimer();
 		
 		this->OD1 = this->ECE & ~this->E;
 		this->OS = this->S & this->O;
@@ -271,7 +290,10 @@ struct Simd256StringScanner {
 		this->OCE = this->OC & ~this->B256;
 		this->OD2 = this->OCE & this->E;
 		this->OD = this->OD1 | this->OD2;
-
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0404" << std::endl;
+		}
+		stopWatch.resetTimer();
 		this->Q[0] = _mm256_cmpeq_epi8(this->quotes, this->values[0]);
 		this->Q[1] = _mm256_cmpeq_epi8(this->quotes, this->values[1]);
 		this->Q[2] = _mm256_cmpeq_epi8(this->quotes, this->values[2]);
@@ -280,15 +302,34 @@ struct Simd256StringScanner {
 		this->Q[5] = _mm256_cmpeq_epi8(this->quotes, this->values[5]);
 		this->Q[6] = _mm256_cmpeq_epi8(this->quotes, this->values[6]);
 		this->Q[7] = _mm256_cmpeq_epi8(this->quotes, this->values[7]);
-
-		this->Q256 = { convertTo64BitUint(this->Q[1], this->Q[0]), convertTo64BitUint(this->Q[2], this->Q[3]), convertTo64BitUint(this->Q[4], this->Q[5]),
-			convertTo64BitUint(this->Q[6], this->Q[7]) };
-		this->R256 = this->Q256 & ~this->OD;
-		this->R256 = { _mm_cvtsi128_si64(
-						   _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256.operator std::vector<size_t, std::allocator<size_t>>()[3]), _mm_set1_epi8('\xFF'), 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256.operator std::vector<size_t, std::allocator<size_t>>()[2]), _mm_set1_epi8('\xFF'), 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256.operator std::vector<size_t, std::allocator<size_t>>()[1]), _mm_set1_epi8('\xFF'), 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256.operator std::vector<size_t, std::allocator<size_t>>()[0]), _mm_set1_epi8('\xFF'), 0)) };
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0505" << std::endl;
+		}
+		stopWatch.resetTimer();
+		this->Q256[0] = convertTo64BitUint(this->Q[1], this->Q[0]);
+		this->Q256[1] = convertTo64BitUint(this->Q[2], this->Q[3]);
+		this->Q256[2] = convertTo64BitUint(this->Q[4], this->Q[5]);
+		this->Q256[3] = convertTo64BitUint(this->Q[6], this->Q[7]);
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0606" << std::endl;
+		}
+		stopWatch.resetTimer();
+		this->R256[0] = this->Q256[0] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[0];
+		this->R256[1] = this->Q256[1] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[1];
+		this->R256[2] = this->Q256[2] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[2];
+		this->R256[3] = this->Q256[2] & ~this->OD.operator std::vector<size_t, std::allocator<size_t>>()[3];
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0707" << std::endl;
+		}
+		stopWatch.resetTimer();
+		this->R256[0] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[3]), _mm_set1_epi8('\xFF'), 0));
+		this->R256[1] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[2]), _mm_set1_epi8('\xFF'), 0));
+		this->R256[2] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[1]), _mm_set1_epi8('\xFF'), 0));
+		this->R256[3] = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R256[0]), _mm_set1_epi8('\xFF'), 0));
+		if (isItFirst) {
+		std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0808" << std::endl;
+		}
+		stopWatch.resetTimer();
 		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
 		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
 		auto whiteSpace02 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[2]), this->values[2]);
@@ -297,9 +338,18 @@ struct Simd256StringScanner {
 		auto whiteSpace05 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[5]), this->values[5]);
 		auto whiteSpace06 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[6]), this->values[6]);
 		auto whiteSpace07 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[7]), this->values[7]);
-
-		this->W256 = { convertTo64BitUint(whiteSpace06, whiteSpace07), convertTo64BitUint(whiteSpace04, whiteSpace05), convertTo64BitUint(whiteSpace02, whiteSpace03),
-			convertTo64BitUint(whiteSpace00, whiteSpace01) };
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 0909" << std::endl;
+		}
+		stopWatch.resetTimer();
+		this->W256[0]= convertTo64BitUint(whiteSpace06, whiteSpace07);
+		this->W256[1] = convertTo64BitUint(whiteSpace04, whiteSpace05);
+		this->W256[2] = convertTo64BitUint(whiteSpace02, whiteSpace03);
+		this->W256[1] = convertTo64BitUint(whiteSpace00, whiteSpace01);
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 101010" << std::endl;
+		}
+		stopWatch.resetTimer();
 		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
 		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
 		auto valuesNew02 = _mm256_or_si256(this->values[2], _mm256_set1_epi8(0x20));
@@ -308,6 +358,10 @@ struct Simd256StringScanner {
 		auto valuesNew05 = _mm256_or_si256(this->values[5], _mm256_set1_epi8(0x20));
 		auto valuesNew06 = _mm256_or_si256(this->values[6], _mm256_set1_epi8(0x20));
 		auto valuesNew07 = _mm256_or_si256(this->values[7], _mm256_set1_epi8(0x20));
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 11111" << std::endl;
+		}
+		stopWatch.resetTimer();
 		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
 		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
 		auto structural02 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[2]), valuesNew02);
@@ -316,9 +370,19 @@ struct Simd256StringScanner {
 		auto structural05 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[5]), valuesNew05);
 		auto structural06 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[6]), valuesNew06);
 		auto structural07 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[7]), valuesNew07);
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 121212" << std::endl;
+		}
+		stopWatch.resetTimer();
 
-		this->S256 = { convertTo64BitUint(structural00, structural01), convertTo64BitUint(structural02, structural03), convertTo64BitUint(structural04, structural05),
-			convertTo64BitUint(structural06, structural07) };
+		this->S256[0] = convertTo64BitUint(structural00, structural01);
+		this->S256[1] = convertTo64BitUint(structural02, structural03);
+		this->S256[2] = convertTo64BitUint(structural04, structural05);
+		this->S256[3] = convertTo64BitUint(structural06, structural07);
+		if (isItFirst) {
+			std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << "ns TO PARSE THROUGH IT! 131313" << std::endl;
+		}
+		stopWatch.resetTimer();
 		
 		//this->Q256.printBits("Q FINAL VALUES: ");
 		//this->R256.printBits("R FINAL VALUES: ");
@@ -330,9 +394,9 @@ struct Simd256StringScanner {
 	Simd256 values[8]{};
 	std::string string{};
 	Simd256 backslashes{};
-	Simd256 Q256{};
-	Simd256 R256{};
-	Simd256 W256{};
+	uint64_t Q256[4]{};
+	uint64_t R256[4]{};
+	uint64_t W256[4]{};
 	Simd256 quotes{};
 	Simd256 B[8]{};
 	Simd256 Q[8]{};
@@ -353,7 +417,7 @@ struct Simd256StringScanner {
 	Simd256 ECE{};
 	Simd256 OD2{};
 	Simd256 OD{};
-	Simd256 S256{};
+	uint64_t S256[4]{};
 };
 
 class Simd64Base {
@@ -475,9 +539,15 @@ int32_t main() noexcept {
 	size_t totalSize{};
 	
 	for (size_t x = 0; x < 256 * 2048 / 4; ++x) {
-		Simd256StringScanner value{ string256 };
+		if (x == 0) {
+			Simd256StringScanner value{ string256, true };
+		} else {
+			Simd256StringScanner value{ string256, false };
+		}
+		
 		totalSize += string256.size();
 	}
+	
 	totalTime += stopWatch.totalTimePassed();
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 	
