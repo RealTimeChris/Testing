@@ -30,7 +30,7 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
-	"$<$<PLATFORM_ID:Linux>:-mavx2>"
+	"$<$<CXX_COMPILER_ID:GCC>:-mavx2>"
 )
 
 target_compile_features(
