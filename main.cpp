@@ -223,8 +223,8 @@ class SimdBase<__m256i> {
 		return *this;
 	}
 
-	inline friend SimdBase<__m256i> operator==(SimdBase<__m256i> lhs, SimdBase<__m256i> rhs) {
-		return _mm256_cmpeq_epi8(lhs, rhs);
+	inline SimdBase<__m256i> operator==(SimdBase<__m256i> rhs) {
+		return _mm256_cmpeq_epi8(this->value, rhs.value);
 	}
 
 	inline SimdBase<__m256i> operator<<(size_t amount) {
