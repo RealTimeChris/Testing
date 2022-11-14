@@ -25,9 +25,11 @@ target_link_libraries(
 
 target_compile_options(
 	"${PROJECT_NAME}" PUBLIC
-	"$<$<PLATFORM_ID:Windows>:/arch:AVX2>"
-	"$<$<PLATFORM_ID:Windows>:/fp:fast>"
-	"$<$<PLATFORM_ID:Windows>:/MP>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/arch:AVX2>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/fp:fast>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
 	"$<$<PLATFORM_ID:Linux>:-mavx2>"
 )
 

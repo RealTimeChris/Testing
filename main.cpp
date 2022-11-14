@@ -1,4 +1,4 @@
-#include "Build/Release/_deps/jsonifier-src/Include/jsonifier/Jsonifier.hpp"
+#include "jsonifier/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
@@ -210,37 +210,37 @@ struct SimdBase<__m256i> {
 		return this->value.m256i_i64[0];
 	}
 
-	inline SimdBase operator |(__m256i& other) {
+	inline SimdBase operator |(__m256i other) {
 		return _mm256_or_si256(*this, other);
 	}
 
-	inline SimdBase operator&(__m256i& other) {
+	inline SimdBase operator&(__m256i other) {
 		return _mm256_and_si256(*this, other);
 	}
 
-	inline SimdBase operator^(__m256i& other) {
+	inline SimdBase operator^(__m256i other) {
 		return _mm256_xor_si256(*this, other);
 	}
 
-	inline SimdBase bit_andnot(__m256i& other) {
+	inline SimdBase bit_andnot(__m256i other) {
 		return _mm256_andnot_si256(other, *this);
 	}
 
-	inline SimdBase operator+(__m256i& other) {
+	inline SimdBase operator+(__m256i other) {
 		return _mm256_add_epi8(*this, other);
 	}
 
-	inline SimdBase operator|=(__m256i& other) {
+	inline SimdBase operator|=(__m256i other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase operator&=(__m256i& other) {
+	inline SimdBase operator&=(__m256i other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase operator^=(__m256i& other) {
+	inline SimdBase operator^=(__m256i other) {
 		*this = *this ^ other;
 		return *this;
 	}
@@ -289,7 +289,7 @@ struct SimdBase<__m256i> {
 		return _mm256_shuffle_epi8(indices, *this);
 	}
 
-	void printBits(std::string valuesTitle) {
+	void printBits(const std::string& valuesTitle) {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
