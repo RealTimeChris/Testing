@@ -289,7 +289,7 @@ class SimdStringSection {
 
 	inline void packStringIntoValue(__m256i& theValue, const char* string) {
 		for (size_t x = 0; x < 32; ++x) {
-			theValue.m256i_i8[x] = string[x];
+			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
 	}
 
