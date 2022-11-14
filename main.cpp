@@ -285,17 +285,7 @@ class SimdBase<__m256i> {
 class SimdStringSection {
   public:
 
-	inline SimdStringSection(){};
-
-	inline void printBits(std::string valuesTitle) {
-		std::cout << valuesTitle;
-		for (size_t x = 0; x < 32; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->B256.operator __m256i&().m256i_i8[x]) >> y };
-			}
-		}
-		std::cout << std::endl;
-	};
+	inline SimdStringSection() noexcept = default;
 
 	inline void packStringIntoValue(__m256i& theValue, const char* string) {
 		for (size_t x = 0; x < 32; ++x) {
@@ -394,10 +384,10 @@ class SimdStringSection {
 		this->S256 = this->S256 | this->P256;
 		this->S256 = this->S256 & ~(this->Q256 & ~this->R256);
 
-		//this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->S256.printBits("S FINAL VALUES (256) ");
+		this->W256.printBits("W FINAL VALUES (256) ");
+		this->R256.printBits("R FINAL VALUES (256) ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
 	}
 
 	operator std::string() {
@@ -505,7 +495,6 @@ class Simd64Base {
 		this->quotes = _mm256_set1_epi8('"');
 		packStringIntoValue(this->values[0], stringNewer.data());
 		packStringIntoValue(this->values[1], stringNewer.data() + 32);
-
 		this->S64 = this->B64 & ~(this->B64 << 1);
 		this->ES = this->S & this->E;
 		this->EC = this->B64 + this->ES;
@@ -515,17 +504,14 @@ class Simd64Base {
 		this->OC = this->B64 + this->OS;
 		this->OC = this->B64+ this->OS;
 		this->OCE = this->OC = this->B64 + this->OS;
-		
 		this->OC = this->B64 + this->OS;
 		this->OC = this->B64 + this->OS;
 		this->OCE = this->B64 + this->OS;
 		this->OC = this->B64 + this->OS;
 		this->OC = this->B64 + this->OS;
 		this->OC = this->B64 + this->OS;
-	
-
-		this->B[0] = this->values[0] == this->backslashes;
-		this->B[1] = this->values[1] == this->backslashes;
+		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
+		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
 		this->B64 = convertSimd256To64BitUint(this->B[0], this->B[1]);
 		this->S = this->B64 & ~(this->B64 << 1);
 		this->ES = this->S & this->E;
@@ -537,8 +523,8 @@ class Simd64Base {
 		this->OCE = this->OC & ~this->B64;
 		this->OD2 = this->OCE & this->E;
 		this->OD = this->OD1 | this->OD2;
-		this->Q[0] = this->values[0] == this->quotes;
-		this->Q[1] = this->values[1] == this->quotes;
+		this->Q[0] = _mm256_cmpeq_epi8(this->values[0], this->quotes);
+		this->Q[1] = _mm256_cmpeq_epi8(this->values[1], this->quotes);
 		this->Q64 = convertSimd256To64BitUint(this->Q[0], this->Q[1]);
 		this->Q64 = this->Q64 & ~this->OD;
 		this->R64 = this->Q64;
@@ -556,7 +542,6 @@ class Simd64Base {
 		this->P64 = this->S64 | this->W64;
 		this->P64 = this->P64 << 1;
 		this->P64 &= ~this->W64 & ~this->R64;
-
 		this->S64 = this->S64 | this->P64;
 		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
 		//printBits(this->Q64, "Q FINAL VALUES: ");
@@ -570,15 +555,15 @@ class Simd64Base {
 	}
 
   protected:
-	SimdBase<__m256i> values[2]{};
+	__m256i values[2]{};
 	std::string string{};
-	SimdBase<__m256i> backslashes{};
-	SimdBase<__m256i> whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
+	__m256i backslashes{};
+	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
 		112, 100, '\r', 100, 100) };
-	SimdBase<__m256i> opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
-	SimdBase<__m256i> quotes{};
-	SimdBase<__m256i> B[2]{};
-	SimdBase<__m256i> Q[2]{};
+	__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
+	__m256i quotes{};
+	__m256i B[2]{};
+	__m256i Q[2]{};
 	uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
 	uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
 	uint64_t B64{};
