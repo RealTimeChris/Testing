@@ -100,7 +100,7 @@ class SimdBase<__m128i> {
 		return *this;
 	}
 
-	friend inline SimdBase<__m128i> operator==(__m128i lhs, __m128i rhs) {
+	friend inline SimdBase<__m128i> operator==(SimdBase<__m128i> lhs, SimdBase<__m128i> rhs) {
 		return _mm_cmpeq_epi8(lhs, rhs);
 	}
 
@@ -157,7 +157,7 @@ class SimdBase<__m256i> {
 		*this = other;
 	}
 
-	inline SimdBase(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
+	inline SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
 		this->value = _mm256_insert_epi64(this->value, value02, 2);
@@ -240,10 +240,12 @@ class SimdBase<__m256i> {
 	}
 
 	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
-		return SimdBase<__m256i>{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 2)), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 3)), SimdBase<__m128i>{ operand }, 0)) };
+		return SimdBase<__m256i>{
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase<__m128i>{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase<__m128i>{ operand }, 0)))
+		};
 	}
 
 	inline SimdBase<__m256i> collectCarries(__m256i inputB) {
