@@ -13,7 +13,7 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
-#include(Jsonifier)
+include(Jsonifier)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 

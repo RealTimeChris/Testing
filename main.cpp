@@ -1,4 +1,4 @@
-#include "jsonifier/Jsonifier.hpp"
+#include "Build/Release/_deps/jsonifier-src/Include/jsonifier/Jsonifier.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
@@ -8,7 +8,7 @@
 #include <simdjson.h>
 #include <iostream>
 #include <bitset>
-
+#include <immintrin.h>
 uint64_t convertSimd256To64BitUint(const __m256i&inputA, __m256i inputB) {
 	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
 	uint64_t r_hi = _mm256_movemask_epi8(inputB);
@@ -27,7 +27,7 @@ struct SimdBase<__m128i> {
 
 	SimdBase() noexcept = default;
 
-	inline SimdBase& operator=(char other) {
+	inline SimdBase<__m128i>& operator=(char other) {
 		this->value = _mm_set1_epi8(other);
 		return *this;
 	}
@@ -46,7 +46,7 @@ struct SimdBase<__m128i> {
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
-	inline SimdBase& operator=(__m128i other) {
+	inline SimdBase<__m128i>& operator=(__m128i other) {
 		this->value = other;
 		return *this;
 	}
@@ -63,46 +63,46 @@ struct SimdBase<__m128i> {
 		return this->value;
 	}
 
-	inline SimdBase operator|(__m128i other) {
+	inline SimdBase<__m128i> operator|(SimdBase<__m128i> other) {
 		return _mm_or_si128(*this, other);
 	}
 
-	inline SimdBase operator&(__m128i other) {
+	inline SimdBase<__m128i> operator&(SimdBase<__m128i> other) {
 		return _mm_and_si128(*this, other);
 	}
 
-	inline SimdBase operator^(__m128i other) {
+	inline SimdBase<__m128i> operator^(SimdBase<__m128i> other) {
 		return _mm_xor_si128(*this, other);
 	}
 
-	inline SimdBase bit_andnot(__m128i other) {
+	inline SimdBase<__m128i> bit_andnot(SimdBase<__m128i> other) {
 		return _mm_andnot_si128(other, *this);
 	}
 
-	inline SimdBase operator+(__m128i other) {
+	inline SimdBase<__m128i> operator+(SimdBase<__m128i> other) {
 		return _mm_add_epi8(*this, other);
 	}
 
-	inline SimdBase operator|=(__m128i other) {
+	inline SimdBase<__m128i> operator|=(SimdBase<__m128i> other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase operator&=(__m128i other) {
+	inline SimdBase<__m128i> operator&=(SimdBase<__m128i> other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase operator^=(__m128i other) {
+	inline SimdBase<__m128i> operator^=(SimdBase<__m128i> other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	friend inline SimdBase operator==(SimdBase lhs, SimdBase rhs) {
+	friend inline SimdBase<__m128i> operator==(SimdBase<__m128i> lhs, SimdBase<__m128i> rhs) {
 		return _mm_cmpeq_epi8(lhs, rhs);
 	}
 
-	inline SimdBase operator<<(size_t amount) {
+	inline SimdBase<__m128i> operator<<(size_t amount) {
 		__m128i newValue{};
 		for (size_t x = 0; x < std::size(this->value.m128i_i64); ++x) {
 			newValue.m128i_i64[x] |= this->value.m128i_i64[x] << (amount % 64);
@@ -113,7 +113,7 @@ struct SimdBase<__m128i> {
 		return newValue;
 	}
 
-	inline SimdBase operator~() {
+	inline SimdBase<__m128i> operator~() {
 		__m128i newValue{};
 		for (size_t x = 0; x < 16; ++x) {
 			newValue.m128i_i8[x] = ~this->value.m128i_i8[x];
@@ -121,7 +121,7 @@ struct SimdBase<__m128i> {
 		return newValue;
 	}
 
-	inline SimdBase shuffle(SimdBase indices) {
+	inline SimdBase<__m128i> shuffle(SimdBase<__m128i> indices) {
 		return _mm_shuffle_epi8(indices, *this);
 	}
 
@@ -145,7 +145,7 @@ struct SimdBase<__m256i> {
 	
 	SimdBase() noexcept = default;
 
-	inline SimdBase& operator=(char other) {
+	inline SimdBase<__m256i>& operator=(char other) {
 		this->value = _mm256_set1_epi8(other);
 		return *this;
 	}
@@ -168,12 +168,12 @@ struct SimdBase<__m256i> {
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
 	}
 
-	inline SimdBase& operator=(const __m256i&other) {
+	inline SimdBase& operator=(const __m256i& other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase(const __m256i&other) {
+	inline SimdBase(const __m256i& other) {
 		*this = other;
 	}
 
@@ -189,46 +189,46 @@ struct SimdBase<__m256i> {
 		return this->value.m256i_i64[0];
 	}
 
-	inline SimdBase operator |(const __m256i&other) {
-		return _mm256_or_si256(*this, other);
+	inline SimdBase<__m256i> operator|(SimdBase<__m256i> other) {
+		return _mm256_or_si256(this->value, other.value);
 	}
 
-	inline SimdBase operator&(const __m256i&other) {
-		return _mm256_and_si256(*this, other);
+	inline SimdBase<__m256i> operator&(SimdBase<__m256i> other) {
+		return _mm256_and_si256(this->value, other.value);
 	}
 
-	inline SimdBase operator^(const __m256i&other) {
-		return _mm256_xor_si256(*this, other);
+	inline SimdBase<__m256i> operator^(SimdBase<__m256i> other) {
+		return _mm256_xor_si256(this->value, other.value);
 	}
 
-	inline SimdBase bit_andnot(const __m256i&other) {
-		return _mm256_andnot_si256(other, *this);
+	inline SimdBase<__m256i> bit_andnot(SimdBase<__m256i> other) {
+		return _mm256_andnot_si256(other.value, this->value);
 	}
 
-	inline SimdBase operator+(const __m256i&other) {
-		return _mm256_add_epi8(*this, other);
+	inline SimdBase<__m256i> operator+(SimdBase<__m256i> other) {
+		return _mm256_add_epi8(this->value, other.value);
 	}
 
-	inline SimdBase operator|=(const __m256i&other) {
+	inline SimdBase<__m256i> operator|=(SimdBase<__m256i> other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase operator&=(const __m256i&other) {
+	inline SimdBase<__m256i> operator&=(SimdBase<__m256i> other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase operator^=(const __m256i&other) {
+	inline SimdBase<__m256i> operator^=(SimdBase<__m256i> other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	friend inline SimdBase operator==(SimdBase lhs, SimdBase rhs) {
-		return _mm256_cmpeq_epi8(lhs, rhs);
+	friend inline SimdBase<__m256i> operator==(SimdBase<__m256i> lhs, SimdBase<__m256i> rhs) {
+		return _mm256_cmpeq_epi8(lhs.value, rhs.value);
 	}
 
-	inline SimdBase operator<<(size_t amount) {
+	inline SimdBase<__m256i> operator<<(size_t amount) {
 		__m256i newValue{}; 
 		for (size_t x = 0; x < std::size(this->value.m256i_i64); ++x) {
 			newValue.m256i_i64[x] |= this->value.m256i_i64[x] << (amount % 64);
@@ -239,7 +239,7 @@ struct SimdBase<__m256i> {
 		return newValue;
 	}
 
-	inline SimdBase operator~() {
+	inline SimdBase<__m256i> operator~() {
 		__m256i newValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			newValue.m256i_i64[x] = ~this->value.m256i_i64[x];
@@ -247,15 +247,15 @@ struct SimdBase<__m256i> {
 		return newValue;
 	}
 
-	inline SimdBase carrylessMultiplication(char operand) {
+	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
 		return SimdBase{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[0]), SimdBase<__m128i>{ operand }, 0)),
 			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[1]), SimdBase<__m128i>{ operand }, 0)),
 			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[2]), SimdBase<__m128i>{ operand }, 0)),
 			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[3]), SimdBase<__m128i>{ operand }, 0)) };
 	}
 
-	SimdBase collectCarries(SimdBase inputB) {
-		SimdBase returnValue{};
+	SimdBase<__m256i> collectCarries(SimdBase<__m256i> inputB) {
+		SimdBase<__m256i> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
 			_addcarry_u64(0, inputB.value.m256i_i64[x], this->value.m256i_i64[x], reinterpret_cast<unsigned __int64*>(&returnValue64));
@@ -264,7 +264,7 @@ struct SimdBase<__m256i> {
 		return returnValue;
 	}
 
-	inline SimdBase shuffle(SimdBase indices) {
+	inline SimdBase<__m256i> shuffle(SimdBase<__m256i> indices) {
 		return _mm256_shuffle_epi8(indices, *this);
 	}
 
