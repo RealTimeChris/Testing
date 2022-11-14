@@ -9,7 +9,7 @@
 #include <iostream>
 #include <bitset>
 
-uint64_t convertSimd256To64BitUint(__m256i inputA, __m256i inputB) {
+uint64_t convertSimd256To64BitUint(const __m256i&inputA, __m256i inputB) {
 	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
 	uint64_t r_hi = _mm256_movemask_epi8(inputB);
 	return r_lo | (r_hi << 32);
@@ -36,35 +36,22 @@ struct SimdBase<__m128i> {
 		*this = other;
 	}
 
-	inline SimdBase(uint64_t data) {
-		this->value.m128i_i64[0] = data;
-	}
-
-	inline SimdBase(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
+	inline SimdBase(int64_t value00, int64_t value01) {
 		this->value = _mm_insert_epi64(this->value, value00, 0);
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
-	inline SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
+	inline SimdBase(uint64_t value00, uint64_t value01) {
 		this->value = _mm_insert_epi64(this->value, value00, 0);
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
-	inline SimdBase& operator=(__m128i&& other) {
+	inline SimdBase& operator=(__m128i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase(__m128i&& other) {
-		*this = other;
-	}
-
-	inline SimdBase& operator=(__m128i& other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase(__m128i& other) {
+	inline SimdBase(__m128i other) {
 		*this = other;
 	}
 
@@ -76,42 +63,39 @@ struct SimdBase<__m128i> {
 		return this->value;
 	}
 
-	inline SimdBase operator|(__m128i& other) {
+	inline SimdBase operator|(__m128i other) {
 		return _mm_or_si128(*this, other);
 	}
 
-	inline SimdBase operator&(__m128i& other) {
+	inline SimdBase operator&(__m128i other) {
 		return _mm_and_si128(*this, other);
 	}
 
-	inline SimdBase operator^(__m128i& other) {
+	inline SimdBase operator^(__m128i other) {
 		return _mm_xor_si128(*this, other);
 	}
 
-	inline SimdBase bit_andnot(__m128i& other) {
+	inline SimdBase bit_andnot(__m128i other) {
 		return _mm_andnot_si128(other, *this);
 	}
 
-	inline SimdBase operator+(__m128i& other) {
+	inline SimdBase operator+(__m128i other) {
 		return _mm_add_epi8(*this, other);
 	}
 
-	inline SimdBase operator|=(__m128i& other) {
-		auto this_cast = static_cast<SimdBase*>(this);
-		*this_cast = *this_cast | other;
-		return *this_cast;
+	inline SimdBase operator|=(__m128i other) {
+		*this = *this | other;
+		return *this;
 	}
 
-	inline SimdBase operator&=(__m128i& other) {
-		auto this_cast = static_cast<SimdBase*>(this);
-		*this_cast = *this_cast & other;
-		return *this_cast;
+	inline SimdBase operator&=(__m128i other) {
+		*this = *this & other;
+		return *this;
 	}
 
-	inline SimdBase operator^=(__m128i& other) {
-		auto this_cast = static_cast<SimdBase*>(this);
-		*this_cast = *this_cast ^ other;
-		return *this_cast;
+	inline SimdBase operator^=(__m128i other) {
+		*this = *this ^ other;
+		return *this;
 	}
 
 	friend inline SimdBase operator==(SimdBase lhs, SimdBase rhs) {
@@ -138,7 +122,7 @@ struct SimdBase<__m128i> {
 	}
 
 	inline SimdBase shuffle(SimdBase indices) {
-		return _mm_shuffle_epi8(*this, indices);
+		return _mm_shuffle_epi8(indices, *this);
 	}
 
 	void printBits(std::string valuesTitle) {
@@ -180,21 +164,12 @@ struct SimdBase<__m256i> {
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
 	}
 
-	inline SimdBase& operator=(__m256i&& other) {
+	inline SimdBase& operator=(const __m256i&other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase(__m256i&& other) {
-		*this = other;
-	}
-
-	inline SimdBase& operator=(__m256i& other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase(__m256i& other) {
+	inline SimdBase(const __m256i&other) {
 		*this = other;
 	}
 
@@ -210,37 +185,37 @@ struct SimdBase<__m256i> {
 		return this->value.m256i_i64[0];
 	}
 
-	inline SimdBase operator |(__m256i other) {
+	inline SimdBase operator |(const __m256i&other) {
 		return _mm256_or_si256(*this, other);
 	}
 
-	inline SimdBase operator&(__m256i other) {
+	inline SimdBase operator&(const __m256i&other) {
 		return _mm256_and_si256(*this, other);
 	}
 
-	inline SimdBase operator^(__m256i other) {
+	inline SimdBase operator^(const __m256i&other) {
 		return _mm256_xor_si256(*this, other);
 	}
 
-	inline SimdBase bit_andnot(__m256i other) {
+	inline SimdBase bit_andnot(const __m256i&other) {
 		return _mm256_andnot_si256(other, *this);
 	}
 
-	inline SimdBase operator+(__m256i other) {
+	inline SimdBase operator+(const __m256i&other) {
 		return _mm256_add_epi8(*this, other);
 	}
 
-	inline SimdBase operator|=(__m256i other) {
+	inline SimdBase operator|=(const __m256i&other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase operator&=(__m256i other) {
+	inline SimdBase operator&=(const __m256i&other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase operator^=(__m256i other) {
+	inline SimdBase operator^=(const __m256i&other) {
 		*this = *this ^ other;
 		return *this;
 	}
@@ -504,7 +479,7 @@ class Simd64Base {
 		std::cout << std::endl;
 	};
 
-	inline Simd64Base(__m256i value01, __m256i value02) {
+	inline Simd64Base(const __m256i&value01, __m256i value02) {
 		this->values[0] = value01;
 		this->values[1] = value02;
 	}
@@ -619,22 +594,23 @@ int32_t main() noexcept {
 	Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
+
 	stopWatch.resetTimer();
-	for (size_t x = 0; x < 256 * 4096; ++x) {
-		Simd64Base simd8Test{ string64 };
-		totalSize += string64.size();
+	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
+		Simd256StringSection simd8Test{ string256 };
+		totalSize += string256.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
+	
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 	totalSize = 0;
 	totalTime = 0;
 	stopWatch.resetTimer();
-	for (size_t x = 0; x < 256 * 4096 / 4; ++x) {
-		Simd256StringSection value{ string256 };
-		totalSize += string256.size();
+	for (size_t x = 0; x < 256 * 16384; ++x) {
+		Simd64Base simd8Test{ string64 };
+		totalSize += string64.size();
 	}
-
 	totalTime += stopWatch.totalTimePassed();
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 	
