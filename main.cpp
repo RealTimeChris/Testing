@@ -21,9 +21,9 @@ template<typename ITy> struct SimdBase {
 	SimdBase() noexcept = default;
 
 };
+
 template<>
 struct SimdBase<__m128i> {
-	__m128i value{};
 
 	SimdBase() noexcept = default;
 
@@ -134,11 +134,15 @@ struct SimdBase<__m128i> {
 		}
 		std::cout << std::endl;
 	};
+
+  protected:
+	__m128i value{};
+
 };
+
 template<>
 struct SimdBase<__m256i> {
-	__m256i value{};
-
+	
 	SimdBase() noexcept = default;
 
 	inline SimdBase& operator=(char other) {
@@ -273,6 +277,9 @@ struct SimdBase<__m256i> {
 		}
 		std::cout << std::endl;
 	};
+
+  protected:
+	__m256i value{};
 
 };
 
