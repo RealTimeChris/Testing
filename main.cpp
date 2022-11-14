@@ -384,10 +384,10 @@ class SimdStringSection {
 		this->S256 = this->S256 | this->P256;
 		this->S256 = this->S256 & ~(this->Q256 & ~this->R256);
 
-		this->S256.printBits("S FINAL VALUES (256) ");
-		this->W256.printBits("W FINAL VALUES (256) ");
-		this->R256.printBits("R FINAL VALUES (256) ");
-		this->Q256.printBits("Q FINAL VALUES (256): ");
+		//this->S256.printBits("S FINAL VALUES (256) ");
+		//this->W256.printBits("W FINAL VALUES (256) ");
+		//this->R256.printBits("R FINAL VALUES (256) ");
+		//this->Q256.printBits("Q FINAL VALUES (256): ");
 	}
 
 	operator std::string() {
@@ -442,7 +442,7 @@ class Simd64Base {
 
 	void packStringIntoValue(__m256i& theValue, const char* string) {
 		for (size_t x = 0; x < 32; ++x) {
-			theValue.m256i_i8[x] = string[x];
+			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
 	}
 
