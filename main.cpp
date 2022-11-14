@@ -103,14 +103,14 @@ struct SimdBase<__m128i> {
 	}
 
 	inline SimdBase operator<<(size_t amount) {
-		__m128i this_cast{};
-		for (size_t x = 0; x < 16; ++x) {
-			this_cast.m128i_i8[x] |= this->value.m128i_i8[x] << (amount % 8);
+		__m128i newValue{};
+		for (size_t x = 0; x < std::size(this->value.m128i_i64); ++x) {
+			newValue.m128i_i64[x] |= this->value.m128i_i64[x] << (amount % 64);
 			if (x > 0) {
-				this_cast.m128i_i8[x] |= (this->value.m128i_i8[x - 1] >> 7) & 0b00000001;
+				newValue.m128i_i64[x] |= (this->value.m128i_i64[x - 1] >> 63) & 0x00000001;
 			}
 		}
-		return this_cast;
+		return newValue;
 	}
 
 	inline SimdBase operator~() {
