@@ -11,9 +11,39 @@
 #include <immintrin.h>
 
 #ifdef _WIN32
-	#define .m128i_i64 .m128i_i64
+char& getValue8i(size_t index, __m256i value) {
+	return value.m256i_i8[index];
+}
+unsigned char& getValue8u(size_t index, __m256i value) {
+	return value.m256i_u8[index];
+}
+uint64_t& getValue64u(size_t index, __m256i value) {
+	return value.m256i_u64[index];
+}
+int64_t& getValue64i(size_t index, __m256i value) {
+	return value.m256i_i64[index];
+}
+
+unsigned char& getValue8u(size_t index, __m128i value) {
+	return value.m128i_u8[index];
+}
+uint64_t& getValue64u(size_t index, __m128i value) {
+	return value.m128i_u64[index];
+}
+
+char& getValue8i(size_t index, __m128i value) {
+	return value.m128i_i8[index];
+}
+int64_t& getValue64i(size_t index, __m128i value) {
+	return value.m128i_i64[index];
+}
 #else
-	#define .m128i_i64
+char getValue(size_t index, __m256i value) {
+	return value[index];
+}
+int64_t getValue64i(size_t index, __m256i value) {
+	return value[index / 8];
+}
 #endif
 
 uint64_t convertSimd256To64BitUint(const __m256i&inputA, __m256i inputB) {
@@ -111,10 +141,10 @@ struct SimdBase<__m128i> {
 
 	inline SimdBase<__m128i> operator<<(size_t amount) {
 		__m128i newValue{};
-		for (size_t x = 0; x < std::size(this->value.m128i_i64); ++x) {
-			newValue.m128i_i64[x] |= this->value.m128i_i64[x] << (amount % 64);
+		for (size_t x = 0; x < 2; ++x) {
+			getValue64i(x, newValue) |= getValue64i(x, this->value) << (amount % 64);
 			if (x > 0) {
-				newValue.m128i_i64[x] |= (this->value.m128i_i64[x - 1] >> 63) & 0x00000001;
+				getValue64i(x, newValue) |= (getValue64i(x - 1, this->value) >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
@@ -123,7 +153,7 @@ struct SimdBase<__m128i> {
 	inline SimdBase<__m128i> operator~() {
 		__m128i newValue{};
 		for (size_t x = 0; x < 16; ++x) {
-			newValue.m128i_i8[x] = ~this->value.m128i_i8[x];
+			getValue8i(x, newValue) = ~getValue8i(x, this->value);
 		}
 		return newValue;
 	}
@@ -136,7 +166,7 @@ struct SimdBase<__m128i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 16; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(this->value.m128i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->value.m128i_i8[x]) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -237,10 +267,10 @@ struct SimdBase<__m256i> {
 
 	inline SimdBase<__m256i> operator<<(size_t amount) {
 		__m256i newValue{}; 
-		for (size_t x = 0; x < std::size(this->value.m256i_i64); ++x) {
-			newValue.m256i_i64[x] |= this->value.m256i_i64[x] << (amount % 64);
+		for (size_t x = 0; x < 2; ++x) {
+			getValue64i(x, newValue) |= getValue64i(x, this->value) << (amount % 64);
 			if (x > 0) {
-				newValue.m256i_i64[x] |= (this->value.m256i_i64[x - 1] >> 63) & 0x00000001;
+				getValue64i(x, newValue) |= (getValue64i(x - 1, this->value) >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
@@ -249,24 +279,27 @@ struct SimdBase<__m256i> {
 	inline SimdBase<__m256i> operator~() {
 		__m256i newValue{};
 		for (size_t x = 0; x < 4; ++x) {
-			newValue.m256i_i64[x] = ~this->value.m256i_i64[x];
+			getValue64i(x, newValue) |= ~getValue64i(x, this->value);
 		}
 		return newValue;
 	}
 
 	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
-		return SimdBase{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[0]), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[1]), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[2]), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[3]), SimdBase<__m128i>{ operand }, 0)) };
+		return SimdBase{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, getValue64i(0, this->value)), SimdBase<__m128i>{ operand }, 0)),
+			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, getValue64i(1, this->value)), SimdBase<__m128i>{ operand }, 0)),
+			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, getValue64i(2, this->value)), SimdBase<__m128i>{ operand }, 0)),
+			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, getValue64i(3, this->value)), SimdBase<__m128i>{ operand }, 0)) };
 	}
 
 	SimdBase<__m256i> collectCarries(SimdBase<__m256i> inputB) {
 		SimdBase<__m256i> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, inputB.value.m256i_i64[x], this->value.m256i_i64[x], reinterpret_cast<unsigned long long*>(&returnValue64));
-			returnValue.value.m256i_i64[x] = returnValue64;
+			_addcarry_u64(0, getValue64u(x, inputB.value), getValue64u(x, this->value), reinterpret_cast<unsigned long long*>(&returnValue64));
+			getValue64u(x, returnValue.value) = returnValue64;
+			returnValue.printBits("THE PRINTED BITS: ");
+			inputB.printBits("THE PRINTED BITS: (B) ");
+			this->printBits("THE PRINTED BITS: (SELF) ");
 		}
 		return returnValue;
 	}
@@ -279,7 +312,7 @@ struct SimdBase<__m256i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(this->value.m256i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->value.m256i_i8[x]) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -298,7 +331,7 @@ struct Simd256StringSection {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(this->B256.operator __m256i&().m256i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->B256.operator __m256i&().m256i_i8[x]) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -345,9 +378,12 @@ struct Simd256StringSection {
 			convertSimd256To64BitUint(this->B[4], this->B[5]),
 			convertSimd256To64BitUint(this->B[6], this->B[7]) };
 		this->S = this->B256.bit_andnot(this->B256 << 1);
+		this->S.printBits("S VALUES (256) ");
 		this->ES = this->E & this->S;
 		this->EC = this->ES.collectCarries(this->B256);
+		this->EC.printBits("EC VALUES (256) ");
 		this->ECE = this->EC & ~this->B256;		
+		this->ECE.printBits("ECE VALUES (256) ");
 		this->OD1 = this->ECE & ~this->E;
 		this->OS = this->S & this->O;
 		this->OC = this->B256 + this->OS;
@@ -401,10 +437,10 @@ struct Simd256StringSection {
 		this->S256 = this->S256 | this->P256;
 		this->S256 = this->S256 & ~(this->Q256 & ~this->R256);
 
-		//this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->S256.printBits("S FINAL VALUES (256) ");
+		this->W256.printBits("W FINAL VALUES (256) ");
+		this->R256.printBits("R FINAL VALUES (256) ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
 	}
 
 	operator std::string() {
