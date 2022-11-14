@@ -30,6 +30,7 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
+	"$<$<CXX_COMPILER_ID:GCC>:-march=native>"
 )
 
 target_compile_features(
