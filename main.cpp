@@ -258,7 +258,7 @@ struct SimdBase<__m256i> {
 		SimdBase<__m256i> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, inputB.value.m256i_i64[x], this->value.m256i_i64[x], reinterpret_cast<unsigned __int64*>(&returnValue64));
+			_addcarry_u64(0, inputB.value.m256i_i64[x], this->value.m256i_i64[x], reinterpret_cast<uint64_t*>(&returnValue64));
 			returnValue.value.m256i_i64[x] = returnValue64;
 		}
 		return returnValue;
@@ -467,7 +467,7 @@ class Simd64Base {
 
 	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
 		uint64_t returnValue{};
-		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned __int64*>(&returnValue));
+		_addcarry_u64(0, inputB, inputA, reinterpret_cast<uint64_t*>(&returnValue));
 		return returnValue;
 	}
 
