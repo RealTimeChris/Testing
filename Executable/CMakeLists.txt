@@ -13,13 +13,13 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
-include(Jsonifier)
+#include(Jsonifier)
 
 find_package(nlohmann_json CONFIG REQUIRED)
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
-	Jsonifier::Jsonifier
+	#Jsonifier::Jsonifier
 	nlohmann_json::nlohmann_json 
 )
 

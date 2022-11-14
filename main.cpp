@@ -1,4 +1,4 @@
-#include "Build/Release/_deps/jsonifier-src/Include/jsonifier/Jsonifier.hpp"
+//#include "Build/Release/_deps/jsonifier-src/Include/jsonifier/.hpp"
 #include <nlohmann/json.hpp>
 #include <scoped_allocator>
 #include <source_location>
@@ -9,6 +9,56 @@
 #include <iostream>
 #include <bitset>
 #include <immintrin.h>
+
+template<typename TTy> class StopWatch {
+  public:
+	using HRClock = std::chrono::high_resolution_clock;
+
+	StopWatch() = delete;
+
+	StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
+		this->maxNumberOfMs.store(data.maxNumberOfMs.load());
+		this->startTime.store(data.startTime.load());
+		return *this;
+	}
+
+	StopWatch(const StopWatch<TTy>& data) {
+		*this = data;
+	}
+
+	StopWatch(TTy maxNumberOfMsNew) {
+		this->maxNumberOfMs.store(maxNumberOfMsNew.count());
+		this->startTime.store(static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count()));
+	}
+
+	int64_t totalTimePassed() {
+		int64_t currentTime = static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count());
+		int64_t elapsedTime = currentTime - this->startTime.load();
+		return elapsedTime;
+	}
+
+	int64_t getTotalWaitTime() {
+		return this->maxNumberOfMs.load();
+	}
+
+	bool hasTimePassed() {
+		int64_t currentTime = static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count());
+		int64_t elapsedTime = currentTime - this->startTime.load();
+		if (elapsedTime >= this->maxNumberOfMs.load()) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	void resetTimer() {
+		this->startTime.store(static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count()));
+	}
+
+  protected:
+	std::atomic_int64_t maxNumberOfMs{ 0 };
+	std::atomic_int64_t startTime{ 0 };
+};
 
 inline uint64_t convertSimd256To64BitUint(const __m256i& inputA, __m256i inputB) {
 	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
@@ -586,7 +636,7 @@ int32_t main() noexcept {
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
 
