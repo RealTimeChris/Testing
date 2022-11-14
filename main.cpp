@@ -106,10 +106,10 @@ class SimdBase<__m128i> {
 
 	inline SimdBase<__m128i> operator<<(size_t amount) {
 		__m128i newValue{};
-		for (size_t x = 0; x < std::size(this->value.m128i_i64); ++x) {
-			newValue.m128i_i64[x] |= this->value.m128i_i64[x] << (amount % 64);
+		for (size_t x = 0; x < 2; ++x) {
+			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
 			if (x > 0) {
-				newValue.m128i_i64[x] |= (this->value.m128i_i64[x - 1] >> 63) & 0x00000001;
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
 			}
 		}
 		return newValue;
@@ -117,8 +117,8 @@ class SimdBase<__m128i> {
 
 	inline SimdBase<__m128i> operator~() {
 		__m128i newValue{};
-		for (size_t x = 0; x < 16; ++x) {
-			newValue.m128i_i8[x] = ~this->value.m128i_i8[x];
+		for (size_t x = 0; x < 4; ++x) {
+			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
 		return newValue;
 	}
@@ -131,7 +131,7 @@ class SimdBase<__m128i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 16; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->value.m128i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -229,10 +229,10 @@ class SimdBase<__m256i> {
 
 	inline SimdBase<__m256i> operator<<(size_t amount) {
 		__m256i newValue{}; 
-		for (size_t x = 0; x < std::size(this->value.m256i_i64); ++x) {
-			newValue.m256i_i64[x] |= this->value.m256i_i64[x] << (amount % 64);
+		for (size_t x = 0; x < 4; ++x) {
+			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
 			if (x > 0) {
-				newValue.m256i_i64[x] |= (this->value.m256i_i64[x - 1] >> 63) & 0x00000001;
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
 			}
 		}
 		return newValue;
@@ -241,24 +241,24 @@ class SimdBase<__m256i> {
 	inline SimdBase<__m256i> operator~() {
 		__m256i newValue{};
 		for (size_t x = 0; x < 4; ++x) {
-			newValue.m256i_i64[x] = ~this->value.m256i_i64[x];
+			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
 		return newValue;
 	}
 
 	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
-		return SimdBase{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[0]), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[1]), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[2]), SimdBase<__m128i>{ operand }, 0)),
-			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->value.m256i_i64[3]), SimdBase<__m128i>{ operand }, 0)) };
+		return SimdBase{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0)),
+			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0)),
+			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 2)), SimdBase<__m128i>{ operand }, 0)),
+			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 3)), SimdBase<__m128i>{ operand }, 0)) };
 	}
 
 	inline SimdBase<__m256i> collectCarries(__m256i inputB) {
 		SimdBase<__m256i> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, inputB.m256i_i64[x], this->value.m256i_i64[x], reinterpret_cast<unsigned long long*>(&returnValue64));
-			returnValue.value.m256i_i64[x] = returnValue64;
+			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&inputB) + x), *(reinterpret_cast<int64_t*>(&this->value) + x), reinterpret_cast<unsigned long long*>(&returnValue64));
+			*(reinterpret_cast<int64_t*>(&returnValue) + x) = returnValue64;
 		}
 		return returnValue;
 	}
@@ -271,7 +271,7 @@ class SimdBase<__m256i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(this->value.m256i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -473,12 +473,12 @@ class Simd64Base {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[0]).m256i_i8[x]) >> y };
+				//std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[0]).m256i_i8[x]) >> y };
 			}
 		}
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[1]).m256i_i8[x]) >> y };
+				//std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[1]).m256i_i8[x]) >> y };
 			}
 		}
 		std::cout << std::endl;
