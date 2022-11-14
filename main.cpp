@@ -230,10 +230,10 @@ struct SimdBase<__m256i> {
 
 	inline SimdBase operator<<(size_t amount) {
 		__m256i newValue{}; 
-		for (size_t x = 0; x < 32; ++x) {
-			newValue.m256i_i8[x] |= this->value.m256i_i8[x] << (amount % 8);
+		for (size_t x = 0; x < std::size(this->value.m256i_i64); ++x) {
+			newValue.m256i_i64[x] |= this->value.m256i_i64[x] << (amount % 64);
 			if (x > 0) {
-				newValue.m256i_i8[x] |= (this->value.m256i_i8[x - 1] >> 7) & 0b00000001;
+				newValue.m256i_i64[x] |= (this->value.m256i_i64[x - 1] >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
