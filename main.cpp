@@ -164,13 +164,6 @@ class SimdBase<__m256i> {
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
 	}
 
-	inline SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
-		this->value = _mm256_insert_epi64(this->value, value00, 0);
-		this->value = _mm256_insert_epi64(this->value, value01, 1);
-		this->value = _mm256_insert_epi64(this->value, value02, 2);
-		this->value = _mm256_insert_epi64(this->value, value03, 3);
-	}
-
 	inline SimdBase& operator=(const __m256i& other) {
 		this->value = other;
 		return *this;
@@ -247,7 +240,7 @@ class SimdBase<__m256i> {
 	}
 
 	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
-		return SimdBase{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0)),
+		return SimdBase<__m256i>{ _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0)),
 			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0)),
 			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 2)), SimdBase<__m128i>{ operand }, 0)),
 			_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 3)), SimdBase<__m128i>{ operand }, 0)) };
