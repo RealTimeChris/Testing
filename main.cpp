@@ -9,6 +9,13 @@
 #include <iostream>
 #include <bitset>
 #include <immintrin.h>
+
+#ifdef _WIN32
+	#define .m128i_i64 .m128i_i64
+#else
+	#define .m128i_i64
+#endif
+
 uint64_t convertSimd256To64BitUint(const __m256i&inputA, __m256i inputB) {
 	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
 	uint64_t r_hi = _mm256_movemask_epi8(inputB);
