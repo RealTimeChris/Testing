@@ -3,6 +3,8 @@
 	"../main.cpp"
 )
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
