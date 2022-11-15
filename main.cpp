@@ -56,8 +56,8 @@ template<typename TTy> class StopWatch {
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i& inputA, __m256i inputB) {
-	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
-	uint64_t r_hi = _mm256_movemask_epi8(inputB);
+	uint64_t r_lo;// = uint32_t(_mm256_movemask_epi8(inputA));
+	uint64_t r_hi;// = _mm256_movemask_epi8(inputB);
 	return r_lo | (r_hi << 32);
 }
 
@@ -649,10 +649,12 @@ int32_t main() noexcept {
 	StringScanner scanner{ string64 };
 	size_t totalTime{};
 	size_t totalSize{};
+	std::vector<std::string> vector{};
 	for (size_t x = 0; x < 25; ++x) {		
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 			SimdStringSection simd8Test{ string256 };
+			vector.push_back(string256);
 			totalSize += string256.size();
 		}
 		totalTime += stopWatch.totalTimePassed();
@@ -661,11 +663,13 @@ int32_t main() noexcept {
 
 	totalSize = 0;
 	totalTime = 0;
+	vector.clear();
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 25; ++x) {
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384 ; ++x) {
 			Simd64Base simd8Test{ string64 };
+			vector.push_back(string64);
 			totalSize += string64.size();
 		}
 		totalTime += stopWatch.totalTimePassed();
