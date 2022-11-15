@@ -406,6 +406,129 @@ class SimdStringSection {
 		return this->RCB256;
 	}
 
+	SimdBase<__m256i> collectRightSquareBrackets() {
+		SimdBase<__m256i> RightSquareBrackets = _mm256_set1_epi8(']');
+		SimdBase<__m256i> RightSquareBracketsReal[8]{};
+		RightSquareBracketsReal[0] = this->values[0] == RightSquareBrackets;
+		RightSquareBracketsReal[1] = this->values[1] == RightSquareBrackets;
+		RightSquareBracketsReal[2] = this->values[2] == RightSquareBrackets;
+		RightSquareBracketsReal[3] = this->values[3] == RightSquareBrackets;
+		RightSquareBracketsReal[4] = this->values[4] == RightSquareBrackets;
+		RightSquareBracketsReal[5] = this->values[5] == RightSquareBrackets;
+		RightSquareBracketsReal[6] = this->values[6] == RightSquareBrackets;
+		RightSquareBracketsReal[7] = this->values[7] == RightSquareBrackets;
+
+		SimdBase<__m256i> RightSquareBracketsFinal{ convertSimd256To64BitUint(RightSquareBracketsReal[0], RightSquareBracketsReal[1]),
+			convertSimd256To64BitUint(RightSquareBracketsReal[2], RightSquareBracketsReal[3]), convertSimd256To64BitUint(RightSquareBracketsReal[4], RightSquareBracketsReal[5]),
+			convertSimd256To64BitUint(RightSquareBracketsReal[6], RightSquareBracketsReal[7]) };
+		return RightSquareBracketsFinal;
+	}
+
+	SimdBase<__m256i> collectLeftSquareBrackets() {
+		SimdBase<__m256i> LeftSquareBrackets = _mm256_set1_epi8('[');
+		SimdBase<__m256i> LeftSquareBracketsReal[8]{};
+		LeftSquareBracketsReal[0] = this->values[0] == LeftSquareBrackets;
+		LeftSquareBracketsReal[1] = this->values[1] == LeftSquareBrackets;
+		LeftSquareBracketsReal[2] = this->values[2] == LeftSquareBrackets;
+		LeftSquareBracketsReal[3] = this->values[3] == LeftSquareBrackets;
+		LeftSquareBracketsReal[4] = this->values[4] == LeftSquareBrackets;
+		LeftSquareBracketsReal[5] = this->values[5] == LeftSquareBrackets;
+		LeftSquareBracketsReal[6] = this->values[6] == LeftSquareBrackets;
+		LeftSquareBracketsReal[7] = this->values[7] == LeftSquareBrackets;
+
+		SimdBase<__m256i> LeftSquareBracketsFinal{ convertSimd256To64BitUint(LeftSquareBracketsReal[0], LeftSquareBracketsReal[1]),
+			convertSimd256To64BitUint(LeftSquareBracketsReal[2], LeftSquareBracketsReal[3]), convertSimd256To64BitUint(LeftSquareBracketsReal[4], LeftSquareBracketsReal[5]),
+			convertSimd256To64BitUint(LeftSquareBracketsReal[6], LeftSquareBracketsReal[7]) };
+		return LeftSquareBracketsFinal;
+	}
+
+	SimdBase<__m256i> collectRightCurlyBrackets() {
+		SimdBase<__m256i> RightCurlyBrackets = _mm256_set1_epi8('}');
+		SimdBase<__m256i> RightCurlyBracketsReal[8]{};
+		RightCurlyBracketsReal[0] = this->values[0] == RightCurlyBrackets;
+		RightCurlyBracketsReal[1] = this->values[1] == RightCurlyBrackets;
+		RightCurlyBracketsReal[2] = this->values[2] == RightCurlyBrackets;
+		RightCurlyBracketsReal[3] = this->values[3] == RightCurlyBrackets;
+		RightCurlyBracketsReal[4] = this->values[4] == RightCurlyBrackets;
+		RightCurlyBracketsReal[5] = this->values[5] == RightCurlyBrackets;
+		RightCurlyBracketsReal[6] = this->values[6] == RightCurlyBrackets;
+		RightCurlyBracketsReal[7] = this->values[7] == RightCurlyBrackets;
+
+		SimdBase<__m256i> RightCurlyBracketsFinal{ convertSimd256To64BitUint(RightCurlyBracketsReal[0], RightCurlyBracketsReal[1]),
+			convertSimd256To64BitUint(RightCurlyBracketsReal[2], RightCurlyBracketsReal[3]), convertSimd256To64BitUint(RightCurlyBracketsReal[4], RightCurlyBracketsReal[5]),
+			convertSimd256To64BitUint(RightCurlyBracketsReal[6], RightCurlyBracketsReal[7]) };
+		return RightCurlyBracketsFinal;
+	}
+
+	SimdBase<__m256i> collectLeftCurlyBrackets() {
+		SimdBase<__m256i> LeftCurlyBrackets = _mm256_set1_epi8('{');
+		SimdBase<__m256i> LeftCurlyBracketsReal[8]{};
+		LeftCurlyBracketsReal[0] = this->values[0] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[1] = this->values[1] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[2] = this->values[2] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[3] = this->values[3] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[4] = this->values[4] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[5] = this->values[5] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[6] = this->values[6] == LeftCurlyBrackets;
+		LeftCurlyBracketsReal[7] = this->values[7] == LeftCurlyBrackets;
+
+		SimdBase<__m256i> LeftCurlyBracketsFinal{ convertSimd256To64BitUint(LeftCurlyBracketsReal[0], LeftCurlyBracketsReal[1]),
+			convertSimd256To64BitUint(LeftCurlyBracketsReal[2], LeftCurlyBracketsReal[3]), convertSimd256To64BitUint(LeftCurlyBracketsReal[4], LeftCurlyBracketsReal[5]),
+			convertSimd256To64BitUint(LeftCurlyBracketsReal[6], LeftCurlyBracketsReal[7]) };
+		return LeftCurlyBracketsFinal;
+	}
+
+	SimdBase<__m256i> collectCommas() {
+		SimdBase<__m256i> commas = _mm256_set1_epi8(',');
+		SimdBase<__m256i> commasReal[8]{};
+		commasReal[0] = this->values[0] == commas;
+		commasReal[1] = this->values[1] == commas;
+		commasReal[2] = this->values[2] == commas;
+		commasReal[3] = this->values[3] == commas;
+		commasReal[4] = this->values[4] == commas;
+		commasReal[5] = this->values[5] == commas;
+		commasReal[6] = this->values[6] == commas;
+		commasReal[7] = this->values[7] == commas;
+
+		SimdBase<__m256i> commasFinal{ convertSimd256To64BitUint(commasReal[0], commasReal[1]), convertSimd256To64BitUint(commasReal[2], commasReal[3]),
+			convertSimd256To64BitUint(commasReal[4], commasReal[5]), convertSimd256To64BitUint(commasReal[6], commasReal[7]) };
+		return commasFinal;
+	}
+
+	SimdBase<__m256i> collectBackslashes() {
+		SimdBase<__m256i> backslashes = _mm256_set1_epi8('\\');
+		SimdBase<__m256i> backslashesReal[8]{};
+		backslashesReal[0] = this->values[0] == backslashes;
+		backslashesReal[1] = this->values[1] == backslashes;
+		backslashesReal[2] = this->values[2] == backslashes;
+		backslashesReal[3] = this->values[3] == backslashes;
+		backslashesReal[4] = this->values[4] == backslashes;
+		backslashesReal[5] = this->values[5] == backslashes;
+		backslashesReal[6] = this->values[6] == backslashes;
+		backslashesReal[7] = this->values[7] == backslashes;
+
+		SimdBase<__m256i> backslashesFinal{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]), convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]),
+			convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]), convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
+		return backslashesFinal;
+	}
+
+	SimdBase<__m256i> collectQuotes() {
+		SimdBase<__m256i> quotes = _mm256_set1_epi8('"');
+		SimdBase<__m256i> quotesReal[8]{};
+		quotesReal[0] = this->values[0] == quotes;
+		quotesReal[1] = this->values[1] == quotes;
+		quotesReal[2] = this->values[2] == quotes;
+		quotesReal[3] = this->values[3] == quotes;
+		quotesReal[4] = this->values[4] == quotes;
+		quotesReal[5] = this->values[5] == quotes;
+		quotesReal[6] = this->values[6] == quotes;
+		quotesReal[7] = this->values[7] == quotes;
+
+		SimdBase<__m256i> quotesFinal{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
+			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
+		return quotesFinal;
+	}
+
 	inline SimdStringSection(std::string_view valueNew) {
 		if (valueNew.size() < 256) {
 			this->string = valueNew;
@@ -415,14 +538,6 @@ class SimdStringSection {
 		} else {
 			this->stringView = valueNew;
 		}
-		
-		this->leftCurlyBrackets = '{';
-		this->rightCurlyBrackets = '}';
-		this->commas = ',';
-		this->leftSquareBrackets = '[';
-		this->rightSquareBrackets = ']';
-		this->backslashes = '\\';
-		this->quotes = '"';
 
 		this->packStringIntoValue(this->values[0], this->stringView.data());
 		this->packStringIntoValue(this->values[1], this->stringView.data() + 32);
@@ -432,91 +547,21 @@ class SimdStringSection {
 		this->packStringIntoValue(this->values[5], this->stringView.data() + 160);
 		this->packStringIntoValue(this->values[6], this->stringView.data() + 192);
 		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
+
+		this->Q256 = this->collectQuotes();
+
+		this->C256 = this->collectCommas();
+
+		this->LCB256 = this->collectLeftCurlyBrackets();
+
+		this->RCB256 = this->collectRightCurlyBrackets();
 		
-		this->Q[0] = this->values[0] == this->quotes;
-		this->Q[1] = this->values[1] == this->quotes;
-		this->Q[2] = this->values[2] == this->quotes;
-		this->Q[3] = this->values[3] == this->quotes;
-		this->Q[4] = this->values[4] == this->quotes;
-		this->Q[5] = this->values[5] == this->quotes;
-		this->Q[6] = this->values[6] == this->quotes;
-		this->Q[7] = this->values[7] == this->quotes;
+		this->LSB256 = this->collectLeftSquareBrackets();
 
-		this->Q256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->Q[0], this->Q[1]), convertSimd256To64BitUint(this->Q[2], this->Q[3]),
-			convertSimd256To64BitUint(this->Q[4], this->Q[5]), convertSimd256To64BitUint(this->Q[6], this->Q[7]) };
+		this->RSB256 = this->collectRightSquareBrackets();
 
-		this->C[0] = this->values[0] == this->commas;
-		this->C[1] = this->values[1] == this->commas;
-		this->C[2] = this->values[2] == this->commas;
-		this->C[3] = this->values[3] == this->commas;
-		this->C[4] = this->values[4] == this->commas;
-		this->C[5] = this->values[5] == this->commas;
-		this->C[6] = this->values[6] == this->commas;
-		this->C[7] = this->values[7] == this->commas;
+		this->B256 = this->collectBackslashes();
 
-		this->C256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->C[0], this->C[1]), convertSimd256To64BitUint(this->C[2], this->C[3]),
-			convertSimd256To64BitUint(this->C[4], this->C[5]), convertSimd256To64BitUint(this->C[6], this->C[7]) };
-
-		this->LCB[0] = this->values[0] == this->leftCurlyBrackets;
-		this->LCB[1] = this->values[1] == this->leftCurlyBrackets;
-		this->LCB[2] = this->values[2] == this->leftCurlyBrackets;
-		this->LCB[3] = this->values[3] == this->leftCurlyBrackets;
-		this->LCB[4] = this->values[4] == this->leftCurlyBrackets;
-		this->LCB[5] = this->values[5] == this->leftCurlyBrackets;
-		this->LCB[6] = this->values[6] == this->leftCurlyBrackets;
-		this->LCB[7] = this->values[7] == this->leftCurlyBrackets;
-
-		this->LCB256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->LCB[0], this->LCB[1]), convertSimd256To64BitUint(this->LCB[2], this->LCB[3]),
-			convertSimd256To64BitUint(this->LCB[4], this->LCB[5]), convertSimd256To64BitUint(this->LCB[6], this->LCB[7]) };
-
-		this->RCB[0] = this->values[0] == this->rightCurlyBrackets;
-		this->RCB[1] = this->values[1] == this->rightCurlyBrackets;
-		this->RCB[2] = this->values[2] == this->rightCurlyBrackets;
-		this->RCB[3] = this->values[3] == this->rightCurlyBrackets;
-		this->RCB[4] = this->values[4] == this->rightCurlyBrackets;
-		this->RCB[5] = this->values[5] == this->rightCurlyBrackets;
-		this->RCB[6] = this->values[6] == this->rightCurlyBrackets;
-		this->RCB[7] = this->values[7] == this->rightCurlyBrackets;
-
-		this->RCB256= SimdBase<__m256i>{ convertSimd256To64BitUint(this->RCB[0], this->RCB[1]), convertSimd256To64BitUint(this->RCB[2], this->RCB[3]),
-			convertSimd256To64BitUint(this->RCB[4], this->RCB[5]), convertSimd256To64BitUint(this->RCB[6], this->RCB[7]) };
-				
-		this->LSB[0] = this->values[0] == this->leftSquareBrackets;
-		this->LSB[1] = this->values[1] == this->leftSquareBrackets;
-		this->LSB[2] = this->values[2] == this->leftSquareBrackets;
-		this->LSB[3] = this->values[3] == this->leftSquareBrackets;
-		this->LSB[4] = this->values[4] == this->leftSquareBrackets;
-		this->LSB[5] = this->values[5] == this->leftSquareBrackets;
-		this->LSB[6] = this->values[6] == this->leftSquareBrackets;
-		this->LSB[7] = this->values[7] == this->leftSquareBrackets;
-
-		this->LSB256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->LSB[0], this->LSB[1]), convertSimd256To64BitUint(this->LSB[2], this->LSB[3]),
-			convertSimd256To64BitUint(this->LSB[4], this->LSB[5]), convertSimd256To64BitUint(this->LSB[6], this->LSB[7]) };
-
-		this->RSB[0] = this->values[0] == this->rightSquareBrackets;
-		this->RSB[1] = this->values[1] == this->rightSquareBrackets;
-		this->RSB[2] = this->values[2] == this->rightSquareBrackets;
-		this->RSB[3] = this->values[3] == this->rightSquareBrackets;
-		this->RSB[4] = this->values[4] == this->rightSquareBrackets;
-		this->RSB[5] = this->values[5] == this->rightSquareBrackets;
-		this->RSB[6] = this->values[6] == this->rightSquareBrackets;
-		this->RSB[7] = this->values[7] == this->rightSquareBrackets;
-
-		this->RSB256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->RSB[0], this->RSB[1]), convertSimd256To64BitUint(this->RSB[2], this->RSB[3]),
-			convertSimd256To64BitUint(this->RSB[4], this->RSB[5]), convertSimd256To64BitUint(this->RSB[6], this->RSB[7]) };
-
-		this->B[0] = this->values[0] == this->backslashes;
-		this->B[1] = this->values[1] == this->backslashes;
-		this->B[2] = this->values[2] == this->backslashes;
-		this->B[3] = this->values[3] == this->backslashes;
-		this->B[4] = this->values[4] == this->backslashes;
-		this->B[5] = this->values[5] == this->backslashes;
-		this->B[6] = this->values[6] == this->backslashes;
-		this->B[7] = this->values[7] == this->backslashes;
-
-		this->B256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->B[0], this->B[1]), convertSimd256To64BitUint(this->B[2], this->B[3]),
-			convertSimd256To64BitUint(this->B[4], this->B[5]),
-			convertSimd256To64BitUint(this->B[6], this->B[7]) };
 		this->S = this->B256.bit_andnot(this->B256 << 1);
 		this->ES = this->E & this->S;
 		this->EC = this->ES.collectCarries(this->B256);
@@ -595,16 +640,6 @@ class SimdStringSection {
 	SimdBase<__m256i> opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
 	SimdBase<__m256i> E{ _mm256_set1_epi8(0b01010101) };
 	SimdBase<__m256i> O{ _mm256_set1_epi8(0b10101010) };
-	SimdBase<__m256i> rightCurlyBrackets{};
-	SimdBase<__m256i> leftCurlyBrackets{};
-	SimdBase<__m256i> rightSquareBrackets{};
-	SimdBase<__m256i> leftSquareBrackets{};
-	SimdBase<__m256i> commas{};
-	SimdBase<__m256i> backslashes{};
-	SimdBase<__m256i> values[8]{};
-	SimdBase<__m256i> B[8]{};
-	SimdBase<__m256i> Q[8]{};
-	SimdBase<__m256i> quotes{};
 	SimdBase<__m256i> Q256{};
 	SimdBase<__m256i> R256{};
 	SimdBase<__m256i> W256{};
@@ -613,14 +648,10 @@ class SimdStringSection {
 	SimdBase<__m256i> S256{};
 	SimdBase<__m256i> RSB256{};
 	SimdBase<__m256i> LSB256{};
-	SimdBase<__m256i> RSB[8]{};
-	SimdBase<__m256i> LSB[8]{};
 	SimdBase<__m256i> RCB256{};
 	SimdBase<__m256i> LCB256{};
-	SimdBase<__m256i> RCB[8]{};
-	SimdBase<__m256i> LCB[8]{};
 	SimdBase<__m256i> C256{};
-	SimdBase<__m256i> C[8]{};
+	SimdBase<__m256i> values[8]{};
 	SimdBase<__m256i> ES{};
 	SimdBase<__m256i> EC{};
 	SimdBase<__m256i> S{};
