@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <bitset>
+#include <atomic>
 #include <immintrin.h>
 
 template<typename TTy> class StopWatch {
