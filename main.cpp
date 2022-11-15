@@ -1,4 +1,7 @@
 #include <immintrin.h>
+#include <smmintrin.h>
+#include <tmmintrin.h>
+#include <wmmintrin.h>
 #include <iostream>
 #include <chrono>
 #include <vector>
