@@ -32,9 +32,8 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
-	"$<$<PLATFORM_ID:Linux>:-march=native>"
-	"$<$<PLATFORM_ID:Linux>:-Wpsabi>"
-	"$<$<PLATFORM_ID:Linux>:-mavx2>"
+	"$<$<CXX_COMPILER_ID:GNU>:-march=native>"
+	"$<$<CXX_COMPILER_ID:GNU>:-mavx2>"
 )
 
 target_compile_features(
