@@ -2,7 +2,7 @@
 	"${PROJECT_NAME}"
 	"../main.cpp"
 )
-set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} "-mavx2")
+
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
@@ -36,7 +36,7 @@ target_compile_options(
 
 target_compile_features(
 	"${PROJECT_NAME}" PUBLIC
-	"cxx_std_23"
+	"cxx_std_20"
 )
 
 if (WIN32)

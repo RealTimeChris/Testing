@@ -65,7 +65,6 @@ template<typename ITy> struct SimdBase {
 	ITy value{};
 
 	inline SimdBase() noexcept = default;
-
 };
 
 template<>
@@ -508,17 +507,17 @@ class SimdStringSection {
 		this->S256 = this->S256 | this->P256;
 		this->S256 = this->S256 & ~(this->Q256 & ~this->R256);
 
-		this->S256.printBits("S FINAL VALUES (256) ");
-		this->W256.printBits("W FINAL VALUES (256) ");
-		this->R256.printBits("R FINAL VALUES (256) ");
-		this->Q256.printBits("Q FINAL VALUES (256): ");
-		this->LSB256.printBits("LSB FINAL VALUES (256): ");
-		this->RSB256.printBits("RSB FINAL VALUES (256) ");
-		this->LCB256.printBits("LCB FINAL VALUES (256): ");
-		this->RCB256.printBits("RCB FINAL VALUES (256) ");
-		this->C256.printBits("COMMAS FINAL VALUES (256) ");
+		//this->S256.printBits("S FINAL VALUES (256) ");
+		//this->W256.printBits("W FINAL VALUES (256) ");
+		//this->R256.printBits("R FINAL VALUES (256) ");
+		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
+		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
+		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
+		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
+		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 		
-		std::cout << "THE STRING: " << this->string << std::endl;
+		//std::cout << "THE STRING: " << this->string << std::endl;
 	}
 
 	operator std::string() {
@@ -572,6 +571,13 @@ class SimdStringSection {
 	std::string string{};
 };
 
+enum class JsonEvent { Key_Start = 0, Object_Start = 1, Array_Start = 2, String_Start = 3, Int_Start = 4, Float_Start = 5, Bool_Start = 6 };
+
+struct JsonTapeRecord {
+	size_t lengthOfEvent{};
+	JsonEvent eventType{};
+};
+
 class StringScanner {
   public:
 	StringScanner(std::string_view string) noexcept {
@@ -584,8 +590,13 @@ class StringScanner {
 		}
 		this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
 	}
+
+
+
   protected:
 	std::vector<SimdStringSection> stringSections{};
+	std::vector<JsonTapeRecord> jsonTape{};
+
 
 };
 
