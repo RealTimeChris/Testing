@@ -571,7 +571,7 @@ class SimdStringSection {
 	std::string string{};
 };
 
-enum class JsonEvent { Key_Start = 0, Object_Start = 1, Array_Start = 2, String_Start = 3, Int_Start = 4, Float_Start = 5, Bool_Start = 6 };
+enum class JsonEvent { Key_Start = 0, Object_Start = 1, Array_Start = 2, String_Start = 3, Primitive_Start = 4, Int_Start = 5, Float_Start = 6, Bool_Start = 7 };
 
 struct JsonTapeRecord {
 	size_t lengthOfEvent{};
@@ -591,7 +591,9 @@ class StringScanner {
 		this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
 	}
 
+	void generateTapeRecord() {
 
+	}
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
