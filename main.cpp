@@ -94,58 +94,45 @@ template<> class SimdBase<__m128i> {
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
-	inline SimdBase<__m128i>& operator=(__m128i&& other) {
+	inline SimdBase& operator=(const __m128i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase(__m128i&& other) {
+	inline SimdBase(const __m128i other) {
 		*this = other;
 	}
 
-	inline SimdBase<__m128i>& operator=(__m128i& other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase(__m128i& other) {
-		*this = other;
-	}
-
-	inline operator __m128i*() {
-		return &this->value;
+	inline operator const __m128i&() const {
+		return this->value;
 	}
 
 	inline operator __m128i&() {
 		return this->value;
 	}
 
-	inline SimdBase<__m128i> operator|(__m128i& other) {
+	inline SimdBase<__m128i> operator|(__m128i other) {
 		return _mm_or_si128(*this, other);
 	}
 
-	inline SimdBase<__m128i> operator&(__m128i& other) {
+	inline SimdBase<__m128i> operator&(__m128i other) {
 		return _mm_and_si128(*this, other);
 	}
 
-	inline SimdBase<__m128i> operator^(__m128i& other) {
+	inline SimdBase<__m128i> operator^(__m128i other) {
 		return _mm_xor_si128(*this, other);
 	}
 
-	inline SimdBase<__m128i> bit_andnot(__m128i& other) {
-		return _mm_andnot_si128(other, *this);
-	}
-
-	inline SimdBase<__m128i> operator+(__m128i& other) {
+	inline SimdBase<__m128i> operator+(__m128i other) {
 		return _mm_add_epi8(*this, other);
 	}
 
-	inline SimdBase<__m128i> operator|=(__m128i& other) {
+	inline SimdBase<__m128i> operator|=(__m128i other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase<__m128i> operator&=(__m128i& other) {
+	inline SimdBase<__m128i> operator&=(__m128i other) {
 		*this = *this & other;
 		return *this;
 	}
@@ -155,7 +142,7 @@ template<> class SimdBase<__m128i> {
 		return *this;
 	}
 
-	friend inline SimdBase<__m128i> operator==(SimdBase<__m128i> lhs, SimdBase<__m128i> rhs) {
+	friend inline SimdBase<__m128i> operator==(__m128i lhs, __m128i rhs) {
 		return _mm_cmpeq_epi8(lhs, rhs);
 	}
 
@@ -176,6 +163,10 @@ template<> class SimdBase<__m128i> {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
 		return newValue;
+	}
+
+	inline SimdBase<__m128i> bit_andnot(__m128i other) {
+		return _mm_andnot_si128(other, *this);
 	}
 
 	inline SimdBase<__m128i> shuffle(__m128i indices) {
@@ -379,10 +370,9 @@ class SimdStringSection {
 		RightSquareBracketsReal[6] = this->values[6] == RightSquareBrackets;
 		RightSquareBracketsReal[7] = this->values[7] == RightSquareBrackets;
 
-		SimdBase<__m256i> RightSquareBracketsFinal{ convertSimd256To64BitUint(RightSquareBracketsReal[0], RightSquareBracketsReal[1]),
+		return { convertSimd256To64BitUint(RightSquareBracketsReal[0], RightSquareBracketsReal[1]),
 			convertSimd256To64BitUint(RightSquareBracketsReal[2], RightSquareBracketsReal[3]), convertSimd256To64BitUint(RightSquareBracketsReal[4], RightSquareBracketsReal[5]),
 			convertSimd256To64BitUint(RightSquareBracketsReal[6], RightSquareBracketsReal[7]) };
-		return RightSquareBracketsFinal;
 	}
 
 	SimdBase<__m256i> collectLeftSquareBrackets() {
@@ -397,10 +387,8 @@ class SimdStringSection {
 		LeftSquareBracketsReal[6] = this->values[6] == LeftSquareBrackets;
 		LeftSquareBracketsReal[7] = this->values[7] == LeftSquareBrackets;
 
-		SimdBase<__m256i> LeftSquareBracketsFinal{ convertSimd256To64BitUint(LeftSquareBracketsReal[0], LeftSquareBracketsReal[1]),
-			convertSimd256To64BitUint(LeftSquareBracketsReal[2], LeftSquareBracketsReal[3]), convertSimd256To64BitUint(LeftSquareBracketsReal[4], LeftSquareBracketsReal[5]),
-			convertSimd256To64BitUint(LeftSquareBracketsReal[6], LeftSquareBracketsReal[7]) };
-		return LeftSquareBracketsFinal;
+		return { convertSimd256To64BitUint(LeftSquareBracketsReal[0], LeftSquareBracketsReal[1]), convertSimd256To64BitUint(LeftSquareBracketsReal[2], LeftSquareBracketsReal[3]),
+			convertSimd256To64BitUint(LeftSquareBracketsReal[4], LeftSquareBracketsReal[5]), convertSimd256To64BitUint(LeftSquareBracketsReal[6], LeftSquareBracketsReal[7]) };
 	}
 
 	SimdBase<__m256i> collectRightCurlyBrackets() {
@@ -415,10 +403,8 @@ class SimdStringSection {
 		RightCurlyBracketsReal[6] = this->values[6] == RightCurlyBrackets;
 		RightCurlyBracketsReal[7] = this->values[7] == RightCurlyBrackets;
 
-		SimdBase<__m256i> RightCurlyBracketsFinal{ convertSimd256To64BitUint(RightCurlyBracketsReal[0], RightCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(RightCurlyBracketsReal[2], RightCurlyBracketsReal[3]), convertSimd256To64BitUint(RightCurlyBracketsReal[4], RightCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(RightCurlyBracketsReal[6], RightCurlyBracketsReal[7]) };
-		return RightCurlyBracketsFinal;
+		return { convertSimd256To64BitUint(RightCurlyBracketsReal[0], RightCurlyBracketsReal[1]), convertSimd256To64BitUint(RightCurlyBracketsReal[2], RightCurlyBracketsReal[3]),
+			convertSimd256To64BitUint(RightCurlyBracketsReal[4], RightCurlyBracketsReal[5]), convertSimd256To64BitUint(RightCurlyBracketsReal[6], RightCurlyBracketsReal[7]) };
 	}
 
 	SimdBase<__m256i> collectLeftCurlyBrackets() {
@@ -433,10 +419,8 @@ class SimdStringSection {
 		LeftCurlyBracketsReal[6] = this->values[6] == LeftCurlyBrackets;
 		LeftCurlyBracketsReal[7] = this->values[7] == LeftCurlyBrackets;
 
-		SimdBase<__m256i> LeftCurlyBracketsFinal{ convertSimd256To64BitUint(LeftCurlyBracketsReal[0], LeftCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(LeftCurlyBracketsReal[2], LeftCurlyBracketsReal[3]), convertSimd256To64BitUint(LeftCurlyBracketsReal[4], LeftCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(LeftCurlyBracketsReal[6], LeftCurlyBracketsReal[7]) };
-		return LeftCurlyBracketsFinal;
+		return { convertSimd256To64BitUint(LeftCurlyBracketsReal[0], LeftCurlyBracketsReal[1]), convertSimd256To64BitUint(LeftCurlyBracketsReal[2], LeftCurlyBracketsReal[3]),
+			convertSimd256To64BitUint(LeftCurlyBracketsReal[4], LeftCurlyBracketsReal[5]), convertSimd256To64BitUint(LeftCurlyBracketsReal[6], LeftCurlyBracketsReal[7]) };
 	}
 
 	SimdBase<__m256i> collectCommas() {
@@ -451,9 +435,8 @@ class SimdStringSection {
 		commasReal[6] = this->values[6] == commas;
 		commasReal[7] = this->values[7] == commas;
 
-		SimdBase<__m256i> commasFinal{ convertSimd256To64BitUint(commasReal[0], commasReal[1]), convertSimd256To64BitUint(commasReal[2], commasReal[3]),
+		return { convertSimd256To64BitUint(commasReal[0], commasReal[1]), convertSimd256To64BitUint(commasReal[2], commasReal[3]),
 			convertSimd256To64BitUint(commasReal[4], commasReal[5]), convertSimd256To64BitUint(commasReal[6], commasReal[7]) };
-		return commasFinal;
 	}
 
 	SimdBase<__m256i> collectBackslashes() {
@@ -468,9 +451,8 @@ class SimdStringSection {
 		backslashesReal[6] = this->values[6] == backslashes;
 		backslashesReal[7] = this->values[7] == backslashes;
 
-		SimdBase<__m256i> backslashesFinal{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]), convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]),
+		return { convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]), convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]),
 			convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]), convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
-		return backslashesFinal;
 	}
 
 	SimdBase<__m256i> collectQuotes() {
@@ -485,9 +467,22 @@ class SimdStringSection {
 		quotesReal[6] = this->values[6] == quotes;
 		quotesReal[7] = this->values[7] == quotes;
 
-		SimdBase<__m256i> quotesFinal{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
+		this->Q256 = SimdBase<__m256i>{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
-		return quotesFinal;
+		auto S = this->B256.bit_andnot(this->B256 << 1);
+		SimdBase<__m256i> E{ _mm256_set1_epi8(0b01010101) };
+		SimdBase<__m256i> O{ _mm256_set1_epi8(0b10101010) };
+		auto ES = E & S;
+		auto EC = ES.collectCarries(this->B256);
+		auto ECE = EC & ~this->B256;
+		auto OD1 = ECE & ~E;
+		auto OS = S & O;
+		auto OC = this->B256 + OS;
+		auto OCE = OC & ~this->B256;
+		auto OD2 = OCE & E;
+		auto OD = OD1 | OD2;
+
+		return this->Q256 & ~OD;
 	}
 
 	inline SimdStringSection(std::string_view valueNew) {
@@ -522,18 +517,7 @@ class SimdStringSection {
 		this->RSB256 = this->collectRightSquareBrackets();
 
 		this->B256 = this->collectBackslashes();
-		this->S = this->B256.bit_andnot(this->B256 << 1);
-		this->ES = this->E & this->S;
-		this->EC = this->ES.collectCarries(this->B256);
-		this->ECE = this->EC & ~this->B256;		
-		this->OD1 = this->ECE & ~this->E;
-		this->OS = this->S & this->O;
-		this->OC = this->B256 + this->OS;
-		this->OCE = this->OC & ~this->B256;
-		this->OD2 = this->OCE & this->E;
-		this->OD = this->OD1 | this->OD2;
-
-		this->Q256 = this->Q256 & ~this->OD;
+		
 		this->R256 = this->Q256;
 		this->R256 = this->R256.carrylessMultiplication('\xFF');
 		auto whiteSpace00 = this->values[0].shuffle(this->whitespaceTable) == this->values[0];
@@ -598,8 +582,6 @@ class SimdStringSection {
 	SimdBase<__m256i> whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100,
 		'\t', '\n', 112, 100, '\r', 100, 100) };
 	SimdBase<__m256i> opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
-	SimdBase<__m256i> E{ _mm256_set1_epi8(0b01010101) };
-	SimdBase<__m256i> O{ _mm256_set1_epi8(0b10101010) };
 	SimdBase<__m256i> Q256{};
 	SimdBase<__m256i> R256{};
 	SimdBase<__m256i> W256{};
@@ -612,17 +594,6 @@ class SimdStringSection {
 	SimdBase<__m256i> LCB256{};
 	SimdBase<__m256i> C256{};
 	SimdBase<__m256i> values[8]{};
-	SimdBase<__m256i> ES{};
-	SimdBase<__m256i> EC{};
-	SimdBase<__m256i> S{};
-	SimdBase<__m256i> OD1{};
-	SimdBase<__m256i> OS1{};
-	SimdBase<__m256i> OC{};
-	SimdBase<__m256i> OCE{};
-	SimdBase<__m256i> OS{};
-	SimdBase<__m256i> ECE{};
-	SimdBase<__m256i> OD2{};
-	SimdBase<__m256i> OD{};
 	std::string_view stringView{};
 	std::string string{};
 };
