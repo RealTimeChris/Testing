@@ -333,10 +333,15 @@ class SimdStringSection {
 		}
 	}
 
-	inline SimdStringSection(const std::string& valueNew) {
+	inline SimdStringSection(std::string_view valueNew) {
 		this->string = valueNew;
+		if (this->string.size() < 256) {
+			this->string.append(valueNew);
+			this->string.append(256 - valueNew.size(), ' ');
+		}
 		this->backslashes = '\\';
 		this->quotes = '"';
+		std::cout << "THE STRING: " << this->string << std::endl;
 		packStringIntoValue(this->values[0], this->string.data());
 		packStringIntoValue(this->values[1], this->string.data() + 32);
 		packStringIntoValue(this->values[2], this->string.data() + 64);
@@ -467,7 +472,14 @@ class SimdStringSection {
 
 class StringScanner {
   public:
-	StringScanner(const std::string&) noexcept;
+	StringScanner(const std::string&string) noexcept {
+		size_t stringSize = string.size();
+		while (stringSize > 256) {
+			this->stringSections.emplace_back(std::string_view{ string.data() + string.size() - stringSize, 256 });
+			stringSize -= 256;
+		}
+		this->stringSections.emplace_back(std::string_view{ string.data(), stringSize });
+	}
   protected:
 	std::vector<SimdStringSection> stringSections{};
 
@@ -626,7 +638,8 @@ class Simd64Base {
 };
 
 int32_t main() noexcept {
-	std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+	std::string string64{ "{\"d\":{\"activities\":null\,\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"713871351097720863\",\"status\":\"online\","
+						  "\"user\":{\"avatar\":\"7b0b8a011bcca5be5978eee3ec06a19c\",\"" };
 	std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
@@ -634,7 +647,7 @@ int32_t main() noexcept {
 	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
-
+	StringScanner scanner{ string64 };
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringSection simd8Test{ string256 };
