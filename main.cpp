@@ -59,9 +59,9 @@ template<typename TTy> class StopWatch {
 	std::atomic_int64_t startTime{ 0 };
 };
 
-inline uint64_t convertSimd256To64BitUint(__m256i inputA, __m256i inputB) {
-	uint64_t r_lo = _mm256_movemask_epi8(inputA);
-	uint64_t r_hi = _mm256_movemask_epi8(inputB);
+inline uint64_t convertSimd256To64BitUint(__m256i* inputA, __m256i* inputB) {
+	uint64_t r_lo = _mm256_movemask_epi8(*inputA);
+	uint64_t r_hi = _mm256_movemask_epi8(*inputB);
 	return r_lo | (r_hi << 32);
 }
 
@@ -228,52 +228,65 @@ class SimdBase<__m256i> {
 		*this = other;
 	}
 
+	inline SimdBase<__m256i>& operator=(__m256i* other) {
+		this->value = *other;
+		return *this;
+	}
+
+	inline SimdBase(__m256i* other) {
+		*this = other;
+	}
+
+	inline operator __m256i*() {
+		return &this->value;
+	}
+
 	inline operator __m256i&() {
 		return this->value;
 	}
 
-	inline SimdBase<__m256i> operator|(__m256i other) {
-		this->value = _mm256_or_si256(*this, other);
+	inline SimdBase<__m256i> operator|(__m256i* other) {
+		this->value = _mm256_or_si256(*this, *other);
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator&(__m256i other) {
-		this->value = _mm256_and_si256(*this, other);
+	inline SimdBase<__m256i> operator&(__m256i* other) {
+		this->value = _mm256_and_si256(*this, *other);
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator^(__m256i other) {
-		this->value = _mm256_xor_si256(*this, other);
+	inline SimdBase<__m256i> operator^(__m256i* other) {
+		this->value = _mm256_xor_si256(*this, *other);
 		return *this;
 	}
 
-	inline SimdBase<__m256i> bit_andnot(__m256i other) {
-		this->value = _mm256_andnot_si256(*this, other);
+	inline SimdBase<__m256i> bit_andnot(__m256i* other) {
+		this->value = _mm256_andnot_si256(*this, *other);
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator+(__m256i other) {
-		this->value = _mm256_add_epi8(*this, other);
+	inline SimdBase<__m256i> operator+(__m256i* other) {
+		this->value = _mm256_add_epi8(*this, *other);
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator|=(__m256i other) {
+	inline SimdBase<__m256i> operator|=(__m256i* other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator&=(__m256i other) {
+	inline SimdBase<__m256i> operator&=(__m256i* other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator^=(__m256i other) {
+	inline SimdBase<__m256i> operator^=(__m256i* other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	inline SimdBase<__m256i> operator==(__m256i rhs) {
-		this->value = _mm256_cmpeq_epi8(this->value, rhs);
+	inline SimdBase<__m256i> operator==(__m256i* rhs) {
+		this->value = _mm256_cmpeq_epi8(this->value, *rhs);
 		return *this;
 	}
 
@@ -285,7 +298,7 @@ class SimdBase<__m256i> {
 				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
 			}
 		}
-		return newValue;
+		return &newValue;
 	}
 
 	inline SimdBase<__m256i> operator~() {
@@ -293,11 +306,11 @@ class SimdBase<__m256i> {
 		for (size_t x = 0; x < 4; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
-		return newValue;
+		return &newValue;
 	}
 
-	inline SimdBase<__m256i> shuffle(__m256i indices) {
-		this->value = _mm256_shuffle_epi8(indices, *this);
+	inline SimdBase<__m256i> shuffle(__m256i* indices) {
+		this->value = _mm256_shuffle_epi8(*indices, *this);
 		return *this;
 	}
 
@@ -659,7 +672,7 @@ class Simd64Base {
   public:
 
 	inline operator uint64_t() {
-		return convertSimd256To64BitUint(this->values[1], this->values[0]);
+		return convertSimd256To64BitUint(&this->values[1], &this->values[0]);
 	}
 
 	void packStringIntoValue(__m256i& theValue, const char* string) {
@@ -734,7 +747,7 @@ class Simd64Base {
 		this->OC = this->B64 + this->OS;
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
-		this->B64 = convertSimd256To64BitUint(this->B[0], this->B[1]);
+		this->B64 = convertSimd256To64BitUint(&this->B[0], &this->B[1]);
 		this->S = this->B64 & ~(this->B64 << 1);
 		this->ES = this->S & this->E;
 		this->EC = collectCarries(this->ES, this->B64);
@@ -747,18 +760,18 @@ class Simd64Base {
 		this->OD = this->OD1 | this->OD2;
 		this->Q[0] = _mm256_cmpeq_epi8(this->values[0], this->quotes);
 		this->Q[1] = _mm256_cmpeq_epi8(this->values[1], this->quotes);
-		this->Q64 = convertSimd256To64BitUint(this->Q[0], this->Q[1]);
+		this->Q64 = convertSimd256To64BitUint(&this->Q[0], &this->Q[1]);
 		this->Q64 = this->Q64 & ~this->OD;
 		this->R64 = this->Q64;
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
 		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
 		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
-		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
+		this->W64 = convertSimd256To64BitUint(&whiteSpace00, &whiteSpace01);
 		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
 		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
 		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
 		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
-		this->S64 = convertSimd256To64BitUint(structural00, structural01);
+		this->S64 = convertSimd256To64BitUint(&structural00, &structural01);
 		this->S64 = this->S64 & ~this->R64;
 		this->S64 = this->S64 | this->Q64;
 		this->P64 = this->S64 | this->W64;
