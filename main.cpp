@@ -203,10 +203,10 @@ template<>
 class SimdBase<__m256i> {
   public:
 	
-	SimdBase() noexcept = default;
+	inline SimdBase() noexcept = default;
 
 	inline SimdBase<__m256i>& operator=(char other) {
-		this->value = _mm256_set1_epi8(other);
+		*this = _mm256_set1_epi8(other);
 		return *this;
 	}
 
