@@ -33,8 +33,6 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
 	"$<$<CXX_COMPILER_ID:GCC>:-march=native>"
-	"$<$<CXX_COMPILER_ID:GCC>:-msse4.1>"
-	"$<$<CXX_COMPILER_ID:GCC>:-mavx2>"
 	"$<$<CXX_COMPILER_ID:GCC>:-Wpsabi>"
 )
 
