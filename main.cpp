@@ -318,7 +318,7 @@ class SimdBase<__m256i> {
 		unsigned long returnValue{};
 		for (int64_t x = 0; x < 4; ++x) {
 			unsigned long newValue{};
-			_BitScanForward64(&newValue, *(reinterpret_cast<uint64_t*>(&this->value) + x));
+			newValue = _tzcnt_u64(*(reinterpret_cast<uint64_t*>(&this->value) + x));
 			if (newValue < 64) {
 				returnValue += newValue;
 				return returnValue;
