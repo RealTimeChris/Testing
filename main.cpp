@@ -142,8 +142,8 @@ template<> class SimdBase<__m128i> {
 		return *this;
 	}
 
-	friend inline SimdBase<__m128i> operator==(__m128i lhs, __m128i rhs) {
-		return _mm_cmpeq_epi8(lhs, rhs);
+	inline SimdBase<__m128i> operator==(__m128i rhs) {
+		return _mm_cmpeq_epi8(this->value, rhs);
 	}
 
 	inline SimdBase<__m128i> operator<<(size_t amount) {
