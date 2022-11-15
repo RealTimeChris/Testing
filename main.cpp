@@ -202,7 +202,7 @@ class SimdBase<__m256i> {
 		*this = other;
 	}
 
-	inline SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
+	SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
 		this->value = _mm256_insert_epi64(this->value, value02, 2);
@@ -284,7 +284,7 @@ class SimdBase<__m256i> {
 		return newValue;
 	}
 
-	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
+	SimdBase<__m256i> carrylessMultiplication(char operand) {
 		return SimdBase<__m256i>{
 			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0))),
 			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0))),
