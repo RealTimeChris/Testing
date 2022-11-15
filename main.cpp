@@ -94,7 +94,7 @@ template<> class SimdBase<__m128i> {
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
-	inline SimdBase& operator=(const __m128i other) {
+	inline SimdBase<__m128i>& operator=(const __m128i other) {
 		this->value = other;
 		return *this;
 	}
@@ -207,7 +207,7 @@ template<> class SimdBase<__m256i> {
 		this->value = _mm256_insert_epi64(this->value, value03, 3);
 	}
 
-	inline SimdBase& operator=(const __m256i other) {
+	inline SimdBase<__m256i>& operator=(const __m256i other) {
 		this->value = other;
 		return *this;
 	}
