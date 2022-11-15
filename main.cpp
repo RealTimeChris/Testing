@@ -56,8 +56,8 @@ template<typename TTy> class StopWatch {
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i& inputA, __m256i inputB) {
-	uint64_t r_lo;// = uint32_t(_mm256_movemask_epi8(inputA));
-	uint64_t r_hi;// = _mm256_movemask_epi8(inputB);
+	uint64_t r_lo = uint32_t(_mm256_movemask_epi8(inputA));
+	uint64_t r_hi = _mm256_movemask_epi8(inputB);
 	return r_lo | (r_hi << 32);
 }
 
@@ -202,7 +202,7 @@ class SimdBase<__m256i> {
 		*this = other;
 	}
 
-	SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
+	inline SimdBase(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
 		this->value = _mm256_insert_epi64(this->value, value02, 2);
@@ -284,13 +284,13 @@ class SimdBase<__m256i> {
 		return newValue;
 	}
 
-	SimdBase<__m256i> carrylessMultiplication(char operand) {
-		auto value00 = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0);
-		auto value01 = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0);
-		auto value02 = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase<__m128i>{ operand }, 0);
-		auto value03 = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase<__m128i>{ operand }, 0);
-		return SimdBase<__m256i>{ static_cast<uint64_t>(_mm_cvtsi128_si64(value00)), static_cast<uint64_t>(_mm_cvtsi128_si64(value01)),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(value02)), static_cast<uint64_t>(_mm_cvtsi128_si64(value03)) };
+	inline SimdBase<__m256i> carrylessMultiplication(char operand) {
+		return SimdBase<__m256i>{
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase<__m128i>{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase<__m128i>{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase<__m128i>{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase<__m128i>{ operand }, 0)))
+		};
 	}
 
 	inline SimdBase<__m256i> collectCarries(__m256i inputB) {
@@ -311,7 +311,7 @@ class SimdBase<__m256i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -333,15 +333,10 @@ class SimdStringSection {
 		}
 	}
 
-	inline SimdStringSection(std::string_view valueNew) {
+	inline SimdStringSection(const std::string& valueNew) {
 		this->string = valueNew;
-		if (this->string.size() < 256) {
-			this->string.append(valueNew);
-			this->string.append(256 - valueNew.size(), ' ');
-		}
 		this->backslashes = '\\';
 		this->quotes = '"';
-		//std::cout << "THE STRING: " << this->string << std::endl;
 		packStringIntoValue(this->values[0], this->string.data());
 		packStringIntoValue(this->values[1], this->string.data() + 32);
 		packStringIntoValue(this->values[2], this->string.data() + 64);
@@ -472,14 +467,7 @@ class SimdStringSection {
 
 class StringScanner {
   public:
-	StringScanner(const std::string&string) noexcept {
-		size_t stringSize = string.size();
-		while (stringSize > 256) {
-			this->stringSections.emplace_back(std::string_view{ string.data() + string.size() - stringSize, 256 });
-			stringSize -= 256;
-		}
-		this->stringSections.emplace_back(std::string_view{ string.data(), stringSize });
-	}
+	StringScanner(const std::string&) noexcept;
   protected:
 	std::vector<SimdStringSection> stringSections{};
 
@@ -638,42 +626,32 @@ class Simd64Base {
 };
 
 int32_t main() noexcept {
-	std::string stringRandom{ "{\"d\":{\"activities\":null\,\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"713871351097720863\",\"status\":\"online\","
-							  "\"user\":{\"avatar\":\"7b0b8a011bcca5be5978eee3ec06a19c\",\"" };
 	std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
-	StringScanner scanner{ string64 };
+	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
-	std::vector<std::string> vector{};
-	for (size_t x = 0; x < 25; ++x) {		
-		stopWatch.resetTimer();
-		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
-			SimdStringSection simd8Test{ string256 };
-			vector.push_back(string256);
-			totalSize += string256.size();
-		}
-		totalTime += stopWatch.totalTimePassed();
+
+	stopWatch.resetTimer();
+	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
+		SimdStringSection simd8Test{ string256 };
+		totalSize += string256.size();
 	}
+	totalTime += stopWatch.totalTimePassed();
+	
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 	totalSize = 0;
 	totalTime = 0;
-	vector.clear();
 	stopWatch.resetTimer();
-	for (size_t x = 0; x < 25; ++x) {
-		stopWatch.resetTimer();
-		for (size_t x = 0; x < 256 * 16384 ; ++x) {
-			Simd64Base simd8Test{ string64 };
-			vector.push_back(string64);
-			totalSize += string64.size();
-		}
-		totalTime += stopWatch.totalTimePassed();
+	for (size_t x = 0; x < 256 * 16384; ++x) {
+		Simd64Base simd8Test{ string64 };
+		totalSize += string64.size();
 	}
+	totalTime += stopWatch.totalTimePassed();
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 	
 	

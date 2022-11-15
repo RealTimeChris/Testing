@@ -3,7 +3,7 @@
 	"../main.cpp"
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mavx512f")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 ")
 
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
@@ -32,10 +32,9 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
-	"$<$<CXX_COMPILER_ID:GCC>:-march=native>"
-	"$<$<CXX_COMPILER_ID:GCC>:-Wpsabi>"
-	"$<$<CXX_COMPILER_ID:GCC>:-mavx2>"
-	"$<$<CXX_COMPILER_ID:GCC>:-mpclmul>"
+	"$<$<PLATFORM_ID:Linux>:-march=native>"
+	"$<$<PLATFORM_ID:Linux>:-Wpsabi>"
+	"$<$<PLATFORM_ID:Linux>:-mavx2>"
 )
 
 target_compile_features(
