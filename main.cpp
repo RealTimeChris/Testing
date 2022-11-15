@@ -93,6 +93,15 @@ class SimdBase<__m128i> {
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
+	inline SimdBase<__m128i>& operator=(__m128i&& other) {
+		this->value = other;
+		return *this;
+	}
+
+	inline SimdBase(__m128i&& other) {
+		*this = other;
+	}
+
 	inline SimdBase<__m128i>& operator=(__m128i& other) {
 		this->value = other;
 		return *this;
@@ -176,7 +185,7 @@ class SimdBase<__m128i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 16; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -311,7 +320,7 @@ class SimdBase<__m256i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -335,16 +344,22 @@ class SimdStringSection {
 
 	inline SimdStringSection(const std::string& valueNew) {
 		this->string = valueNew;
+		this->leftCurlyBrackets = '{';
+		this->rightCurlyBrackets = '}';
+		this->commas = ',';
+		this->leftSquareBrackets = '[';
+		this->rightSquareBrackets = ']';
 		this->backslashes = '\\';
 		this->quotes = '"';
-		packStringIntoValue(this->values[0], this->string.data());
-		packStringIntoValue(this->values[1], this->string.data() + 32);
-		packStringIntoValue(this->values[2], this->string.data() + 64);
-		packStringIntoValue(this->values[3], this->string.data() + 96);
-		packStringIntoValue(this->values[4], this->string.data() + 128);
-		packStringIntoValue(this->values[5], this->string.data() + 160);
-		packStringIntoValue(this->values[6], this->string.data() + 192);
-		packStringIntoValue(this->values[7], this->string.data() + 224);
+
+		this->packStringIntoValue(this->values[0], this->string.data());
+		this->packStringIntoValue(this->values[1], this->string.data() + 32);
+		this->packStringIntoValue(this->values[2], this->string.data() + 64);
+		this->packStringIntoValue(this->values[3], this->string.data() + 96);
+		this->packStringIntoValue(this->values[4], this->string.data() + 128);
+		this->packStringIntoValue(this->values[5], this->string.data() + 160);
+		this->packStringIntoValue(this->values[6], this->string.data() + 192);
+		this->packStringIntoValue(this->values[7], this->string.data() + 224);
 		
 		this->Q[0] = this->values[0] == this->quotes;
 		this->Q[1] = this->values[1] == this->quotes;
@@ -354,6 +369,69 @@ class SimdStringSection {
 		this->Q[5] = this->values[5] == this->quotes;
 		this->Q[6] = this->values[6] == this->quotes;
 		this->Q[7] = this->values[7] == this->quotes;
+
+		this->Q256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->Q[0], this->Q[1]), convertSimd256To64BitUint(this->Q[2], this->Q[3]),
+			convertSimd256To64BitUint(this->Q[4], this->Q[5]), convertSimd256To64BitUint(this->Q[6], this->Q[7]) };
+
+		this->C[0] = this->values[0] == this->commas;
+		this->C[1] = this->values[1] == this->commas;
+		this->C[2] = this->values[2] == this->commas;
+		this->C[3] = this->values[3] == this->commas;
+		this->C[4] = this->values[4] == this->commas;
+		this->C[5] = this->values[5] == this->commas;
+		this->C[6] = this->values[6] == this->commas;
+		this->C[7] = this->values[7] == this->commas;
+
+		this->C256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->C[0], this->C[1]), convertSimd256To64BitUint(this->C[2], this->C[3]),
+			convertSimd256To64BitUint(this->C[4], this->C[5]), convertSimd256To64BitUint(this->C[6], this->C[7]) };
+
+		this->LCB[0] = this->values[0] == this->leftCurlyBrackets;
+		this->LCB[1] = this->values[1] == this->leftCurlyBrackets;
+		this->LCB[2] = this->values[2] == this->leftCurlyBrackets;
+		this->LCB[3] = this->values[3] == this->leftCurlyBrackets;
+		this->LCB[4] = this->values[4] == this->leftCurlyBrackets;
+		this->LCB[5] = this->values[5] == this->leftCurlyBrackets;
+		this->LCB[6] = this->values[6] == this->leftCurlyBrackets;
+		this->LCB[7] = this->values[7] == this->leftCurlyBrackets;
+
+		this->LCB256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->LCB[0], this->LCB[1]), convertSimd256To64BitUint(this->LCB[2], this->LCB[3]),
+			convertSimd256To64BitUint(this->LCB[4], this->LCB[5]), convertSimd256To64BitUint(this->LCB[6], this->LCB[7]) };
+
+		this->RCB[0] = this->values[0] == this->rightCurlyBrackets;
+		this->RCB[1] = this->values[1] == this->rightCurlyBrackets;
+		this->RCB[2] = this->values[2] == this->rightCurlyBrackets;
+		this->RCB[3] = this->values[3] == this->rightCurlyBrackets;
+		this->RCB[4] = this->values[4] == this->rightCurlyBrackets;
+		this->RCB[5] = this->values[5] == this->rightCurlyBrackets;
+		this->RCB[6] = this->values[6] == this->rightCurlyBrackets;
+		this->RCB[7] = this->values[7] == this->rightCurlyBrackets;
+
+		this->RCB256= SimdBase<__m256i>{ convertSimd256To64BitUint(this->RCB[0], this->RCB[1]), convertSimd256To64BitUint(this->RCB[2], this->RCB[3]),
+			convertSimd256To64BitUint(this->RCB[4], this->RCB[5]), convertSimd256To64BitUint(this->RCB[6], this->RCB[7]) };
+				
+		this->LSB[0] = this->values[0] == this->leftSquareBrackets;
+		this->LSB[1] = this->values[1] == this->leftSquareBrackets;
+		this->LSB[2] = this->values[2] == this->leftSquareBrackets;
+		this->LSB[3] = this->values[3] == this->leftSquareBrackets;
+		this->LSB[4] = this->values[4] == this->leftSquareBrackets;
+		this->LSB[5] = this->values[5] == this->leftSquareBrackets;
+		this->LSB[6] = this->values[6] == this->leftSquareBrackets;
+		this->LSB[7] = this->values[7] == this->leftSquareBrackets;
+
+		this->LSB256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->LSB[0], this->LSB[1]), convertSimd256To64BitUint(this->LSB[2], this->LSB[3]),
+			convertSimd256To64BitUint(this->LSB[4], this->LSB[5]), convertSimd256To64BitUint(this->LSB[6], this->LSB[7]) };
+
+		this->RSB[0] = this->values[0] == this->rightSquareBrackets;
+		this->RSB[1] = this->values[1] == this->rightSquareBrackets;
+		this->RSB[2] = this->values[2] == this->rightSquareBrackets;
+		this->RSB[3] = this->values[3] == this->rightSquareBrackets;
+		this->RSB[4] = this->values[4] == this->rightSquareBrackets;
+		this->RSB[5] = this->values[5] == this->rightSquareBrackets;
+		this->RSB[6] = this->values[6] == this->rightSquareBrackets;
+		this->RSB[7] = this->values[7] == this->rightSquareBrackets;
+
+		this->RSB256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->RSB[0], this->RSB[1]), convertSimd256To64BitUint(this->RSB[2], this->RSB[3]),
+			convertSimd256To64BitUint(this->RSB[4], this->RSB[5]), convertSimd256To64BitUint(this->RSB[6], this->RSB[7]) };
 
 		this->B[0] = this->values[0] == this->backslashes;
 		this->B[1] = this->values[1] == this->backslashes;
@@ -377,9 +455,7 @@ class SimdStringSection {
 		this->OCE = this->OC & ~this->B256;
 		this->OD2 = this->OCE & this->E;
 		this->OD = this->OD1 | this->OD2;
-		
-		this->Q256 = SimdBase<__m256i>{ convertSimd256To64BitUint(this->Q[0], this->Q[1]), convertSimd256To64BitUint(this->Q[2], this->Q[3]),
-			convertSimd256To64BitUint(this->Q[4], this->Q[5]), convertSimd256To64BitUint(this->Q[6], this->Q[7]) };
+
 		this->Q256 = this->Q256 & ~this->OD;
 		this->R256 = this->Q256;
 		this->R256 = this->R256.carrylessMultiplication('\xFF');
@@ -428,6 +504,13 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
+		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
+		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
+		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
+		this->C256.printBits("COMMAS FINAL VALUES (256) ");
+		
+		std::cout << "THE STRING: " << this->string << std::endl;
 	}
 
 	operator std::string() {
@@ -440,10 +523,15 @@ class SimdStringSection {
 	SimdBase<__m256i> opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
 	SimdBase<__m256i> E{ _mm256_set1_epi8(0b01010101) };
 	SimdBase<__m256i> O{ _mm256_set1_epi8(0b10101010) };
+	SimdBase<__m256i> rightCurlyBrackets{};
+	SimdBase<__m256i> leftCurlyBrackets{};
+	SimdBase<__m256i> rightSquareBrackets{};
+	SimdBase<__m256i> leftSquareBrackets{};
+	SimdBase<__m256i> commas{};
+	SimdBase<__m256i> backslashes{};
 	SimdBase<__m256i> values[8]{};
 	SimdBase<__m256i> B[8]{};
 	SimdBase<__m256i> Q[8]{};
-	SimdBase<__m256i> backslashes{};
 	SimdBase<__m256i> quotes{};
 	SimdBase<__m256i> Q256{};
 	SimdBase<__m256i> R256{};
@@ -451,6 +539,16 @@ class SimdStringSection {
 	SimdBase<__m256i> P256{};
 	SimdBase<__m256i> B256{};
 	SimdBase<__m256i> S256{};
+	SimdBase<__m256i> RSB256{};
+	SimdBase<__m256i> LSB256{};
+	SimdBase<__m256i> RSB[8]{};
+	SimdBase<__m256i> LSB[8]{};
+	SimdBase<__m256i> RCB256{};
+	SimdBase<__m256i> LCB256{};
+	SimdBase<__m256i> RCB[8]{};
+	SimdBase<__m256i> LCB[8]{};
+	SimdBase<__m256i> C256{};
+	SimdBase<__m256i> C[8]{};
 	SimdBase<__m256i> ES{};
 	SimdBase<__m256i> EC{};
 	SimdBase<__m256i> S{};
@@ -513,12 +611,12 @@ class Simd64Base {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[0]).m256i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[0]).m256i_i8[x]) >> y };
 			}
 		}
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[1]).m256i_i8[x]) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(static_cast<__m256i>(values[1]).m256i_i8[x]) >> y };
 			}
 		}
 		std::cout << std::endl;
