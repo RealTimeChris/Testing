@@ -260,7 +260,7 @@ class SimdBase<__m256i> {
 		return *this;
 	}
 
-	inline int64_t trailingZeroes() {
+	inline uint64_t trailingZeroes() {
 		unsigned long returnValue{};
 		for (int64_t x = 0; x < 4; ++x) {
 			unsigned long newValue{};
