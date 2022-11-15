@@ -4,6 +4,7 @@
 #include <vector>
 #include <bitset>
 #include <atomic>
+#include <deque>
 
 template<typename TTy> class StopWatch {
   public:
@@ -259,6 +260,33 @@ class SimdBase<__m256i> {
 		return *this;
 	}
 
+	inline int64_t trailingZeroes() {
+		unsigned long returnValue{};
+		for (int64_t x = 0; x < 4; ++x) {
+			unsigned long newValue{};
+			_BitScanForward64(&newValue, *(reinterpret_cast<uint64_t*>(&this->value) + x));
+			if (newValue < 64) {
+				returnValue += newValue;
+				return returnValue;
+			}
+			returnValue += newValue;
+		}
+		return returnValue;
+	}
+
+	inline uint64_t leadingZeroes() {
+		uint64_t returnValue{};
+		for (int64_t x = 0; x < 4; ++x) {
+			auto newValue = _lzcnt_u64(*(reinterpret_cast<uint64_t*>(&this->value) + x));
+			if (newValue < 64) {
+				returnValue += newValue;
+				return returnValue;
+			}
+			returnValue += newValue;
+		}
+		return returnValue;
+	}
+
 	inline SimdBase<__m256i> operator&=(__m256i& other) {
 		*this = *this & other;
 		return *this;
@@ -339,6 +367,26 @@ class SimdStringSection {
 		for (size_t x = 0; x < 32; ++x) {
 			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
+	}
+
+	__m256i getQuotedStringRange() {
+		return this->Q256;
+	}
+
+	__m256i getLeftSquareBracketRange() {
+		return this->LSB256;
+	}
+
+	__m256i getRightSquareBracketRange() {
+		return this->RSB256;
+	}
+
+	__m256i getLeftCurlyBracketRange() {
+		return this->LCB256;
+	}
+
+	__m256i getRightCurlyBracketRange() {
+		return this->RCB256;
 	}
 
 	inline SimdStringSection(std::string_view valueNew) {
@@ -515,7 +563,11 @@ class SimdStringSection {
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
 		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
-		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
+		this->C256.printBits("COMMAS FINAL VALUES (256) ");
+		SimdBase<__m256i> testValues{ uint64_t{}, uint64_t{}, uint64_t{}, uint64_t{0b000000000000000000000000000000000001000000000000000000000000000000000000000000000} };
+		
+		std::cout << "LEADING ZEROS: " << this->C256.leadingZeroes() << std::endl;
+		std::cout << "TRAILING ZEROS: " << this->C256.trailingZeroes() << std::endl;
 		
 		//std::cout << "THE STRING: " << this->string << std::endl;
 	}
@@ -597,8 +649,9 @@ class StringScanner {
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
+	std::deque<JsonTapeRecord> activeRecords{};
 	std::vector<JsonTapeRecord> jsonTape{};
-
+	bool haveWeStarted{ false };
 
 };
 
