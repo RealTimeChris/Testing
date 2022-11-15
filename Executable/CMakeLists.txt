@@ -35,6 +35,7 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:GCC>:-march=native>"
 	"$<$<CXX_COMPILER_ID:GCC>:-Wpsabi>"
 	"$<$<CXX_COMPILER_ID:GCC>:-mavx2>"
+
 )
 
 target_compile_features(
