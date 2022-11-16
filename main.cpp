@@ -355,92 +355,62 @@ class SimdStringSection {
 	}
 
 	SimdBase256 collectRightSquareBrackets() {
-		SimdBase256 RightSquareBrackets = _mm256_set1_epi8(']');
-		SimdBase256 RightSquareBracketsReal[8]{};
-		RightSquareBracketsReal[0] = this->values[0] == RightSquareBrackets;
-		RightSquareBracketsReal[1] = this->values[1] == RightSquareBrackets;
-		RightSquareBracketsReal[2] = this->values[2] == RightSquareBrackets;
-		RightSquareBracketsReal[3] = this->values[3] == RightSquareBrackets;
-		RightSquareBracketsReal[4] = this->values[4] == RightSquareBrackets;
-		RightSquareBracketsReal[5] = this->values[5] == RightSquareBrackets;
-		RightSquareBracketsReal[6] = this->values[6] == RightSquareBrackets;
-		RightSquareBracketsReal[7] = this->values[7] == RightSquareBrackets;
-
-		return { convertSimd256To64BitUint(RightSquareBracketsReal[0], RightSquareBracketsReal[1]),
-			convertSimd256To64BitUint(RightSquareBracketsReal[2], RightSquareBracketsReal[3]),
-			convertSimd256To64BitUint(RightSquareBracketsReal[4], RightSquareBracketsReal[5]),
-			convertSimd256To64BitUint(RightSquareBracketsReal[6], RightSquareBracketsReal[7]) };
+		SimdBase256 rightSquareBrackets = _mm256_set1_epi8(']');
+		SimdBase256 rightSquareBracketsReal[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			rightSquareBracketsReal[x] = this->values[x] == rightSquareBrackets;
+		}
+		return { convertSimd256To64BitUint(rightSquareBracketsReal[0], rightSquareBracketsReal[1]),
+			convertSimd256To64BitUint(rightSquareBracketsReal[2], rightSquareBracketsReal[3]),
+			convertSimd256To64BitUint(rightSquareBracketsReal[4], rightSquareBracketsReal[5]),
+			convertSimd256To64BitUint(rightSquareBracketsReal[6], rightSquareBracketsReal[7]) };
 	}
 
 	SimdBase256 collectWhiteSpace() {
 		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100,
 			100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		SimdBase256 whiteSpaceReal[8]{};
-		whiteSpaceReal[0] = this->values[0].shuffle(whitespaceTable) == this->values[0];
-		whiteSpaceReal[1] = this->values[1].shuffle(whitespaceTable) == this->values[1];
-		whiteSpaceReal[2] = this->values[2].shuffle(whitespaceTable) == this->values[2];
-		whiteSpaceReal[3] = this->values[3].shuffle(whitespaceTable) == this->values[3];
-		whiteSpaceReal[4] = this->values[4].shuffle(whitespaceTable) == this->values[4];
-		whiteSpaceReal[5] = this->values[5].shuffle(whitespaceTable) == this->values[5];
-		whiteSpaceReal[6] = this->values[6].shuffle(whitespaceTable) == this->values[6];
-		whiteSpaceReal[7] = this->values[7].shuffle(whitespaceTable) == this->values[7];
-
+		for (size_t x = 0; x < 8; ++x) {
+			whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
+		}
 		return { convertSimd256To64BitUint(whiteSpaceReal[0], whiteSpaceReal[1]), convertSimd256To64BitUint(whiteSpaceReal[2], whiteSpaceReal[3]),
 			convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
 	}
 
 	SimdBase256 collectLeftSquareBrackets() {
-		SimdBase256 LeftSquareBrackets = _mm256_set1_epi8('[');
-		SimdBase256 LeftSquareBracketsReal[8]{};
-		LeftSquareBracketsReal[0] = this->values[0] == LeftSquareBrackets;
-		LeftSquareBracketsReal[1] = this->values[1] == LeftSquareBrackets;
-		LeftSquareBracketsReal[2] = this->values[2] == LeftSquareBrackets;
-		LeftSquareBracketsReal[3] = this->values[3] == LeftSquareBrackets;
-		LeftSquareBracketsReal[4] = this->values[4] == LeftSquareBrackets;
-		LeftSquareBracketsReal[5] = this->values[5] == LeftSquareBrackets;
-		LeftSquareBracketsReal[6] = this->values[6] == LeftSquareBrackets;
-		LeftSquareBracketsReal[7] = this->values[7] == LeftSquareBrackets;
-
-		return { convertSimd256To64BitUint(LeftSquareBracketsReal[0], LeftSquareBracketsReal[1]),
-			convertSimd256To64BitUint(LeftSquareBracketsReal[2], LeftSquareBracketsReal[3]),
-			convertSimd256To64BitUint(LeftSquareBracketsReal[4], LeftSquareBracketsReal[5]),
-			convertSimd256To64BitUint(LeftSquareBracketsReal[6], LeftSquareBracketsReal[7]) };
+		SimdBase256 leftSquareBrackets = _mm256_set1_epi8('[');
+		SimdBase256 leftSquareBracketsReal[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			leftSquareBracketsReal[x] = this->values[x] == leftSquareBrackets;
+		}
+		return { convertSimd256To64BitUint(leftSquareBracketsReal[0], leftSquareBracketsReal[1]),
+			convertSimd256To64BitUint(leftSquareBracketsReal[2], leftSquareBracketsReal[3]),
+			convertSimd256To64BitUint(leftSquareBracketsReal[4], leftSquareBracketsReal[5]),
+			convertSimd256To64BitUint(leftSquareBracketsReal[6], leftSquareBracketsReal[7]) };
 	}
 
 	SimdBase256 collectRightCurlyBrackets() {
-		SimdBase256 RightCurlyBrackets = _mm256_set1_epi8('}');
-		SimdBase256 RightCurlyBracketsReal[8]{};
-		RightCurlyBracketsReal[0] = this->values[0] == RightCurlyBrackets;
-		RightCurlyBracketsReal[1] = this->values[1] == RightCurlyBrackets;
-		RightCurlyBracketsReal[2] = this->values[2] == RightCurlyBrackets;
-		RightCurlyBracketsReal[3] = this->values[3] == RightCurlyBrackets;
-		RightCurlyBracketsReal[4] = this->values[4] == RightCurlyBrackets;
-		RightCurlyBracketsReal[5] = this->values[5] == RightCurlyBrackets;
-		RightCurlyBracketsReal[6] = this->values[6] == RightCurlyBrackets;
-		RightCurlyBracketsReal[7] = this->values[7] == RightCurlyBrackets;
-
-		return { convertSimd256To64BitUint(RightCurlyBracketsReal[0], RightCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(RightCurlyBracketsReal[2], RightCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(RightCurlyBracketsReal[4], RightCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(RightCurlyBracketsReal[6], RightCurlyBracketsReal[7]) };
+		SimdBase256 rightCurlyBrackets = _mm256_set1_epi8('}');
+		SimdBase256 rightCurlyBracketsReal[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			rightCurlyBracketsReal[x] = this->values[x] == rightCurlyBrackets;
+		}
+		return { convertSimd256To64BitUint(rightCurlyBracketsReal[0], rightCurlyBracketsReal[1]),
+			convertSimd256To64BitUint(rightCurlyBracketsReal[2], rightCurlyBracketsReal[3]),
+			convertSimd256To64BitUint(rightCurlyBracketsReal[4], rightCurlyBracketsReal[5]),
+			convertSimd256To64BitUint(rightCurlyBracketsReal[6], rightCurlyBracketsReal[7]) };
 	}
 
 	SimdBase256 collectLeftCurlyBrackets() {
-		SimdBase256 LeftCurlyBrackets = _mm256_set1_epi8('{');
-		SimdBase256 LeftCurlyBracketsReal[8]{};
-		LeftCurlyBracketsReal[0] = this->values[0] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[1] = this->values[1] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[2] = this->values[2] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[3] = this->values[3] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[4] = this->values[4] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[5] = this->values[5] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[6] = this->values[6] == LeftCurlyBrackets;
-		LeftCurlyBracketsReal[7] = this->values[7] == LeftCurlyBrackets;
-
-		return { convertSimd256To64BitUint(LeftCurlyBracketsReal[0], LeftCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(LeftCurlyBracketsReal[2], LeftCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(LeftCurlyBracketsReal[4], LeftCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(LeftCurlyBracketsReal[6], LeftCurlyBracketsReal[7]) };
+		SimdBase256 leftCurlyBrackets = _mm256_set1_epi8('{');
+		SimdBase256 leftCurlyBracketsReal[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			leftCurlyBracketsReal[x] = this->values[x] == leftCurlyBrackets;
+		}
+		return { convertSimd256To64BitUint(leftCurlyBracketsReal[0], leftCurlyBracketsReal[1]),
+			convertSimd256To64BitUint(leftCurlyBracketsReal[2], leftCurlyBracketsReal[3]),
+			convertSimd256To64BitUint(leftCurlyBracketsReal[4], leftCurlyBracketsReal[5]),
+			convertSimd256To64BitUint(leftCurlyBracketsReal[6], leftCurlyBracketsReal[7]) };
 	}
 
 	SimdBase256 collectCommas() {
