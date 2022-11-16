@@ -653,51 +653,69 @@ class Simd64Base {
 		this->values[1] = value02;
 	}
 
-	inline Simd64Base(std::string& stringNewer) {
-		this->string = stringNewer;
-		this->backslashes = _mm256_set1_epi8('\\');
-		this->quotes = _mm256_set1_epi8('"');
-		packStringIntoValue(this->values[0], stringNewer.data());
-		packStringIntoValue(this->values[1], stringNewer.data() + 32);
-		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
-		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
-		this->B64 = convertSimd256To64BitUint(this->B[0], this->B[1]);
-		this->S64 = this->B64 & ~(this->B64 << 1);
-		this->ES = this->S64 & this->E;
-		this->EC = this->B64 + this->ES;
-		this->ECE = this->EC & ~this->B64;
-		this->OD1 = this->ECE & ~this->E;
-		this->OS = this->S64 & this->O;
-		this->OC = this->B64 + this->OS;
-		this->OCE = this->OC & ~this->B64;
-		this->OD2 = this->OCE & this->E;
-		this->OD = this->OD1 | this->OD2;
-		this->Q[0] = _mm256_cmpeq_epi8(this->values[0], this->quotes);
-		this->Q[1] = _mm256_cmpeq_epi8(this->values[1], this->quotes);
-		this->Q64 = convertSimd256To64BitUint(this->Q[0], this->Q[1]);
-		this->Q64 &= ~this->OD;
+	void collectQuotes() {
+		auto backslashes = _mm256_set1_epi8('\\');
+		auto B0 = _mm256_cmpeq_epi8(this->values[0], backslashes);
+		auto B1 = _mm256_cmpeq_epi8(this->values[1], backslashes);
+		auto B64 = convertSimd256To64BitUint(B0, B1);
+		this->S64 = B64 & ~(B64 << 1);
+		uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
+		auto quotes = _mm256_set1_epi8('"');
+		uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
+		auto ES = this->S64 & E;
+		auto EC = B64 + ES;
+		auto ECE = EC & ~B64;
+		auto OD1 = ECE & ~E;
+		auto OS = this->S64 & O;
+		auto OC = B64 + OS;
+		auto OCE = OC & ~B64;
+		auto OD2 = OCE & E;
+		auto OD = OD1 | OD2;
+		auto Q0 = _mm256_cmpeq_epi8(this->values[0], quotes);
+		auto Q1 = _mm256_cmpeq_epi8(this->values[1], quotes);
+		this->Q64 = convertSimd256To64BitUint(Q0, Q1);
+		this->Q64 &= ~OD;
+	}
+
+	void collectStructuralCharacters() {
+		__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
+			0) };
 		this->R64 = this->Q64;
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
 		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
 		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
-		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
-		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
+		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(opTable, this->values[0]), valuesNew00);
+		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(opTable, this->values[1]), valuesNew01);
 		this->S64 = convertSimd256To64BitUint(structural00, structural01);
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
-		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
-		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
 		this->S64 = this->S64 & ~this->R64;
 		this->S64 = this->S64 | this->Q64;
-		this->P64 = this->S64 | this->W64;
-		this->P64 = this->P64 << 1;
-		this->P64 &= ~this->W64 & ~this->R64;
-		this->S64 = this->S64 | this->P64;
+		auto P64 = this->S64 | this->W64;
+		P64 = P64 << 1;
+		P64 &= ~this->W64 & ~this->R64;
+		this->S64 = this->S64 | P64;
 		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
+	}
+
+	void collectWhiteSpace() {
+		__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100,
+			17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
+		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
+		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), this->values[1]);
+		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
+	}
+
+	inline Simd64Base(std::string& stringNewer) {
+		this->string = stringNewer;
+		packStringIntoValue(this->values[0], stringNewer.data());
+		packStringIntoValue(this->values[1], stringNewer.data() + 32);
+		this->collectQuotes();
+		this->collectWhiteSpace();
+		this->collectStructuralCharacters();
 		
-		printBits(this->Q64, "Q FINAL VALUES: ");
-		printBits(this->R64, "R FINAL VALUES: ");
-		printBits(this->S64, "S FINAL VALUES: ");
-		printBits(this->W64, "W FINAL VALUES: ");
+		//printBits(this->Q64, "Q FINAL VALUES: ");
+		//printBits(this->R64, "R FINAL VALUES: ");
+		//printBits(this->S64, "S FINAL VALUES: ");
+		//printBits(this->W64, "W FINAL VALUES: ");
 	}
 
 	operator std::string() {
@@ -707,28 +725,6 @@ class Simd64Base {
   protected:
 	__m256i values[2]{};
 	std::string string{};
-	__m256i backslashes{};
-	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17,
-		100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
-	__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
-		0) };
-	__m256i quotes{};
-	__m256i B[2]{};
-	__m256i Q[2]{};
-	uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
-	uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
-	uint64_t B64{};
-	uint64_t ES{};
-	uint64_t EC{};
-	uint64_t P64{};
-	uint64_t OD1{};
-	uint64_t OS1{};
-	uint64_t OC{};
-	uint64_t OCE{};
-	uint64_t OS{};
-	uint64_t ECE{};
-	uint64_t OD2{};
-	uint64_t OD{};
 	uint64_t Q64{};
 	uint64_t R64{};
 	uint64_t S64{};
