@@ -538,17 +538,6 @@ class SimdStringSection {
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
-
-		std::string newString{};
-		for (size_t x = 0; x < 256; ++x) {
-			std::cout << this->Q256.getBit(x) << std::endl;
-			newString.push_back(this->Q256.getBit(x));
-		}
-		std::cout << "THE Q-STRING: ";
-		for (auto& value: newString) {
-			std::cout << +value;
-		}
-		std::cout << std::endl;
 		
 		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
