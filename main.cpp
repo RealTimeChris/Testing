@@ -416,14 +416,10 @@ class SimdStringSection {
 	SimdBase256 collectCommas() {
 		SimdBase256 commas = _mm256_set1_epi8(',');
 		SimdBase256 commasReal[8]{};
-		commasReal[0] = this->values[0] == commas;
-		commasReal[1] = this->values[1] == commas;
-		commasReal[2] = this->values[2] == commas;
-		commasReal[3] = this->values[3] == commas;
-		commasReal[4] = this->values[4] == commas;
-		commasReal[5] = this->values[5] == commas;
-		commasReal[6] = this->values[6] == commas;
-		commasReal[7] = this->values[7] == commas;
+
+		for (size_t x = 0; x < 8; ++x) {
+			commasReal[x] = this->values[x] == commas;
+		}
 
 		return { convertSimd256To64BitUint(commasReal[0], commasReal[1]), convertSimd256To64BitUint(commasReal[2], commasReal[3]),
 			convertSimd256To64BitUint(commasReal[4], commasReal[5]), convertSimd256To64BitUint(commasReal[6], commasReal[7]) };
@@ -432,25 +428,14 @@ class SimdStringSection {
 	SimdBase256 collectStructuralCharacters() {
 		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
 			'}', 0, 0) };
-		auto valuesNew00 = this->values[0] | SimdBase256{ 0x20 };
-		auto valuesNew01 = this->values[1] | SimdBase256{ 0x20 };
-		auto valuesNew02 = this->values[2] | SimdBase256{ 0x20 };
-		auto valuesNew03 = this->values[3] | SimdBase256{ 0x20 };
-		auto valuesNew04 = this->values[4] | SimdBase256{ 0x20 };
-		auto valuesNew05 = this->values[5] | SimdBase256{ 0x20 };
-		auto valuesNew06 = this->values[6] | SimdBase256{ 0x20 };
-		auto valuesNew07 = this->values[7] | SimdBase256{ 0x20 };
-		auto structural00 = this->values[0].shuffle(opTable) == valuesNew00;
-		auto structural01 = this->values[1].shuffle(opTable) == valuesNew01;
-		auto structural02 = this->values[2].shuffle(opTable) == valuesNew02;
-		auto structural03 = this->values[3].shuffle(opTable) == valuesNew03;
-		auto structural04 = this->values[4].shuffle(opTable) == valuesNew04;
-		auto structural05 = this->values[5].shuffle(opTable) == valuesNew05;
-		auto structural06 = this->values[6].shuffle(opTable) == valuesNew06;
-		auto structural07 = this->values[7].shuffle(opTable) == valuesNew07;
+		SimdBase256 structural[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
+			structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
+		}
 
-		this->S256 = SimdBase256{ convertSimd256To64BitUint(structural00, structural01), convertSimd256To64BitUint(structural02, structural03),
-			convertSimd256To64BitUint(structural04, structural05), convertSimd256To64BitUint(structural06, structural07) };
+		this->S256 = SimdBase256{ convertSimd256To64BitUint(structural[0], structural[1]), convertSimd256To64BitUint(structural[2], structural[3]),
+			convertSimd256To64BitUint(structural[4], structural[5]), convertSimd256To64BitUint(structural[6], structural[7]) };
 
 		this->S256 = this->S256.bitAndNot(this->R256);
 		this->S256 = this->S256 | this->Q256;
@@ -465,14 +450,9 @@ class SimdStringSection {
 	SimdBase256 collectBackslashes() {
 		SimdBase256 backslashes = _mm256_set1_epi8('\\');
 		SimdBase256 backslashesReal[8]{};
-		backslashesReal[0] = this->values[0] == backslashes;
-		backslashesReal[1] = this->values[1] == backslashes;
-		backslashesReal[2] = this->values[2] == backslashes;
-		backslashesReal[3] = this->values[3] == backslashes;
-		backslashesReal[4] = this->values[4] == backslashes;
-		backslashesReal[5] = this->values[5] == backslashes;
-		backslashesReal[6] = this->values[6] == backslashes;
-		backslashesReal[7] = this->values[7] == backslashes;
+		for (size_t x = 0; x < 8; ++x) {
+			backslashesReal[x] = this->values[x] == backslashes;
+		}
 
 		return { convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]), convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]),
 			convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]), convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
@@ -481,14 +461,9 @@ class SimdStringSection {
 	SimdBase256 collectQuotes() {
 		SimdBase256 quotes = _mm256_set1_epi8('"');
 		SimdBase256 quotesReal[8]{};
-		quotesReal[0] = this->values[0] == quotes;
-		quotesReal[1] = this->values[1] == quotes;
-		quotesReal[2] = this->values[2] == quotes;
-		quotesReal[3] = this->values[3] == quotes;
-		quotesReal[4] = this->values[4] == quotes;
-		quotesReal[5] = this->values[5] == quotes;
-		quotesReal[6] = this->values[6] == quotes;
-		quotesReal[7] = this->values[7] == quotes;
+		for (size_t x = 0; x < 8; ++x) {
+			quotesReal[x] = this->values[x] == quotes;
+		}
 
 		this->Q256 = SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
