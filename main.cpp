@@ -597,7 +597,7 @@ class StringScanner {
 	bool haveWeStarted{ false };
 };
 
-class Simd64Base {
+class SimdBase64 {
   public:
 	inline operator uint64_t() {
 		return convertSimd256To64BitUint(this->values[1], this->values[0]);
@@ -648,7 +648,7 @@ class Simd64Base {
 		std::cout << std::endl;
 	};
 
-	inline Simd64Base(const __m256i& value01, __m256i value02) {
+	inline SimdBase64(const __m256i& value01, __m256i value02) {
 		this->values[0] = value01;
 		this->values[1] = value02;
 	}
@@ -704,7 +704,7 @@ class Simd64Base {
 		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
 	}
 
-	inline Simd64Base(std::string& stringNewer) {
+	inline SimdBase64(std::string& stringNewer) {
 		this->string = stringNewer;
 		packStringIntoValue(this->values[0], stringNewer.data());
 		packStringIntoValue(this->values[1], stringNewer.data() + 32);
@@ -757,7 +757,7 @@ int32_t main() noexcept {
 	totalTime = 0;
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384; ++x) {
-		Simd64Base simd8Test{ string64 };
+		SimdBase64 simd8Test{ string64 };
 		totalSize += string64.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
