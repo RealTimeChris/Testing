@@ -312,6 +312,10 @@ class SimdBase256 {
 		std::cout << std::endl;
 	};
 
+	int getBit(int32_t bitIndex) const {
+		return _mm256_movemask_epi8(_mm256_slli_epi16(*this, 7 - bitIndex));
+	}
+
   protected:
 	__m256i value{};
 };
@@ -535,6 +539,17 @@ class SimdStringSection {
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 
+		std::string newString{};
+		for (size_t x = 0; x < 256; ++x) {
+			std::cout << this->Q256.getBit(x) << std::endl;
+			newString.push_back(this->Q256.getBit(x));
+		}
+		std::cout << "THE Q-STRING: ";
+		for (auto& value: newString) {
+			std::cout << +value;
+		}
+		std::cout << std::endl;
+		
 		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
