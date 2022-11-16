@@ -153,7 +153,7 @@ class SimdBase128 {
 
 	inline SimdBase128 operator~() {
 		__m128i newValue{};
-		for (size_t x = 0; x < 4; ++x) {
+		for (size_t x = 0; x < 2; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
 		return newValue;
@@ -526,7 +526,7 @@ class SimdStringSection {
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
 		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
@@ -535,7 +535,7 @@ class SimdStringSection {
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
+		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
 	operator std::string() {
@@ -571,6 +571,7 @@ enum class JsonEvent {
 
 struct JsonTapeRecord {
 	size_t lengthOfEvent{};
+	size_t startingIndex{};
 	JsonEvent eventType{};
 };
 
@@ -588,6 +589,11 @@ class StringScanner {
 	}
 
 	void generateTapeRecord() {
+		for (auto& value: this->stringSections) {
+			for (size_t x = 0; x < 256; ++x) {
+
+			}
+		}
 	}
 
   protected:
