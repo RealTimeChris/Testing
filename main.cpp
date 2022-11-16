@@ -309,7 +309,7 @@ class SimdBase256 : public SimdBase<__m256i> {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -535,7 +535,7 @@ class SimdStringSection {
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 
-		//std::cout << "THE STRING: " << this->string << std::endl;
+		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
 	operator std::string() {
@@ -659,30 +659,15 @@ class Simd64Base {
 		this->quotes = _mm256_set1_epi8('"');
 		packStringIntoValue(this->values[0], stringNewer.data());
 		packStringIntoValue(this->values[1], stringNewer.data() + 32);
-		this->S64 = this->B64 & ~(this->B64 << 1);
-		this->ES = this->S & this->E;
-		this->EC = this->B64 + this->ES;
-		this->ECE = this->EC & ~this->B64;
-		this->OD1 = this->ECE & ~this->E;
-		this->OS = this->S & this->O;
-		this->OC = this->B64 + this->OS;
-		this->OC = this->B64 + this->OS;
-		this->OCE = this->OC = this->B64 + this->OS;
-		this->OC = this->B64 + this->OS;
-		this->OC = this->B64 + this->OS;
-		this->OCE = this->B64 + this->OS;
-		this->OC = this->B64 + this->OS;
-		this->OC = this->B64 + this->OS;
-		this->OC = this->B64 + this->OS;
 		this->B[0] = _mm256_cmpeq_epi8(this->values[0], this->backslashes);
 		this->B[1] = _mm256_cmpeq_epi8(this->values[1], this->backslashes);
 		this->B64 = convertSimd256To64BitUint(this->B[0], this->B[1]);
-		this->S = this->B64 & ~(this->B64 << 1);
-		this->ES = this->S & this->E;
-		this->EC = collectCarries(this->ES, this->B64);
+		this->S64 = this->B64 & ~(this->B64 << 1);
+		this->ES = this->S64 & this->E;
+		this->EC = this->B64 + this->ES;
 		this->ECE = this->EC & ~this->B64;
 		this->OD1 = this->ECE & ~this->E;
-		this->OS = this->S & this->O;
+		this->OS = this->S64 & this->O;
 		this->OC = this->B64 + this->OS;
 		this->OCE = this->OC & ~this->B64;
 		this->OD2 = this->OCE & this->E;
@@ -690,17 +675,17 @@ class Simd64Base {
 		this->Q[0] = _mm256_cmpeq_epi8(this->values[0], this->quotes);
 		this->Q[1] = _mm256_cmpeq_epi8(this->values[1], this->quotes);
 		this->Q64 = convertSimd256To64BitUint(this->Q[0], this->Q[1]);
-		this->Q64 = this->Q64 & ~this->OD;
+		this->Q64 &= ~this->OD;
 		this->R64 = this->Q64;
 		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
-		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
-		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
 		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
 		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
 		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[0]), valuesNew00);
 		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->opTable, this->values[1]), valuesNew01);
 		this->S64 = convertSimd256To64BitUint(structural00, structural01);
+		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[0]), this->values[0]);
+		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(this->whitespaceTable, this->values[1]), this->values[1]);
+		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
 		this->S64 = this->S64 & ~this->R64;
 		this->S64 = this->S64 | this->Q64;
 		this->P64 = this->S64 | this->W64;
@@ -708,10 +693,11 @@ class Simd64Base {
 		this->P64 &= ~this->W64 & ~this->R64;
 		this->S64 = this->S64 | this->P64;
 		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
-		//printBits(this->Q64, "Q FINAL VALUES: ");
-		//printBits(this->R64, "R FINAL VALUES: ");
-		//printBits(this->S64, "S FINAL VALUES: ");
-		//printBits(this->W64, "W FINAL VALUES: ");
+		
+		printBits(this->Q64, "Q FINAL VALUES: ");
+		printBits(this->R64, "R FINAL VALUES: ");
+		printBits(this->S64, "S FINAL VALUES: ");
+		printBits(this->W64, "W FINAL VALUES: ");
 	}
 
 	operator std::string() {
@@ -734,7 +720,6 @@ class Simd64Base {
 	uint64_t B64{};
 	uint64_t ES{};
 	uint64_t EC{};
-	uint64_t S{};
 	uint64_t P64{};
 	uint64_t OD1{};
 	uint64_t OS1{};
@@ -756,7 +741,9 @@ int32_t main() noexcept {
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	std::string stringNew{ "{\"d\":{\"activities\":[{\"created_at\":\"1668496069331\",\"emoji\":{\"name\":\"≡ƒÑ╖\"},\"id\":\"custom\",\"name\":\"" };
+	std::string stringNew{
+		"{\"d\":{\"activities\":[{\"created_at\":\"1668496069331\",\"emoji\":{\"name\":\" ≡ ƒÑ╖\"},\"id\":\"custom\",\"name\":\"testing\"}]}}"
+	};
 	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
