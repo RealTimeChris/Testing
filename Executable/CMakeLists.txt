@@ -30,7 +30,7 @@ target_compile_options(
 	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
-	"$<$<CXX_COMPILER_ID:GNU>:-march=native>"
+	#"$<$<CXX_COMPILER_ID:GNU>:-march=native>"
 	"$<$<CXX_COMPILER_ID:GNU>:-mavx2>"
 )
 
