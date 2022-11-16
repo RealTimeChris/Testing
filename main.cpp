@@ -426,6 +426,8 @@ class SimdStringSection {
 	}
 
 	SimdBase256 collectStructuralCharacters() {
+		auto R256 = this->Q256;
+		R256 = R256.carrylessMultiplication('\xFF');
 		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
 			'}', 0, 0) };
 		SimdBase256 structural[8]{};
@@ -437,14 +439,14 @@ class SimdStringSection {
 		this->S256 = SimdBase256{ convertSimd256To64BitUint(structural[0], structural[1]), convertSimd256To64BitUint(structural[2], structural[3]),
 			convertSimd256To64BitUint(structural[4], structural[5]), convertSimd256To64BitUint(structural[6], structural[7]) };
 
-		this->S256 = this->S256.bitAndNot(this->R256);
+		this->S256 = this->S256.bitAndNot(R256);
 		this->S256 = this->S256 | this->Q256;
 		auto P256 = this->S256 | this->W256;
 		P256 = P256 << 1;
-		P256 &= ~this->W256 & ~this->R256;
+		P256 &= ~this->W256 & ~R256;
 
 		this->S256 = this->S256 | P256;
-		return this->S256.bitAndNot(this->Q256.bitAndNot(this->R256));
+		return this->S256.bitAndNot(this->Q256.bitAndNot(R256));
 	}
 
 	SimdBase256 collectBackslashes() {
@@ -517,16 +519,13 @@ class SimdStringSection {
 
 		//this->RSB256 = this->collectRightSquareBrackets();
 
-		this->R256 = this->Q256;
-		this->R256 = this->R256.carrylessMultiplication('\xFF');
-
 		this->W256 = collectWhiteSpace();
 
 		this->S256 = collectStructuralCharacters();
 
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
+		//R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
@@ -545,7 +544,6 @@ class SimdStringSection {
 
   protected:
 	SimdBase256 Q256{};
-	SimdBase256 R256{};
 	SimdBase256 W256{};
 	SimdBase256 B256{};
 	SimdBase256 S256{};
