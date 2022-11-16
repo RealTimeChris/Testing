@@ -485,14 +485,14 @@ class SimdStringSection {
 		this->S256 = SimdBase256{ convertSimd256To64BitUint(structural00, structural01), convertSimd256To64BitUint(structural02, structural03),
 			convertSimd256To64BitUint(structural04, structural05), convertSimd256To64BitUint(structural06, structural07) };
 
-		this->S256 = this->S256 & ~this->R256;
+		this->S256 = this->S256.bitAndNot(this->R256);
 		this->S256 = this->S256 | this->Q256;
 		auto P256 = this->S256 | this->W256;
 		P256 = P256 << 1;
 		P256 &= ~this->W256 & ~this->R256;
 
 		this->S256 = this->S256 | P256;
-		return this->S256 & ~(this->Q256 & ~this->R256);
+		return this->S256.bitAndNot(this->Q256.bitAndNot(this->R256));
 	}
 
 	SimdBase256 collectBackslashes() {
@@ -530,11 +530,11 @@ class SimdStringSection {
 		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 		auto ES = E & S;
 		auto EC = ES.collectCarries(this->B256);
-		auto ECE = EC & ~this->B256;
-		auto OD1 = ECE & ~E;
+		auto ECE = EC.bitAndNot(this->B256);
+		auto OD1 = ECE.bitAndNot(E);
 		auto OS = S & O;
 		auto OC = this->B256 + OS;
-		auto OCE = OC & ~this->B256;
+		auto OCE = OC.bitAndNot(this->B256);
 		auto OD2 = OCE & E;
 		auto OD = OD1 | OD2;
 
@@ -593,7 +593,7 @@ class SimdStringSection {
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 
-		//std::cout << "THE STRING: " << this->string << std::endl;
+		std::cout << "THE STRING: " << this->string << std::endl;
 	}
 
 	operator std::string() {
