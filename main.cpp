@@ -294,14 +294,6 @@ class SimdBase256 {
 		return returnValue;
 	}
 
-	inline SimdBase256 bitAndNot(__m256i other) {
-		return _mm256_andnot_si256(other, this->value);
-	}
-
-	inline SimdBase256 shuffle(__m256i indices) {
-		return _mm256_shuffle_epi8(indices, *this);
-	}
-
 	inline void printBits(const std::string& valuesTitle) {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
@@ -310,10 +302,24 @@ class SimdBase256 {
 			}
 		}
 		std::cout << std::endl;
-	};
+	}
 
-	int getBit(int32_t bitIndex) const {
-		return _mm256_movemask_epi8(_mm256_slli_epi16(*this, 7 - bitIndex));
+	inline SimdBase256 bitAndNot(__m256i other) {
+		return _mm256_andnot_si256(other, this->value);
+	}
+
+	inline SimdBase256 shuffle(__m256i indices) {
+		return _mm256_shuffle_epi8(indices, *this);
+	}
+	
+	std::vector<int16_t> getSetBitIndices() {
+		std::vector<int16_t> returnVector{};
+		for (int64_t x = 0; x < 255; ++x) {
+			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
+				returnVector.push_back(x);
+			}
+		}
+		return returnVector;
 	}
 
   protected:
@@ -529,7 +535,7 @@ class SimdStringSection {
 
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
-		//R256.printBits("R FINAL VALUES (256) ");
+		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
@@ -537,8 +543,12 @@ class SimdStringSection {
 
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
 
-		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
-		
+		auto values = this->R256.getSetBitIndices();
+		for (auto& value: values) {
+			std::cout << "THE VALUE: " << value << std::endl;
+		}
+		this->R256.printBits("THE R VALUES: ");
+		//this->C256.printBits("COMMAS FINAL VALUES (256) ");		
 		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
