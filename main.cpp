@@ -426,8 +426,8 @@ class SimdStringSection {
 	}
 
 	SimdBase256 collectStructuralCharacters() {
-		auto R256 = this->Q256;
-		R256 = R256.carrylessMultiplication('\xFF');
+		this->R256 = this->Q256;
+		this->R256 = this->R256.carrylessMultiplication('\xFF');
 		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
 			'}', 0, 0) };
 		SimdBase256 structural[8]{};
@@ -545,6 +545,7 @@ class SimdStringSection {
   protected:
 	SimdBase256 Q256{};
 	SimdBase256 W256{};
+	SimdBase256 R256{};
 	SimdBase256 B256{};
 	SimdBase256 S256{};
 	SimdBase256 RSB256{};
