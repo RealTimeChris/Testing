@@ -542,9 +542,9 @@ class SimdStringSection {
 	}
 
 	inline SimdStringSection(std::string_view valueNew) {
-		if (valueNew.size() < 256) {
+		if (valueNew.size() % 256 != 0) {
 			this->string = valueNew;
-			this->string.resize(256);
+			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
 			this->stringView = this->string;
 
 		} else {
@@ -593,7 +593,7 @@ class SimdStringSection {
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 
-		std::cout << "THE STRING: " << this->string << std::endl;
+		//std::cout << "THE STRING: " << this->string << std::endl;
 	}
 
 	operator std::string() {
