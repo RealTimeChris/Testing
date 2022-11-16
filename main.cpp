@@ -314,9 +314,6 @@ class SimdBase256 : public SimdBase<__m256i> {
 		}
 		std::cout << std::endl;
 	};
-
-  protected:
-	__m256i value{};
 };
 
 class SimdStringSection {
