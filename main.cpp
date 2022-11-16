@@ -165,7 +165,7 @@ class SimdBase128 : public SimdBase<__m128i> {
 		return newValue;
 	}
 
-	inline SimdBase128 bit_andnot(__m128i other) {
+	inline SimdBase128 bitAndNot(__m128i other) {
 		return _mm_andnot_si128(other, *this);
 	}
 
@@ -297,7 +297,7 @@ class SimdBase256 : public SimdBase<__m256i> {
 		return returnValue;
 	}
 
-	inline SimdBase256 bit_andnot(__m256i other) {
+	inline SimdBase256 bitAndNot(__m256i other) {
 		return _mm256_andnot_si256(other, this->value);
 	}
 
@@ -525,7 +525,7 @@ class SimdStringSection {
 
 		this->Q256 = SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
-		auto S = this->B256.bit_andnot(this->B256 << 1);
+		auto S = this->B256.bitAndNot(this->B256 << 1);
 		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 		auto ES = E & S;
