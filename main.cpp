@@ -71,7 +71,7 @@ template<typename ITy> struct SimdBase {
 	inline SimdBase() noexcept = default;
 };
 
-class SimdBase128: public SimdBase<__m128i> {
+class SimdBase128 : public SimdBase<__m128i> {
   public:
 	inline SimdBase128() noexcept = default;
 
@@ -182,10 +182,9 @@ class SimdBase128: public SimdBase<__m128i> {
 		}
 		std::cout << std::endl;
 	};
-
 };
 
-class SimdBase256 : public SimdBase<__m256i>{
+class SimdBase256 : public SimdBase<__m256i> {
   public:
 	SimdBase256() noexcept = default;
 
@@ -277,18 +276,22 @@ class SimdBase256 : public SimdBase<__m256i>{
 	}
 
 	inline SimdBase256 carrylessMultiplication(char operand) {
-		return SimdBase256{ static_cast<uint64_t>(
-								_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) };
+		return SimdBase256{ static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(
+								_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) };
 	}
 
 	inline SimdBase256 collectCarries(__m256i inputB) {
 		SimdBase256 returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&inputB) + x), *(reinterpret_cast<int64_t*>(&this->value) + x), reinterpret_cast<unsigned long long*>(&returnValue64));
+			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&inputB) + x), *(reinterpret_cast<int64_t*>(&this->value) + x),
+				reinterpret_cast<unsigned long long*>(&returnValue64));
 			*(reinterpret_cast<int64_t*>(&returnValue) + x) = returnValue64;
 		}
 		return returnValue;
@@ -318,7 +321,6 @@ class SimdBase256 : public SimdBase<__m256i>{
 
 class SimdStringSection {
   public:
-
 	inline SimdStringSection() noexcept = default;
 
 	inline void packStringIntoValue(__m256i& theValue, const char* string) {
@@ -368,13 +370,14 @@ class SimdStringSection {
 		RightSquareBracketsReal[7] = this->values[7] == RightSquareBrackets;
 
 		return { convertSimd256To64BitUint(RightSquareBracketsReal[0], RightSquareBracketsReal[1]),
-			convertSimd256To64BitUint(RightSquareBracketsReal[2], RightSquareBracketsReal[3]), convertSimd256To64BitUint(RightSquareBracketsReal[4], RightSquareBracketsReal[5]),
+			convertSimd256To64BitUint(RightSquareBracketsReal[2], RightSquareBracketsReal[3]),
+			convertSimd256To64BitUint(RightSquareBracketsReal[4], RightSquareBracketsReal[5]),
 			convertSimd256To64BitUint(RightSquareBracketsReal[6], RightSquareBracketsReal[7]) };
 	}
 
 	SimdBase256 collectWhiteSpace() {
-		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100,
-			'\t', '\n', 112, 100, '\r', 100, 100) };
+		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100,
+			100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		SimdBase256 whiteSpaceReal[8]{};
 		whiteSpaceReal[0] = this->values[0].shuffle(whitespaceTable) == this->values[0];
 		whiteSpaceReal[1] = this->values[1].shuffle(whitespaceTable) == this->values[1];
@@ -401,8 +404,10 @@ class SimdStringSection {
 		LeftSquareBracketsReal[6] = this->values[6] == LeftSquareBrackets;
 		LeftSquareBracketsReal[7] = this->values[7] == LeftSquareBrackets;
 
-		return { convertSimd256To64BitUint(LeftSquareBracketsReal[0], LeftSquareBracketsReal[1]), convertSimd256To64BitUint(LeftSquareBracketsReal[2], LeftSquareBracketsReal[3]),
-			convertSimd256To64BitUint(LeftSquareBracketsReal[4], LeftSquareBracketsReal[5]), convertSimd256To64BitUint(LeftSquareBracketsReal[6], LeftSquareBracketsReal[7]) };
+		return { convertSimd256To64BitUint(LeftSquareBracketsReal[0], LeftSquareBracketsReal[1]),
+			convertSimd256To64BitUint(LeftSquareBracketsReal[2], LeftSquareBracketsReal[3]),
+			convertSimd256To64BitUint(LeftSquareBracketsReal[4], LeftSquareBracketsReal[5]),
+			convertSimd256To64BitUint(LeftSquareBracketsReal[6], LeftSquareBracketsReal[7]) };
 	}
 
 	SimdBase256 collectRightCurlyBrackets() {
@@ -417,8 +422,10 @@ class SimdStringSection {
 		RightCurlyBracketsReal[6] = this->values[6] == RightCurlyBrackets;
 		RightCurlyBracketsReal[7] = this->values[7] == RightCurlyBrackets;
 
-		return { convertSimd256To64BitUint(RightCurlyBracketsReal[0], RightCurlyBracketsReal[1]), convertSimd256To64BitUint(RightCurlyBracketsReal[2], RightCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(RightCurlyBracketsReal[4], RightCurlyBracketsReal[5]), convertSimd256To64BitUint(RightCurlyBracketsReal[6], RightCurlyBracketsReal[7]) };
+		return { convertSimd256To64BitUint(RightCurlyBracketsReal[0], RightCurlyBracketsReal[1]),
+			convertSimd256To64BitUint(RightCurlyBracketsReal[2], RightCurlyBracketsReal[3]),
+			convertSimd256To64BitUint(RightCurlyBracketsReal[4], RightCurlyBracketsReal[5]),
+			convertSimd256To64BitUint(RightCurlyBracketsReal[6], RightCurlyBracketsReal[7]) };
 	}
 
 	SimdBase256 collectLeftCurlyBrackets() {
@@ -433,8 +440,10 @@ class SimdStringSection {
 		LeftCurlyBracketsReal[6] = this->values[6] == LeftCurlyBrackets;
 		LeftCurlyBracketsReal[7] = this->values[7] == LeftCurlyBrackets;
 
-		return { convertSimd256To64BitUint(LeftCurlyBracketsReal[0], LeftCurlyBracketsReal[1]), convertSimd256To64BitUint(LeftCurlyBracketsReal[2], LeftCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(LeftCurlyBracketsReal[4], LeftCurlyBracketsReal[5]), convertSimd256To64BitUint(LeftCurlyBracketsReal[6], LeftCurlyBracketsReal[7]) };
+		return { convertSimd256To64BitUint(LeftCurlyBracketsReal[0], LeftCurlyBracketsReal[1]),
+			convertSimd256To64BitUint(LeftCurlyBracketsReal[2], LeftCurlyBracketsReal[3]),
+			convertSimd256To64BitUint(LeftCurlyBracketsReal[4], LeftCurlyBracketsReal[5]),
+			convertSimd256To64BitUint(LeftCurlyBracketsReal[6], LeftCurlyBracketsReal[7]) };
 	}
 
 	SimdBase256 collectCommas() {
@@ -454,7 +463,8 @@ class SimdStringSection {
 	}
 
 	SimdBase256 collectStructuralCharacters() {
-		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
+		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
+			'}', 0, 0) };
 		auto valuesNew00 = this->values[0] | SimdBase256{ 0x20 };
 		auto valuesNew01 = this->values[1] | SimdBase256{ 0x20 };
 		auto valuesNew02 = this->values[2] | SimdBase256{ 0x20 };
@@ -557,18 +567,18 @@ class SimdStringSection {
 		//this->LCB256 = this->collectLeftCurlyBrackets();
 
 		//this->RCB256 = this->collectRightCurlyBrackets();
-		
+
 		//this->LSB256 = this->collectLeftSquareBrackets();
 
 		//this->RSB256 = this->collectRightSquareBrackets();
 
 		this->B256 = this->collectBackslashes();
-		
+
 		this->R256 = this->Q256;
 		this->R256 = this->R256.carrylessMultiplication('\xFF');
 
 		this->W256 = collectWhiteSpace();
-				
+
 		this->S256 = collectStructuralCharacters();
 
 		//this->S256.printBits("S FINAL VALUES (256) ");
@@ -582,7 +592,7 @@ class SimdStringSection {
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
 
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
-		
+
 		//std::cout << "THE STRING: " << this->string << std::endl;
 	}
 
@@ -606,7 +616,16 @@ class SimdStringSection {
 	std::string string{};
 };
 
-enum class JsonEvent { Key_Start = 0, Object_Start = 1, Array_Start = 2, String_Start = 3, Primitive_Start = 4, Int_Start = 5, Float_Start = 6, Bool_Start = 7 };
+enum class JsonEvent {
+	Key_Start = 0,
+	Object_Start = 1,
+	Array_Start = 2,
+	String_Start = 3,
+	Primitive_Start = 4,
+	Int_Start = 5,
+	Float_Start = 6,
+	Bool_Start = 7
+};
 
 struct JsonTapeRecord {
 	size_t lengthOfEvent{};
@@ -627,7 +646,6 @@ class StringScanner {
 	}
 
 	void generateTapeRecord() {
-
 	}
 
   protected:
@@ -635,12 +653,10 @@ class StringScanner {
 	std::deque<JsonTapeRecord> activeRecords{};
 	std::vector<JsonTapeRecord> jsonTape{};
 	bool haveWeStarted{ false };
-
 };
 
 class Simd64Base {
   public:
-
 	inline operator uint64_t() {
 		return convertSimd256To64BitUint(this->values[1], this->values[0]);
 	}
@@ -663,9 +679,10 @@ class Simd64Base {
 								"%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%"
 								"d%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" } }
 				   .c_str(),
-			v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19], v[20], v[21], v[22], v[23], v[24],
-			v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39], v[40], v[41], v[42], v[43], v[44], v[45], v[46], v[47], v[48],
-			v[49], v[50], v[51], v[52], v[53], v[54], v[55], v[56], v[57], v[58], v[59], v[60], v[61], v[62], v[63]);
+			v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19], v[20],
+			v[21], v[22], v[23], v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39],
+			v[40], v[41], v[42], v[43], v[44], v[45], v[46], v[47], v[48], v[49], v[50], v[51], v[52], v[53], v[54], v[55], v[56], v[57], v[58],
+			v[59], v[60], v[61], v[62], v[63]);
 	}
 
 	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
@@ -689,7 +706,7 @@ class Simd64Base {
 		std::cout << std::endl;
 	};
 
-	inline Simd64Base(const __m256i&value01, __m256i value02) {
+	inline Simd64Base(const __m256i& value01, __m256i value02) {
 		this->values[0] = value01;
 		this->values[1] = value02;
 	}
@@ -707,7 +724,7 @@ class Simd64Base {
 		this->OD1 = this->ECE & ~this->E;
 		this->OS = this->S & this->O;
 		this->OC = this->B64 + this->OS;
-		this->OC = this->B64+ this->OS;
+		this->OC = this->B64 + this->OS;
 		this->OCE = this->OC = this->B64 + this->OS;
 		this->OC = this->B64 + this->OS;
 		this->OC = this->B64 + this->OS;
@@ -763,9 +780,10 @@ class Simd64Base {
 	__m256i values[2]{};
 	std::string string{};
 	__m256i backslashes{};
-	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n',
-		112, 100, '\r', 100, 100) };
-	__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0) };
+	__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17,
+		100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
+	__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
+		0) };
 	__m256i quotes{};
 	__m256i B[2]{};
 	__m256i Q[2]{};
@@ -807,7 +825,7 @@ int32_t main() noexcept {
 		totalSize += string256.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
-	
+
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 	totalSize = 0;
@@ -819,8 +837,8 @@ int32_t main() noexcept {
 	}
 	totalTime += stopWatch.totalTimePassed();
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-	
-	
-	
+
+
+
 	return 0;
 };
