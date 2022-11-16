@@ -1,3 +1,4 @@
+#include <jsonifier/Jsonifier.hpp>
 #include <immintrin.h>
 #include <smmintrin.h>
 #include <tmmintrin.h>
@@ -533,21 +534,19 @@ class SimdStringSection {
 
 		this->S256 = collectStructuralCharacters();
 
-		//this->S256.printBits("S FINAL VALUES (256) ");
+		this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
 		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
 
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
 
-		auto values = this->R256.getSetBitIndices();
-		for (auto& value: values) {
-			std::cout << "THE VALUE: " << value << std::endl;
-		}
-		this->R256.printBits("THE R VALUES: ");
+		//this->R256.printBits("THE R VALUES: ");
+		auto carries = this->Q256.collectCarries(this->S256);
+		carries.printBits("THE CARRIES: ");
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");		
 		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
