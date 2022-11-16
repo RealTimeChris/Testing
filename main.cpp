@@ -338,10 +338,6 @@ class SimdStringSection {
 		return this->RSB256;
 	}
 
-	SimdBase256& getBackslashesRange() {
-		return this->B256;
-	}
-
 	SimdBase256& getCommasRange() {
 		return this->C256;
 	}
@@ -447,18 +443,16 @@ class SimdStringSection {
 		return this->S256.bitAndNot(this->Q256.bitAndNot(this->R256));
 	}
 
-	SimdBase256 collectBackslashes() {
+	SimdBase256 collectQuotes() {
 		SimdBase256 backslashes = _mm256_set1_epi8('\\');
 		SimdBase256 backslashesReal[8]{};
 		for (size_t x = 0; x < 8; ++x) {
 			backslashesReal[x] = this->values[x] == backslashes;
 		}
 
-		return { convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]), convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]),
-			convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]), convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
-	}
-
-	SimdBase256 collectQuotes() {
+		auto B256 = SimdBase256{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]),
+			convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]), convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]),
+			convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
 		SimdBase256 quotes = _mm256_set1_epi8('"');
 		SimdBase256 quotesReal[8]{};
 		for (size_t x = 0; x < 8; ++x) {
@@ -467,16 +461,16 @@ class SimdStringSection {
 
 		this->Q256 = SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
-		auto S = this->B256.bitAndNot(this->B256 << 1);
+		auto S = B256.bitAndNot(B256 << 1);
 		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 		auto ES = E & S;
-		auto EC = ES.collectCarries(this->B256);
-		auto ECE = EC.bitAndNot(this->B256);
+		auto EC = ES.collectCarries(B256);
+		auto ECE = EC.bitAndNot(B256);
 		auto OD1 = ECE.bitAndNot(E);
 		auto OS = S & O;
-		auto OC = this->B256 + OS;
-		auto OCE = OC.bitAndNot(this->B256);
+		auto OC = B256 + OS;
+		auto OCE = OC.bitAndNot(B256);
 		auto OD2 = OCE & E;
 		auto OD = OD1 | OD2;
 
@@ -514,8 +508,6 @@ class SimdStringSection {
 
 		//this->RSB256 = this->collectRightSquareBrackets();
 
-		this->B256 = this->collectBackslashes();
-
 		this->R256 = this->Q256;
 		this->R256 = this->R256.carrylessMultiplication('\xFF');
 
@@ -546,7 +538,6 @@ class SimdStringSection {
 	SimdBase256 Q256{};
 	SimdBase256 R256{};
 	SimdBase256 W256{};
-	SimdBase256 B256{};
 	SimdBase256 S256{};
 	SimdBase256 RSB256{};
 	SimdBase256 LSB256{};
