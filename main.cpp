@@ -27,23 +27,23 @@ template<typename TTy> class StopWatch {
 	}
 
 	StopWatch(TTy maxNumberOfMsNew) {
-		this->maxNumberOfMs.store(maxNumberOfMsNew.count());
-		this->startTime.store(static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count()));
+		this->maxNumberOfMs.store(maxNumberOfMsNew);
+		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
-	int64_t totalTimePassed() {
-		int64_t currentTime = static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count());
-		int64_t elapsedTime = currentTime - this->startTime.load();
+	auto totalTimePassed() {
+		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
+		TTy elapsedTime = currentTime - this->startTime.load();
 		return elapsedTime;
 	}
 
-	int64_t getTotalWaitTime() {
+	auto getTotalWaitTime() {
 		return this->maxNumberOfMs.load();
 	}
 
 	bool hasTimePassed() {
-		int64_t currentTime = static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count());
-		int64_t elapsedTime = currentTime - this->startTime.load();
+		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
+		TTy elapsedTime = currentTime - this->startTime.load();
 		if (elapsedTime >= this->maxNumberOfMs.load()) {
 			return true;
 		} else {
@@ -52,12 +52,12 @@ template<typename TTy> class StopWatch {
 	}
 
 	void resetTimer() {
-		this->startTime.store(static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count()));
+		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
   protected:
-	std::atomic_int64_t maxNumberOfMs{ 0 };
-	std::atomic_int64_t startTime{ 0 };
+	std::atomic<TTy> maxNumberOfMs{ TTy{ 0 } };
+	std::atomic<TTy> startTime{ TTy{ 0 } };
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i inputA, const __m256i inputB) {
@@ -557,7 +557,7 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
-		this->S256.printBits("S FINAL VALUES (256) ");
+		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
@@ -569,7 +569,7 @@ class SimdStringSection {
 
 		//this->R256.printBits("THE R VALUES: ");
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");		
-		std::cout << "THE STRING: " << this->stringView << std::endl;
+		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
 	operator std::string() {
@@ -624,10 +624,10 @@ class SimdStringScanner {
 		for (auto& value: this->stringSections) {
 			for (size_t x = 0; x < 4; ++x) {
 				for (size_t y = 0; y < 64; ++y) {
-					std::cout << +((*reinterpret_cast<uint64_t*>(&value.getStructuralCharacters()) + x) >> y & 1);
+					//std::cout << +((*reinterpret_cast<uint64_t*>(&value.getStructuralCharacters()) + x) >> y & 1);
 				}
 			}
-			std::cout << std::endl;
+			//std::cout << std::endl;
 		}
 	}
 
@@ -648,7 +648,7 @@ int32_t main() noexcept {
 		"{\"d\":{\"activities\":[{\"created_at\":\"1668496069331\",\"emoji\":{\"name\":\" ≡ ƒÑ╖\"},\"id\":\"custom\",\"name\":\"testing\"}]}}"
 	};
 	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
-	size_t totalTime{};
+	std::chrono::nanoseconds totalTime{};
 	size_t totalSize{};
 	SimdStringScanner stringScanner{ stringNew };
 	stringScanner.generateTapeRecord();
@@ -660,17 +660,17 @@ int32_t main() noexcept {
 	}
 	totalTime += stopWatch.totalTimePassed();
 
-	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+	std::cout << "IT TOOK: " << totalTime << " TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 	totalSize = 0;
-	totalTime = 0;
+	totalTime=totalTime.zero();
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384; ++x) {
 		//SimdBase64 simd8Test{ string64 };
 		totalSize += string64.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
-	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+	std::cout << "IT TOOK: " << totalTime << " TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 
 
