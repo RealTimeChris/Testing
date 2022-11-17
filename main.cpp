@@ -609,6 +609,7 @@ struct JsonTapeRecord {
 
 class SimdStringScanner {
   public:
+	
 	SimdStringScanner(std::string_view string) noexcept {
 		size_t stringSize = string.size();
 		size_t collectedSize{};
@@ -639,6 +640,7 @@ class SimdStringScanner {
 };
 
 int32_t main() noexcept {
+	
 	std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
