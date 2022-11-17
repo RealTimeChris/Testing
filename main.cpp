@@ -313,7 +313,7 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(indices, *this);
 	}
 	
-	std::vector<int16_t> getSetBitIndices() {
+	inline std::vector<int16_t> getSetBitIndices() {
 		std::vector<int16_t> returnVector{};
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
@@ -349,6 +349,10 @@ class SimdStringSection {
 		return this->RSB256;
 	}
 
+	inline SimdBase256& getWhiteSpaceCharacters() {
+		return this->W256;
+	}
+
 	inline SimdBase256& getBackslashesRange() {
 		return this->B256;
 	}
@@ -357,12 +361,32 @@ class SimdStringSection {
 		return this->C256;
 	}
 
+	inline SimdBase256& getStructuralCharacters() {
+		return this->S256;
+	}
+
 	inline SimdBase256& getLeftCurlyBracketRange() {
 		return this->LCB256;
 	}
 
 	inline SimdBase256& getRightCurlyBracketRange() {
 		return this->RCB256;
+	}
+
+	inline std::vector<int16_t> getStructuralIndices() {
+		return this->S256.getSetBitIndices();
+	}
+
+	inline SimdBase256 collectColons() {
+		SimdBase256 colons = _mm256_set1_epi8(':');
+		SimdBase256 colonsReal[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			colonsReal[x] = this->values[x] == colons;
+		}
+		return { convertSimd256To64BitUint(colonsReal[0], colonsReal[1]),
+			convertSimd256To64BitUint(colonsReal[2], colonsReal[3]),
+			convertSimd256To64BitUint(colonsReal[4], colonsReal[5]),
+			convertSimd256To64BitUint(colonsReal[6], colonsReal[7]) };
 	}
 
 	inline SimdBase256 collectRightSquareBrackets() {
@@ -520,24 +544,23 @@ class SimdStringSection {
 
 		this->Q256 = this->collectQuotes();
 
-		//this->C256 = this->collectCommas();
+		this->C256 = this->collectCommas();
 
-		//this->LCB256 = this->collectLeftCurlyBrackets();
+		this->LCB256 = this->collectLeftCurlyBrackets();
 
-		//this->RCB256 = this->collectRightCurlyBrackets();
+		this->RCB256 = this->collectRightCurlyBrackets();
 
-		//this->LSB256 = this->collectLeftSquareBrackets();
+		this->LSB256 = this->collectLeftSquareBrackets();
 
-		//this->RSB256 = this->collectRightSquareBrackets();
+		this->RSB256 = this->collectRightSquareBrackets();
 
-		this->W256 = collectWhiteSpace();
+		this->W256 = this->collectWhiteSpace();
 
-		this->S256 = collectStructuralCharacters();
-
+		this->S256 = this->collectStructuralCharacters();
 		this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
-		this->Q256.printBits("Q FINAL VALUES (256): ");
+		//this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
 		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
@@ -545,10 +568,8 @@ class SimdStringSection {
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
 
 		//this->R256.printBits("THE R VALUES: ");
-		auto carries = this->Q256.collectCarries(this->S256);
-		carries.printBits("THE CARRIES: ");
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");		
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
+		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
 	operator std::string() {
@@ -571,26 +592,24 @@ class SimdStringSection {
 	std::string string{};
 };
 
-enum class JsonEvent {
-	Key_Start = 0,
-	Object_Start = 1,
-	Array_Start = 2,
-	String_Start = 3,
-	Primitive_Start = 4,
-	Int_Start = 5,
-	Float_Start = 6,
-	Bool_Start = 7
+enum class JsonEventType : int8_t {
+	Object_Start = 1 << 0,
+	Array_Start = 1 << 1,
+	String_Start = 1 << 2,
+	Primitive_Start = 1 << 3,
+	Int_Start = 1 << 4,
+	Float_Start = 1 << 5,
+	Bool_Start = 1 << 6
 };
 
 struct JsonTapeRecord {
-	size_t lengthOfEvent{};
+	JsonEventType eventType{};
 	size_t startingIndex{};
-	JsonEvent eventType{};
 };
 
-class StringScanner {
+class SimdStringScanner {
   public:
-	StringScanner(std::string_view string) noexcept {
+	SimdStringScanner(std::string_view string) noexcept {
 		size_t stringSize = string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
@@ -603,151 +622,20 @@ class StringScanner {
 
 	void generateTapeRecord() {
 		for (auto& value: this->stringSections) {
-			for (size_t x = 0; x < 256; ++x) {
-
+			for (size_t x = 0; x < 4; ++x) {
+				for (size_t y = 0; y < 64; ++y) {
+					std::cout << +((*reinterpret_cast<uint64_t*>(&value.getStructuralCharacters()) + x) >> y & 1);
+				}
 			}
+			std::cout << std::endl;
 		}
 	}
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
-	std::deque<JsonTapeRecord> activeRecords{};
 	std::vector<JsonTapeRecord> jsonTape{};
 	bool haveWeStarted{ false };
-};
-
-class SimdBase64 {
-  public:
-	inline operator uint64_t() {
-		return convertSimd256To64BitUint(this->values[1], this->values[0]);
-	}
-
-	void packStringIntoValue(__m256i& theValue, const char* string) {
-		for (size_t x = 0; x < 32; ++x) {
-			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
-		}
-	}
-
-	void printBits(uint64_t inA, std::string values) {
-		alignas(32) uint8_t v[64]{};
-		for (size_t x = 0; x < 64; ++x) {
-			if ((static_cast<uint64_t>(inA >> x) & 0x01) == static_cast<uint64_t>(1 << 0)) {
-				v[x] = 1;
-			}
-		}
-		printf(std::string{ values.c_str() +
-				   std::string{ " (DIGITS) v64_u8: "
-								"%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%"
-								"d%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" } }
-				   .c_str(),
-			v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19], v[20],
-			v[21], v[22], v[23], v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39],
-			v[40], v[41], v[42], v[43], v[44], v[45], v[46], v[47], v[48], v[49], v[50], v[51], v[52], v[53], v[54], v[55], v[56], v[57], v[58],
-			v[59], v[60], v[61], v[62], v[63]);
-	}
-
-	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
-		uint64_t returnValue{};
-		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned long long*>(&returnValue));
-		return returnValue;
-	}
-
-	void printBits(std::string valuesTitle) {
-		std::cout << valuesTitle;
-		for (size_t x = 0; x < 32; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ reinterpret_cast<uint64_t*>(&values[0])[x] >> y };
-			}
-		}
-		for (size_t x = 0; x < 32; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{reinterpret_cast<uint64_t*>(&values[1])[x] >> y };
-			}
-		}
-		std::cout << std::endl;
-	};
-
-	inline SimdBase64(const __m256i& value01, __m256i value02) {
-		this->values[0] = value01;
-		this->values[1] = value02;
-	}
-
-	void collectQuotes() {
-		auto backslashes = _mm256_set1_epi8('\\');
-		auto B0 = _mm256_cmpeq_epi8(this->values[0], backslashes);
-		auto B1 = _mm256_cmpeq_epi8(this->values[1], backslashes);
-		auto B64 = convertSimd256To64BitUint(B0, B1);
-		this->S64 = B64 & ~(B64 << 1);
-		uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
-		auto quotes = _mm256_set1_epi8('"');
-		uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
-		auto ES = this->S64 & E;
-		auto EC = B64 + ES;
-		auto ECE = EC & ~B64;
-		auto OD1 = ECE & ~E;
-		auto OS = this->S64 & O;
-		auto OC = B64 + OS;
-		auto OCE = OC & ~B64;
-		auto OD2 = OCE & E;
-		auto OD = OD1 | OD2;
-		auto Q0 = _mm256_cmpeq_epi8(this->values[0], quotes);
-		auto Q1 = _mm256_cmpeq_epi8(this->values[1], quotes);
-		this->Q64 = convertSimd256To64BitUint(Q0, Q1);
-		this->Q64 &= ~OD;
-	}
-
-	void collectStructuralCharacters() {
-		__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
-			0) };
-		this->R64 = this->Q64;
-		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
-		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
-		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
-		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(opTable, this->values[0]), valuesNew00);
-		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(opTable, this->values[1]), valuesNew01);
-		this->S64 = convertSimd256To64BitUint(structural00, structural01);
-		this->S64 = this->S64 & ~this->R64;
-		this->S64 = this->S64 | this->Q64;
-		auto P64 = this->S64 | this->W64;
-		P64 = P64 << 1;
-		P64 &= ~this->W64 & ~this->R64;
-		this->S64 = this->S64 | P64;
-		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
-	}
-
-	void collectWhiteSpace() {
-		__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100,
-			17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
-		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), this->values[1]);
-		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
-	}
-
-	inline SimdBase64(std::string& stringNewer) {
-		this->string = stringNewer;
-		packStringIntoValue(this->values[0], stringNewer.data());
-		packStringIntoValue(this->values[1], stringNewer.data() + 32);
-		this->collectQuotes();
-		this->collectWhiteSpace();
-		this->collectStructuralCharacters();
-		
-		//printBits(this->Q64, "Q FINAL VALUES: ");
-		//printBits(this->R64, "R FINAL VALUES: ");
-		//printBits(this->S64, "S FINAL VALUES: ");
-		//printBits(this->W64, "W FINAL VALUES: ");
-	}
-
-	operator std::string() {
-		return string;
-	}
-
-  protected:
-	__m256i values[2]{};
-	std::string string{};
-	uint64_t Q64{};
-	uint64_t R64{};
-	uint64_t S64{};
-	uint64_t W64{};
+	std::string finalString{};
 };
 
 int32_t main() noexcept {
@@ -762,10 +650,12 @@ int32_t main() noexcept {
 	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
-	StringScanner stringScanner{ stringNew };
+	SimdStringScanner stringScanner{ stringNew };
+	stringScanner.generateTapeRecord();
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringSection simd8Test{ string256 };
+		stringScanner.generateTapeRecord();
 		totalSize += string256.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
@@ -776,7 +666,7 @@ int32_t main() noexcept {
 	totalTime = 0;
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384; ++x) {
-		SimdBase64 simd8Test{ string64 };
+		//SimdBase64 simd8Test{ string64 };
 		totalSize += string64.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
