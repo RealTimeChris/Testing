@@ -558,18 +558,16 @@ class SimdStringSection {
 
 		this->S256 = this->collectStructuralCharacters();
 		this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
-		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
-		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
-
-		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
-
-		//this->R256.printBits("THE R VALUES: ");
-		//this->C256.printBits("COMMAS FINAL VALUES (256) ");		
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
+		this->W256.printBits("W FINAL VALUES (256) ");
+		this->R256.printBits("R FINAL VALUES (256) ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->LSB256.printBits("LSB FINAL VALUES (256): ");
+		this->RSB256.printBits("RSB FINAL VALUES (256) ");
+		this->LCB256.printBits("LCB FINAL VALUES (256): ");
+		this->RCB256.printBits("RCB FINAL VALUES (256) ");
+		this->R256.printBits("THE R VALUES: ");
+		this->C256.printBits("COMMAS FINAL VALUES (256) ");		
+		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
 	operator std::string() {
