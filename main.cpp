@@ -313,8 +313,8 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(*this, indices);
 	}
 	
-	inline std::vector<int16_t> getSetBitIndices() {
-		std::vector<int16_t> returnVector{};
+	inline std::vector<int8_t> getSetBitIndices() {
+		std::vector<int8_t> returnVector{};
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
 				returnVector.push_back(x);
@@ -373,7 +373,7 @@ class SimdStringSection {
 		return this->RCB256;
 	}
 
-	inline std::vector<int16_t> getStructuralIndices() {
+	inline std::vector<int8_t> getStructuralIndices() {
 		return this->S256.getSetBitIndices();
 	}
 
@@ -572,16 +572,22 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
-		this->S256.printBits("S FINAL VALUES (256) ");
-		this->W256.printBits("W FINAL VALUES (256) ");
-		this->R256.printBits("R FINAL VALUES (256) ");
-		this->Q256.printBits("Q FINAL VALUES (256): ");
-		this->LSB256.printBits("LSB FINAL VALUES (256): ");
-		this->RSB256.printBits("RSB FINAL VALUES (256) ");
-		this->LCB256.printBits("LCB FINAL VALUES (256): ");
-		this->RCB256.printBits("RCB FINAL VALUES (256) ");
-		this->R256.printBits("THE R VALUES: ");
-		this->C256.printBits("COMMAS FINAL VALUES (256) ");		
+		//this->S256.printBits("S FINAL VALUES (256) ");
+		//this->W256.printBits("W FINAL VALUES (256) ");
+		//this->R256.printBits("R FINAL VALUES (256) ");
+		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
+		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
+		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
+		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
+		//this->R256.printBits("THE R VALUES: ");
+		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
+		auto bitIndices = this->R256.getSetBitIndices();
+		std::cout << "THE INDICESSTRING: " << std::endl;
+		for (auto& value: bitIndices) {
+			std::cout << "BIT INDEX: " << value;
+		}
+		std::cout << std::endl;
 		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
@@ -787,7 +793,6 @@ class SimdBase64 {
 };
 
 int32_t main() noexcept {
-	std::cout << sizeof(std::vector<char>) << sizeof(std::string) << std::endl;
 	std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 	std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
