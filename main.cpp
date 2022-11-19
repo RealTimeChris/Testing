@@ -513,15 +513,17 @@ class SimdStringSection {
 	inline SimdBase256 collectQuotes() {
 		SimdBase256 quotes = _mm256_set1_epi8('"');
 		SimdBase256 quotesReal[8]{};
+		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
+		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
+
 		for (size_t x = 0; x < 8; ++x) {
 			quotesReal[x] = this->values[x] == quotes;
 		}
 
 		this->Q256 = SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
+		
 		auto S = this->B256.bitAndNot(this->B256 << 1);
-		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
-		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 		auto ES = E & S;
 		auto EC = ES.collectCarries(this->B256);
 		auto ECE = EC.bitAndNot(this->B256);
