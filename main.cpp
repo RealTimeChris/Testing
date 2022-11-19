@@ -313,8 +313,8 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(*this, indices);
 	}
 	
-	inline std::vector<int8_t> getSetBitIndices() {
-		std::vector<int8_t> returnVector{};
+	inline std::vector<uint8_t> getSetBitIndices() {
+		std::vector<uint8_t> returnVector{};
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
 				returnVector.push_back(x);
@@ -373,7 +373,7 @@ class SimdStringSection {
 		return this->RCB256;
 	}
 
-	inline std::vector<int8_t> getStructuralIndices() {
+	inline std::vector<uint8_t> getStructuralIndices() {
 		return this->S256.getSetBitIndices();
 	}
 
@@ -585,7 +585,7 @@ class SimdStringSection {
 		auto bitIndices = this->R256.getSetBitIndices();
 		std::cout << "THE INDICESSTRING: " << std::endl;
 		for (auto& value: bitIndices) {
-			std::cout << "BIT INDEX: " << value;
+			std::cout << "BIT INDEX: " << +value;
 		}
 		std::cout << std::endl;
 		std::cout << "THE STRING: " << this->stringView << std::endl;
