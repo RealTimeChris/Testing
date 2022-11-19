@@ -144,9 +144,9 @@ class SimdBase128 {
 	inline SimdBase128 operator<<(size_t amount) {
 		__m128i newValue{};
 		for (size_t x = 0; x < 2; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
+			*(reinterpret_cast<int64_t*>(&newValue) + x) |= *(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64);
 			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
@@ -257,9 +257,9 @@ class SimdBase256 {
 	inline SimdBase256 operator<<(size_t amount) {
 		__m256i newValue{};
 		for (size_t x = 0; x < 4; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
+			*(reinterpret_cast<int64_t*>(&newValue) + x) |= *(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64);
 			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
