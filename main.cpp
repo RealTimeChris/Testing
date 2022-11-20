@@ -315,19 +315,32 @@ class SimdBase256 {
 
 	inline uint16_t getNextIndex() {
 		if (this->setBitIndices.size() > 0) {
-			auto newValue = this->setBitIndices.front();
-			this->setBitIndices.erase(this->setBitIndices.begin());
+			return this->setBitIndices.back();
 		}
 		return std::numeric_limits<uint16_t>::max();
 	}
 
-	inline void getSetBitIndices() {
-		for (int64_t x = 0; x < 255; ++x) {
-			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
-				this->setBitIndices.push_back(x);
-				std::cout << "INDEX: " << +x << std::endl;
-			}
+	inline size_t getRemainingIndexCount() {
+		return this->setBitIndices.size();
+	}
+
+	inline void removeIndexValue() {
+		if (this->setBitIndices.size() > 0) {
+			this->setBitIndices.erase(this->setBitIndices.end() - 1);
 		}
+	}
+
+	inline void getSetBitIndices() {
+		this->printBits("THE BITS TO READ: ");
+		for (size_t x = 0; x < 4; ++x) {
+			for (int64_t y = 0; y < 64; ++y) {
+				if ((*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y) & 1) {
+					this->setBitIndices.push_back(y + (x * 64));
+					std::cout << "INDEX: " << +y + (x * 64) << std::endl;
+				}
+			}
+		}		
+		
 	}
 
   protected:
@@ -354,7 +367,8 @@ struct JsonTapeRecord {
 	size_t index{};
 };
 
-enum class ParsingStates {
+enum class ParsingStates : int8_t {
+	ErroredOut = -1,
 	CollectingStart = 0,
 	SearchingForToken = 1,
 	LookingForTokenType = 2,
@@ -393,6 +407,11 @@ class SimdStringSection {
 		}
 	}
 
+	bool isThereOneLeft() {
+		bool returnValue{};
+		if (this->))
+	}
+
 	inline ParsingStates getParsingState() {
 		return this->currentState;
 	}
@@ -420,6 +439,7 @@ class SimdStringSection {
 				case ParsingStates::CollectingStart: {
 					if (this->LCB256.getNextIndex() == std::numeric_limits<uint16_t>::max()) {
 						std::cout << "Error: Invalid Json-Document start." << std::endl;
+						this->currentState = ParsingStates::ErroredOut;
 					} else {
 						returnValue.push_back(JsonTapeRecord{ .type = RecordType::ObjectStart, .index = 0 });
 						this->currentState = ParsingStates::SearchingForToken;
@@ -687,23 +707,23 @@ class SimdStringSection {
 		this->packStringIntoValue(this->values[6], this->stringView.data() + 192);
 		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
 
-		//this->B256 = this->collectBackslashes();
+		this->B256 = this->collectBackslashes();
 
-		//this->Q256 = this->collectQuotes();
+		this->Q256 = this->collectQuotes();
 
-		//this->C256 = this->collectCommas();
+		this->C256 = this->collectCommas();
 
 		this->LCB256 = this->collectLeftCurlyBrackets();
 
-		//this->RCB256 = this->collectRightCurlyBrackets();
+		this->RCB256 = this->collectRightCurlyBrackets();
 
-		//this->LSB256 = this->collectLeftSquareBrackets();
+		this->LSB256 = this->collectLeftSquareBrackets();
 
-		//this->RSB256 = this->collectRightSquareBrackets();
+		this->RSB256 = this->collectRightSquareBrackets();
 
-		//this->W256 = this->collectWhiteSpace();
+		this->W256 = this->collectWhiteSpace();
 
-		//this->S256 = this->collectStructuralCharacters();
+		this->S256 = this->collectStructuralCharacters();
 		this->S256.printBits("S FINAL VALUES (256) ");
 		this->W256.printBits("W FINAL VALUES (256) ");
 		this->R256.printBits("R FINAL VALUES (256) ");
