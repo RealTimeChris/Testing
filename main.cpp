@@ -219,10 +219,6 @@ class SimdBase256 {
 		return this->value;
 	}
 
-	inline operator __m256i*() {
-		return &this->value;
-	}
-
 	inline SimdBase256 operator|(__m256i other) {
 		return _mm256_or_si256(this->value, other);
 	}
@@ -289,12 +285,12 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 collectCarries(__m256i inputB) {
-		__m256i returnValue{};
+		SimdBase256 returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
-			int64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&this->value) + x), *(reinterpret_cast<int64_t*>(&inputB) + x),
+			uint64_t returnValue64{};
+			_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&inputB) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
 				reinterpret_cast<unsigned long long*>(&returnValue64));
-			*(reinterpret_cast<int64_t*>(&returnValue) + x) |= returnValue64;
+			(*(reinterpret_cast<uint64_t*>(&returnValue) + x)) = returnValue64;
 		}
 		return returnValue;
 	}
@@ -317,37 +313,30 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(*this, indices);
 	}
 
-	inline uint8_t getNextIndex() {
-		if (this->setBitIndices.size() > 0) {
-			uint8_t value{ this->setBitIndices.front() };
-			std::cout << "THE CURRENT INDEX: 01 " << +this->setBitIndices.front() << std::endl;
-			return value;
-		} else {
-			return std::numeric_limits<uint8_t>::max();
+	inline uint16_t getNextIndex() {
+		if (this->currentIndex != std::numeric_limits<uint16_t>::max()) {
+			for (int64_t x = this->currentIndex; x < 255; ++x) {
+				if ((*reinterpret_cast<uint64_t*>(&this->value) >> x) & 1) {
+					this->currentIndex = x;
+					return this->currentIndex;
+				}
+			}
+			this->currentIndex = std::numeric_limits<uint16_t>::max();
 		}
-	}
-
-	inline void eraseIndex() {
-		this->setBitIndices.erase(this->setBitIndices.begin());
+		return this->currentIndex;
 	}
 
 	inline void getSetBitIndices() {
-		this->printBits("THE VALUES: ");
-		for (size_t x = 0; x < 4; ++x) {
-			auto newValue = _lzcnt_u64(*reinterpret_cast<uint64_t*>(&this->value));
-			std::cout << "THE CURRENT INDEX: 02 " << +newValue << std::endl;
-			while (newValue <= 64) {
-				this->setBitIndices.push_back(64 - newValue);
-				std::cout << "THE CURRENT INDEX: 02 " << +64 - newValue << std::endl;
-				newValue = _lzcnt_u64(*reinterpret_cast<uint64_t*>(&this->value));
-				std::cout << "THE CURRENT INDEX: 02 " << +newValue << std::endl;
+		for (int64_t x = 0; x < 255; ++x) {
+			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
+				this->setBitIndices.push_back(x);
 			}
 		}
 	}
 
   protected:
 	std::vector<uint8_t> setBitIndices{};
-	uint16_t currentIndex{};
+	uint8_t currentIndex{};
 	__m256i value{};
 };
 
@@ -367,34 +356,6 @@ enum class RecordType : uint16_t {
 struct JsonTapeRecord {
 	RecordType type{};
 	size_t index{};
-	operator std::string() {
-		switch (this->type) {
-			case RecordType::ObjectStart: {
-				return "Object Start";
-			}
-			case RecordType::ObjectEnd: {
-				return "Object End";
-			}
-			case RecordType::ArrayStart: {
-				return "Array Start";
-			}
-			case RecordType::ArrayEnd: {
-				return "Array End";
-			}
-			case RecordType::Key_Start: {
-				return "Key Start";
-			}
-			case RecordType::Key_End: {
-				return "Key End";
-			}
-			case RecordType::StringStart: {
-				return "String Start";
-			}
-			case RecordType::StringEnd: {
-				return "String End";
-			}
-		}
-	}
 };
 
 enum class ParsingStates {
@@ -447,22 +408,19 @@ class SimdStringSection {
 		this->getWhiteSpaceIndices();
 		std::vector<JsonTapeRecord> returnValue{};
 		bool doWeBreak{ false };
-		while (this->currentGlobalIndex < 256) {
+		while (true) {
 			if (doWeBreak) {
 				break;
 			}
 			switch (this->currentState) {
 				case ParsingStates::CollectingStart: {
-					if (this->LCB256.getNextIndex() != 0) {
+					if (this->Q256.getNextIndex() != 0) {
 						throw std::runtime_error{ "Error: Invalid Json-Document start." };
 					} else {
 						returnValue.push_back(JsonTapeRecord{ .type = RecordType::ObjectStart, .index = 0 });
-						this->LCB256.eraseIndex();
-						this->currentState = ParsingStates::SearchingForToken;
 					}
 					break;
 				}
-					
 				case ParsingStates::SearchingForToken: {
 					ClosestIndex closestIndex{};
 					auto closestQuoteIndex = this->Q256.getNextIndex();
@@ -496,10 +454,7 @@ class SimdStringSection {
 					switch (closestIndex.type) {
 						case ClosestIndexTypes::UnescapedQuotes: {
 							returnValue.push_back(JsonTapeRecord{ .type = RecordType::Key_Start, .index = closestIndex.value });
-							//this->Q256.eraseIndex();
 							returnValue.push_back(JsonTapeRecord{ .type = RecordType::Key_End, .index = this->Q256.getNextIndex() });
-							//this->Q256.eraseIndex();
-							this->currentState = ParsingStates::LookingForTokenType;
 							break;
 						}
 					}
@@ -508,14 +463,11 @@ class SimdStringSection {
 					break;
 				}
 			}
+		}
+		
+		for (size_t x = 0; x < 256; ++x) {
 
-			this->currentGlobalIndex++;
 		}
-		std::cout << "THE TAPE RECORD: ";
-		for (auto& value: returnValue) {
-			std::cout << "TYPE: " << ( std::string )value << ", INDEX: " << value.index << std::endl;
-		}
-		return returnValue;
 	}
 
 	std::string_view getStringView() {
@@ -698,26 +650,25 @@ class SimdStringSection {
 		auto S = this->B256.bitAndNot(this->B256 << 1);
 		auto ES = E & S;
 		auto EC = ES.collectCarries(this->B256);
-		auto ECE = EC.bitAndNot(this->B256);
-		auto OD1 = ECE.bitAndNot(E);
-		auto OS = S & O;
-		auto OC = this->B256 + OS;
-		auto OCE = OC.bitAndNot(this->B256);
-		auto OD2 = OCE & E;
-		auto OD = OD1 | OD2;
+		//auto ECE = EC.bitAndNot(this->B256);
+		//auto OD1 = ECE.bitAndNot(E);
+		//auto OS = S & O;
+		//auto OC = this->B256 + OS;
+		//auto OCE = OC.bitAndNot(this->B256);
+		//auto OD2 = OCE & E;
+		//auto OD = OD1 | OD2;
 
-		return this->Q256 & ~OD;
+		return this->Q256;//&~OD;
 	}
 
 	inline SimdStringSection(std::string_view valueNew) {
 		if (valueNew.size() % 256 != 0) {
 			this->string = valueNew;
-			this->string.resize(this->string.size() + 256 - (this->string.size() % 256), 255);
+			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
 			this->paddingAddedToEnd = 256 - valueNew.size() % 256;
 			std::cout << "PADDING ADDED TO THE END: " << this->paddingAddedToEnd << std::endl;
 			std::cout << "STRING SIZE: " << valueNew.size() << std::endl;
 			this->stringView = this->string;
-			std::cout << "THE NEW SIZE: " << this->stringView.size() << std::endl;
 
 		} else {
 			this->stringView = valueNew;
@@ -748,11 +699,11 @@ class SimdStringSection {
 
 		this->W256 = this->collectWhiteSpace();
 
-		//this->S256 = this->collectStructuralCharacters();
-		//this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->S256 = this->collectStructuralCharacters();
+		this->S256.printBits("S FINAL VALUES (256) ");
+		this->W256.printBits("W FINAL VALUES (256) ");
+		this->R256.printBits("R FINAL VALUES (256) ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
 		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
@@ -798,15 +749,26 @@ class SimdStringScanner {
 		size_t stringSize = string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
-			this->stringSections.emplace_back(SimdStringSection{ std::string_view{ string.data() + collectedSize, 256 } });
+			this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, 256 });
 			stringSize -= 256;
 			collectedSize += 256;
 		}
-		this->stringSections.emplace_back(SimdStringSection{ std::string_view{ string.data() + collectedSize, string.size() - collectedSize } });
+		this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
+	}
+
+	void generateTapeRecord() {
+		for (auto& value: this->stringSections) {
+			for (size_t x = 0; x < 4; ++x) {
+				for (size_t y = 0; y < 64; ++y) {
+					//std::cout << +((*reinterpret_cast<uint64_t*>(&value.getStructuralCharacters()) + x) >> y & 1);
+				}
+			}
+			//std::cout << std::endl;
+		}
 	}
 
   protected:
-	std::vector<std::vector<JsonTapeRecord>> stringSections{};
+	std::vector<SimdStringSection> stringSections{};
 	std::vector<JsonTapeRecord> theRecords{};
 	Jsonifier::Jsonifier jsonValues{};
 	bool haveWeStarted{ false };
@@ -960,9 +922,11 @@ int32_t main() noexcept {
 	std::chrono::nanoseconds totalTime{};
 	size_t totalSize{};
 	SimdStringScanner stringScanner{ stringNew };
+	stringScanner.generateTapeRecord();
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringSection simd8Test{ string256 };
+		stringScanner.generateTapeRecord();
 		totalSize += string256.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
