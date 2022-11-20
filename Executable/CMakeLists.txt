@@ -15,12 +15,12 @@ endif()
 
 #include(Jsonifier)
 
-find_package(nlohmann_json CONFIG REQUIRED)
+#find_package(nlohmann_json CONFIG REQUIRED)
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	Jsonifier::Jsonifier
-	nlohmann_json::nlohmann_json 
+	#nlohmann_json::nlohmann_json 
 )
 
 target_compile_options(

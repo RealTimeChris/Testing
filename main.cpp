@@ -288,9 +288,9 @@ class SimdBase256 {
 		SimdBase256 returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&inputB) + x), *(reinterpret_cast<int64_t*>(&this->value) + x),
+			_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&inputB) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
 				reinterpret_cast<unsigned long long*>(&returnValue64));
-			*(reinterpret_cast<int64_t*>(&returnValue) + x) = returnValue64;
+			(*(reinterpret_cast<uint64_t*>(&returnValue) + x)) = returnValue64;
 		}
 		return returnValue;
 	}
@@ -312,19 +312,79 @@ class SimdBase256 {
 	inline SimdBase256 shuffle(__m256i indices) {
 		return _mm256_shuffle_epi8(*this, indices);
 	}
-	
-	inline std::vector<uint8_t> getSetBitIndices() {
-		std::vector<uint8_t> returnVector{};
+
+	inline uint16_t getNextIndex() {
+		if (this->currentIndex != std::numeric_limits<uint16_t>::max()) {
+			for (int64_t x = this->currentIndex; x < 255; ++x) {
+				if ((*reinterpret_cast<uint64_t*>(&this->value) >> x) & 1) {
+					this->currentIndex = x;
+					return this->currentIndex;
+				}
+			}
+			this->currentIndex = std::numeric_limits<uint16_t>::max();
+		}
+		return this->currentIndex;
+	}
+
+	inline void getSetBitIndices() {
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
-				returnVector.push_back(x);
+				this->setBitIndices.push_back(x);
 			}
 		}
-		return returnVector;
 	}
 
   protected:
+	std::vector<uint8_t> setBitIndices{};
+	uint8_t currentIndex{};
 	__m256i value{};
+};
+
+enum class RecordType : uint16_t {
+	ObjectStart = 1 << 0,
+	ArrayStart = 1 << 1,
+	StringStart = 1 << 2,
+	PrimitiveStart = 1 << 3,
+	ObjectEnd = 1 << 4,
+	ArrayEnd = 1 << 5,
+	StringEnd = 1 << 6,
+	PrimitiveEnd = 1 << 7,
+	Key_Start = 1 << 8,
+	Key_End = 1 << 9
+};
+
+struct JsonTapeRecord {
+	RecordType type{};
+	size_t index{};
+};
+
+enum class ParsingStates {
+	CollectingStart = 0,
+	SearchingForToken = 1,
+	LookingForTokenType = 2,
+};
+
+enum class ClosestIndexTypes {
+	UnescapedQuotes = 0,
+	Commas = 1,
+	LeftCurlyBrackets = 2,
+	RightCurlyBrackets = 3,
+	LeftSquareBrackets = 4,
+	RightSquareBrackets = 5,
+	WhiteSpace = 6,
+};
+
+struct ClosestIndex {
+	ClosestIndex() noexcept = default;
+	ClosestIndex(size_t valueNew, ClosestIndexTypes typeNew) noexcept {
+		this->value = valueNew;
+		this->type = typeNew;
+	}
+	ClosestIndexTypes type{};
+	size_t value{};
+	operator size_t() {
+		return this->value;
+	}
 };
 
 class SimdStringSection {
@@ -337,44 +397,109 @@ class SimdStringSection {
 		}
 	}
 
-	inline SimdBase256& getQuotedStringRange() {
-		return this->Q256;
+	operator std::vector<JsonTapeRecord>() {
+		this->currentState = ParsingStates::CollectingStart;
+		this->getCommaIndices();
+		this->getUnescapedQuoteIndices();
+		this->getLeftCurlyBracketIndices();
+		this->getRightCurlyBracketIndices();
+		this->getLeftSquareBracketIndices();
+		this->getRightSquareBracketIndices();
+		this->getWhiteSpaceIndices();
+		std::vector<JsonTapeRecord> returnValue{};
+		bool doWeBreak{ false };
+		while (true) {
+			if (doWeBreak) {
+				break;
+			}
+			switch (this->currentState) {
+				case ParsingStates::CollectingStart: {
+					if (this->Q256.getNextIndex() != 0) {
+						throw std::runtime_error{ "Error: Invalid Json-Document start." };
+					} else {
+						returnValue.push_back(JsonTapeRecord{ .type = RecordType::ObjectStart, .index = 0 });
+					}
+					break;
+				}
+				case ParsingStates::SearchingForToken: {
+					ClosestIndex closestIndex{};
+					auto closestQuoteIndex = this->Q256.getNextIndex();
+					if (closestQuoteIndex <= closestIndex) {
+						closestIndex = { closestQuoteIndex, ClosestIndexTypes::UnescapedQuotes };
+					}
+					auto closestCurlyBracketIndex = this->LCB256.getNextIndex();
+					if (closestCurlyBracketIndex <= closestIndex) {
+						closestIndex = { closestCurlyBracketIndex, ClosestIndexTypes::LeftCurlyBrackets };
+					}
+					auto closestSquareBracketIndex = this->LSB256.getNextIndex();
+					if (closestSquareBracketIndex <= closestIndex) {
+						closestIndex = { closestSquareBracketIndex, ClosestIndexTypes::LeftSquareBrackets };
+					}
+					closestCurlyBracketIndex = this->RCB256.getNextIndex();
+					if (closestCurlyBracketIndex <= closestIndex) {
+						closestIndex = { closestCurlyBracketIndex, ClosestIndexTypes::RightCurlyBrackets };
+					}
+					closestSquareBracketIndex = this->RSB256.getNextIndex();
+					if (closestSquareBracketIndex <= closestIndex) {
+						closestIndex = { closestSquareBracketIndex, ClosestIndexTypes::RightSquareBrackets };
+					}
+					auto closestCommaIndex = this->C256.getNextIndex();
+					if (closestCommaIndex <= closestIndex) {
+						closestIndex = { closestCommaIndex, ClosestIndexTypes::Commas };
+					}
+					auto closestWhiteSpaceIndex = this->W256.getNextIndex();
+					if (closestWhiteSpaceIndex <= closestIndex) {
+						closestIndex = { closestWhiteSpaceIndex, ClosestIndexTypes::WhiteSpace };
+					}
+					switch (closestIndex.type) {
+						case ClosestIndexTypes::UnescapedQuotes: {
+							returnValue.push_back(JsonTapeRecord{ .type = RecordType::Key_Start, .index = closestIndex.value });
+							returnValue.push_back(JsonTapeRecord{ .type = RecordType::Key_End, .index = this->Q256.getNextIndex() });
+							break;
+						}
+					}
+				}
+				case ParsingStates::LookingForTokenType: {
+					break;
+				}
+			}
+		}
+		
+		for (size_t x = 0; x < 256; ++x) {
+
+		}
 	}
 
-	inline SimdBase256& getLeftSquareBracketRange() {
-		return this->LSB256;
+	std::string_view getStringView() {
+		return this->stringView;
 	}
 
-	inline SimdBase256& getRightSquareBracketRange() {
-		return this->RSB256;
+	inline void getCommaIndices() {
+		return this->C256.getSetBitIndices();
 	}
 
-	inline SimdBase256& getWhiteSpaceCharacters() {
-		return this->W256;
+	inline void getLeftSquareBracketIndices() {
+		return this->LSB256.getSetBitIndices();
 	}
 
-	inline SimdBase256& getBackslashesRange() {
-		return this->B256;
+	inline void getRightSquareBracketIndices() {
+		return this->RSB256.getSetBitIndices();
 	}
 
-	inline SimdBase256& getCommasRange() {
-		return this->C256;
+	inline void getLeftCurlyBracketIndices() {
+		return this->LCB256.getSetBitIndices();
 	}
 
-	inline SimdBase256& getStructuralCharacters() {
-		return this->S256;
+	inline void getRightCurlyBracketIndices() {
+		return this->RCB256.getSetBitIndices();
 	}
 
-	inline SimdBase256& getLeftCurlyBracketRange() {
-		return this->LCB256;
+	inline void getWhiteSpaceIndices() {
+		return this->W256.getSetBitIndices();
 	}
 
-	inline SimdBase256& getRightCurlyBracketRange() {
-		return this->RCB256;
-	}
-
-	inline std::vector<uint8_t> getStructuralIndices() {
-		return this->S256.getSetBitIndices();
+	inline void getUnescapedQuoteIndices() {
+		return this->Q256.getSetBitIndices();
 	}
 
 	inline SimdBase256 collectColons() {
@@ -525,21 +650,24 @@ class SimdStringSection {
 		auto S = this->B256.bitAndNot(this->B256 << 1);
 		auto ES = E & S;
 		auto EC = ES.collectCarries(this->B256);
-		auto ECE = EC.bitAndNot(this->B256);
-		auto OD1 = ECE.bitAndNot(E);
-		auto OS = S & O;
-		auto OC = this->B256 + OS;
-		auto OCE = OC.bitAndNot(this->B256);
-		auto OD2 = OCE & E;
-		auto OD = OD1 | OD2;
+		//auto ECE = EC.bitAndNot(this->B256);
+		//auto OD1 = ECE.bitAndNot(E);
+		//auto OS = S & O;
+		//auto OC = this->B256 + OS;
+		//auto OCE = OC.bitAndNot(this->B256);
+		//auto OD2 = OCE & E;
+		//auto OD = OD1 | OD2;
 
-		return this->Q256 & ~OD;
+		return this->Q256;//&~OD;
 	}
 
 	inline SimdStringSection(std::string_view valueNew) {
 		if (valueNew.size() % 256 != 0) {
 			this->string = valueNew;
 			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
+			this->paddingAddedToEnd = 256 - valueNew.size() % 256;
+			std::cout << "PADDING ADDED TO THE END: " << this->paddingAddedToEnd << std::endl;
+			std::cout << "STRING SIZE: " << valueNew.size() << std::endl;
 			this->stringView = this->string;
 
 		} else {
@@ -572,22 +700,22 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
-		//this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
+		this->S256.printBits("S FINAL VALUES (256) ");
+		this->W256.printBits("W FINAL VALUES (256) ");
+		this->R256.printBits("R FINAL VALUES (256) ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
 		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
 		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
 		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
 		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
 		//this->R256.printBits("THE R VALUES: ");
 		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
-		auto bitIndices = this->R256.getSetBitIndices();
-		std::cout << "THE INDICESSTRING: " << std::endl;
-		for (auto& value: bitIndices) {
-			std::cout << "BIT INDEX: " << +value;
-		}
-		std::cout << std::endl;
+		//auto bitIndices = this->R256.getSetBitIndices();
+		//std::cout << "THE INDICESSTRING: " << std::endl;
+		//for (auto& value: bitIndices) {
+		//std::cout << "BIT INDEX: " << +value;
+		//}
+		//std::cout << std::endl;
 		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
@@ -596,34 +724,22 @@ class SimdStringSection {
 	}
 
   protected:
-	SimdBase256 Q256{};
-	SimdBase256 W256{};
-	SimdBase256 R256{};
-	SimdBase256 B256{};
-	SimdBase256 S256{};
+	std::string_view stringView{};
+	ParsingStates currentState{};
+	size_t currentGlobalIndex{};
+	size_t paddingAddedToEnd{};
+	SimdBase256 values[8]{};
+	std::string string{};
 	SimdBase256 RSB256{};
 	SimdBase256 LSB256{};
 	SimdBase256 RCB256{};
 	SimdBase256 LCB256{};
+	SimdBase256 W256{};
+	SimdBase256 Q256{};
+	SimdBase256 R256{};
+	SimdBase256 B256{};
+	SimdBase256 S256{};
 	SimdBase256 C256{};
-	SimdBase256 values[8]{};
-	std::string_view stringView{};
-	std::string string{};
-};
-
-enum class JsonEventType : int8_t {
-	Object_Start = 1 << 0,
-	Array_Start = 1 << 1,
-	String_Start = 1 << 2,
-	Primitive_Start = 1 << 3,
-	Int_Start = 1 << 4,
-	Float_Start = 1 << 5,
-	Bool_Start = 1 << 6
-};
-
-struct JsonTapeRecord {
-	JsonEventType eventType{};
-	size_t startingIndex{};
 };
 
 class SimdStringScanner {
@@ -653,7 +769,8 @@ class SimdStringScanner {
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
-	std::vector<JsonTapeRecord> jsonTape{};
+	std::vector<JsonTapeRecord> theRecords{};
+	Jsonifier::Jsonifier jsonValues{};
 	bool haveWeStarted{ false };
 	std::string finalString{};
 };
