@@ -314,22 +314,18 @@ class SimdBase256 {
 	}
 
 	inline uint16_t getNextIndex() {
-		if (this->currentIndex != std::numeric_limits<uint16_t>::max()) {
-			for (int64_t x = this->currentIndex; x < 255; ++x) {
-				if ((*reinterpret_cast<uint64_t*>(&this->value) >> x) & 1) {
-					this->currentIndex = x;
-					return this->currentIndex;
-				}
-			}
-			this->currentIndex = std::numeric_limits<uint16_t>::max();
+		if (this->setBitIndices.size() > 0) {
+			auto newValue = this->setBitIndices.front();
+			this->setBitIndices.erase(this->setBitIndices.begin());
 		}
-		return this->currentIndex;
+		return std::numeric_limits<uint16_t>::max();
 	}
 
 	inline void getSetBitIndices() {
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x ) & 1) {
 				this->setBitIndices.push_back(x);
+				std::cout << "INDEX: " << +x << std::endl;
 			}
 		}
 	}
@@ -397,7 +393,15 @@ class SimdStringSection {
 		}
 	}
 
-	operator std::vector<JsonTapeRecord>() {
+	inline ParsingStates getParsingState() {
+		return this->currentState;
+	}
+
+	inline void setParsingState(ParsingStates state) {
+		this->currentState = state;
+	}
+
+	inline operator std::vector<JsonTapeRecord>() {
 		this->currentState = ParsingStates::CollectingStart;
 		this->getCommaIndices();
 		this->getUnescapedQuoteIndices();
@@ -408,16 +412,17 @@ class SimdStringSection {
 		this->getWhiteSpaceIndices();
 		std::vector<JsonTapeRecord> returnValue{};
 		bool doWeBreak{ false };
-		while (true) {
+		while (this->currentGlobalIndex < 255) {
 			if (doWeBreak) {
 				break;
 			}
 			switch (this->currentState) {
 				case ParsingStates::CollectingStart: {
-					if (this->Q256.getNextIndex() != 0) {
-						throw std::runtime_error{ "Error: Invalid Json-Document start." };
+					if (this->LCB256.getNextIndex() == std::numeric_limits<uint16_t>::max()) {
+						std::cout << "Error: Invalid Json-Document start." << std::endl;
 					} else {
 						returnValue.push_back(JsonTapeRecord{ .type = RecordType::ObjectStart, .index = 0 });
+						this->currentState = ParsingStates::SearchingForToken;
 					}
 					break;
 				}
@@ -463,11 +468,10 @@ class SimdStringSection {
 					break;
 				}
 			}
+			this->currentGlobalIndex++;
 		}
 		
-		for (size_t x = 0; x < 256; ++x) {
-
-		}
+		return returnValue;
 	}
 
 	std::string_view getStringView() {
@@ -683,23 +687,23 @@ class SimdStringSection {
 		this->packStringIntoValue(this->values[6], this->stringView.data() + 192);
 		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
 
-		this->B256 = this->collectBackslashes();
+		//this->B256 = this->collectBackslashes();
 
-		this->Q256 = this->collectQuotes();
+		//this->Q256 = this->collectQuotes();
 
-		this->C256 = this->collectCommas();
+		//this->C256 = this->collectCommas();
 
 		this->LCB256 = this->collectLeftCurlyBrackets();
 
-		this->RCB256 = this->collectRightCurlyBrackets();
+		//this->RCB256 = this->collectRightCurlyBrackets();
 
-		this->LSB256 = this->collectLeftSquareBrackets();
+		//this->LSB256 = this->collectLeftSquareBrackets();
 
-		this->RSB256 = this->collectRightSquareBrackets();
+		//this->RSB256 = this->collectRightSquareBrackets();
 
-		this->W256 = this->collectWhiteSpace();
+		//this->W256 = this->collectWhiteSpace();
 
-		this->S256 = this->collectStructuralCharacters();
+		//this->S256 = this->collectStructuralCharacters();
 		this->S256.printBits("S FINAL VALUES (256) ");
 		this->W256.printBits("W FINAL VALUES (256) ");
 		this->R256.printBits("R FINAL VALUES (256) ");
@@ -758,16 +762,20 @@ class SimdStringScanner {
 
 	void generateTapeRecord() {
 		for (auto& value: this->stringSections) {
-			for (size_t x = 0; x < 4; ++x) {
-				for (size_t y = 0; y < 64; ++y) {
-					//std::cout << +((*reinterpret_cast<uint64_t*>(&value.getStructuralCharacters()) + x) >> y & 1);
-				}
-			}
-			//std::cout << std::endl;
+			value.setParsingState(this->currentState);
+			std::cout << "NEWVALUE LENGTH: " << value.operator std::string() << std::endl;
+			std::cout << "PARSING STATE: " << ( int32_t )value.getParsingState() << std::endl;
+			auto newValue = value.operator std::vector<JsonTapeRecord>();
+			std::cout << "NEWVALUE LENGTH: " << newValue.size() << std::endl;
+			std::cout << "PARSING STATE: " << ( int32_t )value.getParsingState() << std::endl;
+			this->currentState = value.getParsingState();
+			this->theRecords.insert(this->theRecords.end(), newValue.begin(), newValue.end());
+			
 		}
 	}
 
   protected:
+	ParsingStates currentState{ ParsingStates::CollectingStart };
 	std::vector<SimdStringSection> stringSections{};
 	std::vector<JsonTapeRecord> theRecords{};
 	Jsonifier::Jsonifier jsonValues{};
