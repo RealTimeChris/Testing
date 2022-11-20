@@ -285,7 +285,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 collectCarries(__m256i inputB) {
-		SimdBase256 returnValue{};
+		__m256i returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
 			_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&inputB) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
@@ -650,15 +650,15 @@ class SimdStringSection {
 		auto S = this->B256.bitAndNot(this->B256 << 1);
 		auto ES = E & S;
 		auto EC = ES.collectCarries(this->B256);
-		//auto ECE = EC.bitAndNot(this->B256);
-		//auto OD1 = ECE.bitAndNot(E);
-		//auto OS = S & O;
-		//auto OC = this->B256 + OS;
-		//auto OCE = OC.bitAndNot(this->B256);
-		//auto OD2 = OCE & E;
-		//auto OD = OD1 | OD2;
+		auto ECE = EC.bitAndNot(this->B256);
+		auto OD1 = ECE.bitAndNot(E);
+		auto OS = S & O;
+		auto OC = this->B256 + OS;
+		auto OCE = OC.bitAndNot(this->B256);
+		auto OD2 = OCE & E;
+		auto OD = OD1 | OD2;
 
-		return this->Q256;//&~OD;
+		return this->Q256 & ~OD;
 	}
 
 	inline SimdStringSection(std::string_view valueNew) {
