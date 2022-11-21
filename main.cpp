@@ -22,13 +22,13 @@ class SimdBase64 {
 		return convertSimd256To64BitUint(this->values[1], this->values[0]);
 	}
 
-	void packStringIntoValue(__m256i& theValue, const char* string) {
+	inline void packStringIntoValue(__m256i& theValue, const char* string) {
 		for (size_t x = 0; x < 32; ++x) {
 			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
 	}
 
-	void printBits(uint64_t inA, std::string values) {
+	inline void printBits(uint64_t inA, std::string values) {
 		alignas(32) uint8_t v[64]{};
 		for (size_t x = 0; x < 64; ++x) {
 			if ((static_cast<uint64_t>(inA >> x) & 0x01) == static_cast<uint64_t>(1 << 0)) {
@@ -46,13 +46,13 @@ class SimdBase64 {
 			v[59], v[60], v[61], v[62], v[63]);
 	}
 
-	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
+	inline uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
 		uint64_t returnValue{};
 		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned long long*>(&returnValue));
 		return returnValue;
 	}
 
-	void printBits(std::string valuesTitle) {
+	inline void printBits(std::string valuesTitle) {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
@@ -67,7 +67,7 @@ class SimdBase64 {
 		std::cout << std::endl;
 	}
 
-	void collectQuotes() {
+	inline void collectQuotes() {
 		auto backslashes = _mm256_set1_epi8('\\');
 		auto B0 = _mm256_cmpeq_epi8(this->values[0], backslashes);
 		auto B1 = _mm256_cmpeq_epi8(this->values[1], backslashes);
@@ -91,7 +91,7 @@ class SimdBase64 {
 		this->Q64 &= ~OD;
 	}
 
-	void collectStructuralCharacters() {
+	inline void collectStructuralCharacters() {
 		__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
 			0) };
 		this->R64 = this->Q64;
@@ -110,7 +110,7 @@ class SimdBase64 {
 		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
 	}
 
-	void collectWhiteSpace() {
+	inline void collectWhiteSpace() {
 		__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100,
 			17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
@@ -132,7 +132,7 @@ class SimdBase64 {
 		//printBits(this->W64, "W FINAL VALUES: ");
 	}
 
-	operator std::string() {
+	inline operator std::string() {
 		return string;
 	}
 
@@ -149,34 +149,34 @@ template<typename TTy> class StopWatch {
   public:
 	using HRClock = std::chrono::high_resolution_clock;
 
-	StopWatch() = delete;
+	inline StopWatch() = delete;
 
-	StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
+	inline StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
 		this->maxNumberOfMs.store(data.maxNumberOfMs.load());
 		this->startTime.store(data.startTime.load());
 		return *this;
 	}
 
-	StopWatch(const StopWatch<TTy>& data) {
+	inline StopWatch(const StopWatch<TTy>& data) {
 		*this = data;
 	}
 
-	StopWatch(TTy maxNumberOfMsNew) {
+	inline StopWatch(TTy maxNumberOfMsNew) {
 		this->maxNumberOfMs.store(maxNumberOfMsNew);
 		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
-	TTy totalTimePassed() {
+	inline TTy totalTimePassed() {
 		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 		TTy elapsedTime = currentTime - this->startTime.load();
 		return elapsedTime;
 	}
 
-	TTy getTotalWaitTime() {
+	inline TTy getTotalWaitTime() {
 		return this->maxNumberOfMs.load();
 	}
 
-	bool hasTimePassed() {
+	inline bool hasTimePassed() {
 		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 		TTy elapsedTime = currentTime - this->startTime.load();
 		if (elapsedTime >= this->maxNumberOfMs.load()) {
@@ -186,7 +186,7 @@ template<typename TTy> class StopWatch {
 		}
 	}
 
-	void resetTimer() {
+	inline void resetTimer() {
 		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
@@ -218,7 +218,7 @@ class SimdBase128 {
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
-	uint64_t* operator[](size_t index) {
+	inline uint64_t* operator[](size_t index) {
 		return (reinterpret_cast<uint64_t*>(&this->value) + index);
 	}
 
@@ -317,7 +317,7 @@ class SimdBase128 {
 
 class SimdBase256 {
   public:
-	SimdBase256() noexcept = default;
+	inline SimdBase256() noexcept = default;
 
 	inline SimdBase256& operator=(char other) {
 		this->value = _mm256_set1_epi8(other);
@@ -359,7 +359,7 @@ class SimdBase256 {
 		return this->value;
 	}
 
-	uint64_t* operator[](size_t index) {
+	inline uint64_t* operator[](size_t index) {
 		return (reinterpret_cast<uint64_t*>(&this->value) + index);
 	}
 
@@ -460,7 +460,7 @@ class SimdBase256 {
 
 class SimdBitIndexer {
   public:
-	SimdBitIndexer() noexcept = default;
+	inline SimdBitIndexer() noexcept = default;
 
 	inline std::vector<uint8_t> getSetBitIndices(SimdBase256 value) {
 		std::vector<uint8_t> returnValue{};
@@ -627,7 +627,7 @@ class SimdStringSection {
 
 class SimdStringScanner {
   public:
-	SimdStringScanner(std::string_view string) noexcept {
+	inline SimdStringScanner(std::string_view string) noexcept {
 		this->rawJsonString = string;
 		size_t stringSize = string.size();
 		size_t collectedSize{};
@@ -641,10 +641,10 @@ class SimdStringScanner {
 		this->stringSections.emplace_back(SimdStringSection{ std::string_view{ string.data() + collectedSize, 256 }, currentIndex });
 	}
 
-	void generateTapeRecord() {
+	inline void generateTapeRecord() {
 	}
 
-	operator Jsonifier::Jsonifier() {
+	inline operator Jsonifier::Jsonifier() {
 		return this->jsonValues;
 	}
 
