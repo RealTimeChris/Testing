@@ -331,12 +331,10 @@ class SimdBase256 {
 	}
 
 	inline void getSetBitIndices() {
-		this->printBits("THE BITS TO READ: ");
 		for (size_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
 				if ((*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y) & 1) {
 					this->setBitIndices.push_back(y + (x * 64));
-					std::cout << "INDEX: " << +y + (x * 64) << std::endl;
 				}
 			}
 		}		
@@ -490,8 +488,6 @@ class SimdStringSection {
 			this->string = valueNew;
 			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
 			this->paddingAddedToEnd = 256 - valueNew.size() % 256;
-			std::cout << "PADDING ADDED TO THE END: " << this->paddingAddedToEnd << std::endl;
-			std::cout << "STRING SIZE: " << valueNew.size() << std::endl;
 			this->stringView = this->string;
 
 		} else {
