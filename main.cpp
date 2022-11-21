@@ -367,36 +367,6 @@ struct JsonTapeRecord {
 	size_t index{};
 };
 
-enum class ParsingStates : int8_t {
-	ErroredOut = 0 << 0,
-	CollectingStart = 1 << 0,
-	SearchingForToken = 1 << 1,
-	LookingForTokenType = 1 << 2,
-};
-
-enum class ClosestIndexTypes : uint8_t {
-	UnescapedQuotes = 1,
-	Commas = 2,
-	LeftCurlyBrackets = 3,
-	RightCurlyBrackets = 4,
-	LeftSquareBrackets = 5,
-	RightSquareBrackets = 6,
-	WhiteSpace = 7,
-};
-
-struct ClosestIndex {
-	ClosestIndex() noexcept = default;
-	ClosestIndex(size_t valueNew, ClosestIndexTypes typeNew) noexcept {
-		this->value = valueNew;
-		this->type = typeNew;
-	}
-	ClosestIndexTypes type{};
-	size_t value{ 255 };
-	operator size_t() {
-		return this->value;
-	}
-};
-
 class SimdStringSection {
   public:
 	inline SimdStringSection() noexcept = default;
@@ -407,150 +377,16 @@ class SimdStringSection {
 		}
 	}
 
-	bool isThereOneLeft() {
-		if (this->W256.getRemainingIndexCount() > 0 || this->B256.getRemainingIndexCount() > 0 || this->C256.getRemainingIndexCount() > 0 ||
-			this->LCB256.getRemainingIndexCount() > 0 || this->LSB256.getRemainingIndexCount() > 0 || this->Q256.getRemainingIndexCount() > 0 ||
-			this->R256.getRemainingIndexCount() > 0 || this->RCB256.getRemainingIndexCount() > 0 || this->RSB256.getRemainingIndexCount() > 0) {
-			return true;
-		} else {
-			return false;
-		}
-	}
+	inline size_t getNextStructuralIndex() {
 
-	inline ParsingStates getParsingState() {
-		return this->currentState;
-	}
-
-	inline void setParsingState(ParsingStates state) {
-		this->currentState = state;
-	}
-
-	inline ClosestIndex getNextIndexValue() {
-		ClosestIndex closestIndex{};
-		auto closestQuoteIndex = this->Q256.getNextIndex();
-		if (closestQuoteIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestQuoteIndex, ClosestIndexTypes::UnescapedQuotes };
-		}
-		auto closestCurlyBracketIndex = this->LCB256.getNextIndex();
-		if (closestCurlyBracketIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestCurlyBracketIndex, ClosestIndexTypes::LeftCurlyBrackets };
-		}
-		auto closestSquareBracketIndex = this->LSB256.getNextIndex();
-		if (closestSquareBracketIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestSquareBracketIndex, ClosestIndexTypes::LeftSquareBrackets };
-		}
-		closestCurlyBracketIndex = this->RCB256.getNextIndex();
-		if (closestCurlyBracketIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestCurlyBracketIndex, ClosestIndexTypes::RightCurlyBrackets };
-		}
-		closestSquareBracketIndex = this->RSB256.getNextIndex();
-		if (closestSquareBracketIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestSquareBracketIndex, ClosestIndexTypes::RightSquareBrackets };
-		}
-		auto closestCommaIndex = this->C256.getNextIndex();
-		if (closestCommaIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestCommaIndex, ClosestIndexTypes::Commas };
-		}
-		auto closestWhiteSpaceIndex = this->W256.getNextIndex();
-		if (closestWhiteSpaceIndex <= closestIndex) {
-			closestIndex = ClosestIndex{ closestWhiteSpaceIndex, ClosestIndexTypes::WhiteSpace };
-		}
-		switch (closestIndex.type) {
-			std::cout << "THE STATE: 0101" << ( int32_t )closestIndex.type << std::endl;
-			default: {
-				std::cout << "THE STATE: 0101" << ( int32_t )closestIndex.type << std::endl;
-				break;
-			}
-			case ClosestIndexTypes::UnescapedQuotes: {
-				std::cout << "THE STATE: 0101" << ( int32_t )closestIndex.type << std::endl;
-				this->Q256.removeIndexValue();
-				break;
-			}
-			case ClosestIndexTypes::LeftCurlyBrackets: {
-				std::cout << "THE STATE: 0202" << ( int32_t )closestIndex.type << std::endl;
-				this->LCB256.removeIndexValue();
-				break;
-			}
-			case ClosestIndexTypes::RightCurlyBrackets: {
-				std::cout << "THE STATE: 0303" << ( int32_t )closestIndex.type << std::endl;
-				this->RCB256.removeIndexValue();
-				break;
-			}
-			case ClosestIndexTypes::LeftSquareBrackets: {
-				std::cout << "THE STATE: 0404" << ( int32_t )closestIndex.type << std::endl;
-				this->LSB256.removeIndexValue();
-				break;
-			}
-			case ClosestIndexTypes::RightSquareBrackets: {
-				std::cout << "THE STATE: 0505" << ( int32_t )closestIndex.type << std::endl;
-				this->RSB256.removeIndexValue();
-				break;
-			}
-			case ClosestIndexTypes::Commas: {
-				std::cout << "THE STATE: 0606" << ( int32_t )closestIndex.type << std::endl;
-				this->C256.removeIndexValue();
-				break;
-			}
-			case ClosestIndexTypes::WhiteSpace: {
-				std::cout << "THE STATE: 0707S" << ( int32_t )closestIndex.type << std::endl;
-				this->W256.removeIndexValue();
-				break;
-			}
-		}
-		std::cout << "THE STATE: 0808: " << ( int32_t )closestIndex.type << std::endl;
-		return closestIndex;
 	}
 
 	inline operator std::vector<JsonTapeRecord>() {
-		this->currentState = ParsingStates::CollectingStart;
-		this->getCommaIndices();
 		this->getUnescapedQuoteIndices();
-		this->getLeftCurlyBracketIndices();
-		this->getRightCurlyBracketIndices();
-		this->getLeftSquareBracketIndices();
 		this->getStructuralIndices();
-		this->getRightSquareBracketIndices();
 		this->getWhiteSpaceIndices();
 		std::vector<JsonTapeRecord> returnValue{};
-		bool doWeBreak{ false };
-		while (this->isThereOneLeft()) {
-			std::cout << "THE STATE:" << ( int32_t )this->currentState << std::endl;
-			if (doWeBreak) {
-				break;
-			}
-			switch (this->currentState) {
-				case ParsingStates::CollectingStart: {
-					if (this->LCB256.getNextIndex() == std::numeric_limits<uint16_t>::max()) {
-						std::cout << "Error: Invalid Json-Document start." << std::endl;
-						this->currentState = ParsingStates::ErroredOut;
-					} else {
-						returnValue.push_back(JsonTapeRecord{ .type = RecordType::ObjectStart, .index = 0 });
-						this->LCB256.removeIndexValue();
-						this->currentState = ParsingStates::SearchingForToken;
-					}
-					break;
-				}
-				case ParsingStates::SearchingForToken: {
-					auto closestIndex = this->getNextIndexValue();
-					switch (closestIndex.type) {
-						case ClosestIndexTypes::UnescapedQuotes: {
-							returnValue.push_back(JsonTapeRecord{ .type = RecordType::Key_Start, .index = closestIndex.value });
-							returnValue.push_back(JsonTapeRecord{ .type = RecordType::Key_End, .index = this->Q256.getNextIndex() });
-							this->currentState = ParsingStates::LookingForTokenType;
-							break;
-						}
-						default: {
-							break;
-						}
-					}
-				}
-				case ParsingStates::LookingForTokenType: {
-					auto closestIndex = this->getNextIndexValue();
-					break;
-				}
-			}
-			this->currentGlobalIndex++;
-		}
+		while (true) {}
 		
 		return returnValue;
 	}
@@ -559,28 +395,8 @@ class SimdStringSection {
 		return this->stringView;
 	}
 
-	inline void getCommaIndices() {
-		return this->C256.getSetBitIndices();
-	}
-
-	inline void getLeftSquareBracketIndices() {
-		return this->LSB256.getSetBitIndices();
-	}
-
-	inline void getRightSquareBracketIndices() {
-		return this->RSB256.getSetBitIndices();
-	}
-
-	inline void getLeftCurlyBracketIndices() {
-		return this->LCB256.getSetBitIndices();
-	}
-
 	inline void getStructuralIndices() {
 		return this->S256.getSetBitIndices();
-	}
-
-	inline void getRightCurlyBracketIndices() {
-		return this->RCB256.getSetBitIndices();
 	}
 
 	inline void getWhiteSpaceIndices() {
@@ -589,34 +405,6 @@ class SimdStringSection {
 
 	inline void getUnescapedQuoteIndices() {
 		return this->Q256.getSetBitIndices();
-	}
-
-	inline SimdBase256 collectColons() {
-		SimdBase256 colons = _mm256_set1_epi8(':');
-		SimdBase256 colonsReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			colonsReal[x] = this->values[x] == colons;
-		}
-
-		return { convertSimd256To64BitUint(colonsReal[0], colonsReal[1]),
-			convertSimd256To64BitUint(colonsReal[2], colonsReal[3]),
-			convertSimd256To64BitUint(colonsReal[4], colonsReal[5]),
-			convertSimd256To64BitUint(colonsReal[6], colonsReal[7]) };
-	}
-
-	inline SimdBase256 collectRightSquareBrackets() {
-		SimdBase256 rightSquareBrackets = _mm256_set1_epi8(']');
-		SimdBase256 rightSquareBracketsReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			rightSquareBracketsReal[x] = this->values[x] == rightSquareBrackets;
-		}
-
-		return { convertSimd256To64BitUint(rightSquareBracketsReal[0], rightSquareBracketsReal[1]),
-			convertSimd256To64BitUint(rightSquareBracketsReal[2], rightSquareBracketsReal[3]),
-			convertSimd256To64BitUint(rightSquareBracketsReal[4], rightSquareBracketsReal[5]),
-			convertSimd256To64BitUint(rightSquareBracketsReal[6], rightSquareBracketsReal[7]) };
 	}
 
 	inline SimdBase256 collectWhiteSpace() {
@@ -632,59 +420,6 @@ class SimdStringSection {
 			convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
 	}
 
-	inline SimdBase256 collectLeftSquareBrackets() {
-		SimdBase256 leftSquareBrackets = _mm256_set1_epi8('[');
-		SimdBase256 leftSquareBracketsReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			leftSquareBracketsReal[x] = this->values[x] == leftSquareBrackets;
-		}
-
-		return { convertSimd256To64BitUint(leftSquareBracketsReal[0], leftSquareBracketsReal[1]),
-			convertSimd256To64BitUint(leftSquareBracketsReal[2], leftSquareBracketsReal[3]),
-			convertSimd256To64BitUint(leftSquareBracketsReal[4], leftSquareBracketsReal[5]),
-			convertSimd256To64BitUint(leftSquareBracketsReal[6], leftSquareBracketsReal[7]) };
-	}
-
-	inline SimdBase256 collectRightCurlyBrackets() {
-		SimdBase256 rightCurlyBrackets = _mm256_set1_epi8('}');
-		SimdBase256 rightCurlyBracketsReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			rightCurlyBracketsReal[x] = this->values[x] == rightCurlyBrackets;
-		}
-
-		return { convertSimd256To64BitUint(rightCurlyBracketsReal[0], rightCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(rightCurlyBracketsReal[2], rightCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(rightCurlyBracketsReal[4], rightCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(rightCurlyBracketsReal[6], rightCurlyBracketsReal[7]) };
-	}
-
-	inline SimdBase256 collectLeftCurlyBrackets() {
-		SimdBase256 leftCurlyBrackets = _mm256_set1_epi8('{');
-		SimdBase256 leftCurlyBracketsReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			leftCurlyBracketsReal[x] = this->values[x] == leftCurlyBrackets;
-		}
-
-		return { convertSimd256To64BitUint(leftCurlyBracketsReal[0], leftCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(leftCurlyBracketsReal[2], leftCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(leftCurlyBracketsReal[4], leftCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(leftCurlyBracketsReal[6], leftCurlyBracketsReal[7]) };
-	}
-
-	inline SimdBase256 collectCommas() {
-		SimdBase256 commas = _mm256_set1_epi8(',');
-		SimdBase256 commasReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			commasReal[x] = this->values[x] == commas;
-		}
-
-		return { convertSimd256To64BitUint(commasReal[0], commasReal[1]), convertSimd256To64BitUint(commasReal[2], commasReal[3]),
-			convertSimd256To64BitUint(commasReal[4], commasReal[5]), convertSimd256To64BitUint(commasReal[6], commasReal[7]) };
-	}
 
 	inline SimdBase256 collectStructuralCharacters() {
 		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
@@ -814,21 +549,15 @@ class SimdStringSection {
 
   protected:
 	std::string_view stringView{};
-	ParsingStates currentState{};
 	size_t currentGlobalIndex{};
 	size_t paddingAddedToEnd{};
 	SimdBase256 values[8]{};
 	std::string string{};
-	SimdBase256 RSB256{};
-	SimdBase256 LSB256{};
-	SimdBase256 RCB256{};
-	SimdBase256 LCB256{};
 	SimdBase256 W256{};
 	SimdBase256 Q256{};
 	SimdBase256 R256{};
 	SimdBase256 B256{};
 	SimdBase256 S256{};
-	SimdBase256 C256{};
 };
 
 class SimdStringScanner {
@@ -847,42 +576,6 @@ class SimdStringScanner {
 	}
 
 	void generateTapeRecord() {
-		for (auto& value: this->stringSections) {
-			value.setParsingState(this->currentState);
-			std::cout << "NEWVALUE LENGTH: " << value.operator std::string() << std::endl;
-			std::cout << "PARSING STATE: " << ( int32_t )value.getParsingState() << std::endl;
-			auto newValue = value.operator std::vector<JsonTapeRecord>();
-			std::cout << "NEWVALUE LENGTH: " << newValue.size() << std::endl;
-			std::cout << "PARSING STATE: " << ( int32_t )value.getParsingState() << std::endl;
-			this->currentState = value.getParsingState();
-			this->theRecords.insert(this->theRecords.end(), newValue.begin(), newValue.end());
-			
-		}
-		std::cout << "THE FINAL RECORD: " << std::endl;
-		for (size_t x = 0; x < this->theRecords.size();++x) {
-			switch (this->theRecords[x].type) {
-				case RecordType::Key_Start: {
-					continue;
-				}
-				case RecordType::Key_End: {
-					std::string newString{};
-					if (x > 0) {
-
-						auto upperValue = this->theRecords[x - 1].index;
-						auto lowerValue = this->theRecords[x].index;
-						std::cout << "LOWER VALUE: " << lowerValue << std::endl;
-						std::cout << "UPPER VALUE: " << upperValue << std::endl;
-						for (size_t x = lowerValue; x < upperValue; ++x) {
-							newString.push_back(this->rawJsonString[x]);
-						}
-						std::cout << "RAW STRING: " << this->rawJsonString << std::endl;
-					}					
-					Jsonifier::Jsonifier jsonValue{};
-					jsonValue[newString.c_str()] = "TESTING";
-					this->jsonValues = jsonValue;
-				}
-			}
-		}
 	}
 
 	operator Jsonifier::Jsonifier() {
@@ -890,7 +583,6 @@ class SimdStringScanner {
 	}
 
   protected:
-	ParsingStates currentState{ ParsingStates::CollectingStart };
 	std::vector<SimdStringSection> stringSections{};
 	std::vector<JsonTapeRecord> theRecords{};
 	Jsonifier::Jsonifier jsonValues{};
@@ -1051,7 +743,6 @@ int32_t main() noexcept {
 	auto newResult = stringScanner.operator Jsonifier::Jsonifier();
 	newResult.refreshString(Jsonifier::JsonifierSerializeType::Json);
 	std::cout << "THE KEY: " << newResult.operator std::string() << std::endl;
-	/*
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringScanner stringScanner02{ string256 };
 		stringScanner02.generateTapeRecord();
@@ -1070,8 +761,5 @@ int32_t main() noexcept {
 	}
 	totalTime += stopWatch.totalTimePassed();
 	std::cout << "IT TOOK: " << totalTime << " TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-
-
-	*/
 	return 0;
 };
