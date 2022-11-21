@@ -482,7 +482,7 @@ class SimdStringSection {
 		return this->Q256 & ~OD;
 	}
 
-	inline SimdStringSection(std::string_view valueNew) {
+	inline SimdStringSection(std::string_view valueNew, size_t currentGlobalIndex) {
 		if (valueNew.size() % 256 != 0) {
 			this->string = valueNew;
 			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
@@ -503,38 +503,13 @@ class SimdStringSection {
 		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
 
 		this->B256 = this->collectBackslashes();
-
 		this->Q256 = this->collectQuotes();
-
-		//this->C256 = this->collectCommas();
-
-		//this->LCB256 = this->collectLeftCurlyBrackets();
-
-		//this->RCB256 = this->collectRightCurlyBrackets();
-
-		//this->LSB256 = this->collectLeftSquareBrackets();
-
-		//this->RSB256 = this->collectRightSquareBrackets();
-
 		this->W256 = this->collectWhiteSpace();
-
 		this->S256 = this->collectStructuralCharacters();
 		this->S256.printBits("S FINAL VALUES (256) ");
 		this->W256.printBits("W FINAL VALUES (256) ");
 		this->R256.printBits("R FINAL VALUES (256) ");
 		this->Q256.printBits("Q FINAL VALUES (256): ");
-		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
-		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
-		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
-		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
-		//this->R256.printBits("THE R VALUES: ");
-		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
-		//auto bitIndices = this->R256.getSetBitIndices();
-		//std::cout << "THE INDICESSTRING: " << std::endl;
-		//for (auto& value: bitIndices) {
-		//std::cout << "BIT INDEX: " << +value;
-		//}
-		//std::cout << std::endl;
 		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
