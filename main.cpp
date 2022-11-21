@@ -447,38 +447,26 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(*this, indices);
 	}
 
-	inline uint16_t getNextIndex() {
-		if (this->setBitIndices.size() > 0) {
-			return this->setBitIndices.back();
-		}
-		return std::numeric_limits<uint16_t>::max();
-	}
+  protected:
+	
+	__m256i value{};
+};
 
-	inline size_t getRemainingIndexCount() {
-		return this->setBitIndices.size();
-	}
+class SimdBitIndexer {
+  public:
+	SimdBitIndexer() noexcept = default;
 
-	inline void removeIndexValue() {
-		if (this->setBitIndices.size() > 0) {
-			this->setBitIndices.erase(this->setBitIndices.end() - 1);
-		}
-	}
-
-	inline void getSetBitIndices() {
+	inline std::vector<uint8_t> getSetBitIndices(SimdBase256 value) {
+		std::vector<uint8_t> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
-				if ((*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y) & 1) {
-					this->setBitIndices.push_back(y + (x * 64));
+				if ((*(reinterpret_cast<uint64_t*>(&value) + x) >> y) & 1) {
+					returnValue.push_back(y + (x * 64));
 				}
 			}
-		}		
-		
+		}
+		return returnValue;
 	}
-
-  protected:
-	std::vector<uint8_t> setBitIndices{};
-	uint8_t currentIndex{};
-	__m256i value{};
 };
 
 enum class RecordType : uint16_t {
@@ -514,29 +502,10 @@ class SimdStringSection {
 	}
 
 	inline operator std::vector<JsonTapeRecord>() {
-		this->getUnescapedQuoteIndices();
-		this->getStructuralIndices();
-		this->getWhiteSpaceIndices();
 		std::vector<JsonTapeRecord> returnValue{};
 		while (true) {}
 		
 		return returnValue;
-	}
-
-	std::string_view getStringView() {
-		return std::string_view{ this->stringView.data(), 256 - this->paddingAddedToEnd };
-	}
-
-	inline void getStructuralIndices() {
-		return this->S256.getSetBitIndices();
-	}
-
-	inline void getWhiteSpaceIndices() {
-		return this->W256.getSetBitIndices();
-	}
-
-	inline void getUnescapedQuoteIndices() {
-		return this->Q256.getSetBitIndices();
 	}
 
 	inline SimdBase256 collectWhiteSpace() {
@@ -645,11 +614,6 @@ class SimdStringSection {
 		this->W256.printBits("W FINAL VALUES (256) ");
 		this->R256.printBits("R FINAL VALUES (256) ");
 		this->Q256.printBits("Q FINAL VALUES (256): ");
-		std::cout << "THE STRING: " << this->getStringView() << std::endl;
-	}
-
-	operator std::string() {
-		return this->string;
 	}
 
   protected:
@@ -657,7 +621,6 @@ class SimdStringSection {
 	size_t currentGlobalIndex{};
 	size_t paddingAddedToEnd{};
 	SimdBase256 values[8]{};
-	std::string string{};
 	SimdBase256 W256{};
 	SimdBase256 Q256{};
 	SimdBase256 R256{};
@@ -691,11 +654,8 @@ class SimdStringScanner {
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
-	std::vector<JsonTapeRecord> theRecords{};
 	Jsonifier::Jsonifier jsonValues{};
 	std::string_view rawJsonString{};
-	bool haveWeStarted{ false };
-	std::string finalString{};
 };
 
 int32_t main() noexcept {
