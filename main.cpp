@@ -328,6 +328,13 @@ class SimdBase256 {
 		*this = other;
 	}
 
+	inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
+		this->value = _mm256_insert_epi64(this->value, value00, 0);
+		this->value = _mm256_insert_epi64(this->value, value01, 1);
+		this->value = _mm256_insert_epi64(this->value, value02, 2);
+		this->value = _mm256_insert_epi64(this->value, value03, 3);
+	}
+
 	inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 		this->value = _mm256_insert_epi64(this->value, value00, 0);
 		this->value = _mm256_insert_epi64(this->value, value01, 1);
