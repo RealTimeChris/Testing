@@ -31,13 +31,13 @@ template<typename TTy> class StopWatch {
 		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
-	auto totalTimePassed() {
+	TTy totalTimePassed() {
 		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 		TTy elapsedTime = currentTime - this->startTime.load();
 		return elapsedTime;
 	}
 
-	auto getTotalWaitTime() {
+	TTy getTotalWaitTime() {
 		return this->maxNumberOfMs.load();
 	}
 
