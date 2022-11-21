@@ -508,6 +508,7 @@ class SimdStringSection {
 		this->getLeftCurlyBracketIndices();
 		this->getRightCurlyBracketIndices();
 		this->getLeftSquareBracketIndices();
+		this->getStructuralIndices();
 		this->getRightSquareBracketIndices();
 		this->getWhiteSpaceIndices();
 		std::vector<JsonTapeRecord> returnValue{};
@@ -544,7 +545,7 @@ class SimdStringSection {
 					}
 				}
 				case ParsingStates::LookingForTokenType: {
-					this->currentState = ParsingStates::SearchingForToken;
+					auto closestIndex = this->getNextIndexValue();
 					break;
 				}
 			}
@@ -572,6 +573,10 @@ class SimdStringSection {
 
 	inline void getLeftCurlyBracketIndices() {
 		return this->LCB256.getSetBitIndices();
+	}
+
+	inline void getStructuralIndices() {
+		return this->S256.getSetBitIndices();
 	}
 
 	inline void getRightCurlyBracketIndices() {
@@ -771,15 +776,15 @@ class SimdStringSection {
 
 		this->Q256 = this->collectQuotes();
 
-		this->C256 = this->collectCommas();
+		//this->C256 = this->collectCommas();
 
-		this->LCB256 = this->collectLeftCurlyBrackets();
+		//this->LCB256 = this->collectLeftCurlyBrackets();
 
-		this->RCB256 = this->collectRightCurlyBrackets();
+		//this->RCB256 = this->collectRightCurlyBrackets();
 
-		this->LSB256 = this->collectLeftSquareBrackets();
+		//this->LSB256 = this->collectLeftSquareBrackets();
 
-		this->RSB256 = this->collectRightSquareBrackets();
+		//this->RSB256 = this->collectRightSquareBrackets();
 
 		this->W256 = this->collectWhiteSpace();
 
@@ -830,6 +835,7 @@ class SimdStringScanner {
   public:
 	
 	SimdStringScanner(std::string_view string) noexcept {
+		this->rawJsonString = string;
 		size_t stringSize = string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
@@ -852,6 +858,35 @@ class SimdStringScanner {
 			this->theRecords.insert(this->theRecords.end(), newValue.begin(), newValue.end());
 			
 		}
+		std::cout << "THE FINAL RECORD: " << std::endl;
+		for (size_t x = 0; x < this->theRecords.size();++x) {
+			switch (this->theRecords[x].type) {
+				case RecordType::Key_Start: {
+					continue;
+				}
+				case RecordType::Key_End: {
+					std::string newString{};
+					if (x > 0) {
+
+						auto upperValue = this->theRecords[x - 1].index;
+						auto lowerValue = this->theRecords[x].index;
+						std::cout << "LOWER VALUE: " << lowerValue << std::endl;
+						std::cout << "UPPER VALUE: " << upperValue << std::endl;
+						for (size_t x = lowerValue; x < upperValue; ++x) {
+							newString.push_back(this->rawJsonString[x]);
+						}
+						std::cout << "RAW STRING: " << this->rawJsonString << std::endl;
+					}					
+					Jsonifier::Jsonifier jsonValue{};
+					jsonValue[newString.c_str()] = "TESTING";
+					this->jsonValues = jsonValue;
+				}
+			}
+		}
+	}
+
+	operator Jsonifier::Jsonifier() {
+		return this->jsonValues;
 	}
 
   protected:
@@ -859,6 +894,7 @@ class SimdStringScanner {
 	std::vector<SimdStringSection> stringSections{};
 	std::vector<JsonTapeRecord> theRecords{};
 	Jsonifier::Jsonifier jsonValues{};
+	std::string_view rawJsonString{};
 	bool haveWeStarted{ false };
 	std::string finalString{};
 };
@@ -1006,12 +1042,16 @@ int32_t main() noexcept {
 	std::string stringNew{
 		"{\"d\":{\"activities\":[{\"created_at\":\"1668496069331\",\"emoji\":{\"name\":\" ≡ ƒÑ╖\"},\"id\":\"custom\",\"name\":\"testing\"}]}}"
 	};
-	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+	StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	std::chrono::nanoseconds totalTime{};
 	size_t totalSize{};
 	SimdStringScanner stringScanner{ stringNew };
 	stringScanner.generateTapeRecord();
 	stopWatch.resetTimer();
+	auto newResult = stringScanner.operator Jsonifier::Jsonifier();
+	newResult.refreshString(Jsonifier::JsonifierSerializeType::Json);
+	std::cout << "THE KEY: " << newResult.operator std::string() << std::endl;
+	/*
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringScanner stringScanner02{ string256 };
 		stringScanner02.generateTapeRecord();
@@ -1032,6 +1072,6 @@ int32_t main() noexcept {
 	std::cout << "IT TOOK: " << totalTime << " TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 
-
+	*/
 	return 0;
 };
