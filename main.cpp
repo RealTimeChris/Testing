@@ -239,39 +239,39 @@ class SimdBase128 {
 		return this->value;
 	}
 
-	inline SimdBase128 operator|(__m128i other) {
+	inline SimdBase128 operator|(SimdBase128 other) {
 		return _mm_or_si128(*this, other);
 	}
 
-	inline SimdBase128 operator&(__m128i other) {
+	inline SimdBase128 operator&(SimdBase128 other) {
 		return _mm_and_si128(*this, other);
 	}
 
-	inline SimdBase128 operator^(__m128i other) {
+	inline SimdBase128 operator^(SimdBase128 other) {
 		return _mm_xor_si128(*this, other);
 	}
 
-	inline SimdBase128 operator+(__m128i other) {
+	inline SimdBase128 operator+(SimdBase128 other) {
 		return _mm_add_epi8(*this, other);
 	}
 
-	inline SimdBase128 operator|=(__m128i other) {
+	inline SimdBase128 operator|=(SimdBase128 other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase128 operator&=(__m128i other) {
+	inline SimdBase128 operator&=(SimdBase128 other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase128 operator^=(__m128i other) {
+	inline SimdBase128 operator^=(SimdBase128 other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	inline SimdBase128 operator==(__m128i rhs) {
-		return _mm_cmpeq_epi8(this->value, rhs);
+	inline SimdBase128 operator==(SimdBase128 other) {
+		return _mm_cmpeq_epi8(this->value, other);
 	}
 
 	inline SimdBase128 operator<<(size_t amount) {
@@ -293,12 +293,12 @@ class SimdBase128 {
 		return newValue;
 	}
 
-	inline SimdBase128 bitAndNot(__m128i other) {
+	inline SimdBase128 bitAndNot(SimdBase128 other) {
 		return _mm_andnot_si128(other, *this);
 	}
 
-	inline SimdBase128 shuffle(__m128i indices) {
-		return _mm_shuffle_epi8(*this, indices);
+	inline SimdBase128 shuffle(SimdBase128 other) {
+		return _mm_shuffle_epi8(*this, other);
 	}
 
 	inline void printBits(std::string valuesTitle) {
@@ -356,39 +356,39 @@ class SimdBase256 {
 		return (reinterpret_cast<uint64_t*>(&this->value) + index);
 	}
 
-	inline SimdBase256 operator|(__m256i other) {
+	inline SimdBase256 operator|(SimdBase256 other) {
 		return _mm256_or_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator&(__m256i other) {
+	inline SimdBase256 operator&(SimdBase256 other) {
 		return _mm256_and_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator^(__m256i other) {
+	inline SimdBase256 operator^(SimdBase256 other) {
 		return _mm256_xor_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator+(__m256i other) {
+	inline SimdBase256 operator+(SimdBase256 other) {
 		return _mm256_add_epi8(this->value, other);
 	}
 
-	inline SimdBase256 operator|=(__m256i other) {
+	inline SimdBase256 operator|=(SimdBase256 other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase256 operator&=(__m256i other) {
+	inline SimdBase256 operator&=(SimdBase256 other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase256 operator^=(__m256i other) {
+	inline SimdBase256 operator^=(SimdBase256 other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	inline SimdBase256 operator==(__m256i rhs) {
-		return _mm256_cmpeq_epi8(this->value, rhs);
+	inline SimdBase256 operator==(SimdBase256 other) {
+		return _mm256_cmpeq_epi8(this->value, other);
 	}
 
 	inline SimdBase256 operator<<(size_t amount) {
@@ -418,13 +418,13 @@ class SimdBase256 {
 			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *this->operator[](3)), SimdBase128{ operand }, 0))) };
 	}
 
-	inline SimdBase256 collectCarries(__m256i inputB) {
-		__m256i returnValue{};
+	inline SimdBase256 collectCarries(SimdBase256 other) {
+		SimdBase256 returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&inputB) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
+			_addcarry_u64(0, *other.operator[](x), reinterpret_cast<unsigned long long>(this->operator[](x)),
 				reinterpret_cast<unsigned long long*>(&returnValue64));
-			(*(reinterpret_cast<uint64_t*>(&returnValue) + x)) = returnValue64;
+			*returnValue[x] = returnValue64;
 		}
 		return returnValue;
 	}
@@ -439,12 +439,12 @@ class SimdBase256 {
 		std::cout << std::endl;
 	}
 
-	inline SimdBase256 bitAndNot(__m256i other) {
+	inline SimdBase256 bitAndNot(SimdBase256 other) {
 		return _mm256_andnot_si256(other, this->value);
 	}
 
-	inline SimdBase256 shuffle(__m256i indices) {
-		return _mm256_shuffle_epi8(*this, indices);
+	inline SimdBase256 shuffle(SimdBase256 other) {
+		return _mm256_shuffle_epi8(*this, other);
 	}
 
   protected:
@@ -494,17 +494,6 @@ class SimdStringSection {
 		for (size_t x = 0; x < 32; ++x) {
 			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
-	}
-
-	inline size_t getNextStructuralIndex() {
-	}
-
-	inline operator std::vector<JsonTapeRecord>() {
-		std::vector<JsonTapeRecord> returnValue{};
-		while (true) {
-		}
-
-		return returnValue;
 	}
 
 	inline SimdBase256 collectWhiteSpace() {
