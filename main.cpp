@@ -275,20 +275,20 @@ class SimdBase128 {
 	}
 
 	inline SimdBase128 operator<<(size_t amount) {
-		__m128i newValue{};
+		SimdBase128 newValue{};
 		for (size_t x = 0; x < 2; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) |= *(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64);
+			*newValue[x] |= *this->operator[](x) << (amount % 64);
 			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001;
+				*newValue[x] |= (*this->operator[](x - 1) >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
 	}
 
 	inline SimdBase128 operator~() {
-		__m128i newValue{};
+		SimdBase128 newValue{};
 		for (size_t x = 0; x < 2; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+			*newValue[x] = ~*this->operator[](x);
 		}
 		return newValue;
 	}
@@ -433,7 +433,7 @@ class SimdBase256 {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				std::cout << std::bitset<1>{ static_cast<uint64_t>(*this->operator[](x)) >> y };
 			}
 		}
 		std::cout << std::endl;
@@ -459,8 +459,9 @@ class SimdBitIndexer {
 		std::vector<uint8_t> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
-				if ((*(reinterpret_cast<uint64_t*>(&value) + x) >> y) & 1) {
+				if ((*value[x] >> y) & 1) {
 					returnValue.push_back(y + (x * 64));
+					std::cout << +y + (x * 64) << std::endl;
 				}
 			}
 		}
