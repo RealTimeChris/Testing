@@ -368,7 +368,7 @@ struct JsonTapeRecord {
 };
 
 enum class ParsingStates : int8_t {
-	ErroredOut = 1 << 4,
+	ErroredOut = 0 << 0,
 	CollectingStart = 1 << 0,
 	SearchingForToken = 1 << 1,
 	LookingForTokenType = 1 << 2,
