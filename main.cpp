@@ -65,11 +65,6 @@ class SimdBase64 {
 			}
 		}
 		std::cout << std::endl;
-	};
-
-	inline SimdBase64(const __m256i& value01, __m256i value02) {
-		this->values[0] = value01;
-		this->values[1] = value02;
 	}
 
 	void collectQuotes() {
@@ -679,7 +674,7 @@ int32_t main() noexcept {
 	stopWatch.resetTimer();
 	auto newResult = stringScanner.operator Jsonifier::Jsonifier();
 	newResult.refreshString(Jsonifier::JsonifierSerializeType::Json);
-	//std::cout << "THE KEY: " << newResult.operator std::string() << std::endl;
+	std::cout << "THE KEY: " << newResult.operator std::string() << std::endl;
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringSection stringScanner02{ string256, 0 };
 		totalSize += string256.size();
