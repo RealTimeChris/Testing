@@ -223,6 +223,10 @@ class SimdBase128 {
 		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
+	uint64_t* operator[](size_t index) {
+		return (reinterpret_cast<uint64_t*>(&this->value) + index);
+	}
+
 	inline SimdBase128& operator=(const __m128i other) {
 		this->value = other;
 		return *this;
@@ -353,6 +357,10 @@ class SimdBase256 {
 		return this->value;
 	}
 
+	uint64_t* operator[](size_t index) {
+		return (reinterpret_cast<uint64_t*>(&this->value) + index);
+	}
+
 	inline SimdBase256 operator|(__m256i other) {
 		return _mm256_or_si256(this->value, other);
 	}
@@ -389,33 +397,30 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 operator<<(size_t amount) {
-		__m256i newValue{};
+		SimdBase256 newValue{};
 		for (size_t x = 0; x < 4; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) |= *(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64);
+			*newValue[x] |= *this->operator[](x) << (amount % 64);
 			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001;
+				*newValue[x] |= (*this->operator[](x - 1) >> 63) & 0x00000001;
 			}
 		}
 		return newValue;
 	}
 
 	inline SimdBase256 operator~() {
-		__m256i newValue{};
+		SimdBase256 newValue{};
 		for (size_t x = 0; x < 4; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+			*newValue[x] = ~*this->operator[](x);
 		}
 		return newValue;
 	}
 
 	inline SimdBase256 carrylessMultiplication(char operand) {
-		return SimdBase256{ static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(
-								_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) };
+		return SimdBase256{ static_cast<uint64_t>(
+								_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *this->operator[](0)), SimdBase128{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *this->operator[](1)), SimdBase128{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *this->operator[](2)), SimdBase128{ operand }, 0))),
+			static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *this->operator[](3)), SimdBase128{ operand }, 0))) };
 	}
 
 	inline SimdBase256 collectCarries(__m256i inputB) {
@@ -610,10 +615,10 @@ class SimdStringSection {
 		this->Q256 = this->collectQuotes();
 		this->W256 = this->collectWhiteSpace();
 		this->S256 = this->collectStructuralCharacters();
-		this->S256.printBits("S FINAL VALUES (256) ");
-		this->W256.printBits("W FINAL VALUES (256) ");
-		this->R256.printBits("R FINAL VALUES (256) ");
-		this->Q256.printBits("Q FINAL VALUES (256): ");
+		//this->S256.printBits("S FINAL VALUES (256) ");
+		//this->W256.printBits("W FINAL VALUES (256) ");
+		//this->R256.printBits("R FINAL VALUES (256) ");
+		//this->Q256.printBits("Q FINAL VALUES (256): ");
 	}
 
   protected:
@@ -621,6 +626,7 @@ class SimdStringSection {
 	size_t currentGlobalIndex{};
 	size_t paddingAddedToEnd{};
 	SimdBase256 values[8]{};
+	std::string string{};
 	SimdBase256 W256{};
 	SimdBase256 Q256{};
 	SimdBase256 R256{};
@@ -675,7 +681,7 @@ int32_t main() noexcept {
 	stopWatch.resetTimer();
 	auto newResult = stringScanner.operator Jsonifier::Jsonifier();
 	newResult.refreshString(Jsonifier::JsonifierSerializeType::Json);
-	std::cout << "THE KEY: " << newResult.operator std::string() << std::endl;
+	//std::cout << "THE KEY: " << newResult.operator std::string() << std::endl;
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringScanner stringScanner02{ string256 };
 		stringScanner02.generateTapeRecord();
