@@ -324,7 +324,8 @@ class SimdBase256 {
 		std::vector<int16_t> returnVector{};
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x) & 1) {
-				returnVector.push_back(x);
+				returnVector.push_back(static_cast<int16_t>(x));
+				std::cout << "THE INDEX: " << +x << std::endl;
 			}
 		}
 		return returnVector;
@@ -548,7 +549,7 @@ class SimdStringSection {
 		this->B256 = this->collectBackslashes();
 
 		this->Q256 = this->collectQuotes();
-
+		
 		//this->C256 = this->collectCommas();
 
 		//this->LCB256 = this->collectLeftCurlyBrackets();
@@ -562,6 +563,7 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
+		this->S256.getSetBitIndices();
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
