@@ -325,7 +325,6 @@ class SimdBase256 {
 		for (int64_t x = 0; x < 255; ++x) {
 			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x) & 1) {
 				returnVector.push_back(static_cast<int16_t>(x));
-				std::cout << "THE INDEX: " << +x << std::endl;
 			}
 		}
 		return returnVector;
@@ -343,42 +342,6 @@ class SimdStringSection {
 		for (size_t x = 0; x < 32; ++x) {
 			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
-	}
-
-	inline SimdBase256& getQuotedStringRange() {
-		return this->Q256;
-	}
-
-	inline SimdBase256& getLeftSquareBracketRange() {
-		return this->LSB256;
-	}
-
-	inline SimdBase256& getRightSquareBracketRange() {
-		return this->RSB256;
-	}
-
-	inline SimdBase256& getWhiteSpaceCharacters() {
-		return this->W256;
-	}
-
-	inline SimdBase256& getBackslashesRange() {
-		return this->B256;
-	}
-
-	inline SimdBase256& getCommasRange() {
-		return this->C256;
-	}
-
-	inline SimdBase256& getStructuralCharacters() {
-		return this->S256;
-	}
-
-	inline SimdBase256& getLeftCurlyBracketRange() {
-		return this->LCB256;
-	}
-
-	inline SimdBase256& getRightCurlyBracketRange() {
-		return this->RCB256;
 	}
 
 	inline std::vector<int16_t> getStructuralIndices() {
@@ -563,7 +526,6 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
-		this->S256.getSetBitIndices();
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
@@ -609,11 +571,6 @@ enum class JsonEventType : int8_t {
 	Bool_Start = 1 << 6
 };
 
-struct JsonTapeRecord {
-	JsonEventType eventType{};
-	size_t startingIndex{};
-};
-
 class SimdStringScanner {
   public:
 	inline SimdStringScanner(std::string_view string) noexcept {
@@ -629,18 +586,18 @@ class SimdStringScanner {
 
 	inline void generateTapeRecord() {
 		for (auto& value: this->stringSections) {
-			for (size_t x = 0; x < 4; ++x) {
-				for (size_t y = 0; y < 64; ++y) {
-					std::cout << +((*reinterpret_cast<uint64_t*>(&value.getStructuralCharacters()) + x) >> y & 1);
-				}
-			}
-			std::cout << std::endl;
+			std::vector<int16_t> setBitIndices{ value.getStructuralIndices() };
+			this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
+		}
+		std::cout << "THE TAPE: " << std::endl;
+		for (auto& value: this->jsonTape) {
+			std::cout << "THE INDEX: " << +value << std::endl;
 		}
 	}
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
-	std::vector<JsonTapeRecord> jsonTape{};
+	std::vector<int16_t> jsonTape{};
 	bool haveWeStarted{ false };
 	std::string finalString{};
 };
