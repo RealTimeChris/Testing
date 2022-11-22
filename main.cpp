@@ -502,10 +502,6 @@ class SimdStringScanner {
 			std::vector<int16_t> setBitIndices{ value.getStructuralIndices() };
 			this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
 		}
-		std::cout << "THE TAPE: " << std::endl;
-		for (auto& value: this->jsonTape) {
-			std::cout << "THE INDEX: " << +value << std::endl;
-		}
 	}
 
   protected:
