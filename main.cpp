@@ -649,13 +649,13 @@ class SimdBase64 {
 		return convertSimd256To64BitUint(this->values[1], this->values[0]);
 	}
 
-	void packStringIntoValue(__m256i& theValue, const char* string) {
+	inline void packStringIntoValue(__m256i& theValue, const char* string) {
 		for (size_t x = 0; x < 32; ++x) {
 			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
 		}
 	}
 
-	void printBits(uint64_t inA, std::string values) {
+	inline void printBits(uint64_t inA, std::string values) {
 		alignas(32) uint8_t v[64]{};
 		for (size_t x = 0; x < 64; ++x) {
 			if ((static_cast<uint64_t>(inA >> x) & 0x01) == static_cast<uint64_t>(1 << 0)) {
@@ -673,13 +673,13 @@ class SimdBase64 {
 			v[59], v[60], v[61], v[62], v[63]);
 	}
 
-	uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
+	inline uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
 		uint64_t returnValue{};
 		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned long long*>(&returnValue));
 		return returnValue;
 	}
 
-	void printBits(std::string valuesTitle) {
+	inline void printBits(std::string valuesTitle) {
 		std::cout << valuesTitle;
 		for (size_t x = 0; x < 32; ++x) {
 			for (size_t y = 0; y < 8; ++y) {
@@ -699,7 +699,7 @@ class SimdBase64 {
 		this->values[1] = value02;
 	}
 
-	void collectQuotes() {
+	inline void collectQuotes() {
 		auto backslashes = _mm256_set1_epi8('\\');
 		auto B0 = _mm256_cmpeq_epi8(this->values[0], backslashes);
 		auto B1 = _mm256_cmpeq_epi8(this->values[1], backslashes);
@@ -723,7 +723,7 @@ class SimdBase64 {
 		this->Q64 &= ~OD;
 	}
 
-	void collectStructuralCharacters() {
+	inline void collectStructuralCharacters() {
 		__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
 			0) };
 		this->R64 = this->Q64;
@@ -742,7 +742,7 @@ class SimdBase64 {
 		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
 	}
 
-	void collectWhiteSpace() {
+	inline void collectWhiteSpace() {
 		__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100,
 			17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
@@ -764,7 +764,7 @@ class SimdBase64 {
 		//printBits(this->W64, "W FINAL VALUES: ");
 	}
 
-	operator std::string() {
+	inline operator std::string() {
 		return string;
 	}
 
