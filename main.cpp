@@ -348,28 +348,6 @@ class SimdStringSection {
 		return this->S256.getSetBitIndices();
 	}
 
-	inline SimdBase256 collectColons() {
-		SimdBase256 colons = _mm256_set1_epi8(':');
-		SimdBase256 colonsReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			colonsReal[x] = this->values[x] == colons;
-		}
-		return { convertSimd256To64BitUint(colonsReal[0], colonsReal[1]), convertSimd256To64BitUint(colonsReal[2], colonsReal[3]),
-			convertSimd256To64BitUint(colonsReal[4], colonsReal[5]), convertSimd256To64BitUint(colonsReal[6], colonsReal[7]) };
-	}
-
-	inline SimdBase256 collectRightSquareBrackets() {
-		SimdBase256 rightSquareBrackets = _mm256_set1_epi8(']');
-		SimdBase256 rightSquareBracketsReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			rightSquareBracketsReal[x] = this->values[x] == rightSquareBrackets;
-		}
-		return { convertSimd256To64BitUint(rightSquareBracketsReal[0], rightSquareBracketsReal[1]),
-			convertSimd256To64BitUint(rightSquareBracketsReal[2], rightSquareBracketsReal[3]),
-			convertSimd256To64BitUint(rightSquareBracketsReal[4], rightSquareBracketsReal[5]),
-			convertSimd256To64BitUint(rightSquareBracketsReal[6], rightSquareBracketsReal[7]) };
-	}
-
 	inline SimdBase256 collectWhiteSpace() {
 		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100,
 			100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
@@ -379,54 +357,6 @@ class SimdStringSection {
 		}
 		return { convertSimd256To64BitUint(whiteSpaceReal[0], whiteSpaceReal[1]), convertSimd256To64BitUint(whiteSpaceReal[2], whiteSpaceReal[3]),
 			convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
-	}
-
-	inline SimdBase256 collectLeftSquareBrackets() {
-		SimdBase256 leftSquareBrackets = _mm256_set1_epi8('[');
-		SimdBase256 leftSquareBracketsReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			leftSquareBracketsReal[x] = this->values[x] == leftSquareBrackets;
-		}
-		return { convertSimd256To64BitUint(leftSquareBracketsReal[0], leftSquareBracketsReal[1]),
-			convertSimd256To64BitUint(leftSquareBracketsReal[2], leftSquareBracketsReal[3]),
-			convertSimd256To64BitUint(leftSquareBracketsReal[4], leftSquareBracketsReal[5]),
-			convertSimd256To64BitUint(leftSquareBracketsReal[6], leftSquareBracketsReal[7]) };
-	}
-
-	inline SimdBase256 collectRightCurlyBrackets() {
-		SimdBase256 rightCurlyBrackets = _mm256_set1_epi8('}');
-		SimdBase256 rightCurlyBracketsReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			rightCurlyBracketsReal[x] = this->values[x] == rightCurlyBrackets;
-		}
-		return { convertSimd256To64BitUint(rightCurlyBracketsReal[0], rightCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(rightCurlyBracketsReal[2], rightCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(rightCurlyBracketsReal[4], rightCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(rightCurlyBracketsReal[6], rightCurlyBracketsReal[7]) };
-	}
-
-	inline SimdBase256 collectLeftCurlyBrackets() {
-		SimdBase256 leftCurlyBrackets = _mm256_set1_epi8('{');
-		SimdBase256 leftCurlyBracketsReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			leftCurlyBracketsReal[x] = this->values[x] == leftCurlyBrackets;
-		}
-		return { convertSimd256To64BitUint(leftCurlyBracketsReal[0], leftCurlyBracketsReal[1]),
-			convertSimd256To64BitUint(leftCurlyBracketsReal[2], leftCurlyBracketsReal[3]),
-			convertSimd256To64BitUint(leftCurlyBracketsReal[4], leftCurlyBracketsReal[5]),
-			convertSimd256To64BitUint(leftCurlyBracketsReal[6], leftCurlyBracketsReal[7]) };
-	}
-
-	inline SimdBase256 collectCommas() {
-		SimdBase256 commas = _mm256_set1_epi8(',');
-		SimdBase256 commasReal[8]{};
-
-		for (size_t x = 0; x < 8; ++x) {
-			commasReal[x] = this->values[x] == commas;
-		}
-
-		return { convertSimd256To64BitUint(commasReal[0], commasReal[1]), convertSimd256To64BitUint(commasReal[2], commasReal[3]),
-			convertSimd256To64BitUint(commasReal[4], commasReal[5]), convertSimd256To64BitUint(commasReal[6], commasReal[7]) };
 	}
 
 	inline SimdBase256 collectStructuralCharacters() {
@@ -453,19 +383,17 @@ class SimdStringSection {
 		return this->S256.bitAndNot(this->Q256.bitAndNot(R256));
 	}
 
-	inline SimdBase256 collectBackslashes() {
+	inline SimdBase256 collectQuotes() {
 		SimdBase256 backslashes = _mm256_set1_epi8('\\');
 		SimdBase256 backslashesReal[8]{};
 		for (size_t x = 0; x < 8; ++x) {
 			backslashesReal[x] = this->values[x] == backslashes;
 		}
 
+		auto B256 = SimdBase256{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]),
+			convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]), convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]),
+			convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
 
-		return { convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]), convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]),
-			convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]), convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
-	}
-
-	inline SimdBase256 collectQuotes() {
 		SimdBase256 quotes = _mm256_set1_epi8('"');
 		SimdBase256 quotesReal[8]{};
 		for (size_t x = 0; x < 8; ++x) {
@@ -474,16 +402,16 @@ class SimdStringSection {
 
 		this->Q256 = SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
-		auto S = this->B256.bitAndNot(this->B256 << 1);
+		auto S = B256.bitAndNot(B256 << 1);
 		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 		auto ES = E & S;
-		auto EC = ES.collectCarries(this->B256);
-		auto ECE = EC.bitAndNot(this->B256);
+		auto EC = ES.collectCarries(B256);
+		auto ECE = EC.bitAndNot(B256);
 		auto OD1 = ECE.bitAndNot(E);
 		auto OS = S & O;
-		auto OC = this->B256 + OS;
-		auto OCE = OC.bitAndNot(this->B256);
+		auto OC = B256 + OS;
+		auto OCE = OC.bitAndNot(B256);
 		auto OD2 = OCE & E;
 		auto OD = OD1 | OD2;
 
@@ -508,8 +436,6 @@ class SimdStringSection {
 		this->packStringIntoValue(this->values[5], this->stringView.data() + 160);
 		this->packStringIntoValue(this->values[6], this->stringView.data() + 192);
 		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
-
-		this->B256 = this->collectBackslashes();
 
 		this->Q256 = this->collectQuotes();
 		
@@ -549,13 +475,7 @@ class SimdStringSection {
 	SimdBase256 Q256{};
 	SimdBase256 W256{};
 	SimdBase256 R256{};
-	SimdBase256 B256{};
 	SimdBase256 S256{};
-	SimdBase256 RSB256{};
-	SimdBase256 LSB256{};
-	SimdBase256 RCB256{};
-	SimdBase256 LCB256{};
-	SimdBase256 C256{};
 	SimdBase256 values[8]{};
 	std::string_view stringView{};
 	std::string string{};
