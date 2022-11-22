@@ -214,8 +214,8 @@ class SimdBase128 {
 	}
 
 	inline SimdBase128(uint64_t value00, uint64_t value01) {
-		this->value = _mm_insert_epi64(this->value, value00, 0);
-		this->value = _mm_insert_epi64(this->value, value01, 1);
+		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 0);
+		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 1);
 	}
 
 	inline uint64_t* operator[](size_t index) {
@@ -336,10 +336,10 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
-		this->value = _mm256_insert_epi64(this->value, value00, 0);
-		this->value = _mm256_insert_epi64(this->value, value01, 1);
-		this->value = _mm256_insert_epi64(this->value, value02, 2);
-		this->value = _mm256_insert_epi64(this->value, value03, 3);
+		this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value00), 0);
+		this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value00), 1);
+		this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value00), 2);
+		this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value00), 3);
 	}
 
 	inline SimdBase256& operator=(const __m256i other) {
@@ -454,27 +454,23 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(*this, other);
 	}
 
-  protected:
-	__m256i value{};
-};
-
-class SimdBitIndexer {
-  public:
-	inline SimdBitIndexer() noexcept = default;
-
 	inline std::vector<uint8_t> getSetBitIndices(SimdBase256 value) {
 		std::vector<uint8_t> returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
-				if ((*value[x] >> y) & 1) {
+				if ((*(reinterpret_cast<uint64_t*>(this->operator[](x))) >> y) & 1) {
 					returnValue.push_back(y + (x * 64));
-					std::cout << +y + (x * 64) << std::endl;
 				}
 			}
 		}
 		return returnValue;
 	}
+
+  protected:
+	__m256i value{};
 };
+
+
 
 enum class RecordType : uint16_t {
 	ObjectStart = 1 << 0,
@@ -504,7 +500,7 @@ class SimdStringSection {
 		}
 	}
 
-	inline SimdBase256 collectWhiteSpace() {
+	inline SimdBase256 collectWhiteSpaceIndices() {
 		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100,
 			100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		SimdBase256 whiteSpaceReal[8]{};
@@ -517,7 +513,7 @@ class SimdStringSection {
 			convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
 	}
 
-	inline SimdBase256 collectStructuralCharacters() {
+	inline SimdBase256 collectStructuralCharactersIndices() {
 		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
 			'}', 0, 0) };
 		SimdBase256 structural[8]{};
@@ -542,7 +538,7 @@ class SimdStringSection {
 		return this->S256.bitAndNot(this->Q256.bitAndNot(R256));
 	}
 
-	inline SimdBase256 collectBackslashes() {
+	inline SimdBase256 collectBackslashesIndices() {
 		SimdBase256 backslashes = _mm256_set1_epi8('\\');
 		SimdBase256 backslashesReal[8]{};
 
@@ -554,7 +550,7 @@ class SimdStringSection {
 			convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]), convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
 	}
 
-	inline SimdBase256 collectQuotes() {
+	inline auto collectQuotesIndices() {
 		SimdBase256 quotes = _mm256_set1_epi8('"');
 		SimdBase256 quotesReal[8]{};
 		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
@@ -578,7 +574,8 @@ class SimdStringSection {
 		auto OD2 = OCE & E;
 		auto OD = OD1 | OD2;
 
-		return this->Q256 & ~OD;
+		auto returnValue= this->Q256 & ~OD;
+		return returnValue.getSetBitIndices(returnValue);
 	}
 
 	inline SimdStringSection(std::string_view valueNew, size_t currentGlobalIndexNew) {
@@ -602,10 +599,13 @@ class SimdStringSection {
 		this->packStringIntoValue(this->values[6], this->stringView.data() + 192);
 		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
 
-		this->B256 = this->collectBackslashes();
-		this->Q256 = this->collectQuotes();
-		this->W256 = this->collectWhiteSpace();
-		this->S256 = this->collectStructuralCharacters();
+		this->B256 = this->collectBackslashesIndices();
+		auto Q256 = this->collectQuotesIndices();
+		for (auto& value: Q256) {
+			std ::cout << "THE INDEX: " << +value << std::endl;
+		}
+		this->W256 = this->collectWhiteSpaceIndices();
+		this->S256 = this->collectStructuralCharactersIndices();
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
