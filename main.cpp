@@ -614,7 +614,7 @@ struct JsonTapeRecord {
 
 class SimdStringScanner {
   public:
-	SimdStringScanner(std::string_view string) noexcept {
+	inline SimdStringScanner(std::string_view string) noexcept {
 		size_t stringSize = string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
@@ -625,7 +625,7 @@ class SimdStringScanner {
 		this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
 	}
 
-	void generateTapeRecord() {
+	inline void generateTapeRecord() {
 		for (auto& value: this->stringSections) {
 			for (size_t x = 0; x < 4; ++x) {
 				for (size_t y = 0; y < 64; ++y) {
