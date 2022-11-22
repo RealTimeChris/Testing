@@ -606,6 +606,9 @@ class SimdStringSection {
 		}
 		this->W256 = this->collectWhiteSpaceIndices();
 		this->S256 = this->collectStructuralCharactersIndices();
+		for (auto& value: this->S256.getSetBitIndices(this->S256)) {
+			std ::cout << "THE INDEX: " << +value << std::endl;
+		}
 		//this->S256.printBits("S FINAL VALUES (256) ");
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
