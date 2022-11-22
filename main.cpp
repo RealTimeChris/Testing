@@ -481,16 +481,6 @@ class SimdStringSection {
 	std::string string{};
 };
 
-enum class JsonEventType : int8_t {
-	Object_Start = 1 << 0,
-	Array_Start = 1 << 1,
-	String_Start = 1 << 2,
-	Primitive_Start = 1 << 3,
-	Int_Start = 1 << 4,
-	Float_Start = 1 << 5,
-	Bool_Start = 1 << 6
-};
-
 class SimdStringScanner {
   public:
 	inline SimdStringScanner(std::string_view string) noexcept {
@@ -501,7 +491,10 @@ class SimdStringScanner {
 			stringSize -= 256;
 			collectedSize += 256;
 		}
-		this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
+		if (string.size() - collectedSize > 0) {
+			this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
+		}
+		this->generateTapeRecord();
 	}
 
 	inline void generateTapeRecord() {
@@ -672,7 +665,7 @@ int32_t main() noexcept {
 	stringScanner.generateTapeRecord();
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
-		SimdStringSection simd8Test{ string256 };
+		SimdStringScanner simd8Test{ string256 };
 		totalSize += string256.size();
 	}
 	totalTime += stopWatch.totalTimePassed();
