@@ -485,15 +485,15 @@ class SimdStringScanner {
   public:
 	inline SimdStringScanner(std::string_view stringNew) noexcept {
 		this->string = stringNew;
-		size_t stringSize = string.size();
+		size_t stringSize =this->string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
-			this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, 256 });
+			this->stringSections.emplace_back(std::string_view{ this->string.data() + collectedSize, 256 });
 			stringSize -= 256;
 			collectedSize += 256;
 		}
-		if (string.size() - collectedSize > 0) {
-			this->stringSections.emplace_back(std::string_view{ string.data() + collectedSize, string.size() - collectedSize });
+		if (this->string.size() - collectedSize > 0) {
+			this->stringSections.emplace_back(std::string_view{ this->string.data() + collectedSize, this->string.size() - collectedSize });
 		}
 		this->generateTapeRecord();
 	}
