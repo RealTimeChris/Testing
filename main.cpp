@@ -483,7 +483,8 @@ class SimdStringSection {
 
 class SimdStringScanner {
   public:
-	inline SimdStringScanner(std::string_view string) noexcept {
+	inline SimdStringScanner(std::string_view stringNew) noexcept {
+		this->string = stringNew;
 		size_t stringSize = string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
@@ -507,8 +508,7 @@ class SimdStringScanner {
   protected:
 	std::vector<SimdStringSection> stringSections{};
 	std::vector<int16_t> jsonTape{};
-	bool haveWeStarted{ false };
-	std::string finalString{};
+	std::string_view string{};
 };
 
 class SimdBase64 {
