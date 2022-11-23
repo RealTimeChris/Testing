@@ -25,12 +25,15 @@ target_link_libraries(
 
 target_compile_options(
 	"${PROJECT_NAME}" PUBLIC
-	"$<$<CXX_COMPILER_ID:MSVC>:/arch:AVX2>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/fp:fast>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Oi>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Ot>"
+	"$<$<CXX_COMPILER_ID:MSVC>:$<$<STREQUAL:$ENV{EnableASAN},true>:/fsanitize=address>>"
+	"$<$<CXX_COMPILER_ID:MSVC>:$<$<STREQUAL:$ENV{EnableASAN},true>:/Zi>>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/MP>"
-	"$<$<CXX_COMPILER_ID:GNU>:-march=native>"
+	"$<$<CXX_COMPILER_ID:MSVC>:/arch:AVX2>"
+	"$<$<CXX_COMPILER_ID:GNU>:$<$<STREQUAL:$ENV{EnableASAN},true>:-fsanitize=address>>"
+	"$<$<CXX_COMPILER_ID:GNU>:-fpermissive>"
 	"$<$<CXX_COMPILER_ID:GNU>:-mavx2>"
 )
 
