@@ -238,15 +238,7 @@ class SimdBase256 {
 		return _mm256_and_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator&(SimdBase256 other) const {
-		return _mm256_and_si256(this->value, other);
-	}
-
 	inline SimdBase256 operator^(SimdBase256 other) {
-		return _mm256_xor_si256(this->value, other);
-	}
-
-	inline SimdBase256 operator^(SimdBase256 other) const {
 		return _mm256_xor_si256(this->value, other);
 	}
 
@@ -288,14 +280,6 @@ class SimdBase256 {
 		__m256i newValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
-		}
-		return newValue;
-	}
-
-	inline SimdBase256 operator~() const {
-		__m256i newValue{};
-		for (size_t x = 0; x < 4; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<const int64_t*>(&this->value) + x);
 		}
 		return newValue;
 	}
