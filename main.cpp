@@ -505,9 +505,57 @@ class SimdStringScanner {
 		}
 	}
 
+	inline std::string_view collectKey(size_t index01, size_t index02) {
+		return this->string.substr(index01, index02);
+	}
+
+	inline void generateJsonData(Jsonifier::Jsonifier jsonDataNew = Jsonifier::Jsonifier{}, size_t currentIndex01 = 0) {
+		std::string currentKey{};
+		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
+			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
+			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
+			switch (this->string[this->jsonTape[x]]) {
+				case '{': {
+					if (!this->haveWeStarted) {
+						currentKey = this->collectKey(this->jsonTape[x] + 2, this->jsonTape[x + 1]);
+						this->haveWeStarted = true;
+						std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					}
+					jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
+					std::cout << "THE STRING: " << jsonDataNew.operator std::string&&() << std::endl;
+					this->areWeWaitingForAKey = true;
+					jsonDataNew[currentKey] = std::unordered_map<std::string, Jsonifier::Jsonifier>{};
+					this->generateJsonData(jsonDataNew, x + 1);
+					return;
+				}
+				case '[': {
+					jsonDataNew[currentKey] = std::unordered_map<std::string, Jsonifier::Jsonifier>{};
+					this->areWeWaitingForAKey = true;
+					break;
+				}
+				case '"': {
+					currentKey = this->string.substr(this->string[this->jsonTape[x]], this->string[this->jsonTape[x + 1]]);
+					this->areWeWaitingForAKey = false;
+					break;
+				}
+				case '}': {
+					return;
+				}
+			}
+		}
+		this->jsonData = std::move(jsonDataNew);
+	}
+
+	inline Jsonifier::Jsonifier getJsonData() {
+		return this->jsonData;
+	}
+
   protected:
 	std::vector<SimdStringSection> stringSections{};
+	bool areWeWaitingForAKey{ true };
+	bool haveWeStarted{ false };
 	std::vector<int16_t> jsonTape{};
+	Jsonifier::Jsonifier jsonData{};
 	std::string_view string{};
 };
 
@@ -658,7 +706,10 @@ int32_t main() noexcept {
 	size_t totalTime{};
 	size_t totalSize{};
 	SimdStringScanner stringScanner{ stringNew };
-	stringScanner.generateTapeRecord();
+	stringScanner.generateJsonData();
+	auto newJsonData = stringScanner.getJsonData();
+	newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+	std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 	stopWatch.resetTimer();
 	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 		SimdStringScanner simd8Test{ string256 };
