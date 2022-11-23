@@ -27,23 +27,23 @@ template<typename TTy> class StopWatch {
 	}
 
 	StopWatch(TTy maxNumberOfMsNew) {
-		this->maxNumberOfMs.store(maxNumberOfMsNew.count());
-		this->startTime.store(static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count()));
+		this->maxNumberOfMs.store(maxNumberOfMsNew);
+		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
-	int64_t totalTimePassed() {
-		int64_t currentTime = static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count());
-		int64_t elapsedTime = currentTime - this->startTime.load();
+	TTy totalTimePassed() {
+		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
+		TTy elapsedTime = currentTime - this->startTime.load();
 		return elapsedTime;
 	}
 
-	int64_t getTotalWaitTime() {
+	TTy getTotalWaitTime() {
 		return this->maxNumberOfMs.load();
 	}
 
 	bool hasTimePassed() {
-		int64_t currentTime = static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count());
-		int64_t elapsedTime = currentTime - this->startTime.load();
+		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
+		TTy elapsedTime = currentTime - this->startTime.load();
 		if (elapsedTime >= this->maxNumberOfMs.load()) {
 			return true;
 		} else {
@@ -52,12 +52,12 @@ template<typename TTy> class StopWatch {
 	}
 
 	void resetTimer() {
-		this->startTime.store(static_cast<int64_t>(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()).count()));
+		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
   protected:
-	std::atomic_int64_t maxNumberOfMs{ 0 };
-	std::atomic_int64_t startTime{ 0 };
+	std::atomic<TTy> maxNumberOfMs{ TTy{ 0 } };
+	std::atomic<TTy> startTime{ TTy{ 0 } };
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i inputA, const __m256i inputB) {
@@ -514,6 +514,7 @@ class SimdStringScanner {
 
 	inline void generateJsonData(Jsonifier::Jsonifier jsonDataNew = Jsonifier::Jsonifier{}, size_t currentIndex01 = 0) {
 		std::string currentKey{};
+		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
 		for (size_t x = 0; x < this->jsonTape.size(); ++x) {
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
 			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
@@ -525,16 +526,16 @@ class SimdStringScanner {
 					break;
 				}
 				case '"': {
-					if (this->string[this->jsonTape[x + 1]] == ':') {
-						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1]);
-					}
-					std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					
 					break;
 				}
 				case '}': {
+					jsonDataNew = newData;
 					break;
 				}
 				case ':': {
+					currentKey = this->string.substr(this->jsonTape[x - 1], this->jsonTape[x] - this->jsonTape[x - 1]);
+					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					break;
 				}
 			}
@@ -712,7 +713,7 @@ int32_t main() noexcept {
 		SimdStringScanner simd8Test{ string256 };
 		totalSize += string256.size();
 	}
-	totalTime += stopWatch.totalTimePassed();
+	totalTime += stopWatch.totalTimePassed().count();
 
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
@@ -723,7 +724,7 @@ int32_t main() noexcept {
 		SimdBase64 simd8Test{ string64 };
 		totalSize += string64.size();
 	}
-	totalTime += stopWatch.totalTimePassed();
+	totalTime += stopWatch.totalTimePassed().count();
 	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 
