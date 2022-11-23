@@ -465,22 +465,24 @@ class SimdStringSection {
 	std::string string{};
 };
 
+enum class ErrorCode { Empty = 0, TapeError = 1, DepthError = 2, Success = 3, ParseError = 4 };
+
 enum class JsonTapeEventStates {
-	Object_Start = 0,
-	Object_End = 1,
-	Array_Start = 2,
-	Array_End = 3,
-	String_Start = 4,
-	String_End = 5,
-	Primitive_Start = 6,
-	Primitive_End = 7
+	ObjectBegin = 0,
+	ObjectField = 1,
+	ObjectContinue = 2,
+	ScopeEnd = 3,
+	ArrayBegin = 4,
+	ArrayValue = 5,
+	ArrayContinue = 6,
+	DocumentEnd = 7
 };
 
 class SimdStringScanner {
   public:
 	inline SimdStringScanner(std::string_view stringNew) noexcept {
 		this->string = stringNew;
-		size_t stringSize =this->string.size();
+		size_t stringSize = this->string.size();
 		size_t collectedSize{};
 		while (stringSize > 256) {
 			this->stringSections.emplace_back(std::string_view{ this->string.data() + collectedSize, 256 });
@@ -498,68 +500,271 @@ class SimdStringScanner {
 			std::vector<int16_t> setBitIndices{ value.getStructuralIndices() };
 			this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
 		}
+		this->next_structural = this->jsonTape.data();
 	}
 
-	inline std::string_view collectKey(size_t index01, size_t index02) {
-		return this->string.substr(index01, index02);
+	ErrorCode visitTrueAtom(char* value) {
+		if (strcmp(reinterpret_cast<char*>(value), "true")) {
+			return ErrorCode::Success;
+		} else {
+			return ErrorCode::ParseError;
+		}
 	}
 
-	inline void generateJsonData(Jsonifier::Jsonifier& jsonDataNew , size_t currentIndex01 = 0) {
-		std::string currentKey{};
-		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
-			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
-			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
-			if (!this->haveWeStarted) {
-				this->areWeWaitingForAKey = true;
+	ErrorCode visitObjectStart() {
+		return ErrorCode::Success;
+	}
+
+	ErrorCode visitArrayStart() {
+		return ErrorCode::Success;
+	}
+
+	ErrorCode visitFalseAtom(char* value) {
+		if (strcmp(reinterpret_cast<char*>(value), "false")) {
+			return ErrorCode::Success;
+		} else {
+			return ErrorCode::ParseError;
+		}
+	}
+
+	ErrorCode visitNullAtom(char* value) {
+		if (strcmp(reinterpret_cast<char*>(value), "null")) {
+			return ErrorCode::Success;
+		} else {
+			return ErrorCode::ParseError;
+		}
+	}
+
+	ErrorCode visitNumber(char* value) {
+		if (strcmp(reinterpret_cast<char*>(value), "null")) {
+			return ErrorCode::Success;
+		} else {
+			return ErrorCode::ParseError;
+		}
+	}
+
+	ErrorCode visitKey(char* value) {
+		this->currentKey.insert(this->currentKey.begin(), value, this->advance());
+		return ErrorCode::Success;
+	}
+
+	ErrorCode visitEmptyObject() {
+		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ObjectType{};
+	}
+
+	ErrorCode visitEmptyArray() {
+		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ArrayType{};
+	}
+
+	ErrorCode visitString(char* value) {
+		this->currentString.insert(this->currentString.begin(), value, this->advance());
+		std::cout << "THE STRING: " << this->jsonData.operator std::string&&() << std::endl;
+		this->jsonData[this->currentKey] = this->currentString;
+		return ErrorCode::Success;
+	}
+
+
+	inline ErrorCode visitPrimitive(char* value) noexcept {
+		switch (*value) {
+			case '"':
+				return this->visitString(value);
+			case 't':
+				return this->visitTrueAtom(value);
+			case 'f':
+				return this->visitFalseAtom(value);
+			case 'n':
+				return this->visitNullAtom(value);
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return this->visitNumber(value);
+			default:
+				return ErrorCode::TapeError;
+		}
+	}
+
+	uint32_t* next_structural{ nullptr };
+	uint32_t depth{ 0 };
+
+	/**
+   * Walk the JSON document.
+   *
+   * The visitor receives callbacks when values are encountered. All callbacks pass the iterator as
+   * the first parameter; some callbacks have other parameters as well:
+   *
+   * - visit_document_start() - at the beginning.
+   * - visit_document_end() - at the end (if things were successful).
+   *
+   * - visit_array_start() - at the start `[` of a non-empty array.
+   * - visit_array_end() - at the end `]` of a non-empty array.
+   * - visit_empty_array() - when an empty array is encountered.
+   *
+   * - visit_object_end() - at the start `]` of a non-empty object.
+   * - visit_object_start() - at the end `]` of a non-empty object.
+   * - visit_empty_object() - when an empty object is encountered.
+   * - visit_key(const uint8_t *key) - when a key in an object field is encountered. key is
+   *                                   guaranteed to point at the first quote of the string (`"key"`).
+   * - visit_primitive(const uint8_t *value) - when a value is a string, number, boolean or null.
+   * - visit_root_primitive(iter, uint8_t *value) - when the top-level value is a string, number, boolean or null.
+   *
+   * - increment_count(iter) - each time a value is found in an array or object.
+   */
+
+	inline char* peek() noexcept {
+		auto returnValue = &this->string[this->jsonTape[*(next_structural)]];
+		std::cout << +returnValue << std::endl;
+		return returnValue;
+	}
+
+	inline char* advance() noexcept {
+		auto returnValue = &this->string[this->jsonTape[*(next_structural++)]];
+		std::cout << +returnValue << std::endl;
+		return returnValue;
+	}
+
+	inline size_t remainingLen() noexcept {
+		return this->jsonTape.size() - *(next_structural - 1);
+	}
+
+	inline bool atEof() noexcept {
+		return next_structural == &this->jsonTape[this->jsonTape.size() - 1];
+	}
+
+	inline bool atBeginning() noexcept {
+		return next_structural == &this->jsonTape[0];
+	}
+
+	inline uint8_t lastStructural() noexcept {
+		return this->string[this->jsonTape[*(this->next_structural - 1)]];
+	}
+
+	inline ErrorCode generateJsonData(Jsonifier::Jsonifier& jsonDataNew) {
+		switch (this->currentState) {
+			case JsonTapeEventStates::ObjectBegin: {
+				depth++;
+				this->visitObjectStart();
+				auto key = this->advance();
+				if (*key != '"') {
+					return ErrorCode::TapeError;
+				}				
+				this->visitKey(key);
+				this->currentState = JsonTapeEventStates::ObjectField;
+				return this->generateJsonData(jsonDataNew);
 			}
-			switch (this->string[this->jsonTape[x]]) {
-				case '{': {
-					if (!this->haveWeStarted) {
-						this->haveWeStarted = true;
-						this->areWeWaitingForAKey = true;
-						this->objectCount++;
-						continue;
+			case JsonTapeEventStates::ObjectField: {
+				
+				if (*this->advance() != ':') {
+					return ErrorCode::TapeError;
+				}
+				auto value = this->advance();
+				switch (*value) {
+					case '{':
+						if (*this->peek() == '}') {
+							this->advance();
+							this->visitEmptyObject();
+							break;
+						}
+						this->currentState = JsonTapeEventStates::ObjectBegin;
+						return this->generateJsonData(jsonDataNew);
+					case '[':
+						if (*this->peek() == ']') {
+							this->advance();
+							this->visitEmptyArray();
+							break;
+						}
+						this->currentState = JsonTapeEventStates::ArrayBegin;
+						return this->generateJsonData(jsonDataNew);
+					default:
+						this->visitPrimitive(value);
+				}
+				
+				this->currentState = JsonTapeEventStates::ObjectContinue;
+				return this->generateJsonData(jsonDataNew);
+			}
+			case JsonTapeEventStates::ObjectContinue: {
+				switch (*this->advance()) {
+					case ',': {
+						auto key = this->advance();
+						if (*key != '"') {
+							return ErrorCode::TapeError;
+						}
+						this->visitKey(key);
 					}
-					this->areWeWaitingForAKey = true;
-					this->objectCount++;
-					break;
-				}
-				case '[': {
-					this->arrayCount++;
-					break;
-				}
-				case ']': {
-					this->arrayCount--;
-					continue;
-				}
-				case '"': {
-					this->currentString = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
-					std::cout << "CURRENT STRING: " << this->currentString << std::endl;
-					this->areWeWaitingForAKey = false;
-					x++;
-					continue;
-				}
-				case ',': {
-					continue;
-				}
-				case '}': {
-					this->objectCount--;
-					continue;
-				}
-				case ':': {
-					this->currentKey = std::move(this->currentString);
-					jsonDataNew[currentKey] =
-						static_cast<std::string>(this->string.substr(this->jsonTape[x] + 1, this->string.size() - this->jsonTape[x] - 2));
-					std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] << std::endl;
-					std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x]] << std::endl;
-					std::cout << "CURRENT KEY (REAL): " << currentKey << std::endl;
-					std::cout << "CURRENT STRING: 0303: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
-					break;
-				}
-				default: {
-					break;
+						this->currentState = JsonTapeEventStates::ObjectField;
+						return this->generateJsonData(jsonDataNew);
+					case '}':
+						//this->visit(*this);
+						this->currentState = JsonTapeEventStates::ScopeEnd;
+						return this->generateJsonData(jsonDataNew);
+					default:
+						return ErrorCode::TapeError;
 				}
 			}
+			case JsonTapeEventStates::ScopeEnd: {
+				depth--;
+				if (depth == 0) {
+					this->currentState = JsonTapeEventStates::DocumentEnd;
+					return this->generateJsonData(jsonDataNew);
+				}
+				this->currentState = JsonTapeEventStates::ObjectContinue;
+				return this->generateJsonData(jsonDataNew);
+			}
+			case JsonTapeEventStates::ArrayBegin: {
+				depth++;
+				this->visitArrayStart();
+				this->currentState = JsonTapeEventStates::ArrayValue;
+				return this->generateJsonData(jsonDataNew);
+			}
+			case JsonTapeEventStates::ArrayValue: {
+				auto value = advance();
+				switch (*value) {
+					case '{':
+						if (*peek() == '}') {
+							advance();
+							this->visitEmptyObject();
+							break;
+						}
+						this->currentState = JsonTapeEventStates::ObjectBegin;
+						return this->generateJsonData(jsonDataNew);
+					case '[':
+						if (*peek() == ']') {
+							advance();
+							this->visitEmptyArray();
+							break;
+						}
+						this->currentState = JsonTapeEventStates::ArrayBegin;
+						return this->generateJsonData(jsonDataNew);
+					default:
+						this->visitPrimitive(value);
+						break;
+				}
+			}
+			case JsonTapeEventStates::ArrayContinue: {
+				switch (*advance()) {
+					case ',':
+						this->currentState = JsonTapeEventStates::ArrayValue;
+						return this->generateJsonData(jsonDataNew);
+					case ']':
+						//this->visitArrayEnd(*this);
+						this->currentState = JsonTapeEventStates::ScopeEnd;
+						return this->generateJsonData(jsonDataNew);
+					default:
+						return ErrorCode::TapeError;
+				}
+				break;
+			}
+			default: {
+				break;
+			}
+			
 		}
 		if (this->arrayCount != 0) {
 			throw std::runtime_error{ "Arrays were not all closed: " + std::to_string(this->arrayCount) };
@@ -568,7 +773,7 @@ class SimdStringScanner {
 			throw std::runtime_error{ "Objects were not all closed: " + std::to_string(this->objectCount) };
 		}
 		this->jsonData = std::move(jsonDataNew);
-		return;
+		return ErrorCode::Success;
 	}
 
 	inline Jsonifier::Jsonifier getJsonData() {
@@ -577,16 +782,16 @@ class SimdStringScanner {
 	}
 
   protected:
+	JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 	std::vector<SimdStringSection> stringSections{};
-	JsonTapeEventStates currentState{};
 	bool areWeWaitingForAKey{ true };
-	std::vector<int16_t> jsonTape{};
+	std::vector<uint32_t> jsonTape{};
 	Jsonifier::Jsonifier jsonData{};
 	bool haveWeStarted{ false };
 	std::string currentString{};
-	std::string_view string{};
 	std::string currentKey{};
 	int64_t objectCount{};
+	std::string string{};
 	int64_t arrayCount{};
 };
 
