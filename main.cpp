@@ -98,10 +98,6 @@ class SimdBase128 {
 		*this = other;
 	}
 
-	inline operator const __m128i() const {
-		return this->value;
-	}
-
 	inline operator __m128i() {
 		return this->value;
 	}
@@ -115,10 +111,6 @@ class SimdBase128 {
 	}
 
 	inline SimdBase128 operator^(SimdBase128 other) {
-		return _mm_xor_si128(*this, other);
-	}
-
-	inline SimdBase128 operator^(SimdBase128 other) const {
 		return _mm_xor_si128(*this, other);
 	}
 
@@ -146,18 +138,18 @@ class SimdBase128 {
 	}
 
 	inline SimdBase128 operator<<(size_t amount) {
-		__m128i newValue{};
+		SimdBase128 newValue{};
 		for (size_t x = 0; x < 2; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
 			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
 			}
 		}
 		return newValue;
 	}
 
 	inline SimdBase128 operator~() {
-		__m128i newValue{};
+		SimdBase128 newValue{};
 		for (size_t x = 0; x < 2; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
@@ -171,16 +163,6 @@ class SimdBase128 {
 	inline SimdBase128 shuffle(SimdBase128 other) {
 		return _mm_shuffle_epi8(other, *this);
 	}
-
-	inline void printBits(std::string valuesTitle) {
-		std::cout << valuesTitle;
-		for (size_t x = 0; x < 16; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
-			}
-		}
-		std::cout << std::endl;
-	};
 
   protected:
 	__m128i value{};
@@ -224,10 +206,6 @@ class SimdBase256 {
 
 	inline SimdBase256(const __m256i other) {
 		*this = other;
-	}
-
-	inline operator const __m256i() const {
-		return this->value;
 	}
 
 	inline operator __m256i() {
@@ -274,7 +252,7 @@ class SimdBase256 {
 		for (size_t x = 0; x < 4; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
 			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 0x00000001);
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
 			}
 		}
 		return newValue;
@@ -331,7 +309,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 bitAndNot(SimdBase256 other) {
-		return _mm256_andnot_si256(other.value, this->value);
+		return _mm256_andnot_si256(other, *this);
 	}
 
 	inline SimdBase256 shuffle(SimdBase256 other) {
@@ -545,9 +523,8 @@ class SimdStringScanner {
 		return this->string.substr(index01, index02);
 	}
 
-	inline void generateJsonData(Jsonifier::Jsonifier& jsonDataNew , size_t currentIndex01 = 0) {
+	inline Jsonifier::Jsonifier generateJsonData(Jsonifier::Jsonifier& jsonDataNew , size_t currentIndex01 = 0) {
 		std::string currentKey{};
-		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
 			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
@@ -564,46 +541,39 @@ class SimdStringScanner {
 					}
 					this->areWeWaitingForAKey = true;
 					this->objectCount++;
-					break;
+					auto returnValue = this->generateJsonData(jsonDataNew, currentIndex01 + 1);
+					jsonDataNew[currentKey] = returnValue;
+					return jsonDataNew[currentKey];
 				}
 				case '[': {
 					this->arrayCount++;
-					break;
+					return this->generateJsonData(jsonDataNew, currentIndex01 + 1);
 				}
 				case ']': {
 					this->arrayCount--;
-					break;
+					return jsonDataNew;
 				}
 				case '"': {
-					if (this->areWeWaitingForAKey) {
-						currentKey = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
-						std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] << std::endl;
-						std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x]] << std::endl;
-						std::cout << "CURRENT KEY INDEX: (REAL) 0202: " << this->jsonTape[x + 1] << std::endl;
-						std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x + 1]] << std::endl;
-						std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] + 1 << std::endl;
-						std::cout << "CURRENT KEY INDEX: (REAL) 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] - 2 << std::endl;
-						std::cout << "CURRENT KEY (REAL): " << currentKey << std::endl;
-						this->areWeWaitingForAKey = false;
-					} else {
-						auto stringNew = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 2);
-						jsonDataNew[currentKey] = static_cast<std::string>(stringNew);
-						std::cout << "CURRENT STRING: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
-					}
-					break;
+					currentKey = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
+					this->areWeWaitingForAKey = false;
+					x++;
+					return jsonDataNew;
 				}
 				case '}': {
 					this->objectCount--;
-					break;
+					return jsonDataNew;
 				}
 				case ':': {
 					jsonDataNew[currentKey] =
-						static_cast<std::string>(this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 2));
+						static_cast<std::string>(this->string.substr(this->jsonTape[x] + 1, this->string.size() - this->jsonTape[x] - 2));
+					std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] << std::endl;
+					std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x]] << std::endl;
+					std::cout << "CURRENT KEY (REAL): " << currentKey << std::endl;
 					std::cout << "CURRENT STRING: 0303: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
-					break;
+					return jsonDataNew;
 				}
 				default: {
-					break;
+					return jsonDataNew;
 				}
 			}
 		}
@@ -613,11 +583,11 @@ class SimdStringScanner {
 		if (this->objectCount!= 0) {
 			throw std::runtime_error{ "Objects were not all closed: " + std::to_string(this->objectCount) };
 		}
-		this->jsonData = std::move(jsonDataNew);
+		return jsonDataNew;
 	}
 
 	inline Jsonifier::Jsonifier getJsonData() {
-		return this->jsonData;
+		return this->generateJsonData(this->jsonData);
 	}
 
   protected:
@@ -627,6 +597,7 @@ class SimdStringScanner {
 	std::vector<int16_t> jsonTape{};
 	Jsonifier::Jsonifier jsonData{};
 	bool haveWeStarted{ false };
+	std::string currentString{};
 	std::string_view string{};
 	int64_t objectCount{};
 	int64_t arrayCount{};
