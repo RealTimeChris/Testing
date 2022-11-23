@@ -289,14 +289,6 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 carrylessMultiplication(char operand) {
-
-		//
-		// Check if we're still in a string at the end of the box so the next block will know
-		//
-		// right shift of a signed value expected to be well-defined and standard
-		// compliant as of C++20, John Regher from Utah U. says this is fine code
-		//
-		
 		auto inString01 = static_cast<uint64_t>(_mm_cvtsi128_si64(
 			_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0)));
 		auto prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
@@ -305,11 +297,13 @@ class SimdBase256 {
 				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))) ^
 			prevInString;
 		prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
-		auto inString03 = static_cast<uint64_t>(_mm_cvtsi128_si64(
+		auto inString03 =
+			static_cast<uint64_t>(_mm_cvtsi128_si64(
 				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))) ^
 			prevInString;
 		prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
-		auto inString04 = static_cast<uint64_t>(_mm_cvtsi128_si64(
+		auto inString04 =
+			static_cast<uint64_t>(_mm_cvtsi128_si64(
 				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) ^
 			prevInString;
 		return SimdBase256{ inString01, inString02, inString03, inString04 };
