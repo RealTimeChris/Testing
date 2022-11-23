@@ -1,8 +1,5 @@
 if (WIN32)
-	set(nlohmann_json_DIR "C:/vcpkg/installed/x64-windows/share/nlohmann_json")
 	set(Jsonifier_DIR "C:/users/chris/cmake/Jsonifier/share/jsonifier")
-elseif(UNIX)
-	set(nlohmann_json_DIR "/home/chris/vcpkg/installed/x64-linux/share/nlohmann_json")
 endif()
 
 set(DOWNLOAD_EXTRACT_TIMESTAMP true)
