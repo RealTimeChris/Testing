@@ -558,7 +558,12 @@ class SimdStringScanner {
 	}
 
 	ErrorCode visitKey(char* value) {
-		this->currentKey.insert(this->currentKey.begin(), value, this->advance());
+		this->currentKey.clear();
+		this->currentKey.insert(this->currentKey.begin(), value + 1, this->peek() - 1);
+		std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
+		std::cout << "THE CURRENT INDEX 01: " << *value << std::endl;
+		std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
+		std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
 		return ErrorCode::Success;
 	}
 
@@ -573,13 +578,17 @@ class SimdStringScanner {
 	}
 
 	ErrorCode visitString(char* value) {
-		this->currentString.insert(this->currentString.begin(), value, this->advance());
-		std::cout << "THE STRING: " << this->jsonData.operator std::string&&() << std::endl;
+		this->currentString.clear();
+		this->currentString.insert(this->currentString.begin(), value, this->peek());
+		std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
+		std::cout << "THE CURRENT INDEX 01: " << *value  << std::endl;
+		std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
+		std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
 		this->jsonData[this->currentKey] = this->currentString;
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitPrimitive(char* value) noexcept {
+	inline ErrorCode visitPrimitive(char* value) {
 		switch (*value) {
 			case '"':
 				return this->visitString(value);
@@ -606,40 +615,29 @@ class SimdStringScanner {
 		}
 	}
 
-	uint32_t* next_structural{ nullptr };
+	uint16_t* next_structural{ nullptr };
 	uint32_t depth{ 0 };
 
 	inline char* peek() noexcept {
-		auto returnValue = &this->string[this->jsonTape[*(next_structural)]];
-		return returnValue;
-	}
-
-	inline char* advance() noexcept {
-		auto returnValue = &this->string[this->jsonTape[*(next_structural++)]];
+		std::cout << "CURRENT NEXT STRUCTURAL: " << *(next_structural) << std::endl;
+		auto returnValue = &this->string[*(this->next_structural)];
+		std::cout << "CURRENT NEXT VALUEL: " << *returnValue << std::endl;
 		std::cout << *returnValue << std::endl;
 		return returnValue;
 	}
 
-	inline size_t remainingLen() noexcept {
-		return this->jsonTape.size() - *(next_structural - 1);
-	}
-
-	inline bool atEof() noexcept {
-		return next_structural == &this->jsonTape[this->jsonTape.size() - 1];
-	}
-
-	inline bool atBeginning() noexcept {
-		return next_structural == &this->jsonTape[0];
-	}
-
-	inline uint8_t lastStructural() noexcept {
-		return this->string[this->jsonTape[*(this->next_structural - 1)]];
+	inline char* advance(std::source_location location=std::source_location::current()) noexcept {
+		auto returnValue = &this->string[*(this->next_structural++)];
+		std::cout << "CURRENT NEXT STRUCTURAL: " << location.line() << *(next_structural) << std::endl;
+		std::cout << "CURRENT NEXT VALUEL: " << *returnValue << std::endl;
+		std::cout << *returnValue << std::endl;
+		return returnValue;
 	}
 
 	inline ErrorCode generateJsonData() {
 		switch (this->currentState) {
-			case JsonTapeEventStates::ObjectBegin: {
-				depth++;
+			case JsonTapeEventStates::ObjectBegin:{
+				this->depth++;
 				this->visitObjectStart();
 				auto key = advance();
 				if (*key != '"') {
@@ -671,6 +669,7 @@ class SimdStringScanner {
 						}
 						this->currentState = JsonTapeEventStates::ArrayBegin;
 						return this->generateJsonData();
+
 					default:
 						this->visitPrimitive(value);
 						break;
@@ -679,30 +678,30 @@ class SimdStringScanner {
 				return this->generateJsonData();
 			}
 			case JsonTapeEventStates::ObjectContinue: {
-				auto value = this->advance();
-				std::cout << "THE VALUE CURRENTLY: " << *value << std::endl;
-				switch (*value) {
+				switch (*advance()) {
 					case ',': {
-						auto key = value;
+						auto key = advance();
 						if (*key != '"') {
 							throw DCAException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 						}
-						this->visitKey(value);
+						this->visitKey(key);
 						this->currentState = JsonTapeEventStates::ObjectField;
 						return this->generateJsonData();
 					}
-					case '}':
-						//this->vSIMDJSON_TRY(visitor.visit_object_end(*this));
+					case '}': {
 						this->currentState = JsonTapeEventStates::ScopeEnd;
 						return this->generateJsonData();
-					default:
+					}
+					default: {
 						throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					}
+						
 				}
 			}
 			case JsonTapeEventStates::ScopeEnd: {
-				depth--;
-				if (depth == 0) {
+				this->depth--;
+				if (this->depth == 0) {
 					this->currentState = JsonTapeEventStates::DocumentEnd;
 					return this->generateJsonData();
 				}
@@ -710,25 +709,25 @@ class SimdStringScanner {
 				return this->generateJsonData();
 			}
 			case JsonTapeEventStates::ArrayBegin: {
-				depth++;
+				this->depth++;
 				this->visitArrayStart();
 				this->currentState = JsonTapeEventStates::ArrayValue;
 				return this->generateJsonData();
 			}
 			case JsonTapeEventStates::ArrayValue: {
-				auto value = advance();
+				auto value = this->advance();
 				switch (*value) {
 					case '{':
-						if (*peek() == '}') {
-							advance();
+						if (*this->peek() == '}') {
+							this->advance();
 							this->visitEmptyObject();
 							break;
 						}
 						this->currentState = JsonTapeEventStates::ObjectBegin;
 						return this->generateJsonData();
 					case '[':
-						if (*peek() == ']') {
-							advance();
+						if (*this->peek() == ']') {
+							this->advance();
 							this->visitEmptyArray();
 							break;
 						}
@@ -745,30 +744,50 @@ class SimdStringScanner {
 						this->currentState = JsonTapeEventStates::ArrayValue;
 						return this->generateJsonData();
 					case ']':
-						//this->visitArrayEnd(*this);
 						this->currentState = JsonTapeEventStates::ScopeEnd;
 						return this->generateJsonData();
 					default:
-						throw DCAException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
+						throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
+				break;
+			}
+			case JsonTapeEventStates::DocumentEnd: {
 				break;
 			}
 			default: {
 				break;
 			}
 		}
-		if (this->arrayCount != 0) {
-			throw std::runtime_error{ "Arrays were not all closed: " + std::to_string(this->arrayCount) };
-		}
-		if (this->objectCount != 0) {
-			throw std::runtime_error{ "Objects were not all closed: " + std::to_string(this->objectCount) };
-		}
 		return ErrorCode::Success;
 	}
 
 	inline Jsonifier::Jsonifier getJsonData() {
-		this->advance();
-		auto resultCode = this->generateJsonData(); 
+		auto value = advance();
+		ErrorCode resultCode{};
+		switch (*value) {
+			case '{':
+				if (*this->peek() == '}') {
+					this->advance();
+					this->visitEmptyObject();
+					break;
+				}
+				this->currentState = JsonTapeEventStates::ObjectBegin;
+				resultCode = this->generateJsonData();
+				break;
+		  case '[':
+				if (*this->peek() == ']') {
+					this->advance();
+					this->visitEmptyArray();
+					break;
+				}
+			  this->currentState = JsonTapeEventStates::ArrayBegin;
+			  resultCode = this->generateJsonData();
+			  break;
+		  default:
+			  resultCode = this->visitPrimitive(value);
+			  break;
+		}
+ 
 		if (resultCode!= ErrorCode::Success) {
 			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
 		}
@@ -779,146 +798,10 @@ class SimdStringScanner {
 	JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 	std::vector<SimdStringSection> stringSections{};
 	bool areWeWaitingForAKey{ true };
-	std::vector<uint32_t> jsonTape{};
+	std::vector<uint16_t> jsonTape{};
 	Jsonifier::Jsonifier jsonData{};
 	bool haveWeStarted{ false };
 	std::string currentString{};
 	std::string currentKey{};
-	int64_t objectCount{};
 	std::string string{};
-	int64_t arrayCount{};
-};
-
-class SimdBase64 {
-  public:
-	inline operator uint64_t() {
-		return convertSimd256To64BitUint(this->values[1], this->values[0]);
-	}
-
-	inline void packStringIntoValue(__m256i& theValue, const char* string) {
-		for (size_t x = 0; x < 32; ++x) {
-			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
-		}
-	}
-
-	inline void printBits(uint64_t inA, std::string values) {
-		alignas(32) uint8_t v[64]{};
-		for (size_t x = 0; x < 64; ++x) {
-			if ((static_cast<uint64_t>(inA >> x) & 0x01) == static_cast<uint64_t>(1 << 0)) {
-				v[x] = 1;
-			}
-		}
-		printf(std::string{ values.c_str() +
-				   std::string{ " (DIGITS) v64_u8: "
-								"%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%"
-								"d%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" } }
-				   .c_str(),
-			v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19], v[20],
-			v[21], v[22], v[23], v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39],
-			v[40], v[41], v[42], v[43], v[44], v[45], v[46], v[47], v[48], v[49], v[50], v[51], v[52], v[53], v[54], v[55], v[56], v[57], v[58],
-			v[59], v[60], v[61], v[62], v[63]);
-	}
-
-	inline uint64_t collectCarries(uint64_t inputA, uint64_t inputB) {
-		uint64_t returnValue{};
-		_addcarry_u64(0, inputB, inputA, reinterpret_cast<unsigned long long*>(&returnValue));
-		return returnValue;
-	}
-
-	inline void printBits(std::string valuesTitle) {
-		std::cout << valuesTitle;
-		for (size_t x = 0; x < 32; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{ reinterpret_cast<uint64_t*>(&values[0])[x] >> y };
-			}
-		}
-		for (size_t x = 0; x < 32; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				//std::cout << std::bitset<1>{reinterpret_cast<uint64_t*>(&values[1])[x] >> y };
-			}
-		}
-		std::cout << std::endl;
-	};
-
-	inline SimdBase64(const __m256i& value01, __m256i value02) {
-		this->values[0] = value01;
-		this->values[1] = value02;
-	}
-
-	inline void collectQuotes() {
-		auto backslashes = _mm256_set1_epi8('\\');
-		auto B0 = _mm256_cmpeq_epi8(this->values[0], backslashes);
-		auto B1 = _mm256_cmpeq_epi8(this->values[1], backslashes);
-		auto B64 = convertSimd256To64BitUint(B0, B1);
-		this->S64 = B64 & ~(B64 << 1);
-		uint64_t E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
-		auto quotes = _mm256_set1_epi8('"');
-		uint64_t O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
-		auto ES = this->S64 & E;
-		auto EC = B64 + ES;
-		auto ECE = EC & ~B64;
-		auto OD1 = ECE & ~E;
-		auto OS = this->S64 & O;
-		auto OC = B64 + OS;
-		auto OCE = OC & ~B64;
-		auto OD2 = OCE & E;
-		auto OD = OD1 | OD2;
-		auto Q0 = _mm256_cmpeq_epi8(this->values[0], quotes);
-		auto Q1 = _mm256_cmpeq_epi8(this->values[1], quotes);
-		this->Q64 = convertSimd256To64BitUint(Q0, Q1);
-		this->Q64 &= ~OD;
-	}
-
-	inline void collectStructuralCharacters() {
-		__m256i opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0,
-			0) };
-		this->R64 = this->Q64;
-		this->R64 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->R64), _mm_set1_epi8('\xFF'), 0));
-		auto valuesNew00 = _mm256_or_si256(this->values[0], _mm256_set1_epi8(0x20));
-		auto valuesNew01 = _mm256_or_si256(this->values[1], _mm256_set1_epi8(0x20));
-		auto structural00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(opTable, this->values[0]), valuesNew00);
-		auto structural01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(opTable, this->values[1]), valuesNew01);
-		this->S64 = convertSimd256To64BitUint(structural00, structural01);
-		this->S64 = this->S64 & ~this->R64;
-		this->S64 = this->S64 | this->Q64;
-		auto P64 = this->S64 | this->W64;
-		P64 = P64 << 1;
-		P64 &= ~this->W64 & ~this->R64;
-		this->S64 = this->S64 | P64;
-		this->S64 = this->S64 & ~(this->Q64 & ~this->R64);
-	}
-
-	inline void collectWhiteSpace() {
-		__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100,
-			17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
-		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
-		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), this->values[1]);
-		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
-	}
-
-	inline SimdBase64(std::string& stringNewer) {
-		this->string = stringNewer;
-		packStringIntoValue(this->values[0], stringNewer.data());
-		packStringIntoValue(this->values[1], stringNewer.data() + 32);
-		this->collectQuotes();
-		this->collectWhiteSpace();
-		this->collectStructuralCharacters();
-
-		//printBits(this->Q64, "Q FINAL VALUES: ");
-		//printBits(this->R64, "R FINAL VALUES: ");
-		//printBits(this->S64, "S FINAL VALUES: ");
-		//printBits(this->W64, "W FINAL VALUES: ");
-	}
-
-	inline operator std::string() {
-		return string;
-	}
-
-  protected:
-	__m256i values[2]{};
-	std::string string{};
-	uint64_t Q64{};
-	uint64_t R64{};
-	uint64_t S64{};
-	uint64_t W64{};
 };

@@ -11,7 +11,7 @@ int32_t main() noexcept {
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 			std::string stringNew{
-				"{\"d\":{\"activities\":null,\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
+				"{\"d\":{\"activities\":[],\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
 				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}"
 			};
 		StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -35,7 +35,7 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384; ++x) {
-			SimdBase64 simd8Test{ string64 };
+			//SimdBase64 simd8Test{ string64 };
 			totalSize += string64.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();
