@@ -522,10 +522,10 @@ class SimdStringScanner {
 				case '{': {
 					if (!this->haveWeStarted) {
 						this->haveWeStarted = true;
-						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1] - this->jsonTape[x] + 1);
+						currentKey = "TOP_LEVEL";
 					}
-					std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x]  << std::endl;
-					std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
+					std::cout << "CURRENT KEY INDEX: 0101: " << this->jsonTape[x]  << std::endl;
+					std::cout << "CURRENT KEY INDEX: 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
 					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					Jsonifier::Jsonifier newerData{};
 					this->generateJsonData(newerData, x + 1);
@@ -535,8 +535,7 @@ class SimdStringScanner {
 				case '[': {
 					break;
 				}
-				case '"': {
-					
+				case '"': {					
 					break;
 				}
 				case '}': {
