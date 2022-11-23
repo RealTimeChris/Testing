@@ -106,39 +106,39 @@ class SimdBase128 {
 		return this->value;
 	}
 
-	inline SimdBase128 operator|(__m128i other) {
+	inline SimdBase128 operator|(SimdBase128 other) {
 		return _mm_or_si128(*this, other);
 	}
 
-	inline SimdBase128 operator&(__m128i other) {
+	inline SimdBase128 operator&(SimdBase128 other) {
 		return _mm_and_si128(*this, other);
 	}
 
-	inline SimdBase128 operator^(__m128i other) {
+	inline SimdBase128 operator^(SimdBase128 other) {
 		return _mm_xor_si128(*this, other);
 	}
 
-	inline SimdBase128 operator+(__m128i other) {
+	inline SimdBase128 operator+(SimdBase128 other) {
 		return _mm_add_epi8(*this, other);
 	}
 
-	inline SimdBase128 operator|=(__m128i other) {
+	inline SimdBase128 operator|=(SimdBase128 other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase128 operator&=(__m128i other) {
+	inline SimdBase128 operator&=(SimdBase128 other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase128 operator^=(__m128i other) {
+	inline SimdBase128 operator^=(SimdBase128 other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	inline SimdBase128 operator==(__m128i rhs) {
-		return _mm_cmpeq_epi8(this->value, rhs);
+	inline SimdBase128 operator==(SimdBase128 other) {
+		return _mm_cmpeq_epi8(this->value, other);
 	}
 
 	inline SimdBase128 operator<<(size_t amount) {
@@ -160,12 +160,12 @@ class SimdBase128 {
 		return newValue;
 	}
 
-	inline SimdBase128 bitAndNot(__m128i other) {
+	inline SimdBase128 bitAndNot(SimdBase128 other) {
 		return _mm_andnot_si128(other, *this);
 	}
 
-	inline SimdBase128 shuffle(__m128i indices) {
-		return _mm_shuffle_epi8(indices, *this);
+	inline SimdBase128 shuffle(SimdBase128 other) {
+		return _mm_shuffle_epi8(other, *this);
 	}
 
 	inline void printBits(std::string valuesTitle) {
@@ -226,39 +226,39 @@ class SimdBase256 {
 		return this->value;
 	}
 
-	inline SimdBase256 operator|(__m256i other) {
+	inline SimdBase256 operator|(SimdBase256 other) {
 		return _mm256_or_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator&(__m256i other) {
+	inline SimdBase256 operator&(SimdBase256 other) {
 		return _mm256_and_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator^(__m256i other) {
+	inline SimdBase256 operator^(SimdBase256 other) {
 		return _mm256_xor_si256(this->value, other);
 	}
 
-	inline SimdBase256 operator+(__m256i other) {
+	inline SimdBase256 operator+(SimdBase256 other) {
 		return _mm256_add_epi8(this->value, other);
 	}
 
-	inline SimdBase256 operator|=(__m256i other) {
+	inline SimdBase256 operator|=(SimdBase256 other) {
 		*this = *this | other;
 		return *this;
 	}
 
-	inline SimdBase256 operator&=(__m256i other) {
+	inline SimdBase256 operator&=(SimdBase256 other) {
 		*this = *this & other;
 		return *this;
 	}
 
-	inline SimdBase256 operator^=(__m256i other) {
+	inline SimdBase256 operator^=(SimdBase256 other) {
 		*this = *this ^ other;
 		return *this;
 	}
 
-	inline SimdBase256 operator==(__m256i rhs) {
-		return _mm256_cmpeq_epi8(this->value, rhs);
+	inline SimdBase256 operator==(SimdBase256 other) {
+		return _mm256_cmpeq_epi8(this->value, other);
 	}
 
 	inline SimdBase256 operator<<(size_t amount) {
@@ -291,11 +291,11 @@ class SimdBase256 {
 				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) };
 	}
 
-	inline SimdBase256 collectCarries(__m256i inputB) {
+	inline SimdBase256 collectCarries(SimdBase256 other) {
 		SimdBase256 returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&inputB) + x), *(reinterpret_cast<int64_t*>(&this->value) + x),
+			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&other) + x), *(reinterpret_cast<int64_t*>(&this->value) + x),
 				reinterpret_cast<unsigned long long*>(&returnValue64));
 			*(reinterpret_cast<int64_t*>(&returnValue) + x) = returnValue64;
 		}
@@ -312,12 +312,12 @@ class SimdBase256 {
 		std::cout << std::endl;
 	}
 
-	inline SimdBase256 bitAndNot(__m256i other) {
+	inline SimdBase256 bitAndNot(SimdBase256 other) {
 		return _mm256_andnot_si256(other, this->value);
 	}
 
-	inline SimdBase256 shuffle(__m256i indices) {
-		return _mm256_shuffle_epi8(indices, *this);
+	inline SimdBase256 shuffle(SimdBase256 other) {
+		return _mm256_shuffle_epi8(other, *this);
 	}
 
 	inline std::vector<int16_t> getSetBitIndices() {
@@ -456,14 +456,6 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		//this->LSB256.printBits("LSB FINAL VALUES (256): ");
-		//this->RSB256.printBits("RSB FINAL VALUES (256) ");
-		//this->LCB256.printBits("LCB FINAL VALUES (256): ");
-
-		//this->RCB256.printBits("RCB FINAL VALUES (256) ");
-
-		//this->R256.printBits("THE R VALUES: ");
-		//this->C256.printBits("COMMAS FINAL VALUES (256) ");
 		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
@@ -512,17 +504,17 @@ class SimdStringScanner {
 	inline void generateJsonData(Jsonifier::Jsonifier jsonDataNew = Jsonifier::Jsonifier{}, size_t currentIndex01 = 0) {
 		std::string currentKey{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
-			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
-			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
+			//std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
+			//std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
 			switch (this->string[this->jsonTape[x]]) {
 				case '{': {
 					if (!this->haveWeStarted) {
 						currentKey = this->collectKey(this->jsonTape[x] + 2, this->jsonTape[x + 1]);
 						this->haveWeStarted = true;
-						std::cout << "CURRENT KEY: " << currentKey << std::endl;
+						//std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					}
 					jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
-					std::cout << "THE STRING: " << jsonDataNew.operator std::string&&() << std::endl;
+					//std::cout << "THE STRING: " << jsonDataNew.operator std::string&&() << std::endl;
 					this->areWeWaitingForAKey = true;
 					jsonDataNew[currentKey] = std::unordered_map<std::string, Jsonifier::Jsonifier>{};
 					this->generateJsonData(jsonDataNew, x + 1);
