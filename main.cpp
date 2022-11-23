@@ -473,6 +473,17 @@ class SimdStringSection {
 	std::string string{};
 };
 
+enum class JsonTapeEventStates {
+	Object_Start = 0,
+	Object_End = 1,
+	Array_Start = 2,
+	Array_End = 3,
+	String_Start = 4,
+	String_End = 5,
+	Primitive_Start = 6,
+	Primitive_End = 7
+};
+
 class SimdStringScanner {
   public:
 	inline SimdStringScanner(std::string_view stringNew) noexcept {
@@ -503,35 +514,28 @@ class SimdStringScanner {
 
 	inline void generateJsonData(Jsonifier::Jsonifier jsonDataNew = Jsonifier::Jsonifier{}, size_t currentIndex01 = 0) {
 		std::string currentKey{};
-		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
-			//std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
-			//std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
+		for (size_t x = 0; x < this->jsonTape.size(); ++x) {
+			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
+			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
 			switch (this->string[this->jsonTape[x]]) {
 				case '{': {
-					if (!this->haveWeStarted) {
-						currentKey = this->collectKey(this->jsonTape[x] + 2, this->jsonTape[x + 1]);
-						this->haveWeStarted = true;
-						//std::cout << "CURRENT KEY: " << currentKey << std::endl;
-					}
-					jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
-					//std::cout << "THE STRING: " << jsonDataNew.operator std::string&&() << std::endl;
-					this->areWeWaitingForAKey = true;
-					jsonDataNew[currentKey] = std::unordered_map<std::string, Jsonifier::Jsonifier>{};
-					this->generateJsonData(jsonDataNew, x + 1);
-					return;
+					break;
 				}
 				case '[': {
-					jsonDataNew[currentKey] = std::unordered_map<std::string, Jsonifier::Jsonifier>{};
-					this->areWeWaitingForAKey = true;
 					break;
 				}
 				case '"': {
-					currentKey = this->string.substr(this->string[this->jsonTape[x]], this->string[this->jsonTape[x + 1]]);
-					this->areWeWaitingForAKey = false;
+					if (this->string[this->jsonTape[x + 1]] == ':') {
+						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1]);
+					}
+					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					break;
 				}
 				case '}': {
-					return;
+					break;
+				}
+				case ':': {
+					break;
 				}
 			}
 		}
@@ -544,10 +548,11 @@ class SimdStringScanner {
 
   protected:
 	std::vector<SimdStringSection> stringSections{};
+	JsonTapeEventStates currentState{};
 	bool areWeWaitingForAKey{ true };
-	bool haveWeStarted{ false };
 	std::vector<int16_t> jsonTape{};
 	Jsonifier::Jsonifier jsonData{};
+	bool haveWeStarted{ false };
 	std::string_view string{};
 };
 
