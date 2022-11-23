@@ -190,10 +190,6 @@ class SimdBase256 {
   public:
 	SimdBase256() noexcept = default;
 
-	inline SimdBase256(char values[32]) {
-		*this = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(values));
-	}
-
 	inline SimdBase256& operator=(char other) {
 		this->value = _mm256_set1_epi8(other);
 		return *this;
@@ -242,7 +238,15 @@ class SimdBase256 {
 		return _mm256_and_si256(this->value, other);
 	}
 
+	inline SimdBase256 operator&(SimdBase256 other) const {
+		return _mm256_and_si256(this->value, other);
+	}
+
 	inline SimdBase256 operator^(SimdBase256 other) {
+		return _mm256_xor_si256(this->value, other);
+	}
+
+	inline SimdBase256 operator^(SimdBase256 other) const {
 		return _mm256_xor_si256(this->value, other);
 	}
 
@@ -288,31 +292,23 @@ class SimdBase256 {
 		return newValue;
 	}
 
+	inline SimdBase256 operator~() const {
+		__m256i newValue{};
+		for (size_t x = 0; x < 4; ++x) {
+			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<const int64_t*>(&this->value) + x);
+		}
+		return newValue;
+	}
+
 	inline SimdBase256 carrylessMultiplication(char operand) {
-		uint64_t prevInString{};
-		auto inString01 =
+		return SimdBase256{ static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(
+								_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0))),
 			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0))) ^
-			prevInString;
-		prevInString = uint64_t(static_cast<uint64_t>(inString01) >> 63);
-		auto inString02 =
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))),
 			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 1))) ^
-			prevInString;
-		prevInString = uint64_t(static_cast<uint64_t>(inString02) >> 63);
-		auto inString03 =
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))),
 			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 2))) ^
-			prevInString;
-		prevInString = uint64_t(static_cast<uint64_t>(inString03) >> 63);
-		auto inString04 =
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 3))) ^
-			prevInString;
-		prevInString = uint64_t(static_cast<uint64_t>(inString04) >> 63);
-		*this = SimdBase256{ inString01, inString02, inString03, inString04 };
-		this->printBits("TESTING BITS: ");
-		return *this;
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) };
 	}
 
 	inline SimdBase256 collectCarries(SimdBase256 other) {
@@ -373,13 +369,11 @@ class SimdStringSection {
 	}
 
 	inline SimdBase256 collectWhiteSpace() {
-		char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100,
-			'\t', '\n', 112, 100, '\r', 100, 100 };
-		SimdBase256 whitespaceTable{ valuesNew };
+		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100,
+			100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		SimdBase256 whiteSpaceReal[8]{};
 		for (size_t x = 0; x < 8; ++x) {
-			auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
-			whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == valuesNew00;
+			whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
 		}
 		return { convertSimd256To64BitUint(whiteSpaceReal[0], whiteSpaceReal[1]), convertSimd256To64BitUint(whiteSpaceReal[2], whiteSpaceReal[3]),
 			convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
@@ -388,8 +382,8 @@ class SimdStringSection {
 	inline SimdBase256 collectStructuralCharacters() {
 		this->R256 = this->Q256;
 		this->R256 = this->R256.carrylessMultiplication('\xFF');
-		char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
-		SimdBase256 opTable{ valuesNew };
+		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
+			'}', 0, 0) };
 		SimdBase256 structural[8]{};
 		for (size_t x = 0; x < 8; ++x) {
 			auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
@@ -698,8 +692,8 @@ class SimdBase64 {
 	}
 
 	inline void collectWhiteSpace() {
-		__m256i whitespaceTable{ _mm256_setr_epi8(' ', static_cast<char>(100), static_cast<char>(100), static_cast<char>(100), 17, static_cast<char>(100), 113, 2, static_cast<char>(100), '\t', '\n', 112, static_cast<char>(100), '\r', static_cast<char>(100), static_cast<char>(100), ' ', static_cast<char>(100), static_cast<char>(100), static_cast<char>(100),
-			17, static_cast<char>(100), 113, 2, static_cast<char>(100), '\t', '\n', 112, static_cast<char>(100), '\r', static_cast<char>(100), 100) };
+		__m256i whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100,
+			17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
 		auto whiteSpace00 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[0]), this->values[0]);
 		auto whiteSpace01 = _mm256_cmpeq_epi8(_mm256_shuffle_epi8(whitespaceTable, this->values[1]), this->values[1]);
 		this->W64 = convertSimd256To64BitUint(whiteSpace00, whiteSpace01);
