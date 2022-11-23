@@ -89,29 +89,20 @@ class SimdBase128 {
 		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 1);
 	}
 
-	inline SimdBase128& operator=(const __m128i&& other) {
+	inline SimdBase128& operator=(const __m128i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase128(const __m128i&& other) {
+	inline SimdBase128(const __m128i other) {
 		*this = other;
 	}
 
-	inline SimdBase128& operator=(const __m128i& other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase128(const __m128i& other) {
-		*this = other;
-	}
-
-	inline operator const __m128i&() const {
+	inline operator const __m128i() const {
 		return this->value;
 	}
 
-	inline operator __m128i&() {
+	inline operator __m128i() {
 		return this->value;
 	}
 
@@ -218,29 +209,20 @@ class SimdBase256 {
 		this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value00), 3);
 	}
 
-	inline SimdBase256& operator=(const __m256i&& other) {
+	inline SimdBase256& operator=(const __m256i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase256(const __m256i&& other) {
+	inline SimdBase256(const __m256i other) {
 		*this = other;
 	}
 
-	inline SimdBase256& operator=(const __m256i& other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase256(const __m256i& other) {
-		*this = other;
-	}
-
-	inline operator const __m256i&() const {
+	inline operator const __m256i() const {
 		return this->value;
 	}
 
-	inline operator __m256i&() {
+	inline operator __m256i() {
 		return this->value;
 	}
 
@@ -356,9 +338,9 @@ class SimdStringSection {
   public:
 	inline SimdStringSection() noexcept = default;
 
-	inline void packStringIntoValue(__m256i& theValue, const char* string) {
+	inline void packStringIntoValue(SimdBase256* theValue, const char* string) {
 		for (size_t x = 0; x < 32; ++x) {
-			*(reinterpret_cast<int8_t*>(&theValue) + x) = string[x];
+			*(reinterpret_cast<int8_t*>(theValue) + x) = string[x];
 		}
 	}
 
@@ -446,14 +428,14 @@ class SimdStringSection {
 			this->stringView = valueNew;
 		}
 
-		this->packStringIntoValue(this->values[0], this->stringView.data());
-		this->packStringIntoValue(this->values[1], this->stringView.data() + 32);
-		this->packStringIntoValue(this->values[2], this->stringView.data() + 64);
-		this->packStringIntoValue(this->values[3], this->stringView.data() + 96);
-		this->packStringIntoValue(this->values[4], this->stringView.data() + 128);
-		this->packStringIntoValue(this->values[5], this->stringView.data() + 160);
-		this->packStringIntoValue(this->values[6], this->stringView.data() + 192);
-		this->packStringIntoValue(this->values[7], this->stringView.data() + 224);
+		this->packStringIntoValue(&this->values[0], this->stringView.data());
+		this->packStringIntoValue(&this->values[1], this->stringView.data() + 32);
+		this->packStringIntoValue(&this->values[2], this->stringView.data() + 64);
+		this->packStringIntoValue(&this->values[3], this->stringView.data() + 96);
+		this->packStringIntoValue(&this->values[4], this->stringView.data() + 128);
+		this->packStringIntoValue(&this->values[5], this->stringView.data() + 160);
+		this->packStringIntoValue(&this->values[6], this->stringView.data() + 192);
+		this->packStringIntoValue(&this->values[7], this->stringView.data() + 224);
 
 		this->Q256 = this->collectQuotes();
 		
