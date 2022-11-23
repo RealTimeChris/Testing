@@ -14,34 +14,34 @@ template<typename TTy> class StopWatch {
   public:
 	using HRClock = std::chrono::high_resolution_clock;
 
-	StopWatch() = delete;
+	inline StopWatch() = delete;
 
-	StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
+	inline StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
 		this->maxNumberOfMs.store(data.maxNumberOfMs.load());
 		this->startTime.store(data.startTime.load());
 		return *this;
 	}
 
-	StopWatch(const StopWatch<TTy>& data) {
+	inline StopWatch(const StopWatch<TTy>& data) {
 		*this = data;
 	}
 
-	StopWatch(TTy maxNumberOfMsNew) {
+	inline StopWatch(TTy maxNumberOfMsNew) {
 		this->maxNumberOfMs.store(maxNumberOfMsNew);
 		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
-	TTy totalTimePassed() {
+	inline TTy totalTimePassed() {
 		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 		TTy elapsedTime = currentTime - this->startTime.load();
 		return elapsedTime;
 	}
 
-	TTy getTotalWaitTime() {
+	inline TTy getTotalWaitTime() {
 		return this->maxNumberOfMs.load();
 	}
 
-	bool hasTimePassed() {
+	inline bool hasTimePassed() {
 		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 		TTy elapsedTime = currentTime - this->startTime.load();
 		if (elapsedTime >= this->maxNumberOfMs.load()) {
@@ -51,7 +51,7 @@ template<typename TTy> class StopWatch {
 		}
 	}
 
-	void resetTimer() {
+	inline void resetTimer() {
 		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
@@ -170,7 +170,7 @@ class SimdBase128 {
 
 class SimdBase256 {
   public:
-	SimdBase256() noexcept = default;
+	inline SimdBase256() noexcept = default;
 
 	inline SimdBase256& operator=(char other) {
 		this->value = _mm256_set1_epi8(other);
@@ -318,9 +318,15 @@ class SimdBase256 {
 
 	inline std::vector<int16_t> getSetBitIndices() {
 		std::vector<int16_t> returnVector{};
-		for (int64_t x = 0; x < 255; ++x) {
-			if ((*reinterpret_cast<uint64_t*>(&this->value) >> x) & 1) {
-				returnVector.push_back(static_cast<int16_t>(x));
+		std::cout << "GET SET BIT INDICES: " << std::endl;
+		for (int64_t x = 0; x < 4; ++x) {
+			for (int64_t y = 0; y < 64; ++y) {
+				if (*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y & 1) {
+					returnVector.push_back(static_cast<int16_t>(y + (x * 64)));
+					std::cout << "1";
+				} else {
+					std::cout << "0";
+				}
 			}
 		}
 		return returnVector;
@@ -344,27 +350,6 @@ class SimdStringSection {
 
 	inline std::vector<int16_t> getStructuralIndices() {
 		return (this->S256 | this->Q256).getSetBitIndices();
-	}
-
-	inline bool checkIfIndexIsSet(size_t index, IndexTypes type) {
-		switch (type) {
-			case IndexTypes::Whitespace: {
-				if ((*reinterpret_cast<uint64_t*>(&this->W256)) << index) {
-					return true;
-				}
-			}
-			case IndexTypes::Quotes: {
-				if ((*reinterpret_cast<uint64_t*>(&this->Q256)) << index) {
-					return true;
-				}
-			}
-			case IndexTypes::Structural: {
-				if ((*reinterpret_cast<uint64_t*>(&this->S256)) << index) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	inline SimdBase256 collectWhiteSpace() {
@@ -470,10 +455,6 @@ class SimdStringSection {
 		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
-	operator std::string() {
-		return this->string;
-	}
-
   protected:
 	SimdBase256 Q256{};
 	SimdBase256 W256{};
@@ -523,7 +504,7 @@ class SimdStringScanner {
 		return this->string.substr(index01, index02);
 	}
 
-	inline Jsonifier::Jsonifier generateJsonData(Jsonifier::Jsonifier& jsonDataNew , size_t currentIndex01 = 0) {
+	inline void generateJsonData(Jsonifier::Jsonifier& jsonDataNew , size_t currentIndex01 = 0) {
 		std::string currentKey{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
@@ -541,39 +522,42 @@ class SimdStringScanner {
 					}
 					this->areWeWaitingForAKey = true;
 					this->objectCount++;
-					auto returnValue = this->generateJsonData(jsonDataNew, currentIndex01 + 1);
-					jsonDataNew[currentKey] = returnValue;
-					return jsonDataNew[currentKey];
+					break;
 				}
 				case '[': {
 					this->arrayCount++;
-					return this->generateJsonData(jsonDataNew, currentIndex01 + 1);
+					break;
 				}
 				case ']': {
 					this->arrayCount--;
-					return jsonDataNew;
+					continue;
 				}
 				case '"': {
-					currentKey = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
+					this->currentString = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
+					std::cout << "CURRENT STRING: " << this->currentString << std::endl;
 					this->areWeWaitingForAKey = false;
 					x++;
-					return jsonDataNew;
+					continue;
+				}
+				case ',': {
+					continue;
 				}
 				case '}': {
 					this->objectCount--;
-					return jsonDataNew;
+					continue;
 				}
 				case ':': {
+					this->currentKey = std::move(this->currentString);
 					jsonDataNew[currentKey] =
 						static_cast<std::string>(this->string.substr(this->jsonTape[x] + 1, this->string.size() - this->jsonTape[x] - 2));
 					std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] << std::endl;
 					std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x]] << std::endl;
 					std::cout << "CURRENT KEY (REAL): " << currentKey << std::endl;
 					std::cout << "CURRENT STRING: 0303: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
-					return jsonDataNew;
+					break;
 				}
 				default: {
-					return jsonDataNew;
+					break;
 				}
 			}
 		}
@@ -583,11 +567,13 @@ class SimdStringScanner {
 		if (this->objectCount!= 0) {
 			throw std::runtime_error{ "Objects were not all closed: " + std::to_string(this->objectCount) };
 		}
-		return jsonDataNew;
+		this->jsonData = std::move(jsonDataNew);
+		return;
 	}
 
 	inline Jsonifier::Jsonifier getJsonData() {
-		return this->generateJsonData(this->jsonData);
+		this->generateJsonData(this->jsonData);
+		return this->jsonData;
 	}
 
   protected:
@@ -599,6 +585,7 @@ class SimdStringScanner {
 	bool haveWeStarted{ false };
 	std::string currentString{};
 	std::string_view string{};
+	std::string currentKey{};
 	int64_t objectCount{};
 	int64_t arrayCount{};
 };
@@ -747,7 +734,7 @@ int32_t main() noexcept {
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 			std::string stringNew{
 				"{\"d\":{\"activities\":null,\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
-				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}}"
+				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}"
 			};
 		::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
