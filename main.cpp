@@ -365,7 +365,7 @@ class SimdStringSection {
 	}
 
 	inline std::vector<int16_t> getStructuralIndices() {
-		return this->S256.getSetBitIndices();
+		return (this->S256 | this->Q256).getSetBitIndices();
 	}
 
 	inline bool checkIfIndexIsSet(size_t index, IndexTypes type) {
@@ -484,6 +484,7 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
+		(this->Q256 | this->S256).printBits("S | Q FINAL VALUES: ");
 		this->S256.printBits("S FINAL VALUES (256) ");
 		this->W256.printBits("W FINAL VALUES (256) ");
 		this->R256.printBits("R FINAL VALUES (256) ");
@@ -548,7 +549,6 @@ class SimdStringScanner {
 		std::string currentKey{};
 		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
-			std::cout << "THE SIZE: " << this->jsonTape.size() << std::endl;
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
 			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
 			if (!this->haveWeStarted) {
@@ -560,13 +560,13 @@ class SimdStringScanner {
 						this->haveWeStarted = true;
 						this->areWeWaitingForAKey = true;
 						this->objectCount++;
-						break;
+						continue;
 					}
+					this->areWeWaitingForAKey = true;
 					this->objectCount++;
-					break; 
+					break;
 				}
 				case '[': {
-					this->areWeWaitingForAKey = true;
 					this->arrayCount++;
 					break;
 				}
@@ -576,14 +576,18 @@ class SimdStringScanner {
 				}
 				case '"': {
 					if (this->areWeWaitingForAKey) {
-						currentKey = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 2);
+						currentKey = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
+						std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] << std::endl;
+						std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x]] << std::endl;
+						std::cout << "CURRENT KEY INDEX: (REAL) 0202: " << this->jsonTape[x + 1] << std::endl;
+						std::cout << "CURRENT KEY INDEX VALUE: (REAL) 0101: " << this->string[this->jsonTape[x + 1]] << std::endl;
 						std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] + 1 << std::endl;
-						std::cout << "CURRENT KEY INDEX: (REAL) 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] << std::endl;
+						std::cout << "CURRENT KEY INDEX: (REAL) 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] - 2 << std::endl;
 						std::cout << "CURRENT KEY (REAL): " << currentKey << std::endl;
 						this->areWeWaitingForAKey = false;
-					}else {
-						jsonDataNew[currentKey] =
-							static_cast<std::string>(this->string.substr(this->jsonTape[x], this->jsonTape[x + 1] - this->jsonTape[x]));
+					} else {
+						auto stringNew = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 2);
+						jsonDataNew[currentKey] = static_cast<std::string>(stringNew);
 						std::cout << "CURRENT STRING: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
 					}
 					break;
@@ -593,6 +597,12 @@ class SimdStringScanner {
 					break;
 				}
 				case ':': {
+					jsonDataNew[currentKey] =
+						static_cast<std::string>(this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 2));
+					std::cout << "CURRENT STRING: 0303: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
+					break;
+				}
+				default: {
 					break;
 				}
 			}
@@ -765,8 +775,8 @@ int32_t main() noexcept {
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 			std::string stringNew{
-				"{\"d\":{\"activities\":\"null\",\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
-				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}"
+				"{\"d\":{\"activities\":null,\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
+				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}}"
 			};
 		::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
