@@ -354,59 +354,6 @@ class SimdBase256 {
 	__m256i value{};
 };
 
-struct JsonStringBlock {
-	// We spell out the constructors in the hope of resolving inlining issues with Visual Studio 2017
-	JsonStringBlock(SimdBase256 backslash, SimdBase256 escaped, SimdBase256 quote, SimdBase256 in_string)
-		: backslash(backslash), escapedVal(escaped), quoteVal(quote), inString(in_string) {
-	}
-
-	// Escaped characters (characters following an escape() character)
-	SimdBase256 escaped() const {
-		return escapedVal;
-	}
-	// Escape characters (backslashes that are not escaped--i.e. in \\, includes only the first \)
-	SimdBase256 escape() const {
-		return backslash & ~escapedVal;
-	}
-	// Real (non-backslashed) quotes
-	SimdBase256 quote() const {
-		return quoteVal;
-	}
-	// Start quotes of strings
-	SimdBase256 string_start() const {
-		return quoteVal & inString;
-	}
-	// End quotes of strings
-	SimdBase256 string_end() const {
-		return quoteVal & ~inString;
-	}
-	// Only characters inside the string (not including the quotes)
-	SimdBase256 string_content() const {
-		return inString & ~quoteVal;
-	}
-	// Return a mask of whether the given characters are inside a string (only works on non-quotes)
-	SimdBase256 nonquoteVal_inside_string(SimdBase256 mask) const {
-		return mask & inString;
-	}
-	// Return a mask of whether the given characters are inside a string (only works on non-quotes)
-	SimdBase256 nonquoteVal_outside_string(SimdBase256 mask) const {
-		return mask & ~inString;
-	}
-	// Tail of string (everything except the start quote)
-	SimdBase256 string_tail() const {
-		return inString ^ quoteVal;
-	}
-
-	// backslash characters
-	SimdBase256 backslash{};
-	// escaped characters (backslashed--does not include the hex characters after \u)
-	SimdBase256 escapedVal{};
-	// real quotes (non-backslashed ones)
-	SimdBase256 quoteVal{};
-	// string characters (includes start quote but not end quote)
-	SimdBase256 inString{};
-};
-
 class SimdStringSection {
   public:
 	inline SimdStringSection() noexcept = default;
