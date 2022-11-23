@@ -338,8 +338,6 @@ class SimdBase256 {
 
 enum class IndexTypes { Whitespace = 0, Quotes = 1, Structural = 2 };
 
-enum class ErrorCode { TAPE_ERROR = 0, DEPTH_ERROR = 1, SUCCESS = 2, EMPTY = 3 };
-
 class SimdStringSection {
   public:
 	inline SimdStringSection() noexcept = default;
@@ -478,376 +476,8 @@ enum class JsonTapeEventStates {
 	Primitive_End = 7
 };
 
-enum class TapeType {
-	ROOT = 'r',
-	START_ARRAY = '[',
-	START_OBJECT = '{',
-	END_ARRAY = ']',
-	END_OBJECT = '}',
-	STRING = '"',
-	INT64 = 'l',
-	UINT64 = 'u',
-	DOUBLE = 'd',
-	TRUE_VALUE = 't',
-	FALSE_VALUE = 'f',
-	NULL_VALUE = 'n'
-}
- 
 class SimdStringScanner {
   public:
-	uint8_t* buf;
-	uint32_t* next_structural;
-	uint32_t depth{ 0 };
-
-	  /** Called when a non-empty document starts. */
-	inline  ErrorCode visit_document_start(SimdStringScanner& iter) noexcept;
-	/** Called when a non-empty document ends without error. */
-	inline  ErrorCode visit_document_end(SimdStringScanner& iter) noexcept;
-
-	/** Called when a non-empty array starts. */
-	inline  ErrorCode visit_array_start(SimdStringScanner& iter) noexcept;
-	/** Called when a non-empty array ends. */
-	inline  ErrorCode visit_array_end(SimdStringScanner& iter) noexcept;
-	/** Called when an empty array is found. */
-	inline  ErrorCode visit_empty_array(SimdStringScanner& iter) noexcept;
-
-	/** Called when a non-empty object starts. */
-	inline  ErrorCode visit_object_start(SimdStringScanner& iter) noexcept;
-	/**
-   * Called when a key in a field is encountered.
-   *
-   * primitive, visit_object_start, visit_empty_object, visit_array_start, or visit_empty_array
-   * will be called after this with the field value.
-   */
-	inline  ErrorCode visit_key(SimdStringScanner& iter, const uint8_t* key) noexcept;
-	/** Called when a non-empty object ends. */
-	inline  ErrorCode visit_object_end(SimdStringScanner& iter) noexcept;
-	/** Called when an empty object is found. */
-	inline  ErrorCode visit_empty_object(SimdStringScanner& iter) noexcept;
-
-	/**
-   * Called when a string, number, boolean or null is found.
-   */
-	inline  ErrorCode visit_primitive(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	/**
-   * Called when a string, number, boolean or null is found at the top level of a document (i.e.
-   * when there is no array or object and the entire document is a single string, number, boolean or
-   * null.
-   *
-   * This is separate from primitive() because simdjson's normal primitive parsing routines assume
-   * there is at least one more token after the value, which is only true in an array or object.
-   */
-	inline  ErrorCode visit_root_primitive(SimdStringScanner& iter, const uint8_t* value) noexcept;
-
-	inline  ErrorCode visit_string(SimdStringScanner& iter, const uint8_t* value, bool key = false) noexcept;
-	inline  ErrorCode visit_number(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_true_atom(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_false_atom(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_null_atom(SimdStringScanner& iter, const uint8_t* value) noexcept;
-
-	inline  ErrorCode visit_root_string(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_root_number(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_root_true_atom(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_root_false_atom(SimdStringScanner& iter, const uint8_t* value) noexcept;
-	inline  ErrorCode visit_root_null_atom(SimdStringScanner& iter, const uint8_t* value) noexcept;
-
-	/** Called each time a new field or element in an array or object is found. */
-	inline  ErrorCode increment_count(SimdStringScanner& iter) noexcept;
-
-
-	/** Next write location in the string buf for stage 2 parsing */
-	uint8_t* current_string_buf_loc;
-
-	inline uint32_t next_tape_index(SimdStringScanner& iter) const noexcept;
-	inline void start_container(SimdStringScanner& iter) noexcept;
-	inline ErrorCode end_container(SimdStringScanner& iter, TapeType start, TapeType end) noexcept;
-	inline ErrorCode empty_container(SimdStringScanner& iter, TapeType start, TapeType end) noexcept;
-	inline uint8_t* on_start_string(SimdStringScanner& iter) noexcept;
-	inline void on_end_string(uint8_t* dst) noexcept;
-	/**
-   * Walk the JSON document.
-   *
-   * The visitor receives callbacks when values are encountered. All callbacks pass the iterator as
-   * the first parameter; some callbacks have other parameters as well:
-   *
-   * - visit_document_start() - at the beginning.
-   * - visit_document_end() - at the end (if things were successful).
-   *
-   * - visit_array_start() - at the start `[` of a non-empty array.
-   * - visit_array_end() - at the end `]` of a non-empty array.
-   * - visit_empty_array() - when an empty array is encountered.
-   *
-   * - visit_object_end() - at the start `]` of a non-empty object.
-   * - visit_object_start() - at the end `]` of a non-empty object.
-   * - visit_empty_object() - when an empty object is encountered.
-   * - visit_key(const uint8_t *key) - when a key in an object field is encountered. key is
-   *                                   guaranteed to point at the first quote of the string (`"key"`).
-   * - visit_primitive(const uint8_t *value) - when a value is a string, number, boolean or null.
-   * - visit_root_primitive(iter, uint8_t *value) - when the top-level value is a string, number, boolean or null.
-   *
-   * - increment_count(iter) - each time a value is found in an array or object.
-   */
-	ErrorCode walk_document(SimdStringScanner& visitor) noexcept;
-
-	/**
-   * Create an iterator capable of walking a JSON document.
-   *
-   * The document must have already passed through stage 1.
-   */
-	inline SimdStringScanner(SimdStringScanner& _dom_parser, size_t start_structural_index);
-
-	/**
-   * Look at the next token.
-   *
-   * Tokens can be strings, numbers, booleans, null, or operators (`[{]},:`)).
-   *
-   * They may include invalid JSON as well (such as `1.2.3` or `ture`).
-   */
-	inline const uint8_t* peek() const noexcept;
-	/**
-   * Advance to the next token.
-   *
-   * Tokens can be strings, numbers, booleans, null, or operators (`[{]},:`)).
-   *
-   * They may include invalid JSON as well (such as `1.2.3` or `ture`).
-   */
-	inline const uint8_t* advance() noexcept;
-	/**
-   * Get the remaining length of the document, from the start of the current token.
-   */
-	inline size_t remaining_len() const noexcept;
-	/**
-   * Check if we are at the end of the document.
-   *
-   * If this is true, there are no more tokens.
-   */
-	inline bool at_eof() const noexcept;
-	/**
-   * Check if we are at the beginning of the document.
-   */
-	inline bool at_beginning() const noexcept;
-	inline uint8_t last_structural() const noexcept;
-
-	/**
-   * Log that a value has been found.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-	inline void log_value(const char* type) const noexcept;
-	/**
-   * Log the start of a multipart value.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-	inline void log_start_value(const char* type) const noexcept;
-	/**
-   * Log the end of a multipart value.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-	inline void log_end_value(const char* type) const noexcept;
-	/**
-   * Log an error.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-	inline void log_error(const char* error) const noexcept;
-
-	template<typename V> ErrorCode visit_root_primitive(V& visitor, const uint8_t* value) noexcept;
-	template<typename V> ErrorCode visit_primitive(V& visitor, const uint8_t* value) noexcept;
-
-
-ErrorCode walk_document(SimdStringScanner& visitor) noexcept {
-
-	//
-	// Start the document
-	//
-	if (at_eof()) {
-		return ErrorCode::EMPTY;
-	}
-	visitor.visit_document_start(*this);
-
-	//
-	// Read first value
-	//
-	{
-		auto value = advance();
-
-		// Make sure the outer object or array is closed before continuing; otherwise, there are ways we
-		// could get into memory corruption. See https://github.com/simdjson/simdjson/issues/906
-		switch (*value) {
-			case '{':
-				if (last_structural() != '}') {
-					log_value("starting brace unmatched");
-					return ErrorCode::TAPE_ERROR;
-				};
-				break;
-			case '[':
-				if (last_structural() != ']') {
-					log_value("starting bracket unmatched");
-					return ErrorCode::TAPE_ERROR;
-				};
-				break;
-		}
-
-		switch (*value) {
-			case '{':
-				if (*peek() == '}') {
-					advance();
-					log_value("empty object");
-					visitor.visit_empty_object(*this);
-					break;
-				}
-				goto object_begin;
-			case '[':
-				if (*peek() == ']') {
-					advance();
-					log_value("empty array");
-					visitor.visit_empty_array(*this);
-					break;
-				}
-				goto array_begin;
-			default:
-				visitor.visit_root_primitive(*this, value);
-				break;
-		}
-	}
-	goto document_end;
-
-//
-// Object parser states
-//
-object_begin:
-	log_start_value("object");
-	depth++;
-	visitor.visit_object_start(*this);
-
-	{
-		auto key = advance();
-		if (*key != '"') {
-			log_error("Object does not start with a key");
-			return ErrorCode::TAPE_ERROR;
-		}
-		visitor.increment_count(*this);
-		visitor.visit_key(*this, key);
-	}
-
-object_field:
-	if (*advance() != ':') {
-		log_error("Missing colon after key in object");
-		return ErrorCode::TAPE_ERROR;
-	}
-	{
-		auto value = advance();
-		switch (*value) {
-			case '{':
-				if (*peek() == '}') {
-					advance();
-					log_value("empty object");
-					visitor.visit_empty_object(*this);
-					break;
-				}
-				goto object_begin;
-			case '[':
-				if (*peek() == ']') {
-					advance();
-					log_value("empty array");
-					visitor.visit_empty_array(*this);
-					break;
-				}
-				goto array_begin;
-			default:
-				visitor.visit_primitive(*this, value);
-				break;
-		}
-	}
-
-object_continue:
-	switch (*advance()) {
-		case ',':
-			visitor.increment_count(*this);
-			{
-				auto key = advance();
-				if (*key != '"') {
-					return ErrorCode::TAPE_ERROR;
-				}
-				visitor.visit_key(*this, key);
-			}
-			goto object_field;
-		case '}':
-			log_end_value("object");
-			visitor.visit_object_end(*this);
-			goto scope_end;
-		default:
-			log_error("No comma between object fields");
-			return ErrorCode::TAPE_ERROR;
-	}
-
-scope_end:
-	depth--;
-	if (depth == 0) {
-		goto document_end;
-	}
-	goto object_continue;
-
-//
-// Array parser states
-//
-array_begin:
-	log_start_value("array");
-	depth++;
-	visitor.visit_array_start(*this);
-	visitor.increment_count(*this);
-
-array_value : {
-	auto value = advance();
-	switch (*value) {
-		case '{':
-			if (*peek() == '}') {
-				advance();
-				visitor.visit_empty_object(*this);
-				break;
-			}
-			goto object_begin;
-		case '[':
-			if (*peek() == ']') {
-				advance();
-				visitor.visit_empty_array(*this);
-				break;
-			}
-			goto array_begin;
-		default:
-			visitor.visit_primitive(*this, value);
-			break;
-	}
-}
-
-array_continue:
-	switch (*advance()) {
-		case ',':
-			visitor.increment_count(*this);
-			goto array_value;
-		case ']':
-			log_end_value("array");
-			visitor.visit_array_end(*this);
-			goto scope_end;
-		default:
-			log_error("Missing comma between array values");
-			return ErrorCode::TAPE_ERROR;
-	}
-
-document_end:
-	log_end_value("document");
-	visitor.visit_document_end(*this);
-
-	*this->next_structural = uint32_t(next_structural - &this->jsonTape[0]);
-
-	return ErrorCode::SUCCESS;
-
-}// walk_document()
-
-	
-
 	inline SimdStringScanner(std::string_view stringNew) noexcept {
 		this->string = stringNew;
 		size_t stringSize =this->string.size();
@@ -903,6 +533,8 @@ document_end:
 					continue;
 				}
 				case '"': {
+					this->currentString = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 1);
+					std::cout << "CURRENT STRING: " << this->currentString << std::endl;
 					this->areWeWaitingForAKey = false;
 					x++;
 					continue;
@@ -915,6 +547,7 @@ document_end:
 					continue;
 				}
 				case ':': {
+					this->currentKey = std::move(this->currentString);
 					jsonDataNew[currentKey] =
 						static_cast<std::string>(this->string.substr(this->jsonTape[x] + 1, this->string.size() - this->jsonTape[x] - 2));
 					std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] << std::endl;
@@ -947,117 +580,15 @@ document_end:
 	std::vector<SimdStringSection> stringSections{};
 	JsonTapeEventStates currentState{};
 	bool areWeWaitingForAKey{ true };
-	std::vector<uint32_t> jsonTape{};
+	std::vector<int16_t> jsonTape{};
 	Jsonifier::Jsonifier jsonData{};
-	uint32_t* next_structural{};
 	bool haveWeStarted{ false };
-	uint8_t* buf{};
+	std::string currentString{};
 	std::string_view string{};
-	size_t objectCount{};
-	size_t arrayCount{};
-	uint32_t depth{ 0 };
+	std::string currentKey{};
+	int64_t objectCount{};
+	int64_t arrayCount{};
 };
-
-inline SimdStringScanner::SimdStringScanner(size_t start_structural_index)
-	: buf{ _dom_parser.buf }, next_structural{ &_dom_parser.structural_indexes[start_structural_index] }, dom_parser{ _dom_parser } {
-}
-
-inline const uint8_t* SimdStringScanner::peek() const noexcept {
-	return &buf[*(next_structural)];
-}
-inline const uint8_t* SimdStringScanner::advance() noexcept {
-	return &buf[*(next_structural++)];
-}
-inline size_t SimdStringScanner::remaining_len() const noexcept {
-	return dom_parser.len - *(next_structural - 1);
-}
-
-inline bool SimdStringScanner::at_eof() const noexcept {
-	return next_structural == &dom_parser.structural_indexes[dom_parser.n_structural_indexes];
-}
-inline bool SimdStringScanner::at_beginning() const noexcept {
-	return next_structural == dom_parser.structural_indexes.get();
-}
-inline uint8_t SimdStringScanner::last_structural() const noexcept {
-	return buf[dom_parser.structural_indexes[dom_parser.n_structural_indexes - 1]];
-}
-
-inline void SimdStringScanner::log_value(const char* type) const noexcept {
-	logger::log_line(*this, "", type, "");
-}
-
-inline void SimdStringScanner::log_start_value(const char* type) const noexcept {
-	logger::log_line(*this, "+", type, "");
-	if (logger::LOG_ENABLED) {
-		logger::log_depth++;
-	}
-}
-
-inline void SimdStringScanner::log_end_value(const char* type) const noexcept {
-	if (logger::LOG_ENABLED) {
-		logger::log_depth--;
-	}
-	logger::log_line(*this, "-", type, "");
-}
-
-inline void SimdStringScanner::log_error(const char* error) const noexcept {
-	logger::log_line(*this, "", "ERROR", error);
-}
-
-template<typename V> simdjson_warn_unused inline ErrorCode SimdStringScanner::visit_root_primitive(V& visitor, const uint8_t* value) noexcept {
-	switch (*value) {
-		case '"':
-			return visitor.visit_root_string(*this, value);
-		case 't':
-			return visitor.visit_root_true_atom(*this, value);
-		case 'f':
-			return visitor.visit_root_false_atom(*this, value);
-		case 'n':
-			return visitor.visit_root_null_atom(*this, value);
-		case '-':
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			return visitor.visit_root_number(*this, value);
-		default:
-			log_error("Document starts with a non-value character");
-			return TAPE_ERROR;
-	}
-}
-template<typename V> simdjson_warn_unused inline ErrorCode SimdStringScanner::visit_primitive(V& visitor, const uint8_t* value) noexcept {
-	switch (*value) {
-		case '"':
-			return visitor.visit_string(*this, value);
-		case 't':
-			return visitor.visit_true_atom(*this, value);
-		case 'f':
-			return visitor.visit_false_atom(*this, value);
-		case 'n':
-			return visitor.visit_null_atom(*this, value);
-		case '-':
-		case '0':
-		case '1':
-		case '2':
-		case '3':
-		case '4':
-		case '5':
-		case '6':
-		case '7':
-		case '8':
-		case '9':
-			return visitor.visit_number(*this, value);
-		default:
-			log_error("Non-value found when value was expected!");
-			return TAPE_ERROR;
-	}
-}
 
 class SimdBase64 {
   public:
@@ -1211,7 +742,6 @@ int32_t main() noexcept {
 		SimdStringScanner stringScanner{ stringNew };
 		Jsonifier::Jsonifier theData{};
 		stringScanner.generateJsonData(theData);
-		stringScanner.walkDocument(stringScanner);
 		auto newJsonData = stringScanner.getJsonData();
 		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
