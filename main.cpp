@@ -118,6 +118,10 @@ class SimdBase128 {
 		return _mm_xor_si128(*this, other);
 	}
 
+	inline SimdBase128 operator^(SimdBase128 other) const {
+		return _mm_xor_si128(*this, other);
+	}
+
 	inline SimdBase128 operator+(SimdBase128 other) {
 		return _mm_add_epi8(*this, other);
 	}
@@ -234,7 +238,15 @@ class SimdBase256 {
 		return _mm256_and_si256(this->value, other);
 	}
 
+	inline SimdBase256 operator&(SimdBase256 other) const {
+		return _mm256_and_si256(this->value, other);
+	}
+
 	inline SimdBase256 operator^(SimdBase256 other) {
+		return _mm256_xor_si256(this->value, other);
+	}
+
+	inline SimdBase256 operator^(SimdBase256 other) const {
 		return _mm256_xor_si256(this->value, other);
 	}
 
@@ -258,7 +270,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 operator==(SimdBase256 other) {
-		return _mm256_cmpeq_epi8(this->value, other);
+		return _mm256_cmpeq_epi8(this->value, other.value);
 	}
 
 	inline SimdBase256 operator<<(size_t amount) {
@@ -276,6 +288,14 @@ class SimdBase256 {
 		__m256i newValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+		}
+		return newValue;
+	}
+
+	inline SimdBase256 operator~() const {
+		__m256i newValue{};
+		for (size_t x = 0; x < 4; ++x) {
+			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<const int64_t*>(&this->value) + x);
 		}
 		return newValue;
 	}
@@ -313,7 +333,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 bitAndNot(SimdBase256 other) {
-		return _mm256_andnot_si256(other, this->value);
+		return _mm256_andnot_si256(other.value, this->value);
 	}
 
 	inline SimdBase256 shuffle(SimdBase256 other) {
@@ -332,6 +352,59 @@ class SimdBase256 {
 
   protected:
 	__m256i value{};
+};
+
+struct JsonStringBlock {
+	// We spell out the constructors in the hope of resolving inlining issues with Visual Studio 2017
+	JsonStringBlock(SimdBase256 backslash, SimdBase256 escaped, SimdBase256 quote, SimdBase256 in_string)
+		: backslash(backslash), escapedVal(escaped), quoteVal(quote), inString(in_string) {
+	}
+
+	// Escaped characters (characters following an escape() character)
+	SimdBase256 escaped() const {
+		return escapedVal;
+	}
+	// Escape characters (backslashes that are not escaped--i.e. in \\, includes only the first \)
+	SimdBase256 escape() const {
+		return backslash & ~escapedVal;
+	}
+	// Real (non-backslashed) quotes
+	SimdBase256 quote() const {
+		return quoteVal;
+	}
+	// Start quotes of strings
+	SimdBase256 string_start() const {
+		return quoteVal & inString;
+	}
+	// End quotes of strings
+	SimdBase256 string_end() const {
+		return quoteVal & ~inString;
+	}
+	// Only characters inside the string (not including the quotes)
+	SimdBase256 string_content() const {
+		return inString & ~quoteVal;
+	}
+	// Return a mask of whether the given characters are inside a string (only works on non-quotes)
+	SimdBase256 nonquoteVal_inside_string(SimdBase256 mask) const {
+		return mask & inString;
+	}
+	// Return a mask of whether the given characters are inside a string (only works on non-quotes)
+	SimdBase256 nonquoteVal_outside_string(SimdBase256 mask) const {
+		return mask & ~inString;
+	}
+	// Tail of string (everything except the start quote)
+	SimdBase256 string_tail() const {
+		return inString ^ quoteVal;
+	}
+
+	// backslash characters
+	SimdBase256 backslash{};
+	// escaped characters (backslashed--does not include the hex characters after \u)
+	SimdBase256 escapedVal{};
+	// real quotes (non-backslashed ones)
+	SimdBase256 quoteVal{};
+	// string characters (includes start quote but not end quote)
+	SimdBase256 inString{};
 };
 
 class SimdStringSection {
@@ -452,11 +525,11 @@ class SimdStringSection {
 		this->W256 = this->collectWhiteSpace();
 
 		this->S256 = this->collectStructuralCharacters();
-		//this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
+		this->S256.printBits("S FINAL VALUES (256) ");
+		this->W256.printBits("W FINAL VALUES (256) ");
+		this->R256.printBits("R FINAL VALUES (256) ");
+		this->Q256.printBits("Q FINAL VALUES (256): ");
+		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
 	operator std::string() {
@@ -512,40 +585,55 @@ class SimdStringScanner {
 		return this->string.substr(index01, index02);
 	}
 
-	inline void generateJsonData(Jsonifier::Jsonifier jsonDataNew = Jsonifier::Jsonifier{}, size_t currentIndex01 = 0) {
+	inline void generateJsonData(Jsonifier::Jsonifier& jsonDataNew , size_t currentIndex01 = 0) {
 		std::string currentKey{};
 		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
-			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
+			//std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
+			if (!this->haveWeStarted) {
+				this->areWeWaitingForAKey = true;
+			}
 			switch (this->string[this->jsonTape[x]]) {
 				case '{': {
 					if (!this->haveWeStarted) {
 						this->haveWeStarted = true;
-						currentKey = "TOP_LEVEL";
+						break;
 					}
-					std::cout << "CURRENT KEY INDEX: 0101: " << this->jsonTape[x]  << std::endl;
-					std::cout << "CURRENT KEY INDEX: 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
-					std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					this->areWeWaitingForAKey = true;
+					//std::cout << "CURRENT KEY INDEX: 0101: " << this->jsonTape[x] << std::endl;
+					//std::cout << "CURRENT KEY INDEX: 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
+					//std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					Jsonifier::Jsonifier newerData{};
-					this->generateJsonData(newerData, x + 1);
-					this->jsonData[currentKey] = newerData;
-					return;
+					//this->generateJsonData(newerData, x + 1);
+					jsonDataNew[currentKey] = newerData;
+					break;
 				}
 				case '[': {
 					break;
 				}
-				case '"': {					
+				case '"': {
+					if (this->areWeWaitingForAKey) {
+						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1]);
+						this->areWeWaitingForAKey = false;
+					} else {
+						jsonDataNew[currentKey] =
+							static_cast<std::string>(this->string.substr(this->jsonTape[x], this->jsonTape[x + 1] - this->jsonTape[x]));
+						//std::cout << "CURRENT STRING: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
+					}
 					break;
 				}
 				case '}': {
 					return;
 				}
 				case ':': {
-					currentKey = this->string.substr(this->jsonTape[x - 1] + 1, this->jsonTape[x] - this->jsonTape[x - 1] - 2);
-					std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x - 1] + 1 << std::endl;
-					std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x] - this->jsonTape[x - 1] - 1 << std::endl;
-					std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					if (this->areWeWaitingForAKey) {
+						currentKey = this->string.substr(this->jsonTape[x - 1] + 1, this->jsonTape[x] - this->jsonTape[x - 1] - 2);
+						this->areWeWaitingForAKey = false;
+					}
+					//std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x - 1] + 1 << std::endl;
+					//std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x] - this->jsonTape[x - 1] - 1 << std::endl;
+					//std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					break;
 				}
 			}
@@ -714,7 +802,8 @@ int32_t main() noexcept {
 	size_t totalTime{};
 	size_t totalSize{};
 	SimdStringScanner stringScanner{ stringNew };
-	stringScanner.generateJsonData();
+	Jsonifier::Jsonifier theData{};
+	stringScanner.generateJsonData(theData);
 	auto newJsonData = stringScanner.getJsonData();
 	newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 	std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
