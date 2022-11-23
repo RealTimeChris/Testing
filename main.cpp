@@ -46,7 +46,7 @@ template<typename TTy> class StopWatch {
 		TTy elapsedTime = currentTime - this->startTime.load();
 		if (elapsedTime >= this->maxNumberOfMs.load()) {
 			return true;
-		} else {
+		}else {
 			return false;
 		}
 	}
@@ -56,8 +56,8 @@ template<typename TTy> class StopWatch {
 	}
 
   protected:
-	std::atomic<TTy> maxNumberOfMs{ TTy{ 0 } };
-	std::atomic<TTy> startTime{ TTy{ 0 } };
+	std::atomic<TTy> maxNumberOfMs{ TTy{ 0 }};
+	std::atomic<TTy> startTime{ TTy{ 0 }};
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i inputA, const __m256i inputB) {
@@ -195,6 +195,10 @@ class SimdBase256 {
 		return *this;
 	}
 
+	inline SimdBase256(char values[32]) {
+		*this = _mm256_loadu_si256(reinterpret_cast<__m256i*>(values));
+	}
+
 	inline SimdBase256(char other) {
 		*this = other;
 	}
@@ -262,7 +266,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 operator==(SimdBase256 other) {
-		return _mm256_cmpeq_epi8(this->value, other.value);
+		return _mm256_cmpeq_epi8(this->value, other);
 	}
 
 	inline SimdBase256 operator<<(size_t amount) {
@@ -338,6 +342,8 @@ class SimdBase256 {
 	__m256i value{};
 };
 
+enum class IndexTypes { Whitespace = 0, Quotes = 1 };
+
 class SimdStringSection {
   public:
 	inline SimdStringSection() noexcept = default;
@@ -352,9 +358,26 @@ class SimdStringSection {
 		return this->S256.getSetBitIndices();
 	}
 
+	inline bool checkIfIndexIsSet(size_t index, IndexTypes type) {
+		switch (type) {
+			case IndexTypes::Whitespace: {
+				if ((*reinterpret_cast<uint64_t*>(&this->W256)) << index) {
+					return true;
+				}
+			}
+			case IndexTypes::Quotes: {
+				if ((*reinterpret_cast<uint64_t*>(&this->Q256)) << index) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	inline SimdBase256 collectWhiteSpace() {
-		SimdBase256 whitespaceTable{ _mm256_setr_epi8(' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100,
-			100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100) };
+		char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100,
+			'\t', '\n', 112, 100, '\r', 100, 100 };
+		SimdBase256 whitespaceTable{ valuesNew };
 		SimdBase256 whiteSpaceReal[8]{};
 		for (size_t x = 0; x < 8; ++x) {
 			whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
@@ -366,8 +389,8 @@ class SimdStringSection {
 	inline SimdBase256 collectStructuralCharacters() {
 		this->R256 = this->Q256;
 		this->R256 = this->R256.carrylessMultiplication('\xFF');
-		SimdBase256 opTable{ _mm256_setr_epi8(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',',
-			'}', 0, 0) };
+		char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
+		SimdBase256 opTable{ valuesNew };
 		SimdBase256 structural[8]{};
 		for (size_t x = 0; x < 8; ++x) {
 			auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
@@ -428,7 +451,7 @@ class SimdStringSection {
 			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
 			this->stringView = this->string;
 
-		} else {
+		}else {
 			this->stringView = valueNew;
 		}
 
@@ -511,7 +534,7 @@ class SimdStringScanner {
 		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
-			//std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
+			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
 			if (!this->haveWeStarted) {
 				this->areWeWaitingForAKey = true;
 			}
@@ -522,11 +545,11 @@ class SimdStringScanner {
 						break;
 					}
 					this->areWeWaitingForAKey = true;
-					//std::cout << "CURRENT KEY INDEX: 0101: " << this->jsonTape[x] << std::endl;
-					//std::cout << "CURRENT KEY INDEX: 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
-					//std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					std::cout << "CURRENT KEY INDEX: 0101: " << this->jsonTape[x] << std::endl;
+					std::cout << "CURRENT KEY INDEX: 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
+					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					Jsonifier::Jsonifier newerData{};
-					//this->generateJsonData(newerData, x + 1);
+					this->generateJsonData(newerData, x + 1);
 					jsonDataNew[currentKey] = newerData;
 					break;
 				}
@@ -537,10 +560,10 @@ class SimdStringScanner {
 					if (this->areWeWaitingForAKey) {
 						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1]);
 						this->areWeWaitingForAKey = false;
-					} else {
+					}else {
 						jsonDataNew[currentKey] =
 							static_cast<std::string>(this->string.substr(this->jsonTape[x], this->jsonTape[x + 1] - this->jsonTape[x]));
-						//std::cout << "CURRENT STRING: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
+						std::cout << "CURRENT STRING: " << jsonDataNew[currentKey].getValue<std::string>() << std::endl;
 					}
 					break;
 				}
@@ -552,9 +575,9 @@ class SimdStringScanner {
 						currentKey = this->string.substr(this->jsonTape[x - 1] + 1, this->jsonTape[x] - this->jsonTape[x - 1] - 2);
 						this->areWeWaitingForAKey = false;
 					}
-					//std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x - 1] + 1 << std::endl;
-					//std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x] - this->jsonTape[x - 1] - 1 << std::endl;
-					//std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x - 1] + 1 << std::endl;
+					std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x] - this->jsonTape[x - 1] - 1 << std::endl;
+					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					break;
 				}
 			}
@@ -598,7 +621,7 @@ class SimdBase64 {
 		printf(std::string{ values.c_str() +
 				   std::string{ " (DIGITS) v64_u8: "
 								"%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%d%"
-								"d%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" } }
+								"d%d%d%d%d%d%d%d%d%d%d%d%d%d%d\n" }}
 				   .c_str(),
 			v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15], v[16], v[17], v[18], v[19], v[20],
 			v[21], v[22], v[23], v[24], v[25], v[26], v[27], v[28], v[29], v[30], v[31], v[32], v[33], v[34], v[35], v[36], v[37], v[38], v[39],
@@ -716,9 +739,26 @@ int32_t main() noexcept {
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	std::string stringNew{
-		"{\"d\":{\"activities\":[{\"created_at\":\"1668496069331\",\"emoji\":{\" name \": ≡ƒÑ╖\"},\"id\":\"custom\",\"name\":\"testing\"}]}}"
-	};
+	std::string stringNew{ "{\"d\":{"
+						   "activities\":[{"
+						   "application_id\":\"356877880938070016\","
+						   "assets\":{},"
+						   "created_at\":\"1669195269974\","
+						   "id\":\"d840286c04ae49b1\","
+						   "name\":\"Rocket League\","
+						   "party\":{},"
+						   "state\":\"InGame 1:4 [2:45 remaining]\","
+						   "timestamps\":{},"
+						   "type\":0"
+						   "}],"
+						   "client_status\":{\"desktop\":\"online\",\"web\":\"online\"},"
+						   "guild_id\":\"995048955215872071\","
+						   "status\":\"online\","
+						   "user\":{\"id\":\"249677702687096832\"}"
+						   "},"
+						   "op\":0,"
+						   "s\":2097,"
+						   "t\":\"PRESENCE_UPDATE\"}" };
 	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 	size_t totalTime{};
 	size_t totalSize{};
