@@ -515,12 +515,22 @@ class SimdStringScanner {
 	inline void generateJsonData(Jsonifier::Jsonifier jsonDataNew = Jsonifier::Jsonifier{}, size_t currentIndex01 = 0) {
 		std::string currentKey{};
 		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
-		for (size_t x = 0; x < this->jsonTape.size(); ++x) {
+		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
 			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
 			switch (this->string[this->jsonTape[x]]) {
 				case '{': {
-					break;
+					if (!this->haveWeStarted) {
+						this->haveWeStarted = true;
+						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1] - this->jsonTape[x] + 1);
+					}
+					std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x]  << std::endl;
+					std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
+					std::cout << "CURRENT KEY: " << currentKey << std::endl;
+					Jsonifier::Jsonifier newerData{};
+					this->generateJsonData(newerData, x + 1);
+					this->jsonData[currentKey] = newerData;
+					return;
 				}
 				case '[': {
 					break;
@@ -530,11 +540,12 @@ class SimdStringScanner {
 					break;
 				}
 				case '}': {
-					jsonDataNew = newData;
-					break;
+					return;
 				}
 				case ':': {
-					currentKey = this->string.substr(this->jsonTape[x - 1], this->jsonTape[x] - this->jsonTape[x - 1]);
+					currentKey = this->string.substr(this->jsonTape[x - 1] + 1, this->jsonTape[x] - this->jsonTape[x - 1] - 2);
+					std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x - 1] + 1 << std::endl;
+					std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x] - this->jsonTape[x - 1] - 1 << std::endl;
 					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					break;
 				}
