@@ -89,12 +89,21 @@ class SimdBase128 {
 		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 1);
 	}
 
-	inline SimdBase128& operator=(const __m128i other) {
+	inline SimdBase128& operator=(const __m128i&& other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase128(const __m128i other) {
+	inline SimdBase128(const __m128i&& other) {
+		*this = other;
+	}
+
+	inline SimdBase128& operator=(const __m128i& other) {
+		this->value = other;
+		return *this;
+	}
+
+	inline SimdBase128(const __m128i& other) {
 		*this = other;
 	}
 
@@ -209,12 +218,21 @@ class SimdBase256 {
 		this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value00), 3);
 	}
 
-	inline SimdBase256& operator=(const __m256i other) {
+	inline SimdBase256& operator=(const __m256i&& other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase256(const __m256i other) {
+	inline SimdBase256(const __m256i&& other) {
+		*this = other;
+	}
+
+	inline SimdBase256& operator=(const __m256i& other) {
+		this->value = other;
+		return *this;
+	}
+
+	inline SimdBase256(const __m256i& other) {
 		*this = other;
 	}
 
