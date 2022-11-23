@@ -270,7 +270,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 operator<<(size_t amount) {
-		__m256i newValue{};
+		SimdBase256 newValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
 			if (x > 0) {
@@ -281,7 +281,7 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 operator~() {
-		__m256i newValue{};
+		SimdBase256 newValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
 		}
@@ -289,14 +289,30 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 carrylessMultiplication(char operand) {
-		return SimdBase256{ static_cast<uint64_t>(_mm_cvtsi128_si64(_mm_clmulepi64_si128(
-								_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0))),
+
+		//
+		// Check if we're still in a string at the end of the box so the next block will know
+		//
+		// right shift of a signed value expected to be well-defined and standard
+		// compliant as of C++20, John Regher from Utah U. says this is fine code
+		//
+		
+		auto inString01 = static_cast<uint64_t>(_mm_cvtsi128_si64(
+			_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0)));
+		auto prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
+		auto inString02 =
 			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))),
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) };
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))) ^
+			prevInString;
+		prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
+		auto inString03 = static_cast<uint64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))) ^
+			prevInString;
+		prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
+		auto inString04 = static_cast<uint64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) ^
+			prevInString;
+		return SimdBase256{ inString01, inString02, inString03, inString04 };
 	}
 
 	inline SimdBase256 collectCarries(SimdBase256 other) {
@@ -342,7 +358,7 @@ class SimdBase256 {
 	__m256i value{};
 };
 
-enum class IndexTypes { Whitespace = 0, Quotes = 1 };
+enum class IndexTypes { Whitespace = 0, Quotes = 1, Structural = 2 };
 
 class SimdStringSection {
   public:
@@ -367,6 +383,11 @@ class SimdStringSection {
 			}
 			case IndexTypes::Quotes: {
 				if ((*reinterpret_cast<uint64_t*>(&this->Q256)) << index) {
+					return true;
+				}
+			}
+			case IndexTypes::Structural: {
+				if ((*reinterpret_cast<uint64_t*>(&this->S256)) << index) {
 					return true;
 				}
 			}
@@ -533,6 +554,7 @@ class SimdStringScanner {
 		std::string currentKey{};
 		std::unordered_map<std::string, Jsonifier::Jsonifier> newData{};
 		for (size_t x = currentIndex01; x < this->jsonTape.size(); ++x) {
+			std::cout << "THE SIZE: " << this->jsonTape.size() << std::endl;
 			std::cout << "THE INDEX: " << +this->jsonTape[x] << std::endl;
 			std::cout << "THE VALUE: " << this->string[this->jsonTape[x]] << std::endl;
 			if (!this->haveWeStarted) {
@@ -542,23 +564,28 @@ class SimdStringScanner {
 				case '{': {
 					if (!this->haveWeStarted) {
 						this->haveWeStarted = true;
+						this->areWeWaitingForAKey = true;
+						this->objectCount++;
 						break;
 					}
-					this->areWeWaitingForAKey = true;
-					std::cout << "CURRENT KEY INDEX: 0101: " << this->jsonTape[x] << std::endl;
-					std::cout << "CURRENT KEY INDEX: 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] + 1 << std::endl;
-					std::cout << "CURRENT KEY: " << currentKey << std::endl;
-					Jsonifier::Jsonifier newerData{};
-					this->generateJsonData(newerData, x + 1);
-					jsonDataNew[currentKey] = newerData;
-					break;
+					this->objectCount++;
+					break; 
 				}
 				case '[': {
+					this->areWeWaitingForAKey = true;
+					this->arrayCount++;
+					break;
+				}
+				case ']': {
+					this->arrayCount--;
 					break;
 				}
 				case '"': {
 					if (this->areWeWaitingForAKey) {
-						currentKey = this->string.substr(this->jsonTape[x], this->jsonTape[x + 1]);
+						currentKey = this->string.substr(this->jsonTape[x] + 1, this->jsonTape[x + 1] - this->jsonTape[x] - 2);
+						std::cout << "CURRENT KEY INDEX: (REAL) 0101: " << this->jsonTape[x] + 1 << std::endl;
+						std::cout << "CURRENT KEY INDEX: (REAL) 0202: " << this->jsonTape[x + 1] - this->jsonTape[x] << std::endl;
+						std::cout << "CURRENT KEY (REAL): " << currentKey << std::endl;
 						this->areWeWaitingForAKey = false;
 					}else {
 						jsonDataNew[currentKey] =
@@ -568,19 +595,19 @@ class SimdStringScanner {
 					break;
 				}
 				case '}': {
-					return;
+					this->objectCount--;
+					break;
 				}
 				case ':': {
-					if (this->areWeWaitingForAKey) {
-						currentKey = this->string.substr(this->jsonTape[x - 1] + 1, this->jsonTape[x] - this->jsonTape[x - 1] - 2);
-						this->areWeWaitingForAKey = false;
-					}
-					std::cout << "CURRENT KEY INDEX: 01: " << this->jsonTape[x - 1] + 1 << std::endl;
-					std::cout << "CURRENT KEY INDEX: 02: " << this->jsonTape[x] - this->jsonTape[x - 1] - 1 << std::endl;
-					std::cout << "CURRENT KEY: " << currentKey << std::endl;
 					break;
 				}
 			}
+		}
+		if (this->arrayCount != 0) {
+			throw std::runtime_error{ "Arrays were not all closed: " + std::to_string(this->arrayCount) };
+		}
+		if (this->objectCount!= 0) {
+			throw std::runtime_error{ "Objects were not all closed: " + std::to_string(this->objectCount) };
 		}
 		this->jsonData = std::move(jsonDataNew);
 	}
@@ -597,6 +624,8 @@ class SimdStringScanner {
 	Jsonifier::Jsonifier jsonData{};
 	bool haveWeStarted{ false };
 	std::string_view string{};
+	int64_t objectCount{};
+	int64_t arrayCount{};
 };
 
 class SimdBase64 {
@@ -734,59 +763,49 @@ class SimdBase64 {
 };
 
 int32_t main() noexcept {
-	std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
-						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
-						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
-						   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-	std::string stringNew{ "{\"d\":{"
-						   "activities\":[{"
-						   "application_id\":\"356877880938070016\","
-						   "assets\":{},"
-						   "created_at\":\"1669195269974\","
-						   "id\":\"d840286c04ae49b1\","
-						   "name\":\"Rocket League\","
-						   "party\":{},"
-						   "state\":\"InGame 1:4 [2:45 remaining]\","
-						   "timestamps\":{},"
-						   "type\":0"
-						   "}],"
-						   "client_status\":{\"desktop\":\"online\",\"web\":\"online\"},"
-						   "guild_id\":\"995048955215872071\","
-						   "status\":\"online\","
-						   "user\":{\"id\":\"249677702687096832\"}"
-						   "},"
-						   "op\":0,"
-						   "s\":2097,"
-						   "t\":\"PRESENCE_UPDATE\"}" };
-	::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
-	size_t totalTime{};
-	size_t totalSize{};
-	SimdStringScanner stringScanner{ stringNew };
-	Jsonifier::Jsonifier theData{};
-	stringScanner.generateJsonData(theData);
-	auto newJsonData = stringScanner.getJsonData();
-	newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-	std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
-	stopWatch.resetTimer();
-	for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
-		SimdStringScanner simd8Test{ string256 };
-		totalSize += string256.size();
+	try {
+	
+			std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+		std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
+							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
+							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
+							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+			std::string stringNew{
+				"{\"d\":{\"activities\":\"null\",\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
+				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}"
+			};
+		::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+		size_t totalTime{};
+		size_t totalSize{};
+		SimdStringScanner stringScanner{ stringNew };
+		Jsonifier::Jsonifier theData{};
+		stringScanner.generateJsonData(theData);
+		auto newJsonData = stringScanner.getJsonData();
+		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
+		stopWatch.resetTimer();
+		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
+			SimdStringScanner simd8Test{ string256 };
+			totalSize += string256.size();
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		for (size_t x = 0; x < 256 * 16384; ++x) {
+			SimdBase64 simd8Test{ string64 };
+			totalSize += string64.size();
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+
+
+	} catch (std::exception& e) {
+		std::cout << "THE ERROR: " << e.what() << std::endl;
 	}
-	totalTime += stopWatch.totalTimePassed().count();
-
-	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-
-	totalSize = 0;
-	totalTime = 0;
-	stopWatch.resetTimer();
-	for (size_t x = 0; x < 256 * 16384; ++x) {
-		SimdBase64 simd8Test{ string64 };
-		totalSize += string64.size();
-	}
-	totalTime += stopWatch.totalTimePassed().count();
-	std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-
 
 
 	return 0;
