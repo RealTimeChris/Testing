@@ -1022,7 +1022,7 @@ class SimdStringScanner {
 		this->next_structural = &this->jsonTape[0];
 	}
 
-	inline ErrorCode visitTrueAtom(char* value) {
+	inline ErrorCode recordTrueAtom(char* value) {
 		if (strcmp(value, "true")) {
 
 			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::TrueValue);
@@ -1032,34 +1032,34 @@ class SimdStringScanner {
 		}
 	}
 
-	inline ErrorCode visitObjectStart() {
+	inline ErrorCode recordObjectStart() {
 		std::cout << "WERE OBJECT STARTING!" << std::endl;
 
 		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitArrayStart() {
+	inline ErrorCode recordArrayStart() {
 		std::cout << "WERE ARRAY STARTING!" << std::endl;
 		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitObjectEnd() {
+	inline ErrorCode recordObjectEnd() {
 		std::cout << "WERE OBJECT ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
 		this->jsonData.collectUnCollectedSpace(*this->next_structural);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitArrayEnd() {
+	inline ErrorCode recordArrayEnd() {
 		std::cout << "WERE ARRAY ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
 		this->jsonData.collectUnCollectedSpace(*this->next_structural);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitFalseAtom(char* value) {
+	inline ErrorCode recordFalseAtom(char* value) {
 		if (strcmp(value, "false")) {
 			this->jsonData.appendTapeValue(5, value - &this->string[*this->jsonTape.data()], TapeType::FalseValue);
 			return ErrorCode::Success;
@@ -1068,7 +1068,7 @@ class SimdStringScanner {
 		}
 	}
 
-	inline ErrorCode visitNullAtom(char* value) {
+	inline ErrorCode recordNullAtom(char* value) {
 		std::cout << "WERE NULL ATOMING!" << std::endl;
 		if (strcmp(value, "null")) {
 			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::NullValue);
@@ -1078,49 +1078,49 @@ class SimdStringScanner {
 		}
 	}
 
-	inline ErrorCode visitNumber(char* value) {
+	inline ErrorCode recordNumber(char* value) {
 		std::cout << "WERE NUMBERING!" << std::endl;
 		this->jsonData.appendTapeValue(8, value - &this->string[*this->jsonTape.data()], TapeType::Uint64);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitKey(char* value) {
+	inline ErrorCode recordKey(char* value) {
 		std::cout << "WERE KEYING!" << std::endl;
 		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitEmptyObject() {
+	inline ErrorCode recordEmptyObject() {
 		std::cout << "WERE EMTPYING OBJECT!" << std::endl;
 		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitEmptyArray() {
+	inline ErrorCode recordEmptyArray() {
 		std::cout << "WERE EMTPYING ARRAY!" << std::endl;
 		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitString(char* value) {
+	inline ErrorCode recordString(char* value) {
 		std::cout << "WERE STRINGING!" << std::endl;
 		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode visitPrimitive(char* value) {
+	inline ErrorCode recordPrimitive(char* value) {
 		switch (*value) {
 			case '"':
-				return this->visitString(value);
+				return this->recordString(value);
 			case 't':
-				return this->visitTrueAtom(value);
+				return this->recordTrueAtom(value);
 			case 'f':
-				return this->visitFalseAtom(value);
+				return this->recordFalseAtom(value);
 			case 'n':
-				return this->visitNullAtom(value);
+				return this->recordNullAtom(value);
 			case '-':
 			case '0':
 			case '1':
@@ -1132,7 +1132,7 @@ class SimdStringScanner {
 			case '7':
 			case '8':
 			case '9':
-				return this->visitNumber(value);
+				return this->recordNumber(value);
 			default:
 				throw JsonifierException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
 		}
@@ -1159,12 +1159,12 @@ class SimdStringScanner {
 		switch (this->currentState) {
 			case JsonTapeEventStates::ObjectBegin:{
 				this->depth++;
-				this->visitObjectStart();
+				this->recordObjectStart();
 				auto key = this->advance();
 				if (*key != '"') {
 					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
-				this->visitKey(key);
+				this->recordKey(key);
 				this->currentState = JsonTapeEventStates::ObjectField;
 			}
 			case JsonTapeEventStates::ObjectField: {
@@ -1176,7 +1176,7 @@ class SimdStringScanner {
 					case '{':
 						if (*this->peek() == '}') {
 							this->advance();
-							this->visitEmptyObject();
+							this->recordEmptyObject();
 							break;
 						}
 						this->currentState = JsonTapeEventStates::ObjectBegin;
@@ -1184,14 +1184,14 @@ class SimdStringScanner {
 					case '[':
 						if (*this->peek() == ']') {
 							this->advance();
-							this->visitEmptyArray();
+							this->recordEmptyArray();
 							break;
 						}
 						this->currentState = JsonTapeEventStates::ArrayBegin;
 						return this->generateJsonData();
 
 					default:
-						this->visitPrimitive(value);
+						this->recordPrimitive(value);
 				}
 				this->currentState = JsonTapeEventStates::ObjectContinue;
 			}
@@ -1203,12 +1203,12 @@ class SimdStringScanner {
 							throw JsonifierException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 						}
-						this->visitKey(key);
+						this->recordKey(key);
 						this->currentState = JsonTapeEventStates::ObjectField;
 						return this->generateJsonData();
 					}
 					case '}': {
-						this->visitObjectEnd();
+						this->recordObjectEnd();
 						this->currentState = JsonTapeEventStates::ScopeEnd;
 						return this->generateJsonData();
 					}
@@ -1230,7 +1230,7 @@ class SimdStringScanner {
 			}
 			case JsonTapeEventStates::ArrayBegin: {
 				this->depth++;
-				this->visitArrayStart();
+				this->recordArrayStart();
 				this->currentState = JsonTapeEventStates::ArrayValue;
 			}
 			case JsonTapeEventStates::ArrayValue: {
@@ -1239,7 +1239,7 @@ class SimdStringScanner {
 					case '{':
 						if (*this->peek() == '}') {
 							this->advance();
-							this->visitEmptyObject();
+							this->recordEmptyObject();
 							break;
 						}
 						this->currentState = JsonTapeEventStates::ObjectBegin;
@@ -1247,13 +1247,13 @@ class SimdStringScanner {
 					case '[':
 						if (*this->peek() == ']') {
 							this->advance();
-							this->visitEmptyArray();
+							this->recordEmptyArray();
 							break;
 						}
 						this->currentState = JsonTapeEventStates::ArrayBegin;
 						return this->generateJsonData();
 					default:
-						this->visitPrimitive(value);
+						this->recordPrimitive(value);
 				}
 			}
 			case JsonTapeEventStates::ArrayContinue: {
@@ -1262,7 +1262,7 @@ class SimdStringScanner {
 						this->currentState = JsonTapeEventStates::ArrayValue;
 						return this->generateJsonData();
 					case ']':
-						this->visitArrayEnd();
+						this->recordArrayEnd();
 						this->currentState = JsonTapeEventStates::ScopeEnd;
 						return this->generateJsonData();
 					default:
@@ -1287,7 +1287,7 @@ class SimdStringScanner {
 			case '{':
 				if (*this->peek() == '}') {
 					this->advance();
-					this->visitEmptyObject();
+					this->recordEmptyObject();
 					break;
 				}
 				this->currentState = JsonTapeEventStates::ObjectBegin;
@@ -1296,14 +1296,14 @@ class SimdStringScanner {
 		  case '[':
 				if (*this->peek() == ']') {
 					this->advance();
-					this->visitEmptyArray();
+					this->recordEmptyArray();
 					break;
 				}
 			  this->currentState = JsonTapeEventStates::ArrayBegin;
 			  resultCode = this->generateJsonData();
 			  break;
 		  default:
-			  resultCode = this->visitPrimitive(value);
+			  resultCode = this->recordPrimitive(value);
 			  break;
 		}
  
