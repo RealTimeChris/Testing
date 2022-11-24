@@ -945,34 +945,52 @@ struct JsonEventWriter {
 		}	
 	}
 
-	void collectUnCollectedSpace(size_t currentIndex) {
+	void collectUnCollectedSpace() {
 		std::cout << "NEW ENTRY!" << std::endl;
 		for (int64_t x = this->jsonEvents.size() - 1; x > 0; --x) {
 			switch (this->jsonEvents[x].type) {
 				case TapeType::EndObject: {
 					std::cout << "THE INDEX: " << this->jsonEvents[x].index << std::endl;
-					std::cout << "THE INDEX OF OPENING: " << this->getIndexOfLastEvent(x, TapeType::StartObject) << std::endl;
+					auto indexOfLastOpening = this->getIndexOfLastEvent(x, TapeType::StartObject);
+					std::cout << "THE INDEX OF OPENING: " << indexOfLastOpening << std::endl;
 					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
+					this->jsonEvents[x].size = collectFinalSizeValue(indexOfLastOpening, x);
+					std::cout << "NEW COMBINED SIZE: " << this->jsonEvents[x].size << std::endl;
 					return;
 				}
 				case TapeType::EndArray: {
-					for (size_t x = 0; x < &this->jsonEvents[x] - this->jsonEvents[x].ptrTosStart; ++x) {
-						this->jsonEvents[x].size += this->jsonEvents[x].size;
-						std::cout << "ADDED SIZE: " << this->jsonEvents[x].size << std::endl;
-					}
+					std::cout << "THE INDEX: " << this->jsonEvents[x].index << std::endl;
+					std::cout << "THE INDEX OF OPENING: " << this->getIndexOfLastEvent(x, TapeType::StartArray) << std::endl;
+					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
 					return;
 				}
 			}
 		}
 	}
 
+	size_t collectFinalSizeValue(size_t startingIndex, size_t endingIndex) {
+		size_t returnValue{};
+		for (size_t x = startingIndex; x < endingIndex; ++x) {
+			returnValue += this->jsonEvents[x].size;
+		}
+		return returnValue;
+	}
+
 	size_t getIndexOfLastEvent(size_t currentIndex, TapeType eventType) {
 		size_t returnValue{};
 		if (eventType == TapeType::StartArray) {
-			returnValue = this->arrayStartIndices.back();
+			if (this->arrayStartIndices.size() > 0) {
+				returnValue = this->arrayStartIndices.back();
+			} else {
+				return 0;
+			}
 			this->arrayStartIndices.pop_back();
 		} else if (eventType == TapeType::StartObject) {
-			returnValue = this->objectStartIndices.back();
+			if (this->objectStartIndices.size() > 0) {
+				returnValue = this->objectStartIndices.back();
+			} else {
+				return 0;
+			}
 			this->objectStartIndices.pop_back();
 		}	
 		return returnValue;
@@ -1058,14 +1076,14 @@ class SimdStringScanner {
 	inline ErrorCode recordObjectEnd() {
 		std::cout << "WERE OBJECT ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
-		this->jsonData.collectUnCollectedSpace(*this->next_structural);
+		this->jsonData.collectUnCollectedSpace();
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordArrayEnd() {
 		std::cout << "WERE ARRAY ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
-		this->jsonData.collectUnCollectedSpace(*this->next_structural);
+		this->jsonData.collectUnCollectedSpace();
 		return ErrorCode::Success;
 	}
 
