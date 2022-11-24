@@ -911,7 +911,7 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		std::cout << "THE STRING: " << this->stringView << std::endl;
+		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
   protected:
@@ -934,16 +934,6 @@ enum class JsonTapeEventStates {
 	ArrayValue = 5,
 	ArrayContinue = 6,
 	DocumentEnd = 7
-};
-
-enum class JsonEventTypes : int16_t {
-	ObjectStart = 1 << 0,
-	ArrayStart = 1 << 2,
-	StringStart = 1 << 4,
-	Uint64Start = 1 << 6,
-	Int64Start = 1 << 7,
-	DoubleStart = 1 << 8,
-	BoolStart = 1 << 9
 };
 
 enum class TapeType {
@@ -1032,24 +1022,25 @@ class SimdStringScanner {
 
 	inline ErrorCode visitObjectStart() {
 		std::cout << "WERE OBJECT STARTING!" << std::endl;
-		std::cout << "THE KEY: " << this->currentKey << std::endl;
 
 		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayStart() {
-
+		std::cout << "WERE ARRAY STARTING!" << std::endl;
 		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitObjectEnd() {
+		std::cout << "WERE OBJECT ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayEnd() {
+		std::cout << "WERE ARRAY ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
 		return ErrorCode::Success;
 	}
@@ -1064,6 +1055,7 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode visitNullAtom(char* value) {
+		std::cout << "WERE NULL ATOMING!" << std::endl;
 		if (strcmp(reinterpret_cast<char*>(value), "null")) {
 			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::NullValue);
 			return ErrorCode::Success;
@@ -1073,29 +1065,34 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode visitNumber(char* value) {
+		std::cout << "WERE NUMBERING!" << std::endl;
 		this->jsonData.appendTapeValue(8, value - &this->string[*this->jsonTape.data()], TapeType::Uint64);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitKey(char* value) {
+		std::cout << "WERE KEYING!" << std::endl;
 		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitEmptyObject() {
+		std::cout << "WERE EMTPYING OBJECT!" << std::endl;
 		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitEmptyArray() {
+		std::cout << "WERE EMTPYING ARRAY!" << std::endl;
 		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitString(char* value) {
+		std::cout << "WERE STRINGING!" << std::endl;
 		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		return ErrorCode::Success;
 	}
@@ -1131,7 +1128,7 @@ class SimdStringScanner {
 	uint32_t depth{ 0 };
 
 	inline bool atEof() {
-		return &this->string[*this->next_structural] - this->string.data() == 0;
+		return &this->string[*this->next_structural] - this->string.data() == this->string.size();
 	}
 
 	inline char* peek() noexcept {
@@ -1141,17 +1138,10 @@ class SimdStringScanner {
 
 	inline char* advance(std::source_location location = std::source_location::current()) noexcept {
 		auto returnValue = &this->string[*(this->next_structural++)];
-		std::cout << "THE CURRENT INDEX: " << +*(this->next_structural) << std::endl;
-		std::cout << "THE CURRENT SIZE: " << this->string.size() << std::endl;
-		std::cout << "THE CURRENT SIZE: " << this->jsonTape.size() << std::endl;
-		std::cout << "THE CURRENT VALUE: " << *returnValue << std::endl;
 		return reinterpret_cast<char*>(returnValue);
 	}
 
 	inline ErrorCode generateJsonData() {
-		if (this->atEof()) {
-			return ErrorCode::Success;
-		}
 		switch (this->currentState) {
 			case JsonTapeEventStates::ObjectBegin:{
 				this->depth++;
