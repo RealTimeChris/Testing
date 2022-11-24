@@ -954,7 +954,7 @@ struct JsonEventWriter {
 					auto indexOfLastOpening = this->getIndexOfLastEvent(x, TapeType::StartObject);
 					std::cout << "THE INDEX OF OPENING: " << indexOfLastOpening << std::endl;
 					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
-					this->jsonEvents[x].size = collectFinalSizeValue(indexOfLastOpening, x);
+					this->jsonEvents[indexOfLastOpening].size = collectFinalSizeValue(indexOfLastOpening, x);
 					std::cout << "NEW COMBINED SIZE: " << this->jsonEvents[x].size << std::endl;
 					return;
 				}
@@ -970,7 +970,7 @@ struct JsonEventWriter {
 
 	size_t collectFinalSizeValue(size_t startingIndex, size_t endingIndex) {
 		size_t returnValue{};
-		for (size_t x = startingIndex; x < endingIndex; ++x) {
+		for (size_t x = startingIndex; x < endingIndex - 1; ++x) {
 			returnValue += this->jsonEvents[x].size;
 		}
 		return returnValue;
@@ -1135,7 +1135,7 @@ class SimdStringScanner {
 
 	inline ErrorCode recordString(char* value) {
 		std::cout << "WERE STRINGING!" << std::endl;
-		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
+		this->jsonData.appendTapeValue(this->peek() - 1 - value - 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		return ErrorCode::Success;
 	}
 
@@ -1340,7 +1340,7 @@ class SimdStringScanner {
 		}
 		std::cout << "THE FINAL DATA: " << std::endl;
 		for (auto& value: this->jsonData) {
-			std::cout << "INDEX: " << value.index << ", SIZE: " << value.size << std::endl;
+			std::cout << "INDEX: " << value.index << ", SIZE: " << value.size << ", TYPE: " << ( char )value.type << std::endl;
 		}
 		return Jsonifier{};
 	}
