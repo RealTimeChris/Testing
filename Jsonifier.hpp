@@ -930,24 +930,43 @@ struct JsonEvent {
 };
 
 struct JsonEventWriter {
-	void appendTapeValue(size_t sizeNew, size_t indexNew, TapeType eventTypeNew) {
+	void appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
 		JsonEvent returnValue{};
+		returnValue.index = stringIndexNew;
 		returnValue.type = eventTypeNew;
-		returnValue.index = indexNew;
 		returnValue.size = sizeNew;
 		this->jsonEvents.emplace_back(returnValue);
 	}
 
 	void collectUnCollectedSpace(size_t currentIndex) {
 		size_t difference{};
-		for (size_t x = currentIndex; x > 0; --x) {
-			if (this->jsonEvents[x].size == -1) {
-				std::cout << "THE MISSING INDEX: " << x << std::endl;
-				difference = x;
+		for (int64_t x = 0; x < this->jsonEvents.size(); ++x) {
+			switch (this->jsonEvents[x].type) {
+				case TapeType::EndObject: {
+					currentIndex = this->getIndexByType(TapeType::StartObject, x);
+					std::cout << "THE CURRENT INDEX: 01 " << currentIndex << std::endl;
+					break;
+				}
+				case TapeType::EndArray: {
+					currentIndex = this->getIndexByType(TapeType::StartArray, x);
+					std::cout << "THE CURRENT INDEX: 02 " << currentIndex << std::endl;
+					break;
+				}
 			}
 		}
-		for (size_t x = currentIndex; x > difference; --x) {
-			this->jsonEvents[currentIndex].size += this->jsonEvents[x].size;
+		if (currentIndex > difference) {
+			for (size_t x = currentIndex ; x > difference; --x) {
+				std::cout << "ADDED SIZE: " << this->jsonEvents[x].size << std::endl;
+				this->jsonEvents[currentIndex].size += this->jsonEvents[x].size;
+			}
+		}
+	}
+
+	size_t getIndexByType(TapeType typeNew, size_t currentIndex) {
+		for (size_t x = this->jsonEvents.size() - currentIndex; x > 0; --x) {
+			if (this->jsonEvents[x].type == typeNew) {
+				return x;
+			}
 		}
 	}
 
