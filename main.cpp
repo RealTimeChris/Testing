@@ -16,17 +16,17 @@ int32_t main() noexcept {
 				"{\"d\":{\"activities\":[],\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
 				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}"
 			};
-		StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
-		size_t totalTime{};
+		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+			size_t totalTime{};
 		size_t totalSize{};
-		SimdStringScanner stringScanner{ stringNew };
+		Jsonifier::SimdStringScanner stringScanner{ stringNew };
 		Jsonifier::Jsonifier theData{};
 		auto newJsonData = stringScanner.getJsonData();
 		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
-			SimdStringScanner simd8Test{ string256 };
+			Jsonifier::SimdStringScanner simd8Test{ string256 };
 			totalSize += string256.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();

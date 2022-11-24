@@ -1,6 +1,7 @@
 ﻿add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
+	"../Jsonifier.cpp"
 )
 
 if (DEFINED ENV{EnableASAN})
@@ -15,7 +16,7 @@ endif()
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
-	Jsonifier::Jsonifier
+	#Jsonifier::Jsonifier
 )
 
 target_compile_options(
