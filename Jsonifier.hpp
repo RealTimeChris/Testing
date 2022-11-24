@@ -474,34 +474,6 @@ namespace Jsonifier {
 		friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
 	};
 
-	template<> inline const Jsonifier::ObjectType& Jsonifier::getValue() const {
-		return *this->jsonValue.object;
-	}
-
-	template<> inline const Jsonifier::ArrayType& Jsonifier::getValue() const {
-		return *this->jsonValue.array;
-	}
-
-	template<> inline const Jsonifier::StringType& Jsonifier::getValue() const {
-		return *this->jsonValue.string;
-	}
-
-	template<> inline const Jsonifier::FloatType& Jsonifier::getValue() const {
-		return this->jsonValue.numberDouble;
-	}
-
-	template<> inline const Jsonifier::UintType& Jsonifier::getValue() const {
-		return this->jsonValue.numberUint;
-	}
-
-	template<> inline const Jsonifier::IntType& Jsonifier::getValue() const {
-		return this->jsonValue.numberInt;
-	}
-
-	template<> inline const Jsonifier::BoolType& Jsonifier::getValue() const {
-		return this->jsonValue.boolean;
-	}
-
 	template<> inline Jsonifier::ObjectType& Jsonifier::getValue() {
 		return *this->jsonValue.object;
 	}
@@ -535,11 +507,9 @@ struct JsonifierException : public std::runtime_error, std::string {
 	JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 };
 
-inline uint64_t convertSimd256To64BitUint(const __m256i inputA, const __m256i inputB) {
-	uint64_t r_lo = _mm256_movemask_epi8(inputA);
-	uint64_t r_hi = _mm256_movemask_epi8(inputB);
-	return r_lo | (r_hi << 32);
-}
+class SimdBase256;
+
+inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
 
 class SimdBase128 {
   public:
@@ -650,12 +620,12 @@ class SimdBase256 {
 		return *this;
 	}
 
-	inline SimdBase256(char values[32]) {
-		*this = _mm256_loadu_si256(reinterpret_cast<__m256i*>(values));
-	}
-
 	inline SimdBase256(char other) {
 		*this = other;
+	}
+
+	inline SimdBase256(char values[32]) {
+		*this = _mm256_load_si256(reinterpret_cast<__m256i*>(values));
 	}
 
 	inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
@@ -759,9 +729,9 @@ class SimdBase256 {
 		SimdBase256 returnValue{};
 		for (size_t x = 0; x < 4; ++x) {
 			uint64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<int64_t*>(&other) + x), *(reinterpret_cast<int64_t*>(&this->value) + x),
+			_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&other) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
 				reinterpret_cast<unsigned long long*>(&returnValue64));
-			*(reinterpret_cast<int64_t*>(&returnValue) + x) = returnValue64;
+			*(reinterpret_cast<uint64_t*>(&returnValue) + x) = returnValue64;
 		}
 		return returnValue;
 	}
@@ -786,14 +756,10 @@ class SimdBase256 {
 
 	inline std::vector<uint32_t> getSetBitIndices() {
 		std::vector<uint32_t> returnVector{};
-		//std::cout << "GET SET BIT INDICES: " << std::endl;
 		for (int64_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
 				if (*(reinterpret_cast<int64_t*>(&this->value) + x) >> y & 1) {
 					returnVector.push_back(static_cast<uint8_t>(y + (x * 64)));
-					//std::cout << "1";
-				} else {
-					//std::cout << "0";
 				}
 			}
 		}
@@ -803,6 +769,12 @@ class SimdBase256 {
   protected:
 	__m256i value{};
 };
+
+inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB) {
+	uint64_t r_lo = _mm256_movemask_epi8(inputA);
+	uint64_t r_hi = _mm256_movemask_epi8(inputB);
+	return r_lo | (r_hi << 32);
+}
 
 enum class IndexTypes { Whitespace = 0, Quotes = 1, Structural = 2 };
 
