@@ -555,13 +555,11 @@ class SimdBase128 {
 	}
 
 	inline SimdBase128(int64_t value00, int64_t value01) {
-		this->value = _mm_insert_epi64(this->value, value00, 0);
-		this->value = _mm_insert_epi64(this->value, value01, 1);
+		this->value = _mm_set_epi64x(value01, value00);
 	}
 
 	inline SimdBase128(uint64_t value00, uint64_t value01) {
-		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 0);
-		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 1);
+		this->value = _mm_set_epi64x(static_cast<int64_t>(value01), static_cast<int64_t>(value00));
 	}
 
 	inline SimdBase128& operator=(const __m128i other) {
@@ -938,68 +936,56 @@ enum class JsonTapeEventStates {
 	DocumentEnd = 7
 };
 
-struct JsonifierParser {
-	JsonifierParser() noexcept = default;
-	void packValue(std::string keyNew, Jsonifier&& jsonifier, JsonTapeEventStates event) {
-		switch (event) {
-			case JsonTapeEventStates::ObjectBegin: {
-				this->currentKey.clear();
-				this->currentKey.emplace_back(std::move(keyNew));
-				this->jsonData[this->currentKey.back()] = Jsonifier::ObjectType{};
-				break;
-			}
-			case JsonTapeEventStates::ObjectField: {
-				this->currentKey.emplace_back(std::move(keyNew));
-				this->jsonData[this->currentKey.back()] = Jsonifier::ObjectType{};
-				//this->jsonData[this->currentKey] = std::move(jsonifier);
-				jsonifier.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE VALUE: " << jsonifier.operator std::string&&() << std::endl;
-				this->getCurrentValue(this->jsonData) = std::move(jsonifier);
-				break;
-			}
-			case JsonTapeEventStates::ObjectContinue: {
-				this->currentKey.emplace_back(std::move(keyNew));
-				this->jsonData[this->currentKey.back()] = Jsonifier::ObjectType{};
-				jsonifier.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE VALUE: " << jsonifier.operator std::string&&() << std::endl;
-				this->getCurrentValue(this->jsonData) = std::move(jsonifier);
-				break;
-			}
-			case JsonTapeEventStates::ScopeEnd: {
-				this->currentKey.clear();
-				break;
-			}
-			case JsonTapeEventStates::ArrayBegin: {
-				this->currentKey.emplace_back(std::move(keyNew));
-				break;
-			}
-			case JsonTapeEventStates::ArrayValue: {
-				this->getCurrentValue(this->jsonData).emplaceBack(std::move(jsonifier));
-				break;
-			}
-		}
+enum class JsonEventTypes : int16_t {
+	ObjectStart = 1 << 0,
+	ArrayStart = 1 << 2,
+	StringStart = 1 << 4,
+	Uint64Start = 1 << 6,
+	Int64Start = 1 << 7,
+	DoubleStart = 1 << 8,
+	BoolStart = 1 << 9
+};
+
+enum class TapeType {
+	Root = 'r',
+	StartArray = '[',
+	StartObject = '{',
+	EndArray = ']',
+	EndObject = '}',
+	String = '"',
+	Int64 = 'l',
+	Uint64 = 'u',
+	Double = 'd',
+	TrueValue = 't',
+	FalseValue = 'f',
+	NullValue = 'n'
+};
+
+struct JsonEvent {
+	TapeType type{};
+	size_t index{};
+	size_t size{};
+};
+
+struct JsonEventWriter {
+	void appendTapeValue(size_t sizeNew, size_t indexNew, TapeType eventTypeNew) {
+		JsonEvent returnValue{};
+		returnValue.type = eventTypeNew;
+		returnValue.index = indexNew;
+		returnValue.size = sizeNew;
+		this->jsonEvents.emplace_back(returnValue);
 	}
 
-	Jsonifier& getCurrentValue(Jsonifier& theData) {
-		Jsonifier& theDataNew{ theData };
-		for (auto& value: this->currentKey) {
-			theDataNew = theData[value];
-		}
-		return theDataNew;
-	}
-
-	operator Jsonifier() {
-		return this->jsonData;
-	}
-
-	operator Jsonifier&() {
-		return this->jsonData;
+	JsonEvent getEvent() {
+		JsonEvent returnValue = this->jsonEvents.back();
+		this->jsonEvents.pop_back();
+		return returnValue;
 	}
 
   protected:
-	std::vector<std::string> currentKey{};
-	Jsonifier jsonData{};
+	std::vector<JsonEvent> jsonEvents{};
 };
+
 
 class SimdStringScanner {
   public:
@@ -1036,7 +1022,7 @@ class SimdStringScanner {
 
 	inline ErrorCode visitTrueAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "true")) {
-			this->jsonData.packValue(this->currentKey, false, this->currentState);
+			this->jsonData.appendTapeValue(this->currentKey, false, this->currentState);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1147,18 +1133,12 @@ class SimdStringScanner {
 	uint32_t depth{ 0 };
 
 	inline char* peek() noexcept {
-		//std::cout << "CURRENT NEXT STRUCTURAL: " << *(next_structural) << std::endl;
 		auto returnValue = &this->string[*(this->next_structural)];
-		//std::cout << "CURRENT NEXT VALUEL: " << *returnValue << std::endl;
-		//std::cout << *returnValue << std::endl;
 		return returnValue;
 	}
 
 	inline char* advance(std::source_location location=std::source_location::current()) noexcept {
 		auto returnValue = &this->string[*(this->next_structural++)];
-		//std::cout << "CURRENT NEXT STRUCTURAL: " << location.line() << *(next_structural) << std::endl;
-		//std::cout << "CURRENT NEXT VALUEL: " << *returnValue << std::endl;
-		//std::cout << *returnValue << std::endl;
 		return returnValue;
 	}
 
@@ -1329,7 +1309,7 @@ class SimdStringScanner {
 	std::vector<uint16_t> jsonTape{};
 	std::string_view stringView{};
 	std::string currentString{};
-	JsonifierParser jsonData{};
+	JsonEventWriter jsonData{};
 	std::string currentKey{};
 	std::string string{};
 };
