@@ -5,9 +5,6 @@ int32_t main() noexcept {
 		Jsonifier::Jsonifier jsonDataTest{};
 		jsonDataTest["TESTING"] = "TEST_VALUES";
 		jsonDataTest["TESTING02"]["testing92"] = 2435;
-		JsonEventWriter theWriter{};
-		theWriter.appendTapeValue(56, 0, JsonEventTypes::ObjectStart);
-		theWriter.appendTapeValue(11, 0, JsonEventTypes::StringStart);
 		//theWriter.appendTapeValue(27,, JsonEventTypes::ObjectStart);
 		//theWriter.appendTapeValue(8,, JsonEventTypes::Int64Start);
 

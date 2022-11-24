@@ -562,12 +562,12 @@ class SimdBase128 {
 		this->value = _mm_set_epi64x(static_cast<int64_t>(value01), static_cast<int64_t>(value00));
 	}
 
-	inline SimdBase128& operator=(const __m128i other) {
+	inline SimdBase128& operator=(__m128i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase128(const __m128i other) {
+	inline SimdBase128(__m128i other) {
 		*this = other;
 	}
 
@@ -667,12 +667,12 @@ class SimdBase256 {
 			static_cast<int64_t>(value00));
 	}
 
-	inline SimdBase256& operator=(const __m256i other) {
+	inline SimdBase256& operator=(__m256i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase256(const __m256i other) {
+	inline SimdBase256(__m256i other) {
 		*this = other;
 	}
 
@@ -784,13 +784,13 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(other, *this);
 	}
 
-	inline std::vector<int16_t> getSetBitIndices() {
-		std::vector<int16_t> returnVector{};
+	inline std::vector<int8_t> getSetBitIndices() {
+		std::vector<int8_t> returnVector{};
 		//std::cout << "GET SET BIT INDICES: " << std::endl;
 		for (int64_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
 				if (*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y & 1) {
-					returnVector.push_back(static_cast<int16_t>(y + (x * 64)));
+					returnVector.push_back(static_cast<int8_t>(y + (x * 64)));
 					//std::cout << "1";
 				} else {
 					//std::cout << "0";
@@ -816,7 +816,7 @@ class SimdStringSection {
 		}
 	}
 
-	inline std::vector<int16_t> getStructuralIndices() {
+	inline std::vector<int8_t> getStructuralIndices() {
 		return this->S256.getSetBitIndices();
 	}
 
@@ -911,7 +911,7 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
+		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
   protected:
@@ -1014,15 +1014,15 @@ class SimdStringScanner {
 
 	inline void generateTapeRecord() {
 		for (auto& value: this->stringSections) {
-			std::vector<int16_t> setBitIndices{ value.getStructuralIndices() };
+			std::vector<int8_t> setBitIndices{ value.getStructuralIndices() };
 			this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
 		}
-		this->next_structural = this->jsonTape.data();
+		this->next_structural = &this->jsonTape[0];
 	}
 
 	inline ErrorCode visitTrueAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "true")) {
-			this->jsonData.appendTapeValue(this->currentKey, false, this->currentState);
+			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::TrueValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1032,28 +1032,28 @@ class SimdStringScanner {
 	inline ErrorCode visitObjectStart() {
 		std::cout << "WERE OBJECT STARTING!" << std::endl;
 		std::cout << "THE KEY: " << this->currentKey << std::endl;
-		this->jsonData.packValue(this->currentKey, Jsonifier::ObjectType{}, this->currentState);
+		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayStart() {
-		this->jsonData.packValue(this->currentKey, Jsonifier::ArrayType{}, this->currentState);
+		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitObjectEnd() {
-		this->jsonData.packValue("", Jsonifier::ObjectType{}, this->currentState);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayEnd() {
-		this->jsonData.packValue("", Jsonifier::ArrayType{}, this->currentState);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitFalseAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "false")) {
-			this->jsonData.packValue(this->currentKey, false, this->currentState);
+			this->jsonData.appendTapeValue(5, value - &this->string[*this->jsonTape.data()], TapeType::FalseValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1062,7 +1062,7 @@ class SimdStringScanner {
 
 	inline ErrorCode visitNullAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "null")) {
-			this->jsonData.packValue(this->currentKey, nullptr, this->currentState);
+			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::NullValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1070,35 +1070,30 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode visitNumber(char* value, bool array) {
-		this->jsonData.packValue(this->currentKey, 250, this->currentState);
+		this->jsonData.appendTapeValue(8, value - &this->string[*this->jsonTape.data()], TapeType::Uint64);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitKey(char* value) {
-		this->currentKey.clear();
-		this->currentKey.insert(this->currentKey.begin(), value + 1, this->peek() - 1);
+		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitEmptyObject() {
-		this->jsonData.packValue(this->currentKey, Jsonifier::ObjectType{}, this->currentState);
+		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitEmptyArray() {
-		this->jsonData.packValue(this->currentKey, Jsonifier::ArrayType{}, this->currentState);
+		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitString(char* value, bool array) {
-		this->currentString.clear();
-		this->currentString.insert(this->currentString.begin(), value + 1, this->peek() - 1);
-		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
-		//std::cout << "THE CURRENT INDEX 01: " << *value  << std::endl;
-		//std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
-		std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
-		this->jsonData.packValue(this->currentKey, this->currentString, this->currentState);
+		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
 		return ErrorCode::Success;
 	}
 
@@ -1129,20 +1124,28 @@ class SimdStringScanner {
 		}
 	}
 
-	uint16_t* next_structural{ nullptr };
+	int32_t* next_structural{ nullptr };
 	uint32_t depth{ 0 };
+
+	inline bool atEof() {
+		return &this->jsonTape[*this->next_structural] - this->jsonTape.data() == 0;
+	}
 
 	inline char* peek() noexcept {
 		auto returnValue = &this->string[*(this->next_structural)];
-		return returnValue;
+		return reinterpret_cast<char*>(returnValue);
 	}
 
-	inline char* advance(std::source_location location=std::source_location::current()) noexcept {
+	inline char* advance(std::source_location location = std::source_location::current()) noexcept {
 		auto returnValue = &this->string[*(this->next_structural++)];
-		return returnValue;
+		std::cout << "THE CURRENT VALUE: " << *returnValue << std::endl;
+		return reinterpret_cast<char*>(returnValue);
 	}
 
 	inline ErrorCode generateJsonData() {
+		if (this->atEof()) {
+			return ErrorCode::Success;
+		}
 		switch (this->currentState) {
 			case JsonTapeEventStates::ObjectBegin:{
 				this->depth++;
@@ -1200,6 +1203,7 @@ class SimdStringScanner {
 						return this->generateJsonData();
 					}
 					default: {
+						return this->generateJsonData();
 						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
 						
@@ -1263,11 +1267,7 @@ class SimdStringScanner {
 				break;
 			}
 		}
-		if (this->next_structural == this->jsonTape.data() + this->jsonTape.size() - 1) {
-			return ErrorCode::Success;
-		} else {
-			return this->generateJsonData();
-		}
+		return ErrorCode::Success;
 	}
 
 	inline Jsonifier getJsonData() {
@@ -1300,13 +1300,13 @@ class SimdStringScanner {
 		if (resultCode!= ErrorCode::Success) {
 			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
 		}
-		return this->jsonData.operator Jsonifier&();
+		return Jsonifier{};
 	}
 
   protected:
 	JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 	std::vector<SimdStringSection> stringSections{};
-	std::vector<uint16_t> jsonTape{};
+	std::vector<int32_t> jsonTape{};
 	std::string_view stringView{};
 	std::string currentString{};
 	JsonEventWriter jsonData{};
