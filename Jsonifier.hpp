@@ -908,7 +908,7 @@ enum class JsonTapeEventStates {
 	DocumentEnd = 7
 };
 
-enum class TapeType {
+enum class TapeType : char {
 	Root = 'r',
 	StartArray = '[',
 	StartObject = '{',
@@ -924,6 +924,7 @@ enum class TapeType {
 };
 
 struct JsonEvent {
+	JsonEvent* ptrTosStart{};
 	TapeType type{};
 	size_t index{};
 	size_t size{};
@@ -934,40 +935,47 @@ struct JsonEventWriter {
 		JsonEvent returnValue{};
 		returnValue.index = stringIndexNew;
 		returnValue.type = eventTypeNew;
+		
 		returnValue.size = sizeNew;
 		this->jsonEvents.emplace_back(returnValue);
+		if (eventTypeNew == TapeType::StartArray) {
+			this->arrayStartIndices.push_back(this->jsonEvents.size() - 1);
+		} else if (eventTypeNew == TapeType::StartObject) {
+			this->objectStartIndices.push_back(this->jsonEvents.size() - 1);
+		}	
 	}
 
 	void collectUnCollectedSpace(size_t currentIndex) {
-		size_t difference{};
-		for (int64_t x = 0; x < this->jsonEvents.size(); ++x) {
+		std::cout << "NEW ENTRY!" << std::endl;
+		for (int64_t x = this->jsonEvents.size() - 1; x > 0; --x) {
 			switch (this->jsonEvents[x].type) {
 				case TapeType::EndObject: {
-					currentIndex = this->getIndexByType(TapeType::StartObject, x);
-					std::cout << "THE CURRENT INDEX: 01 " << currentIndex << std::endl;
-					break;
+					std::cout << "THE INDEX: " << this->jsonEvents[x].index << std::endl;
+					std::cout << "THE INDEX OF OPENING: " << this->getIndexOfLastEvent(x, TapeType::StartObject) << std::endl;
+					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
+					return;
 				}
 				case TapeType::EndArray: {
-					currentIndex = this->getIndexByType(TapeType::StartArray, x);
-					std::cout << "THE CURRENT INDEX: 02 " << currentIndex << std::endl;
-					break;
+					for (size_t x = 0; x < &this->jsonEvents[x] - this->jsonEvents[x].ptrTosStart; ++x) {
+						this->jsonEvents[x].size += this->jsonEvents[x].size;
+						std::cout << "ADDED SIZE: " << this->jsonEvents[x].size << std::endl;
+					}
+					return;
 				}
-			}
-		}
-		if (currentIndex > difference) {
-			for (size_t x = currentIndex ; x > difference; --x) {
-				std::cout << "ADDED SIZE: " << this->jsonEvents[x].size << std::endl;
-				this->jsonEvents[currentIndex].size += this->jsonEvents[x].size;
 			}
 		}
 	}
 
-	size_t getIndexByType(TapeType typeNew, size_t currentIndex) {
-		for (size_t x = this->jsonEvents.size() - currentIndex; x > 0; --x) {
-			if (this->jsonEvents[x].type == typeNew) {
-				return x;
-			}
-		}
+	size_t getIndexOfLastEvent(size_t currentIndex, TapeType eventType) {
+		size_t returnValue{};
+		if (eventType == TapeType::StartArray) {
+			returnValue = this->arrayStartIndices.back();
+			this->arrayStartIndices.pop_back();
+		} else if (eventType == TapeType::StartObject) {
+			returnValue = this->objectStartIndices.back();
+			this->objectStartIndices.pop_back();
+		}	
+		return returnValue;
 	}
 
 	auto begin() {
@@ -986,6 +994,8 @@ struct JsonEventWriter {
 
   protected:
 	std::vector<JsonEvent> jsonEvents{};
+	std::vector<size_t> objectStartIndices{};
+	std::vector<size_t> arrayStartIndices{};
 };
 
 
