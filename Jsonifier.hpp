@@ -735,22 +735,22 @@ class SimdBase256 {
 	}
 
 	inline SimdBase256 carrylessMultiplication(char operand) {
-		auto inString01 = static_cast<uint64_t>(_mm_cvtsi128_si64(
-			_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0)));
-		auto prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
+		auto inString01 = static_cast<int64_t>(_mm_cvtsi128_si64(
+			_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0)));
+		auto prevInString = static_cast<int64_t>(inString01) >> 63;
 		auto inString02 =
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))) ^
+			static_cast<int64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))) ^
 			prevInString;
-		prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
+		prevInString = static_cast<int64_t>(inString02) >> 63;
 		auto inString03 =
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))) ^
+			static_cast<int64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))) ^
 			prevInString;
-		prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
+		prevInString = static_cast<int64_t>(inString03) >> 63;
 		auto inString04 =
-			static_cast<uint64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<uint64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) ^
+			static_cast<int64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) ^
 			prevInString;
 		return SimdBase256{ inString01, inString02, inString03, inString04 };
 	}
@@ -789,7 +789,7 @@ class SimdBase256 {
 		//std::cout << "GET SET BIT INDICES: " << std::endl;
 		for (int64_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
-				if (*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y & 1) {
+				if (*(reinterpret_cast<int64_t*>(&this->value) + x) >> y & 1) {
 					returnVector.push_back(static_cast<uint8_t>(y + (x * 64)));
 					//std::cout << "1";
 				} else {
@@ -1032,7 +1032,7 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode visitTrueAtom(char* value) {
-		if (strcmp(reinterpret_cast<char*>(value), "true")) {
+		if (strcmp(value, "true")) {
 
 			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::TrueValue);
 			return ErrorCode::Success;
@@ -1069,7 +1069,7 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode visitFalseAtom(char* value) {
-		if (strcmp(reinterpret_cast<char*>(value), "false")) {
+		if (strcmp(value, "false")) {
 			this->jsonData.appendTapeValue(5, value - &this->string[*this->jsonTape.data()], TapeType::FalseValue);
 			return ErrorCode::Success;
 		} else {
@@ -1079,7 +1079,7 @@ class SimdStringScanner {
 
 	inline ErrorCode visitNullAtom(char* value) {
 		std::cout << "WERE NULL ATOMING!" << std::endl;
-		if (strcmp(reinterpret_cast<char*>(value), "null")) {
+		if (strcmp(value, "null")) {
 			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::NullValue);
 			return ErrorCode::Success;
 		} else {
@@ -1156,12 +1156,12 @@ class SimdStringScanner {
 
 	inline char* peek() noexcept {
 		auto returnValue = &this->string[*(this->next_structural)];
-		return reinterpret_cast<char*>(returnValue);
+		return returnValue;
 	}
 
 	inline char* advance(std::source_location location = std::source_location::current()) noexcept {
 		auto returnValue = &this->string[*(this->next_structural++)];
-		return reinterpret_cast<char*>(returnValue);
+		return returnValue;
 	}
 
 	inline ErrorCode generateJsonData() {
