@@ -1,538 +1,75 @@
-#pragma once
-
-#pragma warning(push)
-#pragma warning(disable : 4244)
-#pragma warning(disable : 4251)
-
+#include <jsonifier/Jsonifier.hpp>
 #include <source_location>
-#include <unordered_map>
 #include <immintrin.h>
-#include <string_view>
-#include <concepts>
 #include <iostream>
-#include <vector>
-#include <atomic>
-#include <memory>
-#include <thread>
 #include <chrono>
+#include <vector>
 #include <bitset>
-#include <array>
+#include <atomic>
 #include <deque>
-#include <map>
 
-#ifdef _WIN32
-	#pragma comment(lib, "Ws2_32.lib")
-	#include <WinSock2.h>
-	#include <process.h>
-	#ifdef Jsonifier_EXPORTS
-		#define Jsonifier_Dll __declspec(dllexport)
-	#else
-		#define Jsonifier_Dll __declspec(dllimport)
-	#endif
-	#ifdef max
-		#undef max
-	#endif
-	#ifdef min
-		#undef min
-	#endif
-#else
-	#define Jsonifier_Dll
-	#include <arpa/inet.h>
-#endif
+struct DCAException : public std::runtime_error, std::string {
+	DCAException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+};
 
-namespace Jsonifier {
+DCAException::DCAException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
+	std::stringstream stream{};
+	stream << "Error Report: \n"
+		   << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column()) << ")"
+		   << "\nThe Error: \n"
+		   << error << std::endl
+		   << std::endl;
+	*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
+}
 
-	template<typename RTy> void reverseByteOrder(RTy& net) {
-		if constexpr (std::endian::native == std::endian::little) {
-			switch (sizeof(RTy)) {
-				case 1: {
-					return;
-				}
-				case 2: {
-					net =
-						_mm256_extract_epi16(_mm256_shuffle_epi8(_mm256_insert_epi16(__m256i{}, net, 0), _mm256_insert_epi16(__m256i{}, 0x01, 0)), 0);
-					return;
-				}
-				case 4: {
-					net = _mm256_extract_epi32(
-						_mm256_shuffle_epi8(_mm256_insert_epi32(__m256i{}, net, 0), _mm256_insert_epi32(__m256i{}, 0x10203, 0)), 0);
-					return;
-				}
-				case 8: {
-					net = _mm256_extract_epi64(
-						_mm256_shuffle_epi8(_mm256_insert_epi64(__m256i{}, net, 0), _mm256_insert_epi64(__m256i{}, 0x102030405060708, 0)), 0);
-					return;
-				}
-			}
+template<typename TTy> class StopWatch {
+  public:
+	using HRClock = std::chrono::high_resolution_clock;
+
+	inline StopWatch() = delete;
+
+	inline StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
+		this->maxNumberOfMs.store(data.maxNumberOfMs.load());
+		this->startTime.store(data.startTime.load());
+		return *this;
+	}
+
+	inline StopWatch(const StopWatch<TTy>& data) {
+		*this = data;
+	}
+
+	inline StopWatch(TTy maxNumberOfMsNew) {
+		this->maxNumberOfMs.store(maxNumberOfMsNew);
+		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
+	}
+
+	inline TTy totalTimePassed() {
+		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
+		TTy elapsedTime = currentTime - this->startTime.load();
+		return elapsedTime;
+	}
+
+	inline TTy getTotalWaitTime() {
+		return this->maxNumberOfMs.load();
+	}
+
+	inline bool hasTimePassed() {
+		TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
+		TTy elapsedTime = currentTime - this->startTime.load();
+		if (elapsedTime >= this->maxNumberOfMs.load()) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 
-	template<typename RTy> void storeBits(char* to, RTy num) {
-		const uint8_t byteSize{ 8 };
-		reverseByteOrder<RTy>(num);
-		for (uint32_t x = 0; x < sizeof(RTy); ++x) {
-			to[x] = static_cast<uint8_t>(num >> (byteSize * x));
-		}
+	inline void resetTimer() {
+		this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 	}
 
-	template<typename TTy> class StopWatch {
-	  public:
-		using HRClock = std::chrono::high_resolution_clock;
-
-		StopWatch() = delete;
-
-		StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
-			this->maxNumberOfMs.store(data.maxNumberOfMs.load());
-			this->startTime.store(data.startTime.load());
-			return *this;
-		}
-
-		StopWatch(const StopWatch<TTy>& data) {
-			*this = data;
-		}
-
-		StopWatch(TTy maxNumberOfMsNew) {
-			this->maxNumberOfMs.store(maxNumberOfMsNew);
-			this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
-		}
-
-		TTy totalTimePassed() {
-			TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
-			TTy elapsedTime = currentTime - this->startTime.load();
-			return elapsedTime;
-		}
-
-		TTy getTotalWaitTime() {
-			return this->maxNumberOfMs.load();
-		}
-
-		bool hasTimePassed() {
-			TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
-			TTy elapsedTime = currentTime - this->startTime.load();
-			if (elapsedTime >= this->maxNumberOfMs.load()) {
-				return true;
-			} else {
-				return false;
-			}
-		}
-
-		void resetTimer() {
-			this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
-		}
-
-	  protected:
-		std::atomic<TTy> maxNumberOfMs{ TTy{ 0 } };
-		std::atomic<TTy> startTime{ TTy{ 0 } };
-	};
-
-	constexpr uint8_t formatVersion{ 131 };
-
-	enum class EtfType : uint8_t {
-		New_Float_Ext = 70,
-		Small_Integer_Ext = 97,
-		Integer_Ext = 98,
-		Atom_Ext = 100,
-		Nil_Ext = 106,
-		String_Ext = 107,
-		List_Ext = 108,
-		Binary_Ext = 109,
-		Small_Big_Ext = 110,
-		Small_Atom_Ext = 115,
-		Map_Ext = 116,
-	};
-
-	template<typename Ty>
-	concept IsEnum = std::is_enum<Ty>::value;
-
-	struct EnumConverter {
-		template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> data) {
-			for (auto& value: data) {
-				this->vector.emplace_back(std::move(static_cast<uint64_t>(value)));
-			}
-			return *this;
-		};
-
-		template<IsEnum EnumType> EnumConverter(std::vector<EnumType> data) {
-			*this = data;
-		};
-
-		template<IsEnum EnumType> EnumConverter& operator=(EnumType data) {
-			this->integer = static_cast<uint64_t>(data);
-			return *this;
-		};
-
-		template<IsEnum EnumType> EnumConverter(EnumType data) {
-			*this = data;
-		};
-
-		operator std::vector<uint64_t>() const noexcept;
-
-		operator uint64_t() const noexcept;
-
-		bool isItAVector() const noexcept;
-
-	  protected:
-		std::vector<uint64_t> vector{};
-		bool vectorType{ false };
-		uint64_t integer{};
-	};
-
-	enum class JsonType : int8_t { Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
-
-	enum class JsonifierSerializeType { Etf = 0, Json = 1 };
-
-	class Jsonifier;
-
-	template<typename Ty>
-	concept IsConvertibleToJsonifier = std::convertible_to<Ty, Jsonifier>;
-
-	class Jsonifier {
-	  public:
-		using MapAllocatorType = std::allocator<std::pair<const std::string, Jsonifier>>;
-		template<typename OTy> using AllocatorType = std::allocator<OTy>;
-		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
-		using ObjectType = std::map<std::string, Jsonifier, std::less<>, MapAllocatorType>;
-		using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
-		using StringType = std::string;
-		using FloatType = double;
-		using UintType = uint64_t;
-		using IntType = int64_t;
-		using BoolType = bool;
-
-		union JsonValue {
-			JsonValue() noexcept = default;
-			JsonValue& operator=(JsonValue&&) noexcept = delete;
-			JsonValue(JsonValue&&) noexcept = delete;
-			JsonValue& operator=(const JsonValue&) noexcept = delete;
-			JsonValue(const JsonValue&) noexcept = delete;
-			ObjectType* object;
-			StringType* string;
-			ArrayType* array;
-			FloatType numberDouble;
-			UintType numberUint;
-			IntType numberInt;
-			BoolType boolean;
-		};
-
-		Jsonifier() noexcept = default;
-
-		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>&& data) noexcept {
-			this->setValue(JsonType::Array);
-			for (auto& value: data) {
-				this->jsonValue.array->push_back(std::move(value));
-			}
-			return *this;
-		}
-
-		template<IsConvertibleToJsonifier OTy> Jsonifier(std::vector<OTy>&& data) noexcept {
-			*this = std::move(data);
-		}
-
-		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>& data) noexcept {
-			this->setValue(JsonType::Array);
-			for (auto& value: data) {
-				this->jsonValue.array->push_back(value);
-			}
-			return *this;
-		}
-
-		template<IsConvertibleToJsonifier OTy> Jsonifier(std::vector<OTy>& data) noexcept {
-			*this = data;
-		}
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::unordered_map<KTy, OTy>&& data) noexcept {
-			this->setValue(JsonType::Object);
-			for (auto& [key, value]: data) {
-				(*this->jsonValue.object)[key] = std::move(value);
-			}
-			return *this;
-		}
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::unordered_map<KTy, OTy>&& data) noexcept {
-			*this = std::move(data);
-		};
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::unordered_map<KTy, OTy>& data) noexcept {
-			this->setValue(JsonType::Object);
-			for (auto& [key, value]: data) {
-				(*this->jsonValue.object)[key] = value;
-			}
-			return *this;
-		}
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::unordered_map<KTy, OTy>& data) noexcept {
-			*this = data;
-		};
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::map<KTy, OTy>&& data) noexcept {
-			this->setValue(JsonType::Object);
-			for (auto& [key, value]: data) {
-				(*this->jsonValue.object)[key] = std::move(value);
-			}
-			return *this;
-		}
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::map<KTy, OTy>&& data) noexcept {
-			*this = std::move(data);
-		};
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::map<KTy, OTy>& data) noexcept {
-			this->setValue(JsonType::Object);
-			for (auto& [key, value]: data) {
-				(*this->jsonValue.object)[key] = value;
-			}
-			return *this;
-		}
-
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::map<KTy, OTy>& data) noexcept {
-			*this = data;
-		};
-
-		template<IsEnum Ty> Jsonifier& operator=(Ty data) noexcept {
-			this->jsonValue.numberUint = static_cast<uint64_t>(data);
-			this->type = JsonType::Uint64;
-			return *this;
-		}
-
-		template<IsEnum Ty> Jsonifier(Ty data) noexcept {
-			*this = data;
-		}
-
-		Jsonifier& operator=(ObjectType&& data) noexcept;
-
-		Jsonifier(ObjectType&& data) noexcept;
-
-		Jsonifier& operator=(const ObjectType& data) noexcept;
-
-		Jsonifier(const ObjectType& data) noexcept;
-
-		Jsonifier& operator=(Jsonifier&& data) noexcept;
-
-		Jsonifier(Jsonifier&& data) noexcept;
-
-		Jsonifier& operator=(const Jsonifier& data) noexcept;
-
-		Jsonifier(const Jsonifier& data) noexcept;
-
-		operator std::string&&() noexcept;
-
-		operator std::string() noexcept;
-
-		void refreshString(JsonifierSerializeType OpCode);
-
-		bool contains(std::string& key);
-
-		Jsonifier& operator=(EnumConverter&& data) noexcept;
-		Jsonifier(EnumConverter&& data) noexcept;
-
-		Jsonifier& operator=(const EnumConverter& data) noexcept;
-		Jsonifier(const EnumConverter& data) noexcept;
-
-		Jsonifier& operator=(std::string&& data) noexcept;
-		Jsonifier(std::string&& data) noexcept;
-
-		Jsonifier& operator=(const std::string& data) noexcept;
-		Jsonifier(const std::string& data) noexcept;
-
-		Jsonifier& operator=(const char* data) noexcept;
-		Jsonifier(const char* data) noexcept;
-
-		Jsonifier& operator=(double data) noexcept;
-		Jsonifier(double data) noexcept;
-
-		Jsonifier& operator=(float data) noexcept;
-		Jsonifier(float data) noexcept;
-
-		Jsonifier& operator=(uint64_t data) noexcept;
-		Jsonifier(uint64_t data) noexcept;
-
-		Jsonifier& operator=(uint32_t data) noexcept;
-		Jsonifier(uint32_t data) noexcept;
-
-		Jsonifier& operator=(uint16_t data) noexcept;
-		Jsonifier(uint16_t data) noexcept;
-
-		Jsonifier& operator=(uint8_t data) noexcept;
-		Jsonifier(uint8_t data) noexcept;
-
-		Jsonifier& operator=(int64_t data) noexcept;
-		Jsonifier(int64_t data) noexcept;
-
-		Jsonifier& operator=(int32_t data) noexcept;
-		Jsonifier(int32_t data) noexcept;
-
-		Jsonifier& operator=(int16_t data) noexcept;
-		Jsonifier(int16_t data) noexcept;
-
-		Jsonifier& operator=(int8_t data) noexcept;
-		Jsonifier(int8_t data) noexcept;
-
-		Jsonifier& operator=(bool data) noexcept;
-		Jsonifier(bool data) noexcept;
-
-		Jsonifier& operator=(JsonType TypeNew) noexcept;
-		Jsonifier(JsonType type) noexcept;
-
-		Jsonifier& operator=(std::nullptr_t) noexcept;
-		Jsonifier(std::nullptr_t data) noexcept;
-
-		Jsonifier& operator[](typename ObjectType::key_type key);
-
-		Jsonifier& operator[](uint64_t index);
-
-		template<typename Ty> const Ty& getValue() const {
-			return Ty{};
-		}
-
-		template<typename Ty> Ty& getValue() {
-			return Ty{};
-		}
-
-		JsonType getType() noexcept;
-
-		void emplaceBack(Jsonifier&& data) noexcept;
-		void emplaceBack(Jsonifier& data) noexcept;
-
-		~Jsonifier() noexcept;
-
-	  protected:
-		JsonType type{ JsonType::Null };
-		JsonValue jsonValue{};
-		std::string string{};
-
-		void serializeJsonToEtfString(const Jsonifier* dataToParse);
-
-		void serializeJsonToJsonString(const Jsonifier* dataToParse);
-
-		void writeJsonObject(const ObjectType& ObjectNew);
-
-		void writeJsonArray(const ArrayType& Array);
-
-		void writeJsonString(const StringType& StringNew);
-
-		void writeJsonFloat(const FloatType x);
-
-		template<typename NumberType,
-			std::enable_if_t<
-				std::is_integral<NumberType>::value || std::is_same<NumberType, uint64_t>::value || std::is_same<NumberType, int64_t>::value, int> =
-				0>
-		void writeJsonInt(NumberType Int) {
-			auto IntNew = std::to_string(Int);
-			this->writeString(IntNew.data(), IntNew.size());
-		}
-
-		void writeJsonBool(const BoolType ValueNew);
-
-		void writeJsonNull();
-
-		void writeEtfObject(const ObjectType& jsonData);
-
-		void writeEtfArray(const ArrayType& jsonData);
-
-		void writeEtfString(const StringType& jsonData);
-
-		void writeEtfUint(const UintType jsonData);
-
-		void writeEtfInt(const IntType jsonData);
-
-		void writeEtfFloat(const FloatType jsonData);
-
-		void writeEtfBool(const BoolType jsonData);
-
-		void writeEtfNull();
-
-		void writeString(const char* data, std::size_t length);
-
-		void writeCharacter(const char Char);
-
-		void appendBinaryExt(const std::string& bytes, const uint32_t sizeNew);
-
-		void appendUnsignedLongLong(const uint64_t value);
-
-		void appendNewFloatExt(const double FloatValue);
-
-		void appendSmallIntegerExt(const uint8_t value);
-
-		void appendListHeader(const uint32_t sizeNew);
-
-		void appendMapHeader(const uint32_t sizeNew);
-
-		void appendIntegerExt(const uint32_t value);
-
-		void appendBool(bool data);
-
-		void appendVersion();
-
-		void appendNilExt();
-
-		void appendNil();
-
-		void setValue(JsonType TypeNew);
-
-		void destroy() noexcept;
-
-		friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
-	};
-
-	template<> inline const Jsonifier::ObjectType& Jsonifier::getValue() const {
-		return *this->jsonValue.object;
-	}
-
-	template<> inline const Jsonifier::ArrayType& Jsonifier::getValue() const {
-		return *this->jsonValue.array;
-	}
-
-	template<> inline const Jsonifier::StringType& Jsonifier::getValue() const {
-		return *this->jsonValue.string;
-	}
-
-	template<> inline const Jsonifier::FloatType& Jsonifier::getValue() const {
-		return this->jsonValue.numberDouble;
-	}
-
-	template<> inline const Jsonifier::UintType& Jsonifier::getValue() const {
-		return this->jsonValue.numberUint;
-	}
-
-	template<> inline const Jsonifier::IntType& Jsonifier::getValue() const {
-		return this->jsonValue.numberInt;
-	}
-
-	template<> inline const Jsonifier::BoolType& Jsonifier::getValue() const {
-		return this->jsonValue.boolean;
-	}
-
-	template<> inline Jsonifier::ObjectType& Jsonifier::getValue() {
-		return *this->jsonValue.object;
-	}
-
-	template<> inline Jsonifier::ArrayType& Jsonifier::getValue() {
-		return *this->jsonValue.array;
-	}
-
-	template<> inline Jsonifier::StringType& Jsonifier::getValue() {
-		return *this->jsonValue.string;
-	}
-
-	template<> inline Jsonifier::FloatType& Jsonifier::getValue() {
-		return this->jsonValue.numberDouble;
-	}
-
-	template<> inline Jsonifier::UintType& Jsonifier::getValue() {
-		return this->jsonValue.numberUint;
-	}
-
-	template<> inline Jsonifier::IntType& Jsonifier::getValue() {
-		return this->jsonValue.numberInt;
-	}
-
-	template<> inline Jsonifier::BoolType& Jsonifier::getValue() {
-		return this->jsonValue.boolean;
-	}
-
-
-struct JsonifierException : public std::runtime_error, std::string {
-	JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+  protected:
+	std::atomic<TTy> maxNumberOfMs{ TTy{ 0 } };
+	std::atomic<TTy> startTime{ TTy{ 0 } };
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i inputA, const __m256i inputB) {
@@ -555,19 +92,21 @@ class SimdBase128 {
 	}
 
 	inline SimdBase128(int64_t value00, int64_t value01) {
-		this->value = _mm_set_epi64x(value01, value00);
+		this->value = _mm_insert_epi64(this->value, value00, 0);
+		this->value = _mm_insert_epi64(this->value, value01, 1);
 	}
 
 	inline SimdBase128(uint64_t value00, uint64_t value01) {
-		this->value = _mm_set_epi64x(static_cast<int64_t>(value01), static_cast<int64_t>(value00));
+		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 0);
+		this->value = _mm_insert_epi64(this->value, static_cast<int64_t>(value00), 1);
 	}
 
-	inline SimdBase128& operator=(__m128i other) {
+	inline SimdBase128& operator=(const __m128i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase128(__m128i other) {
+	inline SimdBase128(const __m128i other) {
 		*this = other;
 	}
 
@@ -667,12 +206,12 @@ class SimdBase256 {
 			static_cast<int64_t>(value00));
 	}
 
-	inline SimdBase256& operator=(__m256i other) {
+	inline SimdBase256& operator=(const __m256i other) {
 		this->value = other;
 		return *this;
 	}
 
-	inline SimdBase256(__m256i other) {
+	inline SimdBase256(const __m256i other) {
 		*this = other;
 	}
 
@@ -784,13 +323,13 @@ class SimdBase256 {
 		return _mm256_shuffle_epi8(other, *this);
 	}
 
-	inline std::vector<int8_t> getSetBitIndices() {
-		std::vector<int8_t> returnVector{};
+	inline std::vector<int16_t> getSetBitIndices() {
+		std::vector<int16_t> returnVector{};
 		//std::cout << "GET SET BIT INDICES: " << std::endl;
 		for (int64_t x = 0; x < 4; ++x) {
 			for (int64_t y = 0; y < 64; ++y) {
 				if (*(reinterpret_cast<uint64_t*>(&this->value) + x) >> y & 1) {
-					returnVector.push_back(static_cast<int8_t>(y + (x * 64)));
+					returnVector.push_back(static_cast<int16_t>(y + (x * 64)));
 					//std::cout << "1";
 				} else {
 					//std::cout << "0";
@@ -816,7 +355,7 @@ class SimdStringSection {
 		}
 	}
 
-	inline std::vector<int8_t> getStructuralIndices() {
+	inline std::vector<int16_t> getStructuralIndices() {
 		return this->S256.getSetBitIndices();
 	}
 
@@ -911,7 +450,7 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		std::cout << "THE STRING: " << this->stringView << std::endl;
+		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
   protected:
@@ -935,57 +474,6 @@ enum class JsonTapeEventStates {
 	ArrayContinue = 6,
 	DocumentEnd = 7
 };
-
-enum class JsonEventTypes : int16_t {
-	ObjectStart = 1 << 0,
-	ArrayStart = 1 << 2,
-	StringStart = 1 << 4,
-	Uint64Start = 1 << 6,
-	Int64Start = 1 << 7,
-	DoubleStart = 1 << 8,
-	BoolStart = 1 << 9
-};
-
-enum class TapeType {
-	Root = 'r',
-	StartArray = '[',
-	StartObject = '{',
-	EndArray = ']',
-	EndObject = '}',
-	String = '"',
-	Int64 = 'l',
-	Uint64 = 'u',
-	Double = 'd',
-	TrueValue = 't',
-	FalseValue = 'f',
-	NullValue = 'n'
-};
-
-struct JsonEvent {
-	TapeType type{};
-	size_t index{};
-	size_t size{};
-};
-
-struct JsonEventWriter {
-	void appendTapeValue(size_t sizeNew, size_t indexNew, TapeType eventTypeNew) {
-		JsonEvent returnValue{};
-		returnValue.type = eventTypeNew;
-		returnValue.index = indexNew;
-		returnValue.size = sizeNew;
-		this->jsonEvents.emplace_back(returnValue);
-	}
-
-	JsonEvent getEvent() {
-		JsonEvent returnValue = this->jsonEvents.back();
-		this->jsonEvents.pop_back();
-		return returnValue;
-	}
-
-  protected:
-	std::vector<JsonEvent> jsonEvents{};
-};
-
 
 class SimdStringScanner {
   public:
@@ -1014,15 +502,15 @@ class SimdStringScanner {
 
 	inline void generateTapeRecord() {
 		for (auto& value: this->stringSections) {
-			std::vector<int8_t> setBitIndices{ value.getStructuralIndices() };
+			std::vector<int16_t> setBitIndices{ value.getStructuralIndices() };
 			this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
 		}
-		this->next_structural = &this->jsonTape[0];
+		this->next_structural = this->jsonTape.data();
 	}
 
 	inline ErrorCode visitTrueAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "true")) {
-			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::TrueValue);
+			this->jsonData[this->currentKey] = 250;
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1032,28 +520,28 @@ class SimdStringScanner {
 	inline ErrorCode visitObjectStart() {
 		std::cout << "WERE OBJECT STARTING!" << std::endl;
 		std::cout << "THE KEY: " << this->currentKey << std::endl;
-		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
+		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ObjectType{};
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayStart() {
-		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
+		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ArrayType{};
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitObjectEnd() {
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
+		//this->jsonData[this->currentKey] = this->jsonData;
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayEnd() {
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
+		//this->jsonData[this->currentKey] = this->jsonData;
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitFalseAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "false")) {
-			this->jsonData.appendTapeValue(5, value - &this->string[*this->jsonTape.data()], TapeType::FalseValue);
+			this->jsonData[this->currentKey] = false;
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1062,7 +550,7 @@ class SimdStringScanner {
 
 	inline ErrorCode visitNullAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "null")) {
-			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::NullValue);
+			this->jsonData[this->currentKey] = nullptr;
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1070,30 +558,38 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode visitNumber(char* value, bool array) {
-		this->jsonData.appendTapeValue(8, value - &this->string[*this->jsonTape.data()], TapeType::Uint64);
+		this->jsonData[this->currentKey] = 250;
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitKey(char* value) {
-		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
+		this->currentKey.clear();
+		this->currentKey.insert(this->currentKey.begin(), value + 1, this->peek() - 1);
 		std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
+		//std::cout << "THE CURRENT INDEX 01: " << *value << std::endl;
+		//std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
+		//std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitEmptyObject() {
-		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
+		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ObjectType{};
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitEmptyArray() {
-		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
+		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ArrayType{};
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitString(char* value, bool array) {
-		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
+		this->currentString.clear();
+		this->currentString.insert(this->currentString.begin(), value + 1, this->peek() - 1);
+		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
+		//std::cout << "THE CURRENT INDEX 01: " << *value  << std::endl;
+		//std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
+		std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
+		this->jsonData[this->currentKey] = this->currentString;
 		return ErrorCode::Success;
 	}
 
@@ -1120,46 +616,44 @@ class SimdStringScanner {
 			case '9':
 				return this->visitNumber(value, array);
 			default:
-				throw JsonifierException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
+				throw DCAException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
 		}
 	}
 
-	int32_t* next_structural{ nullptr };
+	uint16_t* next_structural{ nullptr };
 	uint32_t depth{ 0 };
 
-	inline bool atEof() {
-		return &this->jsonTape[*this->next_structural] - this->jsonTape.data() == 0;
-	}
-
 	inline char* peek() noexcept {
+		//std::cout << "CURRENT NEXT STRUCTURAL: " << *(next_structural) << std::endl;
 		auto returnValue = &this->string[*(this->next_structural)];
-		return reinterpret_cast<char*>(returnValue);
+		//std::cout << "CURRENT NEXT VALUEL: " << *returnValue << std::endl;
+		//std::cout << *returnValue << std::endl;
+		return returnValue;
 	}
 
-	inline char* advance(std::source_location location = std::source_location::current()) noexcept {
+	inline char* advance(std::source_location location=std::source_location::current()) noexcept {
 		auto returnValue = &this->string[*(this->next_structural++)];
-		std::cout << "THE CURRENT VALUE: " << *returnValue << std::endl;
-		return reinterpret_cast<char*>(returnValue);
+		//std::cout << "CURRENT NEXT STRUCTURAL: " << location.line() << *(next_structural) << std::endl;
+		//std::cout << "CURRENT NEXT VALUEL: " << *returnValue << std::endl;
+		//std::cout << *returnValue << std::endl;
+		return returnValue;
 	}
 
 	inline ErrorCode generateJsonData() {
-		if (this->atEof()) {
-			return ErrorCode::Success;
-		}
 		switch (this->currentState) {
 			case JsonTapeEventStates::ObjectBegin:{
 				this->depth++;
 				this->visitObjectStart();
-				auto key = this->advance();
+				auto key = advance();
 				if (*key != '"') {
-					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
 				this->visitKey(key);
 				this->currentState = JsonTapeEventStates::ObjectField;
 			}
 			case JsonTapeEventStates::ObjectField: {
 				if (*this->advance() != ':') {
-					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
 				auto value = this->advance();
 				switch (*value) {
@@ -1190,7 +684,7 @@ class SimdStringScanner {
 					case ',': {
 						auto key = this->advance();
 						if (*key != '"') {
-							throw JsonifierException{ "Failed to generate Json data: Reason: " +
+							throw DCAException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 						}
 						this->visitKey(key);
@@ -1203,8 +697,7 @@ class SimdStringScanner {
 						return this->generateJsonData();
 					}
 					default: {
-						return this->generateJsonData();
-						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+						throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
 						
 				}
@@ -1256,7 +749,7 @@ class SimdStringScanner {
 						this->currentState = JsonTapeEventStates::ScopeEnd;
 						return this->generateJsonData();
 					default:
-						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+						throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
 				break;
 			}
@@ -1267,10 +760,14 @@ class SimdStringScanner {
 				break;
 			}
 		}
-		return ErrorCode::Success;
+		if (this->next_structural == this->jsonTape.data() + this->jsonTape.size() - 1) {
+			return ErrorCode::Success;
+		} else {
+			return this->generateJsonData();
+		}
 	}
 
-	inline Jsonifier getJsonData() {
+	inline Jsonifier::Jsonifier getJsonData() {
 		auto value = advance();
 		ErrorCode resultCode{};
 		switch (*value) {
@@ -1300,17 +797,16 @@ class SimdStringScanner {
 		if (resultCode!= ErrorCode::Success) {
 			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
 		}
-		return Jsonifier{};
+		return this->jsonData;
 	}
 
   protected:
 	JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 	std::vector<SimdStringSection> stringSections{};
-	std::vector<int32_t> jsonTape{};
+	std::vector<uint16_t> jsonTape{};
+	Jsonifier::Jsonifier jsonData{};
 	std::string_view stringView{};
 	std::string currentString{};
-	JsonEventWriter jsonData{};
 	std::string currentKey{};
 	std::string string{};
-};
 };

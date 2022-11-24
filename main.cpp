@@ -1,37 +1,28 @@
 #include "Jsonifier.hpp"
 
+
+
 int32_t main() noexcept {
 	try {
-		Jsonifier::Jsonifier jsonDataTest{};
-		jsonDataTest["TESTING"] = "TEST_VALUES";
-		jsonDataTest["TESTING02"]["testing92"] = 2435;
-		//theWriter.appendTapeValue(27,, JsonEventTypes::ObjectStart);
-		//theWriter.appendTapeValue(8,, JsonEventTypes::Int64Start);
-
-		
-		jsonDataTest.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::cout << jsonDataTest.operator std::string&&() << std::endl;
-		
-			std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+	
+		std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-			std::string stringNew{
-				"{\"d\":{\"activities\":[],\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
-				"\"online\",\"user\":{\"id\":\"381531043334717440\"}}}"
-			};
-		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
-			size_t totalTime{};
+		std::string stringNew{ "{\"d\":{\"activities\":[],\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
+							   "\"online\",\"user\":{\"id\":\"381531043334717440\"}}}" };
+		StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+		size_t totalTime{};
 		size_t totalSize{};
-		Jsonifier::SimdStringScanner stringScanner{ stringNew };
+		SimdStringScanner stringScanner{ stringNew };
 		Jsonifier::Jsonifier theData{};
 		auto newJsonData = stringScanner.getJsonData();
 		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
-			Jsonifier::SimdStringScanner simd8Test{ string256 };
+			SimdStringScanner simd8Test{ string256 };
 			totalSize += string256.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();
