@@ -2,7 +2,7 @@
 
 namespace Jsonifier {
 
-	DCAException::DCAException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
+	JsonifierException::JsonifierException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
 		std::stringstream stream{};
 		stream << "Error Report: \n"
 			   << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())

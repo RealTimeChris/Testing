@@ -531,8 +531,8 @@ namespace Jsonifier {
 	}
 
 
-struct DCAException : public std::runtime_error, std::string {
-	DCAException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+struct JsonifierException : public std::runtime_error, std::string {
+	JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 };
 
 inline uint64_t convertSimd256To64BitUint(const __m256i inputA, const __m256i inputB) {
@@ -1139,7 +1139,7 @@ class SimdStringScanner {
 			case '9':
 				return this->visitNumber(value, array);
 			default:
-				throw DCAException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
+				throw JsonifierException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
 		}
 	}
 
@@ -1169,14 +1169,14 @@ class SimdStringScanner {
 				this->visitObjectStart();
 				auto key = this->advance();
 				if (*key != '"') {
-					throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
 				this->visitKey(key);
 				this->currentState = JsonTapeEventStates::ObjectField;
 			}
 			case JsonTapeEventStates::ObjectField: {
 				if (*this->advance() != ':') {
-					throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
 				auto value = this->advance();
 				switch (*value) {
@@ -1207,7 +1207,7 @@ class SimdStringScanner {
 					case ',': {
 						auto key = this->advance();
 						if (*key != '"') {
-							throw DCAException{ "Failed to generate Json data: Reason: " +
+							throw JsonifierException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 						}
 						this->visitKey(key);
@@ -1220,7 +1220,7 @@ class SimdStringScanner {
 						return this->generateJsonData();
 					}
 					default: {
-						throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
 						
 				}
@@ -1272,7 +1272,7 @@ class SimdStringScanner {
 						this->currentState = JsonTapeEventStates::ScopeEnd;
 						return this->generateJsonData();
 					default:
-						throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
 				break;
 			}
