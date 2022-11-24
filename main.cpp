@@ -1,10 +1,12 @@
 #include "Jsonifier.hpp"
 
-
-
 int32_t main() noexcept {
 	try {
-	
+		Jsonifier::Jsonifier jsonDataTest{};
+		
+		jsonDataTest.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		std::cout << jsonDataTest.operator std::string&&() << std::endl;
+		
 			std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"

@@ -475,6 +475,69 @@ enum class JsonTapeEventStates {
 	DocumentEnd = 7
 };
 
+struct JsonifierParser {
+	JsonifierParser() noexcept = default;
+	void packValue(std::string keyNew, Jsonifier::Jsonifier&& jsonifier, JsonTapeEventStates event) {
+		switch (event) {
+			case JsonTapeEventStates::ObjectBegin: {
+				this->currentKey.clear();
+				this->currentKey.emplace_back(std::move(keyNew));
+				this->jsonData[this->currentKey.back()] = Jsonifier::Jsonifier::ObjectType{};
+				break;
+			}
+			case JsonTapeEventStates::ObjectField: {
+				this->currentKey.emplace_back(std::move(keyNew));
+				this->jsonData[this->currentKey.back()] = Jsonifier::Jsonifier::ObjectType{};
+				//this->jsonData[this->currentKey] = std::move(jsonifier);
+				jsonifier.refreshString(Jsonifier::JsonifierSerializeType::Json);
+				std::cout << "THE VALUE: " << jsonifier.operator std::string&&() << std::endl;
+				this->getCurrentValue(this->jsonData) = std::move(jsonifier);
+				break;
+			}
+			case JsonTapeEventStates::ObjectContinue: {
+				this->currentKey.emplace_back(std::move(keyNew));
+				this->jsonData[this->currentKey.back()] = Jsonifier::Jsonifier::ObjectType{};
+				jsonifier.refreshString(Jsonifier::JsonifierSerializeType::Json);
+				std::cout << "THE VALUE: " << jsonifier.operator std::string&&() << std::endl;
+				this->getCurrentValue(this->jsonData) = std::move(jsonifier);
+				break;
+			}
+			case JsonTapeEventStates::ScopeEnd: {
+				this->currentKey.clear();
+				break;
+			}
+			case JsonTapeEventStates::ArrayBegin: {
+				this->currentKey.emplace_back(std::move(keyNew));
+				break;
+			}
+			case JsonTapeEventStates::ArrayValue: {
+				this->getCurrentValue(this->jsonData).emplaceBack(std::move(jsonifier));
+				break;
+			}
+		}
+	}
+
+	Jsonifier::Jsonifier& getCurrentValue(Jsonifier::Jsonifier& theData) {
+		Jsonifier::Jsonifier& theDataNew{ theData };
+		for (auto& value: this->currentKey) {
+			theDataNew = theData[value];
+		}
+		return theDataNew;
+	}
+
+	operator Jsonifier::Jsonifier() {
+		return this->jsonData;
+	}
+
+	operator Jsonifier::Jsonifier&() {
+		return this->jsonData;
+	}
+
+  protected:
+	std::vector<std::string> currentKey{};
+	Jsonifier::Jsonifier jsonData{};
+};
+
 class SimdStringScanner {
   public:
 
@@ -508,88 +571,85 @@ class SimdStringScanner {
 		this->next_structural = this->jsonTape.data();
 	}
 
-	ErrorCode visitTrueAtom(char* value, bool array) {
+	inline ErrorCode visitTrueAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "true")) {
-			this->jsonData[this->currentKey] = 250;
+			this->jsonData.packValue(this->currentKey, false, this->currentState);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
 		}
 	}
 
-	ErrorCode visitObjectStart() {
+	inline ErrorCode visitObjectStart() {
 		std::cout << "WERE OBJECT STARTING!" << std::endl;
 		std::cout << "THE KEY: " << this->currentKey << std::endl;
-		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ObjectType{};
+		this->jsonData.packValue(this->currentKey, Jsonifier::Jsonifier::ObjectType{}, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitArrayStart() {
-		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ArrayType{};
+	inline ErrorCode visitArrayStart() {
+		this->jsonData.packValue(this->currentKey, Jsonifier::Jsonifier::ArrayType{}, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitObjectEnd() {
-		//this->jsonData[this->currentKey] = this->jsonData;
+	inline ErrorCode visitObjectEnd() {
+		this->jsonData.packValue("", Jsonifier::Jsonifier::ObjectType{}, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitArrayEnd() {
-		//this->jsonData[this->currentKey] = this->jsonData;
+	inline ErrorCode visitArrayEnd() {
+		this->jsonData.packValue("", Jsonifier::Jsonifier::ArrayType{}, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitFalseAtom(char* value, bool array) {
+	inline ErrorCode visitFalseAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "false")) {
-			this->jsonData[this->currentKey] = false;
+			this->jsonData.packValue(this->currentKey, false, this->currentState);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
 		}
 	}
 
-	ErrorCode visitNullAtom(char* value, bool array) {
+	inline ErrorCode visitNullAtom(char* value, bool array) {
 		if (strcmp(reinterpret_cast<char*>(value), "null")) {
-			this->jsonData[this->currentKey] = nullptr;
+			this->jsonData.packValue(this->currentKey, nullptr, this->currentState);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
 		}
 	}
 
-	ErrorCode visitNumber(char* value, bool array) {
-		this->jsonData[this->currentKey] = 250;
+	inline ErrorCode visitNumber(char* value, bool array) {
+		this->jsonData.packValue(this->currentKey, 250, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitKey(char* value) {
+	inline ErrorCode visitKey(char* value) {
 		this->currentKey.clear();
 		this->currentKey.insert(this->currentKey.begin(), value + 1, this->peek() - 1);
 		std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
-		//std::cout << "THE CURRENT INDEX 01: " << *value << std::endl;
-		//std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
-		//std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitEmptyObject() {
-		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ObjectType{};
+	inline ErrorCode visitEmptyObject() {
+		this->jsonData.packValue(this->currentKey, Jsonifier::Jsonifier::ObjectType{}, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitEmptyArray() {
-		this->jsonData[this->currentKey] = Jsonifier::Jsonifier::ArrayType{};
+	inline ErrorCode visitEmptyArray() {
+		this->jsonData.packValue(this->currentKey, Jsonifier::Jsonifier::ArrayType{}, this->currentState);
 		return ErrorCode::Success;
 	}
 
-	ErrorCode visitString(char* value, bool array) {
+	inline ErrorCode visitString(char* value, bool array) {
 		this->currentString.clear();
 		this->currentString.insert(this->currentString.begin(), value + 1, this->peek() - 1);
 		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
 		//std::cout << "THE CURRENT INDEX 01: " << *value  << std::endl;
 		//std::cout << "THE CURRENT INDEX 02: " << *this->peek() << std::endl;
 		std::cout << "THE CURRENT STRING: " << this->currentString << std::endl;
-		this->jsonData[this->currentKey] = this->currentString;
+		this->jsonData.packValue(this->currentKey, this->currentString, this->currentState);
 		return ErrorCode::Success;
 	}
 
@@ -644,7 +704,7 @@ class SimdStringScanner {
 			case JsonTapeEventStates::ObjectBegin:{
 				this->depth++;
 				this->visitObjectStart();
-				auto key = advance();
+				auto key = this->advance();
 				if (*key != '"') {
 					throw DCAException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 				}
@@ -797,16 +857,16 @@ class SimdStringScanner {
 		if (resultCode!= ErrorCode::Success) {
 			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
 		}
-		return this->jsonData;
+		return this->jsonData.operator Jsonifier::Jsonifier&();
 	}
 
   protected:
 	JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 	std::vector<SimdStringSection> stringSections{};
 	std::vector<uint16_t> jsonTape{};
-	Jsonifier::Jsonifier jsonData{};
 	std::string_view stringView{};
 	std::string currentString{};
+	JsonifierParser jsonData{};
 	std::string currentKey{};
 	std::string string{};
 };
