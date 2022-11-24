@@ -966,6 +966,27 @@ struct JsonEventWriter {
 		this->jsonEvents.emplace_back(returnValue);
 	}
 
+	void collectUnCollectedSpace(size_t currentIndex) {
+		size_t difference{};
+		for (size_t x = currentIndex; x > 0; --x) {
+			if (this->jsonEvents[x].size == -1) {
+				std::cout << "THE MISSING INDEX: " << x << std::endl;
+				difference = x;
+			}
+		}
+		for (size_t x = currentIndex; x > difference; --x) {
+			this->jsonEvents[currentIndex].size += this->jsonEvents[x].size;
+		}
+	}
+
+	auto begin() {
+		return this->jsonEvents.begin();
+	}
+
+	auto end() {
+		return this->jsonEvents.end();
+	}
+
 	JsonEvent getEvent() {
 		JsonEvent returnValue = this->jsonEvents.back();
 		this->jsonEvents.pop_back();
@@ -1036,12 +1057,14 @@ class SimdStringScanner {
 	inline ErrorCode visitObjectEnd() {
 		std::cout << "WERE OBJECT ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
+		this->jsonData.collectUnCollectedSpace(*this->next_structural);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode visitArrayEnd() {
 		std::cout << "WERE ARRAY ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
+		this->jsonData.collectUnCollectedSpace(*this->next_structural);
 		return ErrorCode::Success;
 	}
 
@@ -1295,6 +1318,10 @@ class SimdStringScanner {
  
 		if (resultCode!= ErrorCode::Success) {
 			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
+		}
+		std::cout << "THE FINAL DATA: " << std::endl;
+		for (auto& value: this->jsonData) {
+			std::cout << "INDEX: " << value.index << ", SIZE: " << value.size << std::endl;
 		}
 		return Jsonifier{};
 	}

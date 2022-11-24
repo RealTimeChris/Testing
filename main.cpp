@@ -20,6 +20,7 @@ int32_t main() noexcept {
 		auto newJsonData = stringScanner.getJsonData();
 		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
+		std::cout << "THE STRING: " << stringNew << std::endl;
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 			Jsonifier::SimdStringScanner simd8Test{ string256 };
