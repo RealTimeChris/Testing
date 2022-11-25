@@ -416,28 +416,28 @@ namespace Jsonifier {
 		}
 	}
 
-	void Jsonifier::serializeJsonToEtfString(const Jsonifier* dataToParse) {
-		switch (dataToParse->type) {
+	void Jsonifier::serializeJsonToEtfString(const Jsonifier* jsonDataNew) {
+		switch (jsonDataNew->type) {
 		case JsonType::Object: {
-			return this->writeEtfObject(*dataToParse->jsonValue.object);
+			return this->writeEtfObject(*jsonDataNew->jsonValue.object);
 		}
 		case JsonType::Array: {
-			return this->writeEtfArray(*dataToParse->jsonValue.array);
+			return this->writeEtfArray(*jsonDataNew->jsonValue.array);
 		}
 		case JsonType::String: {
-			return this->writeEtfString(*dataToParse->jsonValue.string);
+			return this->writeEtfString(*jsonDataNew->jsonValue.string);
 		}
 		case JsonType::Float: {
-			return this->writeEtfFloat(dataToParse->jsonValue.numberDouble);
+			return this->writeEtfFloat(jsonDataNew->jsonValue.numberDouble);
 		}
 		case JsonType::Uint64: {
-			return this->writeEtfUint(dataToParse->jsonValue.numberUint);
+			return this->writeEtfUint(jsonDataNew->jsonValue.numberUint);
 		}
 		case JsonType::Int64: {
-			return this->writeEtfInt(dataToParse->jsonValue.numberInt);
+			return this->writeEtfInt(jsonDataNew->jsonValue.numberInt);
 		}
 		case JsonType::Bool: {
-			return this->writeEtfBool(dataToParse->jsonValue.boolean);
+			return this->writeEtfBool(jsonDataNew->jsonValue.boolean);
 		}
 		case JsonType::Null: {
 			return this->writeEtfNull();
@@ -445,28 +445,28 @@ namespace Jsonifier {
 		}
 	}
 
-	void Jsonifier::serializeJsonToJsonString(const Jsonifier* dataToParse) {
-		switch (dataToParse->type) {
+	void Jsonifier::serializeJsonToJsonString(const Jsonifier* jsonDataNew) {
+		switch (jsonDataNew->type) {
 		case JsonType::Object: {
-			return this->writeJsonObject(*dataToParse->jsonValue.object);
+			return this->writeJsonObject(*jsonDataNew->jsonValue.object);
 		}
 		case JsonType::Array: {
-			return this->writeJsonArray(*dataToParse->jsonValue.array);
+			return this->writeJsonArray(*jsonDataNew->jsonValue.array);
 		}
 		case JsonType::String: {
-			return this->writeJsonString(*dataToParse->jsonValue.string);
+			return this->writeJsonString(*jsonDataNew->jsonValue.string);
 		}
 		case JsonType::Float: {
-			return this->writeJsonFloat(dataToParse->jsonValue.numberDouble);
+			return this->writeJsonFloat(jsonDataNew->jsonValue.numberDouble);
 		}
 		case JsonType::Uint64: {
-			return this->writeJsonInt(dataToParse->jsonValue.numberUint);
+			return this->writeJsonInt(jsonDataNew->jsonValue.numberUint);
 		}
 		case JsonType::Int64: {
-			return this->writeJsonInt(dataToParse->jsonValue.numberInt);
+			return this->writeJsonInt(jsonDataNew->jsonValue.numberInt);
 		}
 		case JsonType::Bool: {
-			return this->writeJsonBool(dataToParse->jsonValue.boolean);
+			return this->writeJsonBool(jsonDataNew->jsonValue.boolean);
 		}
 		case JsonType::Null: {
 			return this->writeJsonNull();
