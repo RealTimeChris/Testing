@@ -1124,14 +1124,14 @@ class SimdStringScanner {
 	inline ErrorCode recordEmptyObject() {
 		std::cout << "WERE EMTPYING OBJECT!" << std::endl;
 		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data() + 1, TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordEmptyArray() {
 		std::cout << "WERE EMTPYING ARRAY!" << std::endl;
 		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data() + 1, TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
