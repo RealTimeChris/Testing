@@ -944,32 +944,6 @@ struct JsonEventWriter {
 		}	
 	}
 
-	inline void collectUnCollectedSpace() {
-		std::cout << "NEW ENTRY!" << std::endl;
-		for (int64_t x = this->jsonEvents.size() - 1; x > 0; --x) {
-			switch (this->jsonEvents[x].type) {
-				case TapeType::EndObject: {
-					std::cout << "THE INDEX: " << this->jsonEvents[x].index << std::endl;
-					auto indexOfLastOpening = this->getIndexOfLastEvent(x, TapeType::StartObject);
-					std::cout << "THE INDEX OF OPENING: " << indexOfLastOpening << std::endl;
-					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
-					this->jsonEvents[indexOfLastOpening].size = 0;//collectFinalSizeValue(indexOfLastOpening, x);
-					std::cout << "NEW COMBINED SIZE: " << this->jsonEvents[x].size << std::endl;
-					return;
-				}
-				case TapeType::EndArray: {
-					std::cout << "THE INDEX: " << this->jsonEvents[x].index << std::endl;
-					auto indexOfLastOpening = this->getIndexOfLastEvent(x, TapeType::StartArray);
-					std::cout << "THE INDEX OF OPENING: " << indexOfLastOpening << std::endl;
-					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
-					this->jsonEvents[indexOfLastOpening].size = 0;//collectFinalSizeValue(indexOfLastOpening, x);
-					std::cout << "NEW COMBINED SIZE: " << this->jsonEvents[x].size << std::endl;
-					return;
-				}
-			}
-		}
-	}
-
 	inline size_t collectFinalSizeValue(size_t startingIndex, size_t endingIndex) {
 		size_t returnValue{};
 		for (size_t x = startingIndex; x < endingIndex - 1; ++x) {
@@ -1034,9 +1008,10 @@ class JsonConstructor {
 	}
 
 	inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events,Jsonifier& jsonDataNew) {
-		for (auto iterator = events.begin(); iterator != events.end();++iterator) {
-			events.erase(iterator);
+		std::cout << "THE FINAL REAL SIZE: " << events.size() << std::endl;
+		for (auto iterator = events.begin(); iterator != events.end(); ++iterator) {
 			std::cout << "THE TYPE: " << ( char )iterator->type << std::endl;
+
 			switch (iterator->type) {
 				case TapeType::StartObject: {
 					return this->collectObject(events, jsonDataNew);
@@ -1066,6 +1041,7 @@ class JsonConstructor {
 					return this->collectNull();
 				}
 			}
+			events.erase(iterator);
 		}
 	}
 
@@ -1105,19 +1081,23 @@ class JsonConstructor {
 	}
 
 	inline Jsonifier collectObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
+		this->jsonEvents.pop_back();
 		
 		for (auto iterator = events.begin(); iterator != events.end(); ++iterator) {
-			events.erase(iterator);
+			
 			auto key = this->collectString();
 			jsonDataNew[key] = this->parseJsonToJsonObject(events, jsonDataNew);
+			events.erase(iterator);
 		}
 		return jsonDataNew;
 	}
 
 	inline Jsonifier collectArray(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
+		this->jsonEvents.pop_back();
 		for (auto iterator = events.begin(); iterator != events.end(); ++iterator) {
-			events.erase(iterator);
+			
 			jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, jsonDataNew));
+			events.erase(iterator);
 		}
 		return jsonDataNew;
 	}
@@ -1194,14 +1174,12 @@ class SimdStringScanner {
 	inline ErrorCode recordObjectEnd() {
 		std::cout << "WERE OBJECT ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
-		this->jsonData.collectUnCollectedSpace();
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordArrayEnd() {
 		std::cout << "WERE ARRAY ENDING!" << std::endl;
 		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
-		this->jsonData.collectUnCollectedSpace();
 		return ErrorCode::Success;
 	}
 
@@ -1460,6 +1438,7 @@ class SimdStringScanner {
 		for (auto& value: this->jsonData) {
 			std::cout << "INDEX: " << value.index << ", SIZE: " << value.size << ", TYPE: " << ( char )value.type << std::endl;
 		}
+		std::cout << "THE CURRENT SIZE: " << this->jsonData.getEvents().size() << std::endl;
 		this->jsonDataFinal = JsonConstructor{ this->jsonData.getEvents(), this->string };
 		return this->jsonDataFinal.operator Jsonifier();
 	}
