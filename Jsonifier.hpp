@@ -866,7 +866,6 @@ class SimdStringSection {
 	inline SimdStringSection(std::string_view valueNew) {
 		this->stringView = valueNew;
 		
-
 		this->packStringIntoValue(&this->values[0], this->stringView.data());
 		this->packStringIntoValue(&this->values[1], this->stringView.data() + 32);
 		this->packStringIntoValue(&this->values[2], this->stringView.data() + 64);
@@ -883,7 +882,7 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
+		std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
   protected:
@@ -920,8 +919,7 @@ enum class TapeType : char {
 	Double = 'd',
 	TrueValue = 't',
 	FalseValue = 'f',
-	NullValue = 'n',
-	Key = 'k'
+	NullValue = 'n'
 };
 
 struct JsonEvent {
@@ -955,7 +953,7 @@ struct JsonEventWriter {
 					auto indexOfLastOpening = this->getIndexOfLastEvent(x, TapeType::StartObject);
 					std::cout << "THE INDEX OF OPENING: " << indexOfLastOpening << std::endl;
 					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
-					this->jsonEvents[indexOfLastOpening].size = collectFinalSizeValue(indexOfLastOpening, x);
+					this->jsonEvents[indexOfLastOpening].size = 0;//collectFinalSizeValue(indexOfLastOpening, x);
 					std::cout << "NEW COMBINED SIZE: " << this->jsonEvents[x].size << std::endl;
 					return;
 				}
@@ -964,7 +962,7 @@ struct JsonEventWriter {
 					auto indexOfLastOpening = this->getIndexOfLastEvent(x, TapeType::StartArray);
 					std::cout << "THE INDEX OF OPENING: " << indexOfLastOpening << std::endl;
 					std::cout << "THE SIZE OF INDICES: " << this->jsonEvents.size() << std::endl;
-					this->jsonEvents[indexOfLastOpening].size = collectFinalSizeValue(indexOfLastOpening, x);
+					this->jsonEvents[indexOfLastOpening].size = 0;//collectFinalSizeValue(indexOfLastOpening, x);
 					std::cout << "NEW COMBINED SIZE: " << this->jsonEvents[x].size << std::endl;
 					return;
 				}
@@ -1183,13 +1181,13 @@ class SimdStringScanner {
 	inline ErrorCode recordObjectStart() {
 		std::cout << "WERE OBJECT STARTING!" << std::endl;
 
-		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordArrayStart() {
 		std::cout << "WERE ARRAY STARTING!" << std::endl;
-		this->jsonData.appendTapeValue(-1, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
+		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
 		return ErrorCode::Success;
 	}
 
@@ -1234,7 +1232,7 @@ class SimdStringScanner {
 
 	inline ErrorCode recordKey(char* value) {
 		std::cout << "WERE KEYING!" << std::endl;
-		this->jsonData.appendTapeValue(this->peek() - 1 - value - 1, &this->string[*this->next_structural] - this->string.data(), TapeType::Key);
+		this->jsonData.appendTapeValue(this->peek() - 1 - value - 1, &this->string[*this->next_structural] - this->string.data(), TapeType::String);
 		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
 		return ErrorCode::Success;
 	}
