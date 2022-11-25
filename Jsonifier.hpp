@@ -971,7 +971,9 @@ struct JsonEventWriter {
 	size_t collectFinalSizeValue(size_t startingIndex, size_t endingIndex) {
 		size_t returnValue{};
 		for (size_t x = startingIndex; x < endingIndex - 1; ++x) {
-			returnValue += this->jsonEvents[x].size;
+			if (this->jsonEvents[x].type != TapeType::StartObject && this->jsonEvents[x].type != TapeType::StartArray) {
+				returnValue += this->jsonEvents[x].size;
+			}
 		}
 		return returnValue;
 	}
@@ -1053,7 +1055,7 @@ class SimdStringScanner {
 	inline ErrorCode recordTrueAtom(char* value) {
 		if (strcmp(value, "true")) {
 
-			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::TrueValue);
+			this->jsonData.appendTapeValue(4, &this->string[*this->next_structural] - this->string.data(), TapeType::TrueValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1089,7 +1091,7 @@ class SimdStringScanner {
 
 	inline ErrorCode recordFalseAtom(char* value) {
 		if (strcmp(value, "false")) {
-			this->jsonData.appendTapeValue(5, value - &this->string[*this->jsonTape.data()], TapeType::FalseValue);
+			this->jsonData.appendTapeValue(5, &this->string[*this->next_structural] - this->string.data(), TapeType::FalseValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1099,7 +1101,7 @@ class SimdStringScanner {
 	inline ErrorCode recordNullAtom(char* value) {
 		std::cout << "WERE NULL ATOMING!" << std::endl;
 		if (strcmp(value, "null")) {
-			this->jsonData.appendTapeValue(4, value - &this->string[*this->jsonTape.data()], TapeType::NullValue);
+			this->jsonData.appendTapeValue(4, &this->string[*this->next_structural] - this->string.data(), TapeType::NullValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1108,13 +1110,13 @@ class SimdStringScanner {
 
 	inline ErrorCode recordNumber(char* value) {
 		std::cout << "WERE NUMBERING!" << std::endl;
-		this->jsonData.appendTapeValue(8, value - &this->string[*this->jsonTape.data()], TapeType::Uint64);
+		this->jsonData.appendTapeValue(8, &this->string[*this->next_structural] - this->string.data(), TapeType::Uint64);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordKey(char* value) {
 		std::cout << "WERE KEYING!" << std::endl;
-		this->jsonData.appendTapeValue(this->peek() - 1 - value + 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
+		this->jsonData.appendTapeValue(this->peek() - 1 - value - 1, &this->string[*this->next_structural] - this->string.data(), TapeType::String);
 		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
 		return ErrorCode::Success;
 	}
@@ -1135,7 +1137,7 @@ class SimdStringScanner {
 
 	inline ErrorCode recordString(char* value) {
 		std::cout << "WERE STRINGING!" << std::endl;
-		this->jsonData.appendTapeValue(this->peek() - 1 - value - 1, value - &this->string[*this->jsonTape.data()], TapeType::String);
+		this->jsonData.appendTapeValue(this->peek() - 1 - value - 1, &this->string[*this->next_structural] - this->string.data(), TapeType::String);
 		return ErrorCode::Success;
 	}
 
