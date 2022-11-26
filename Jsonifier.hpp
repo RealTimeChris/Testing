@@ -1047,13 +1047,29 @@ namespace Jsonifier {
 			size_t collectedSize{};
 			while (stringSize > 256) {
 				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize, 256 });
-				this->jsonTape += section.getStructuralIndices();
+				std::basic_string<uint32_t> newValues{};
+				for (auto& value: section.getStructuralIndices()) {
+					newValues.push_back(collectedSize + value);
+				}
+				this->jsonTape += newValues;
 				stringSize -= 256;
 				collectedSize += 256;
+				std::cout << "STRUCTURAL INDICES 01: ";
+				for (auto& value: this->jsonTape) {
+					std::cout << value << std::endl;
+				}
 			}
 			if (this->stringView.size() - collectedSize > 0) {
 				SimdStringSection section((std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize }));
-				this->jsonTape += section.getStructuralIndices();
+				std::basic_string<uint32_t> newValues{};
+				for (auto& value: section.getStructuralIndices()) {
+					newValues.push_back(collectedSize + value);
+				}
+				this->jsonTape += newValues;
+				std::cout << "STRUCTURAL INDICES: ";
+				for (auto& value: this->jsonTape) {
+					std::cout << value << std::endl;
+				}
 			}
 			this->next_structural = &this->jsonTape[0];
 			this->getJsonDataInner();
@@ -1168,7 +1184,7 @@ namespace Jsonifier {
 		uint32_t depth{ 0 };
 
 		inline bool atEof() {
-			return &this->stringView[*this->next_structural] - this->stringView.data() == this->stringView.size();
+			return &this->stringView[*this->next_structural] - this->stringView.data() == this->stringView.size() - 1;
 		}
 
 		inline const char* peek() noexcept {
@@ -1176,12 +1192,16 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline const char* advance(std::source_location location = std::source_location::current()) noexcept {
+		inline const char* advance() noexcept {
+			std::cout << "CURRENT STRUCTURAL: " << *this->next_structural << std::endl;
 			auto returnValue = &this->stringView[*(this->next_structural++)];
 			return returnValue;
 		}
 
 		inline ErrorCode generateJsonData() {
+			if (this->atEof()) {
+				return ErrorCode::Success;
+			}
 			switch (this->currentState) {
 				case JsonTapeEventStates::ObjectBegin: {
 					this->depth++;
