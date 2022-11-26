@@ -882,7 +882,7 @@ class SimdStringSection {
 		//this->W256.printBits("W FINAL VALUES (256) ");
 		//this->R256.printBits("R FINAL VALUES (256) ");
 		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		std::cout << "THE STRING: " << this->stringView << std::endl;
+		//std::cout << "THE STRING: " << this->stringView << std::endl;
 	}
 
   protected:
@@ -964,13 +964,13 @@ class JsonConstructor {
 		this->string = stringNew;
 	}
 
-	inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events,Jsonifier& jsonDataNew) {
+	inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
 		if (events.size() == 0) {
 			std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
 			return jsonDataNew;
 		}
 		std::cout << "THE FINAL REAL SIZE: 01 " << events.size() << std::endl;
-		for (auto iterator = events.begin(); iterator != events.end(); --iterator) {
+		for (auto iterator = events.begin(); iterator != events.end(); ++iterator) {
 			//std::cout << "THE TYPE: " << ( char )iterator->type << std::endl;
 			switch (iterator->type) {
 				case TapeType::StartObject: {
@@ -1015,17 +1015,17 @@ class JsonConstructor {
 	}
 
 
-	inline std::string collectString() {
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
+	inline Jsonifier collectString() {
+		std::cout << "THE FINAL REAL SIZE: STRING " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
-		std::cout << "THE REAL SIZE: " << newValue.size << std::endl;
-		std::cout << "THE REAL INDEX: " << newValue.index << std::endl;
+		std::cout << "THE FINAL REAL SIZE: STRING " << jsonEvents.size() << std::endl;
+		std::cout << "THE REAL SIZE: STRING " << newValue.size << std::endl;
+		std::cout << "THE REAL INDEX: STRING " << newValue.index << std::endl;
 		return static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size + 1), newValue.size });
 	}
 
-	inline bool collectTrueOrFalse(bool returnValue) {
+	inline Jsonifier collectTrueOrFalse(bool returnValue) {
 		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
@@ -1033,7 +1033,7 @@ class JsonConstructor {
 		return returnValue;
 	}
 
-	inline double collectFloat() {
+	inline Jsonifier collectFloat() {
 		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
@@ -1041,7 +1041,7 @@ class JsonConstructor {
 		return double{ *reinterpret_cast<const double*>(this->string.data() + newValue.index) };
 	}
 
-	inline uint64_t collectUint64() {
+	inline Jsonifier collectUint64() {
 		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
@@ -1049,7 +1049,7 @@ class JsonConstructor {
 		return uint64_t{ *reinterpret_cast<const uint64_t*>(this->string.data() + newValue.index) };
 	}
 
-	inline int64_t collectInt64() {
+	inline Jsonifier collectInt64() {
 		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
@@ -1057,31 +1057,36 @@ class JsonConstructor {
 		return int64_t{ *reinterpret_cast<const int64_t*>(this->string.data() + newValue.index) };
 	}
 
-	inline nullptr_t collectNull() {
+	inline Jsonifier collectNull() {
 		return nullptr;
 	}
 
 	inline Jsonifier collectObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::string key = this->collectString();
-		std::cout << "THE KEY: " << key << std::endl;
-		jsonDataNew[key] = this->parseJsonToJsonObject(events, jsonDataNew);
 		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
+		Jsonifier key = this->collectString();
+		std::cout << "THE KEY: " << key.getValue<std::string>() << std::endl;
+		Jsonifier newJsonData02{};
+		jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, newJsonData02);
+		std::cout << "THE FINAL REAL SIZE 045: " << jsonEvents.size() << std::endl;
+		std::cout << "THE FINAL REAL SIZE 457: " << jsonEvents.size() << std::endl;
 		return jsonDataNew;
 	}
 
 	inline Jsonifier collectArray(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
 		std::cout << "THE FINAL REAL SIZE: 04 " << jsonEvents.size() << std::endl;
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, jsonDataNew));
+		Jsonifier newJsonData{};
+		jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, newJsonData));
 		std::cout << "THE FINAL REAL SIZE: 03 " << jsonEvents.size() << std::endl;
 		return jsonDataNew;
 	}
 
 
 	inline operator Jsonifier() {
-		return this->parseJsonToJsonObject(this->jsonEvents, this->jsonData);
+		this->jsonData = this->parseJsonToJsonObject(this->jsonEvents, this->jsonData);
+		std::cout << "THE FINAL REAL SIZE: 1241234 " << jsonEvents.size() << std::endl;
+		return this->jsonData;
 		
 	}
 
