@@ -27,37 +27,37 @@ namespace Jsonifier {
 
 	Jsonifier& Jsonifier::operator=(Jsonifier&& data) noexcept {
 		switch (data.type) {
-		case JsonType::Object: {
-			this->setValue(JsonType::Object);
-			*this->jsonValue.object = std::move(*data.jsonValue.object);
-			break;
-		}
-		case JsonType::Array: {
-			this->setValue(JsonType::Array);
-			*this->jsonValue.array = std::move(*data.jsonValue.array);
-			break;
-		}
-		case JsonType::String: {
-			this->setValue(JsonType::String);
-			*this->jsonValue.string = std::move(*data.jsonValue.string);
-			break;
-		}
-		case JsonType::Float: {
-			this->jsonValue.numberDouble = data.jsonValue.numberDouble;
-			break;
-		}
-		case JsonType::Uint64: {
-			this->jsonValue.numberUint = data.jsonValue.numberUint;
-			break;
-		}
-		case JsonType::Int64: {
-			this->jsonValue.numberInt = data.jsonValue.numberInt;
-			break;
-		}
-		case JsonType::Bool: {
-			this->jsonValue.boolean = data.jsonValue.boolean;
-			break;
-		}
+			case JsonType::Object: {
+				this->setValue(JsonType::Object);
+				*this->jsonValue.object = std::move(*data.jsonValue.object);
+				break;
+			}
+			case JsonType::Array: {
+				this->setValue(JsonType::Array);
+				*this->jsonValue.array = std::move(*data.jsonValue.array);
+				break;
+			}
+			case JsonType::String: {
+				this->setValue(JsonType::String);
+				*this->jsonValue.string = std::move(*data.jsonValue.string);
+				break;
+			}
+			case JsonType::Float: {
+				this->jsonValue.numberDouble = data.jsonValue.numberDouble;
+				break;
+			}
+			case JsonType::Uint64: {
+				this->jsonValue.numberUint = data.jsonValue.numberUint;
+				break;
+			}
+			case JsonType::Int64: {
+				this->jsonValue.numberInt = data.jsonValue.numberInt;
+				break;
+			}
+			case JsonType::Bool: {
+				this->jsonValue.boolean = data.jsonValue.boolean;
+				break;
+			}
 		}
 		this->string = std::move(data.string);
 		this->type = data.type;
@@ -66,7 +66,7 @@ namespace Jsonifier {
 
 	Jsonifier& Jsonifier::operator=(ObjectType&& data) noexcept {
 		this->setValue(JsonType::Object);
-		for (auto& [key, value] : data) {
+		for (auto& [key, value]: data) {
 			(*this->jsonValue.object)[key] = std::move(value);
 		}
 		return *this;
@@ -78,7 +78,7 @@ namespace Jsonifier {
 
 	Jsonifier& Jsonifier::operator=(const ObjectType& data) noexcept {
 		this->setValue(JsonType::Object);
-		for (auto& [key, value] : data) {
+		for (auto& [key, value]: data) {
 			(*this->jsonValue.object)[key] = value;
 		}
 		return *this;
@@ -94,37 +94,37 @@ namespace Jsonifier {
 
 	Jsonifier& Jsonifier::operator=(const Jsonifier& data) noexcept {
 		switch (data.type) {
-		case JsonType::Object: {
-			this->setValue(JsonType::Object);
-			*this->jsonValue.object = *data.jsonValue.object;
-			break;
-		}
-		case JsonType::Array: {
-			this->setValue(JsonType::Array);
-			*this->jsonValue.array = *data.jsonValue.array;
-			break;
-		}
-		case JsonType::String: {
-			this->setValue(JsonType::String);
-			*this->jsonValue.string = *data.jsonValue.string;
-			break;
-		}
-		case JsonType::Float: {
-			this->jsonValue.numberDouble = data.jsonValue.numberDouble;
-			break;
-		}
-		case JsonType::Uint64: {
-			this->jsonValue.numberUint = data.jsonValue.numberUint;
-			break;
-		}
-		case JsonType::Int64: {
-			this->jsonValue.numberInt = data.jsonValue.numberInt;
-			break;
-		}
-		case JsonType::Bool: {
-			this->jsonValue.boolean = data.jsonValue.boolean;
-			break;
-		}
+			case JsonType::Object: {
+				this->setValue(JsonType::Object);
+				*this->jsonValue.object = *data.jsonValue.object;
+				break;
+			}
+			case JsonType::Array: {
+				this->setValue(JsonType::Array);
+				*this->jsonValue.array = *data.jsonValue.array;
+				break;
+			}
+			case JsonType::String: {
+				this->setValue(JsonType::String);
+				*this->jsonValue.string = *data.jsonValue.string;
+				break;
+			}
+			case JsonType::Float: {
+				this->jsonValue.numberDouble = data.jsonValue.numberDouble;
+				break;
+			}
+			case JsonType::Uint64: {
+				this->jsonValue.numberUint = data.jsonValue.numberUint;
+				break;
+			}
+			case JsonType::Int64: {
+				this->jsonValue.numberInt = data.jsonValue.numberInt;
+				break;
+			}
+			case JsonType::Bool: {
+				this->jsonValue.boolean = data.jsonValue.boolean;
+				break;
+			}
 		}
 		this->string = data.string;
 		this->type = data.type;
@@ -135,7 +135,7 @@ namespace Jsonifier {
 		*this = data;
 	}
 
-	Jsonifier::operator std::string && () noexcept {
+	Jsonifier::operator std::string&&() noexcept {
 		return std::move(this->string);
 	}
 
@@ -152,8 +152,7 @@ namespace Jsonifier {
 		if (opCode == JsonifierSerializeType::Etf) {
 			this->appendVersion();
 			this->serializeJsonToEtfString(this);
-		}
-		else {
+		} else {
 			this->serializeJsonToJsonString(this);
 		}
 	}
@@ -161,11 +160,10 @@ namespace Jsonifier {
 	Jsonifier& Jsonifier::operator=(EnumConverter&& data) noexcept {
 		if (data.isItAVector()) {
 			this->setValue(JsonType::Array);
-			for (auto& value : data.operator std::vector<uint64_t>()) {
+			for (auto& value: data.operator std::vector<uint64_t>()) {
 				this->jsonValue.array->emplace_back(std::move(value));
 			}
-		}
-		else {
+		} else {
 			this->jsonValue.numberUint = uint64_t{ data };
 			this->type = JsonType::Uint64;
 		}
@@ -179,11 +177,10 @@ namespace Jsonifier {
 	Jsonifier& Jsonifier::operator=(const EnumConverter& data) noexcept {
 		if (data.isItAVector()) {
 			this->setValue(JsonType::Array);
-			for (auto& value : data.operator std::vector<uint64_t>()) {
+			for (auto& value: data.operator std::vector<uint64_t>()) {
 				this->jsonValue.array->emplace_back(value);
 			}
-		}
-		else {
+		} else {
 			this->jsonValue.numberUint = uint64_t{ data };
 			this->type = JsonType::Uint64;
 		}
@@ -359,8 +356,7 @@ namespace Jsonifier {
 	bool Jsonifier::contains(std::string& key) {
 		if (this->type == JsonType::Object) {
 			return this->jsonValue.object->contains(key);
-		}
-		else {
+		} else {
 			return false;
 		}
 	}
@@ -417,59 +413,59 @@ namespace Jsonifier {
 
 	void Jsonifier::serializeJsonToEtfString(const Jsonifier* jsonDataNew) {
 		switch (jsonDataNew->type) {
-		case JsonType::Object: {
-			return this->writeEtfObject(*jsonDataNew->jsonValue.object);
-		}
-		case JsonType::Array: {
-			return this->writeEtfArray(*jsonDataNew->jsonValue.array);
-		}
-		case JsonType::String: {
-			return this->writeEtfString(*jsonDataNew->jsonValue.string);
-		}
-		case JsonType::Float: {
-			return this->writeEtfFloat(jsonDataNew->jsonValue.numberDouble);
-		}
-		case JsonType::Uint64: {
-			return this->writeEtfUint(jsonDataNew->jsonValue.numberUint);
-		}
-		case JsonType::Int64: {
-			return this->writeEtfInt(jsonDataNew->jsonValue.numberInt);
-		}
-		case JsonType::Bool: {
-			return this->writeEtfBool(jsonDataNew->jsonValue.boolean);
-		}
-		case JsonType::Null: {
-			return this->writeEtfNull();
-		}
+			case JsonType::Object: {
+				return this->writeEtfObject(*jsonDataNew->jsonValue.object);
+			}
+			case JsonType::Array: {
+				return this->writeEtfArray(*jsonDataNew->jsonValue.array);
+			}
+			case JsonType::String: {
+				return this->writeEtfString(*jsonDataNew->jsonValue.string);
+			}
+			case JsonType::Float: {
+				return this->writeEtfFloat(jsonDataNew->jsonValue.numberDouble);
+			}
+			case JsonType::Uint64: {
+				return this->writeEtfUint(jsonDataNew->jsonValue.numberUint);
+			}
+			case JsonType::Int64: {
+				return this->writeEtfInt(jsonDataNew->jsonValue.numberInt);
+			}
+			case JsonType::Bool: {
+				return this->writeEtfBool(jsonDataNew->jsonValue.boolean);
+			}
+			case JsonType::Null: {
+				return this->writeEtfNull();
+			}
 		}
 	}
 
 	void Jsonifier::serializeJsonToJsonString(const Jsonifier* jsonDataNew) {
 		switch (jsonDataNew->type) {
-		case JsonType::Object: {
-			return this->writeJsonObject(*jsonDataNew->jsonValue.object);
-		}
-		case JsonType::Array: {
-			return this->writeJsonArray(*jsonDataNew->jsonValue.array);
-		}
-		case JsonType::String: {
-			return this->writeJsonString(*jsonDataNew->jsonValue.string);
-		}
-		case JsonType::Float: {
-			return this->writeJsonFloat(jsonDataNew->jsonValue.numberDouble);
-		}
-		case JsonType::Uint64: {
-			return this->writeJsonInt(jsonDataNew->jsonValue.numberUint);
-		}
-		case JsonType::Int64: {
-			return this->writeJsonInt(jsonDataNew->jsonValue.numberInt);
-		}
-		case JsonType::Bool: {
-			return this->writeJsonBool(jsonDataNew->jsonValue.boolean);
-		}
-		case JsonType::Null: {
-			return this->writeJsonNull();
-		}
+			case JsonType::Object: {
+				return this->writeJsonObject(*jsonDataNew->jsonValue.object);
+			}
+			case JsonType::Array: {
+				return this->writeJsonArray(*jsonDataNew->jsonValue.array);
+			}
+			case JsonType::String: {
+				return this->writeJsonString(*jsonDataNew->jsonValue.string);
+			}
+			case JsonType::Float: {
+				return this->writeJsonFloat(jsonDataNew->jsonValue.numberDouble);
+			}
+			case JsonType::Uint64: {
+				return this->writeJsonInt(jsonDataNew->jsonValue.numberUint);
+			}
+			case JsonType::Int64: {
+				return this->writeJsonInt(jsonDataNew->jsonValue.numberInt);
+			}
+			case JsonType::Bool: {
+				return this->writeJsonBool(jsonDataNew->jsonValue.boolean);
+			}
+			case JsonType::Null: {
+				return this->writeJsonNull();
+			}
 		}
 	}
 
@@ -481,7 +477,7 @@ namespace Jsonifier {
 		this->writeCharacter('{');
 
 		int32_t index{};
-		for (auto& [key, value] : objectNew) {
+		for (auto& [key, value]: objectNew) {
 			this->writeJsonString(key);
 			this->writeCharacter(':');
 			this->serializeJsonToJsonString(&value);
@@ -504,7 +500,7 @@ namespace Jsonifier {
 		this->writeCharacter('[');
 
 		int32_t index{};
-		for (auto& value : arrayNew) {
+		for (auto& value: arrayNew) {
 			this->serializeJsonToJsonString(&value);
 			if (index != arrayNew.size() - 1) {
 				this->writeCharacter(',');
@@ -517,40 +513,40 @@ namespace Jsonifier {
 
 	void Jsonifier::writeJsonString(const StringType& stringNew) {
 		this->writeCharacter('\"');
-		for (auto& value : stringNew) {
+		for (auto& value: stringNew) {
 			switch (static_cast<std::uint8_t>(value)) {
-			case 0x08: {
-				this->writeCharacter('b');
-				break;
-			}
-			case 0x09: {
-				this->writeCharacter('t');
-				break;
-			}
-			case 0x0A: {
-				this->writeCharacter('n');
-				break;
-			}
-			case 0x0C: {
-				this->writeCharacter('f');
-				break;
-			}
-			case 0x0D: {
-				this->writeCharacter('r');
-				break;
-			}
-			case 0x22: {
-				this->writeCharacter('\"');
-				break;
-			}
-			case 0x5C: {
-				this->writeCharacter('\\');
-				break;
-			}
-			default: {
-				this->writeCharacter(value);
-				break;
-			}
+				case 0x08: {
+					this->writeCharacter('b');
+					break;
+				}
+				case 0x09: {
+					this->writeCharacter('t');
+					break;
+				}
+				case 0x0A: {
+					this->writeCharacter('n');
+					break;
+				}
+				case 0x0C: {
+					this->writeCharacter('f');
+					break;
+				}
+				case 0x0D: {
+					this->writeCharacter('r');
+					break;
+				}
+				case 0x22: {
+					this->writeCharacter('\"');
+					break;
+				}
+				case 0x5C: {
+					this->writeCharacter('\\');
+					break;
+				}
+				default: {
+					this->writeCharacter(value);
+					break;
+				}
 			}
 		}
 		this->writeCharacter('\"');
@@ -564,8 +560,7 @@ namespace Jsonifier {
 	void Jsonifier::writeJsonBool(const BoolType jsonValueNew) {
 		if (jsonValueNew) {
 			this->writeString("true", 4);
-		}
-		else {
+		} else {
 			this->writeString("false", 5);
 		}
 	}
@@ -576,7 +571,7 @@ namespace Jsonifier {
 
 	void Jsonifier::writeEtfObject(const ObjectType& jsonData) {
 		this->appendMapHeader(static_cast<uint32_t>(jsonData.size()));
-		for (auto& [key, value] : jsonData) {
+		for (auto& [key, value]: jsonData) {
 			this->appendBinaryExt(key, static_cast<uint32_t>(key.size()));
 			this->serializeJsonToEtfString(&value);
 		}
@@ -584,7 +579,7 @@ namespace Jsonifier {
 
 	void Jsonifier::writeEtfArray(const ArrayType& jsonData) {
 		this->appendListHeader(static_cast<uint32_t>(jsonData.size()));
-		for (auto& value : jsonData) {
+		for (auto& value: jsonData) {
 			this->serializeJsonToEtfString(&value);
 		}
 		this->appendNilExt();
@@ -597,11 +592,9 @@ namespace Jsonifier {
 	void Jsonifier::writeEtfUint(const UintType jsonData) {
 		if (jsonData <= 255) {
 			this->appendSmallIntegerExt(static_cast<int8_t>(jsonData));
-		}
-		else if (jsonData <= std::numeric_limits<uint32_t>::max()) {
+		} else if (jsonData <= std::numeric_limits<uint32_t>::max()) {
 			this->appendIntegerExt(static_cast<uint32_t>(jsonData));
-		}
-		else {
+		} else {
 			this->appendUnsignedLongLong(jsonData);
 		}
 	}
@@ -609,11 +602,9 @@ namespace Jsonifier {
 	void Jsonifier::writeEtfInt(const IntType jsonData) {
 		if (jsonData <= 127 && jsonData >= -127) {
 			this->appendSmallIntegerExt(static_cast<int8_t>(jsonData));
-		}
-		else if (jsonData <= std::numeric_limits<int32_t>::max() && jsonData >= std::numeric_limits<int32_t>::min()) {
+		} else if (jsonData <= std::numeric_limits<int32_t>::max() && jsonData >= std::numeric_limits<int32_t>::min()) {
 			this->appendIntegerExt(static_cast<uint32_t>(jsonData));
-		}
-		else {
+		} else {
 			this->appendUnsignedLongLong(static_cast<uint64_t>(jsonData));
 		}
 	}
@@ -643,48 +634,48 @@ namespace Jsonifier {
 			return false;
 		}
 		switch (rhs.type) {
-		case JsonType::Object: {
-			if (*lhs.jsonValue.object != *rhs.jsonValue.object) {
-				return false;
+			case JsonType::Object: {
+				if (*lhs.jsonValue.object != *rhs.jsonValue.object) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
-		case JsonType::Array: {
-			if (*lhs.jsonValue.array != *rhs.jsonValue.array) {
-				return false;
+			case JsonType::Array: {
+				if (*lhs.jsonValue.array != *rhs.jsonValue.array) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
-		case JsonType::String: {
-			if (*lhs.jsonValue.string != *rhs.jsonValue.string) {
-				return false;
+			case JsonType::String: {
+				if (*lhs.jsonValue.string != *rhs.jsonValue.string) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
-		case JsonType::Float: {
-			if (lhs.jsonValue.numberDouble != rhs.jsonValue.numberDouble) {
-				return false;
+			case JsonType::Float: {
+				if (lhs.jsonValue.numberDouble != rhs.jsonValue.numberDouble) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
-		case JsonType::Uint64: {
-			if (lhs.jsonValue.numberUint != rhs.jsonValue.numberUint) {
-				return false;
+			case JsonType::Uint64: {
+				if (lhs.jsonValue.numberUint != rhs.jsonValue.numberUint) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
-		case JsonType::Int64: {
-			if (lhs.jsonValue.numberInt != rhs.jsonValue.numberInt) {
-				return false;
+			case JsonType::Int64: {
+				if (lhs.jsonValue.numberInt != rhs.jsonValue.numberInt) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
-		case JsonType::Bool: {
-			if (lhs.jsonValue.boolean != rhs.jsonValue.boolean) {
-				return false;
+			case JsonType::Bool: {
+				if (lhs.jsonValue.boolean != rhs.jsonValue.boolean) {
+					return false;
+				}
+				break;
 			}
-			break;
-		}
 		}
 		return true;
 	}
@@ -744,8 +735,7 @@ namespace Jsonifier {
 			char newBuffer[6]{ static_cast<int8_t>(EtfType::Small_Atom_Ext), static_cast<int8_t>(4), 't', 'r', 'u', 'e' };
 			this->writeString(newBuffer, std::size(newBuffer));
 
-		}
-		else {
+		} else {
 			char newBuffer[7]{ static_cast<int8_t>(EtfType::Small_Atom_Ext), static_cast<int8_t>(5), 'f', 'a', 'l', 's', 'e' };
 			this->writeString(newBuffer, std::size(newBuffer));
 		}
@@ -768,47 +758,47 @@ namespace Jsonifier {
 		this->destroy();
 		this->type = typeNew;
 		switch (this->type) {
-		case JsonType::Object: {
-			AllocatorType<ObjectType> allocator{};
-			this->jsonValue.object = AllocatorTraits<ObjectType>::allocate(allocator, 1);
-			AllocatorTraits<ObjectType>::construct(allocator, this->jsonValue.object);
-			break;
-		}
-		case JsonType::Array: {
-			AllocatorType<ArrayType> allocator{};
-			this->jsonValue.array = AllocatorTraits<ArrayType>::allocate(allocator, 1);
-			AllocatorTraits<ArrayType>::construct(allocator, this->jsonValue.array);
-			break;
-		}
-		case JsonType::String: {
-			AllocatorType<StringType> allocator{};
-			this->jsonValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
-			AllocatorTraits<StringType>::construct(allocator, this->jsonValue.string);
-			break;
-		}
+			case JsonType::Object: {
+				AllocatorType<ObjectType> allocator{};
+				this->jsonValue.object = AllocatorTraits<ObjectType>::allocate(allocator, 1);
+				AllocatorTraits<ObjectType>::construct(allocator, this->jsonValue.object);
+				break;
+			}
+			case JsonType::Array: {
+				AllocatorType<ArrayType> allocator{};
+				this->jsonValue.array = AllocatorTraits<ArrayType>::allocate(allocator, 1);
+				AllocatorTraits<ArrayType>::construct(allocator, this->jsonValue.array);
+				break;
+			}
+			case JsonType::String: {
+				AllocatorType<StringType> allocator{};
+				this->jsonValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
+				AllocatorTraits<StringType>::construct(allocator, this->jsonValue.string);
+				break;
+			}
 		}
 	}
 
 	void Jsonifier::destroy() noexcept {
 		switch (this->type) {
-		case JsonType::Object: {
-			AllocatorType<ObjectType> allocator{};
-			AllocatorTraits<ObjectType>::destroy(allocator, this->jsonValue.object);
-			AllocatorTraits<ObjectType>::deallocate(allocator, this->jsonValue.object, 1);
-			break;
-		}
-		case JsonType::Array: {
-			AllocatorType<ArrayType> allocator{};
-			AllocatorTraits<ArrayType>::destroy(allocator, this->jsonValue.array);
-			AllocatorTraits<ArrayType>::deallocate(allocator, this->jsonValue.array, 1);
-			break;
-		}
-		case JsonType::String: {
-			AllocatorType<StringType> allocator{};
-			AllocatorTraits<StringType>::destroy(allocator, this->jsonValue.string);
-			AllocatorTraits<StringType>::deallocate(allocator, this->jsonValue.string, 1);
-			break;
-		}
+			case JsonType::Object: {
+				AllocatorType<ObjectType> allocator{};
+				AllocatorTraits<ObjectType>::destroy(allocator, this->jsonValue.object);
+				AllocatorTraits<ObjectType>::deallocate(allocator, this->jsonValue.object, 1);
+				break;
+			}
+			case JsonType::Array: {
+				AllocatorType<ArrayType> allocator{};
+				AllocatorTraits<ArrayType>::destroy(allocator, this->jsonValue.array);
+				AllocatorTraits<ArrayType>::deallocate(allocator, this->jsonValue.array, 1);
+				break;
+			}
+			case JsonType::String: {
+				AllocatorType<StringType> allocator{};
+				AllocatorTraits<StringType>::destroy(allocator, this->jsonValue.string);
+				AllocatorTraits<StringType>::deallocate(allocator, this->jsonValue.string, 1);
+				break;
+			}
 		}
 	}
 
