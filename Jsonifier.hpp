@@ -1064,7 +1064,6 @@ namespace Jsonifier {
 		Jsonifier jsonData{};
 	};
 
-
 	class SimdJsonValue {
 	  public:
 		inline SimdJsonValue(std::string_view stringNew) noexcept {
