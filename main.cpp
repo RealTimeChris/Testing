@@ -113,11 +113,12 @@ int32_t main() noexcept {
 
 		stringScanner.generateTapeRecord();
 		for (size_t x = 0; x < 256 * 16384; ++x) {
+			Jsonifier::SimdJsonValue stringScannerNew{ stringNew };
 			//stopWatch.resetTimer();
-			stringScanner.generateTapeRecord();
-			auto newJsonData = stringScanner.getJsonData();
+			stringScannerNew.generateTapeRecord();
+			auto newJsonData = stringScannerNew.getJsonData();
 			//std::cout << "GETJSONDATA()'s TIME: " << stopWatch.totalTimePassed() << std::endl;
-			//newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << newJsonData.operator std::string() << std::endl;
 			TheValueJson theValue{ std::move(newJsonData) };
 			totalSize += stringNew.size();
