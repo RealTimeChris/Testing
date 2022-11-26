@@ -997,7 +997,9 @@ class JsonConstructor {
 				return this->collectFloat();
 			}
 			case TapeType::Uint64: {
-				return this->collectUint64();
+				auto theValue = this->collectUint64();
+				std::cout << "THE NUMBER VALUE: " << theValue << std::endl;
+				return theValue;
 			}
 			case TapeType::Int64: {
 				return this->collectInt64();
@@ -1035,13 +1037,17 @@ class JsonConstructor {
 	inline Jsonifier collectFloat() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		return double{ *reinterpret_cast<const double*>(this->string.data() + newValue.index) };
+		return uint64_t{ stod(static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size), newValue.size })) };
 	}
 
 	inline uint64_t collectUint64() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		return uint64_t{ *reinterpret_cast<const uint64_t*>(this->string.data() + newValue.index) };
+		auto theValue = std::string_view{ this->string.data() + newValue.index - (newValue.size), newValue.size };
+		std::cout << newValue.size << std::endl;
+		std::cout << theValue << std::endl;
+		return uint64_t{ stoull(
+			static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size), newValue.size })) };
 	}
 
 	inline int64_t collectInt64() {
@@ -1149,7 +1155,7 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode recordNumber(const char* value) {
-		this->jsonData.appendTapeValue(8, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::Uint64);
+		this->jsonData.appendTapeValue(this->peek() - value, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::Uint64);
 		return ErrorCode::Success;
 	}
 
