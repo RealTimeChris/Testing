@@ -503,891 +503,897 @@ namespace Jsonifier {
 	}
 
 
-struct JsonifierException : public std::runtime_error, std::string {
-	JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
-};
+	struct JsonifierException : public std::runtime_error, std::string {
+		JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+	};
 
-class SimdBase256;
+	class SimdBase256;
 
-inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
+	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
 
-class SimdBase128 {
-  public:
-	inline SimdBase128() noexcept = default;
+	class SimdBase128 {
+	  public:
+		inline SimdBase128() noexcept = default;
 
-	inline SimdBase128& operator=(char other) {
-		this->value = _mm_set1_epi8(other);
-		return *this;
-	}
-
-	inline SimdBase128(char other) {
-		*this = other;
-	}
-
-	inline SimdBase128(int64_t value00, int64_t value01) {
-		this->value = _mm_set_epi64x(value01, value00);
-	}
-
-	inline SimdBase128(uint64_t value00, uint64_t value01) {
-		this->value = _mm_set_epi64x(static_cast<int64_t>(value01), static_cast<int64_t>(value00));
-	}
-
-	inline SimdBase128& operator=(__m128i other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase128(__m128i other) {
-		*this = other;
-	}
-
-	inline operator __m128i() {
-		return this->value;
-	}
-
-	inline SimdBase128 operator|(SimdBase128 other) {
-		return _mm_or_si128(*this, other);
-	}
-
-	inline SimdBase128 operator&(SimdBase128 other) {
-		return _mm_and_si128(*this, other);
-	}
-
-	inline SimdBase128 operator^(SimdBase128 other) {
-		return _mm_xor_si128(*this, other);
-	}
-
-	inline SimdBase128 operator+(SimdBase128 other) {
-		return _mm_add_epi8(*this, other);
-	}
-
-	inline SimdBase128 operator|=(SimdBase128 other) {
-		*this = *this | other;
-		return *this;
-	}
-
-	inline SimdBase128 operator&=(SimdBase128 other) {
-		*this = *this & other;
-		return *this;
-	}
-
-	inline SimdBase128 operator^=(SimdBase128 other) {
-		*this = *this ^ other;
-		return *this;
-	}
-
-	inline SimdBase128 operator==(SimdBase128 other) {
-		return _mm_cmpeq_epi8(this->value, other);
-	}
-
-	inline SimdBase128 operator<<(size_t amount) {
-		SimdBase128 newValue{};
-		for (size_t x = 0; x < 2; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
-			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
-			}
+		inline SimdBase128& operator=(char other) {
+			this->value = _mm_set1_epi8(other);
+			return *this;
 		}
-		return newValue;
-	}
 
-	inline SimdBase128 operator~() {
-		SimdBase128 newValue{};
-		for (size_t x = 0; x < 2; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+		inline SimdBase128(char other) {
+			*this = other;
 		}
-		return newValue;
-	}
 
-	inline SimdBase128 bitAndNot(SimdBase128 other) {
-		return _mm_andnot_si128(other, *this);
-	}
-
-	inline SimdBase128 shuffle(SimdBase128 other) {
-		return _mm_shuffle_epi8(other, *this);
-	}
-
-  protected:
-	__m128i value{};
-};
-
-class SimdBase256 {
-  public:
-	inline SimdBase256() noexcept = default;
-
-	inline SimdBase256& operator=(char other) {
-		this->value = _mm256_set1_epi8(other);
-		return *this;
-	}
-
-	inline SimdBase256(char other) {
-		*this = other;
-	}
-
-	inline SimdBase256(char values[32]) {
-		*this = _mm256_load_si256(reinterpret_cast<__m256i*>(values));
-	}
-
-	inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
-		this->value = _mm256_set_epi64x(value03, value02, value01, value00);
-	}
-
-	inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
-		this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
-			static_cast<int64_t>(value00));
-	}
-
-	inline SimdBase256& operator=(__m256i other) {
-		this->value = other;
-		return *this;
-	}
-
-	inline SimdBase256(__m256i other) {
-		*this = other;
-	}
-
-	inline operator __m256i() {
-		return this->value;
-	}
-
-	inline SimdBase256 operator|(SimdBase256 other) {
-		return _mm256_or_si256(this->value, other);
-	}
-
-	inline SimdBase256 operator&(SimdBase256 other) {
-		return _mm256_and_si256(this->value, other);
-	}
-
-	inline SimdBase256 operator^(SimdBase256 other) {
-		return _mm256_xor_si256(this->value, other);
-	}
-
-	inline SimdBase256 operator+(SimdBase256 other) {
-		return _mm256_add_epi8(this->value, other);
-	}
-
-	inline SimdBase256 operator|=(SimdBase256 other) {
-		*this = *this | other;
-		return *this;
-	}
-
-	inline SimdBase256 operator&=(SimdBase256 other) {
-		*this = *this & other;
-		return *this;
-	}
-
-	inline SimdBase256 operator^=(SimdBase256 other) {
-		*this = *this ^ other;
-		return *this;
-	}
-
-	inline SimdBase256 operator==(SimdBase256 other) {
-		return _mm256_cmpeq_epi8(this->value, other);
-	}
-
-	inline SimdBase256 operator<<(size_t amount) {
-		SimdBase256 newValue{};
-		for (size_t x = 0; x < 4; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
-			if (x > 0) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
-			}
+		inline SimdBase128(int64_t value00, int64_t value01) {
+			this->value = _mm_set_epi64x(value01, value00);
 		}
-		return newValue;
-	}
 
-	inline SimdBase256 operator~() {
-		SimdBase256 newValue{};
-		for (size_t x = 0; x < 4; ++x) {
-			*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+		inline SimdBase128(uint64_t value00, uint64_t value01) {
+			this->value = _mm_set_epi64x(static_cast<int64_t>(value01), static_cast<int64_t>(value00));
 		}
-		return newValue;
-	}
 
-	inline SimdBase256 carrylessMultiplication(char operand) {
-		auto inString01 = static_cast<int64_t>(_mm_cvtsi128_si64(
-			_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0)));
-		auto prevInString = static_cast<int64_t>(inString01) >> 63;
-		auto inString02 =
-			static_cast<int64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))) ^
-			prevInString;
-		prevInString = static_cast<int64_t>(inString02) >> 63;
-		auto inString03 =
-			static_cast<int64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))) ^
-			prevInString;
-		prevInString = static_cast<int64_t>(inString03) >> 63;
-		auto inString04 =
-			static_cast<int64_t>(_mm_cvtsi128_si64(
-				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) ^
-			prevInString;
-		return SimdBase256{ inString01, inString02, inString03, inString04 };
-	}
-
-	inline SimdBase256 collectCarries(SimdBase256 other) {
-		SimdBase256 returnValue{};
-		for (size_t x = 0; x < 4; ++x) {
-			uint64_t returnValue64{};
-			_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&other) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
-				reinterpret_cast<unsigned long long*>(&returnValue64));
-			*(reinterpret_cast<uint64_t*>(&returnValue) + x) = returnValue64;
+		inline SimdBase128& operator=(__m128i other) {
+			this->value = other;
+			return *this;
 		}
-		return returnValue;
-	}
 
-	inline void printBits(const std::string& valuesTitle) {
-		std::cout << valuesTitle;
-		for (size_t x = 0; x < 32; ++x) {
-			for (size_t y = 0; y < 8; ++y) {
-				std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
-			}
+		inline SimdBase128(__m128i other) {
+			*this = other;
 		}
-		std::cout << std::endl;
-	}
 
-	inline SimdBase256 bitAndNot(SimdBase256 other) {
-		return _mm256_andnot_si256(other, *this);
-	}
+		inline operator __m128i() {
+			return this->value;
+		}
 
-	inline SimdBase256 shuffle(SimdBase256 other) {
-		return _mm256_shuffle_epi8(other, *this);
-	}
+		inline SimdBase128 operator|(SimdBase128 other) {
+			return _mm_or_si128(*this, other);
+		}
 
-	inline std::vector<uint32_t> getSetBitIndices() {
-		std::vector<uint32_t> returnVector{};
-		for (int64_t x = 0; x < 4; ++x) {
-			for (int64_t y = 0; y < 64; ++y) {
-				if (*(reinterpret_cast<int64_t*>(&this->value) + x) >> y & 1) {
-					returnVector.push_back(static_cast<uint8_t>(y + (x * 64)));
+		inline SimdBase128 operator&(SimdBase128 other) {
+			return _mm_and_si128(*this, other);
+		}
+
+		inline SimdBase128 operator^(SimdBase128 other) {
+			return _mm_xor_si128(*this, other);
+		}
+
+		inline SimdBase128 operator+(SimdBase128 other) {
+			return _mm_add_epi8(*this, other);
+		}
+
+		inline SimdBase128 operator|=(SimdBase128 other) {
+			*this = *this | other;
+			return *this;
+		}
+
+		inline SimdBase128 operator&=(SimdBase128 other) {
+			*this = *this & other;
+			return *this;
+		}
+
+		inline SimdBase128 operator^=(SimdBase128 other) {
+			*this = *this ^ other;
+			return *this;
+		}
+
+		inline SimdBase128 operator==(SimdBase128 other) {
+			return _mm_cmpeq_epi8(this->value, other);
+		}
+
+		inline SimdBase128 operator<<(size_t amount) {
+			SimdBase128 newValue{};
+			for (size_t x = 0; x < 2; ++x) {
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
+				if (x > 0) {
+					*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
 				}
 			}
-		}
-		return returnVector;
-	}
-
-  protected:
-	__m256i value{};
-};
-
-inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB) {
-	uint64_t r_lo = _mm256_movemask_epi8(inputA);
-	uint64_t r_hi = _mm256_movemask_epi8(inputB);
-	return r_lo | (r_hi << 32);
-}
-
-enum class IndexTypes { Whitespace = 0, Quotes = 1, Structural = 2 };
-
-class SimdStringSection {
-  public:
-	inline SimdStringSection() noexcept = default;
-
-	inline void packStringIntoValue(SimdBase256* theValue, const char* string) {
-		for (size_t x = 0; x < 32; ++x) {
-			*(reinterpret_cast<int8_t*>(theValue) + x) = string[x];
-		}
-	}
-
-	inline std::vector<uint32_t> getStructuralIndices() {
-		return this->S256.getSetBitIndices();
-	}
-
-	inline SimdBase256 collectWhiteSpace() {
-		char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2, 100,
-			'\t', '\n', 112, 100, '\r', 100, 100 };
-		SimdBase256 whitespaceTable{ valuesNew };
-		SimdBase256 whiteSpaceReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
-		}
-		return { convertSimd256To64BitUint(whiteSpaceReal[0], whiteSpaceReal[1]), convertSimd256To64BitUint(whiteSpaceReal[2], whiteSpaceReal[3]),
-			convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
-	}
-
-	inline SimdBase256 collectStructuralCharacters() {
-		this->R256 = this->Q256;
-		this->R256 = this->R256.carrylessMultiplication('\xFF');
-		char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
-		SimdBase256 opTable{ valuesNew };
-		SimdBase256 structural[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
-			structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
+			return newValue;
 		}
 
-		this->S256 = SimdBase256{ convertSimd256To64BitUint(structural[0], structural[1]), convertSimd256To64BitUint(structural[2], structural[3]),
-			convertSimd256To64BitUint(structural[4], structural[5]), convertSimd256To64BitUint(structural[6], structural[7]) };
-
-		this->S256 = this->S256.bitAndNot(R256);
-		this->S256 = this->S256 | this->Q256;
-		auto P256 = this->S256 | this->W256;
-		P256 = P256 << 1;
-		P256 &= ~this->W256 & ~R256;
-
-		this->S256 = this->S256 | P256;
-		return this->S256.bitAndNot(this->Q256.bitAndNot(R256));
-	}
-
-	inline SimdBase256 collectQuotes() {
-		SimdBase256 backslashes = _mm256_set1_epi8('\\');
-		SimdBase256 backslashesReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			backslashesReal[x] = this->values[x] == backslashes;
+		inline SimdBase128 operator~() {
+			SimdBase128 newValue{};
+			for (size_t x = 0; x < 2; ++x) {
+				*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+			}
+			return newValue;
 		}
 
-		auto B256 = SimdBase256{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]),
-			convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]), convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]),
-			convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
-
-		SimdBase256 quotes = _mm256_set1_epi8('"');
-		SimdBase256 quotesReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			quotesReal[x] = this->values[x] == quotes;
+		inline SimdBase128 bitAndNot(SimdBase128 other) {
+			return _mm_andnot_si128(other, *this);
 		}
 
-		this->Q256 = SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
-			convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
-		auto S = B256.bitAndNot(B256 << 1);
-		SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
-		SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-		auto ES = E & S;
-		auto EC = ES.collectCarries(B256);
-		auto ECE = EC.bitAndNot(B256);
-		auto OD1 = ECE.bitAndNot(E);
-		auto OS = S & O;
-		auto OC = B256 + OS;
-		auto OCE = OC.bitAndNot(B256);
-		auto OD2 = OCE & E;
-		auto OD = OD1 | OD2;
+		inline SimdBase128 shuffle(SimdBase128 other) {
+			return _mm_shuffle_epi8(other, *this);
+		}
 
-		return this->Q256 & ~OD;
-	}
+	  protected:
+		__m128i value{};
+	};
 
-	inline SimdStringSection(std::string_view valueNew) {
-		this->stringView = valueNew;
-		
-		this->packStringIntoValue(&this->values[0], this->stringView.data());
-		this->packStringIntoValue(&this->values[1], this->stringView.data() + 32);
-		this->packStringIntoValue(&this->values[2], this->stringView.data() + 64);
-		this->packStringIntoValue(&this->values[3], this->stringView.data() + 96);
-		this->packStringIntoValue(&this->values[4], this->stringView.data() + 128);
-		this->packStringIntoValue(&this->values[5], this->stringView.data() + 160);
-		this->packStringIntoValue(&this->values[6], this->stringView.data() + 192);
-		this->packStringIntoValue(&this->values[7], this->stringView.data() + 224);
+	class SimdBase256 {
+	  public:
+		inline SimdBase256() noexcept = default;
 
-		this->Q256 = this->collectQuotes();
-		this->W256 = this->collectWhiteSpace();
-		this->S256 = this->collectStructuralCharacters();
-		//this->S256.printBits("S FINAL VALUES (256) ");
-		//this->W256.printBits("W FINAL VALUES (256) ");
-		//this->R256.printBits("R FINAL VALUES (256) ");
-		//this->Q256.printBits("Q FINAL VALUES (256): ");
-		//std::cout << "THE STRING: " << this->stringView << std::endl;
-	}
+		inline SimdBase256& operator=(char other) {
+			this->value = _mm256_set1_epi8(other);
+			return *this;
+		}
 
-  protected:
-	SimdBase256 Q256{};
-	SimdBase256 W256{};
-	SimdBase256 R256{};
-	SimdBase256 S256{};
-	SimdBase256 values[8]{};
-	std::string_view stringView{};
-};
+		inline SimdBase256(char other) {
+			*this = other;
+		}
 
-enum class ErrorCode { Empty = 0, TapeError = 1, DepthError = 2, Success = 3, ParseError = 4 };
+		inline SimdBase256(char values[32]) {
+			*this = _mm256_load_si256(reinterpret_cast<__m256i*>(values));
+		}
 
-enum class JsonTapeEventStates {
-	ObjectBegin = 0,
-	ObjectField = 1,
-	ObjectContinue = 2,
-	ScopeEnd = 3,
-	ArrayBegin = 4,
-	ArrayValue = 5,
-	ArrayContinue = 6,
-	DocumentEnd = 7
-};
+		inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
+			this->value = _mm256_set_epi64x(value03, value02, value01, value00);
+		}
 
-enum class TapeType : char {
-	Root = 'r',
-	StartArray = '[',
-	StartObject = '{',
-	EndArray = ']',
-	EndObject = '}',
-	String = '"',
-	Int64 = 'l',
-	Uint64 = 'u',
-	Double = 'd',
-	TrueValue = 't',
-	FalseValue = 'f',
-	NullValue = 'n'
-};
+		inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
+			this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
+				static_cast<int64_t>(value00));
+		}
 
-struct JsonEvent {
-	JsonEvent* ptrTosStart{};
-	TapeType type{};
-	size_t index{};
-	size_t size{};
-};
+		inline SimdBase256& operator=(__m256i other) {
+			this->value = other;
+			return *this;
+		}
 
-struct JsonEventWriter {
-	inline void appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
-		JsonEvent returnValue{};
-		returnValue.index = stringIndexNew;
-		returnValue.type = eventTypeNew;
-		
-		returnValue.size = sizeNew;
-		this->jsonEvents.emplace_back(returnValue);
-	}
+		inline SimdBase256(__m256i other) {
+			*this = other;
+		}
 
-	inline auto begin() {
-		return this->jsonEvents.begin();
-	}
+		inline operator __m256i() {
+			return this->value;
+		}
 
-	inline auto end() {
-		return this->jsonEvents.end();
-	}
+		inline SimdBase256 operator|(SimdBase256 other) {
+			return _mm256_or_si256(this->value, other);
+		}
 
-	inline std::vector<JsonEvent>& getEvents() {
-		return this->jsonEvents;
-	}
+		inline SimdBase256 operator&(SimdBase256 other) {
+			return _mm256_and_si256(this->value, other);
+		}
 
-  protected:
-	std::vector<JsonEvent> jsonEvents{};
-};
+		inline SimdBase256 operator^(SimdBase256 other) {
+			return _mm256_xor_si256(this->value, other);
+		}
 
-class JsonConstructor {
-  public:
-	inline JsonConstructor() noexcept = default;
+		inline SimdBase256 operator+(SimdBase256 other) {
+			return _mm256_add_epi8(this->value, other);
+		}
 
-	inline JsonConstructor(std::vector<JsonEvent>& theEvents, std::string_view stringNew) {
-		this->jsonEvents = std::move(theEvents);
-		this->string = stringNew;
-	}
+		inline SimdBase256 operator|=(SimdBase256 other) {
+			*this = *this | other;
+			return *this;
+		}
 
-	inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
-		switch (events.begin()->type) {
-			case TapeType::StartObject: {
-				events.erase(events.begin());
-				while (events.begin()->type != TapeType::EndObject) {
-					Jsonifier jsonDataNewer{};
-					auto key = this->collectString();
-					jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, jsonDataNewer);
-					if (events.size() == 0) {
-						return jsonDataNew;
+		inline SimdBase256 operator&=(SimdBase256 other) {
+			*this = *this & other;
+			return *this;
+		}
+
+		inline SimdBase256 operator^=(SimdBase256 other) {
+			*this = *this ^ other;
+			return *this;
+		}
+
+		inline SimdBase256 operator==(SimdBase256 other) {
+			return _mm256_cmpeq_epi8(this->value, other);
+		}
+
+		inline SimdBase256 operator<<(size_t amount) {
+			SimdBase256 newValue{};
+			for (size_t x = 0; x < 4; ++x) {
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
+				if (x > 0) {
+					*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
+				}
+			}
+			return newValue;
+		}
+
+		inline SimdBase256 operator~() {
+			SimdBase256 newValue{};
+			for (size_t x = 0; x < 4; ++x) {
+				*(reinterpret_cast<int64_t*>(&newValue) + x) = ~*(reinterpret_cast<int64_t*>(&this->value) + x);
+			}
+			return newValue;
+		}
+
+		inline SimdBase256 carrylessMultiplication(char operand) {
+			auto inString01 = static_cast<int64_t>(_mm_cvtsi128_si64(
+				_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 0)), SimdBase128{ operand }, 0)));
+			auto prevInString = static_cast<int64_t>(inString01) >> 63;
+			auto inString02 =
+				static_cast<int64_t>(_mm_cvtsi128_si64(
+					_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 1)), SimdBase128{ operand }, 0))) ^
+				prevInString;
+			prevInString = static_cast<int64_t>(inString02) >> 63;
+			auto inString03 =
+				static_cast<int64_t>(_mm_cvtsi128_si64(
+					_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 2)), SimdBase128{ operand }, 0))) ^
+				prevInString;
+			prevInString = static_cast<int64_t>(inString03) >> 63;
+			auto inString04 =
+				static_cast<int64_t>(_mm_cvtsi128_si64(
+					_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, *(reinterpret_cast<int64_t*>(&this->value) + 3)), SimdBase128{ operand }, 0))) ^
+				prevInString;
+			return SimdBase256{ inString01, inString02, inString03, inString04 };
+		}
+
+		inline SimdBase256 collectCarries(SimdBase256 other) {
+			SimdBase256 returnValue{};
+			for (size_t x = 0; x < 4; ++x) {
+				uint64_t returnValue64{};
+				_addcarry_u64(0, *(reinterpret_cast<uint64_t*>(&other) + x), *(reinterpret_cast<uint64_t*>(&this->value) + x),
+					reinterpret_cast<unsigned long long*>(&returnValue64));
+				*(reinterpret_cast<uint64_t*>(&returnValue) + x) = returnValue64;
+			}
+			return returnValue;
+		}
+
+		inline void printBits(const std::string& valuesTitle) {
+			std::cout << valuesTitle;
+			for (size_t x = 0; x < 32; ++x) {
+				for (size_t y = 0; y < 8; ++y) {
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				}
+			}
+			std::cout << std::endl;
+		}
+
+		inline SimdBase256 bitAndNot(SimdBase256 other) {
+			return _mm256_andnot_si256(other, *this);
+		}
+
+		inline SimdBase256 shuffle(SimdBase256 other) {
+			return _mm256_shuffle_epi8(other, *this);
+		}
+
+		inline std::vector<uint32_t> getSetBitIndices() {
+			std::vector<uint32_t> returnVector{};
+			for (int64_t x = 0; x < 4; ++x) {
+				for (int64_t y = 0; y < 64; ++y) {
+					if (*(reinterpret_cast<int64_t*>(&this->value) + x) >> y & 1) {
+						returnVector.push_back(static_cast<uint8_t>(y + (x * 64)));
 					}
 				}
-				break;
 			}
-			case TapeType::StartArray: {
-				events.erase(events.begin());
-				while (events.begin()->type != TapeType::EndArray) {
-					Jsonifier jsonDataNewer{};
-					jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, jsonDataNewer));
+			return returnVector;
+		}
 
-					if (events.size() == 0) {
-						return jsonDataNew;
-					}
-				}
-				break;
-			}
-			case TapeType::String: {
-				return this->collectString();
-			}
-			case TapeType::Double: {
-				return this->collectFloat();
-			}
-			case TapeType::Uint64: {
-				auto theValue = this->collectUint64();
-				std::cout << "THE NUMBER VALUE: " << theValue << std::endl;
-				return theValue;
-			}
-			case TapeType::Int64: {
-				return this->collectInt64();
-			}
-			case TapeType::TrueValue: {
-				return this->collectTrueOrFalse(true);
-			}
-			case TapeType::FalseValue: {
-				return this->collectTrueOrFalse(false);
-			}
-			case TapeType::NullValue: {
-				return this->collectNull();
-			}
-			default: {
-				return jsonDataNew;
+	  protected:
+		__m256i value{};
+	};
+
+	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB) {
+		uint64_t r_lo = _mm256_movemask_epi8(inputA);
+		uint64_t r_hi = _mm256_movemask_epi8(inputB);
+		return r_lo | (r_hi << 32);
+	}
+
+	enum class IndexTypes { Whitespace = 0, Quotes = 1, Structural = 2 };
+
+	class SimdStringSection {
+	  public:
+		inline SimdStringSection() noexcept = default;
+
+		inline void packStringIntoValue(SimdBase256* theValue, const char* string) {
+			for (size_t x = 0; x < 32; ++x) {
+				*(reinterpret_cast<int8_t*>(theValue) + x) = string[x];
 			}
 		}
-		events.erase(events.begin());
-		return jsonDataNew;
-	}
 
+		inline std::vector<uint32_t> getStructuralIndices() {
+			return this->S256.getSetBitIndices();
+		}
 
-	inline Jsonifier collectString() {
-		JsonEvent newValue = this->jsonEvents.front();
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		return static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size + 1), newValue.size });
-	}
+		inline SimdBase256 collectWhiteSpace() {
+			char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
+				100, '\t', '\n', 112, 100, '\r', 100, 100 };
+			SimdBase256 whitespaceTable{ valuesNew };
+			SimdBase256 whiteSpaceReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
+			}
+			return { convertSimd256To64BitUint(whiteSpaceReal[0], whiteSpaceReal[1]), convertSimd256To64BitUint(whiteSpaceReal[2], whiteSpaceReal[3]),
+				convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
+		}
 
-	inline Jsonifier collectTrueOrFalse(bool returnValue) {
-		JsonEvent newValue = this->jsonEvents.front();
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		return returnValue;
-	}
+		inline SimdBase256 collectStructuralCharacters() {
+			this->R256 = this->Q256;
+			this->R256 = this->R256.carrylessMultiplication('\xFF');
+			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
+			SimdBase256 opTable{ valuesNew };
+			SimdBase256 structural[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
+				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
+			}
 
-	inline Jsonifier collectFloat() {
-		JsonEvent newValue = this->jsonEvents.front();
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		return double{ stod(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
-	}
+			this->S256 =
+				SimdBase256{ convertSimd256To64BitUint(structural[0], structural[1]), convertSimd256To64BitUint(structural[2], structural[3]),
+					convertSimd256To64BitUint(structural[4], structural[5]), convertSimd256To64BitUint(structural[6], structural[7]) };
 
-	inline uint64_t collectUint64() {
-		JsonEvent newValue = this->jsonEvents.front();
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		return uint64_t{ stoull(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
-	}
+			this->S256 = this->S256.bitAndNot(R256);
+			this->S256 = this->S256 | this->Q256;
+			auto P256 = this->S256 | this->W256;
+			P256 = P256 << 1;
+			P256 &= ~this->W256 & ~R256;
 
-	inline int64_t collectInt64() {
-		JsonEvent newValue = this->jsonEvents.front();
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		return int64_t{ stoll(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
-	}
+			this->S256 = this->S256 | P256;
+			return this->S256.bitAndNot(this->Q256.bitAndNot(R256));
+		}
 
-	inline Jsonifier collectNull() {
-		return nullptr;
-	}
+		inline SimdBase256 collectQuotes() {
+			SimdBase256 backslashes = _mm256_set1_epi8('\\');
+			SimdBase256 backslashesReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				backslashesReal[x] = this->values[x] == backslashes;
+			}
 
-	inline operator Jsonifier() {
-		this->jsonData = this->parseJsonToJsonObject(this->jsonEvents, this->jsonData);
-		return this->jsonData;
-		
-	}
+			auto B256 = SimdBase256{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]),
+				convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]), convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]),
+				convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
 
-  protected:
-	std::vector<JsonEvent> jsonEvents{};
-	std::string_view string{};
-	Jsonifier jsonData{};
-};
+			SimdBase256 quotes = _mm256_set1_epi8('"');
+			SimdBase256 quotesReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				quotesReal[x] = this->values[x] == quotes;
+			}
 
+			this->Q256 =
+				SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
+					convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
+			auto S = B256.bitAndNot(B256 << 1);
+			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
+			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
+			auto ES = E & S;
+			auto EC = ES.collectCarries(B256);
+			auto ECE = EC.bitAndNot(B256);
+			auto OD1 = ECE.bitAndNot(E);
+			auto OS = S & O;
+			auto OC = B256 + OS;
+			auto OCE = OC.bitAndNot(B256);
+			auto OD2 = OCE & E;
+			auto OD = OD1 | OD2;
 
-class SimdStringScanner {
-  public:
+			return this->Q256 & ~OD;
+		}
 
-	inline SimdStringScanner(std::string_view stringNew) noexcept {
-		if (stringNew.size() % 256 != 0) {
+		inline SimdStringSection(std::string_view valueNew) {
+			this->stringView = valueNew;
+
+			this->packStringIntoValue(&this->values[0], this->stringView.data());
+			this->packStringIntoValue(&this->values[1], this->stringView.data() + 32);
+			this->packStringIntoValue(&this->values[2], this->stringView.data() + 64);
+			this->packStringIntoValue(&this->values[3], this->stringView.data() + 96);
+			this->packStringIntoValue(&this->values[4], this->stringView.data() + 128);
+			this->packStringIntoValue(&this->values[5], this->stringView.data() + 160);
+			this->packStringIntoValue(&this->values[6], this->stringView.data() + 192);
+			this->packStringIntoValue(&this->values[7], this->stringView.data() + 224);
+
+			this->Q256 = this->collectQuotes();
+			this->W256 = this->collectWhiteSpace();
+			this->S256 = this->collectStructuralCharacters();
+			//this->S256.printBits("S FINAL VALUES (256) ");
+			//this->W256.printBits("W FINAL VALUES (256) ");
+			//this->R256.printBits("R FINAL VALUES (256) ");
+			//this->Q256.printBits("Q FINAL VALUES (256): ");
+			//std::cout << "THE STRING: " << this->stringView << std::endl;
+		}
+
+	  protected:
+		SimdBase256 Q256{};
+		SimdBase256 W256{};
+		SimdBase256 R256{};
+		SimdBase256 S256{};
+		SimdBase256 values[8]{};
+		std::string_view stringView{};
+	};
+
+	enum class ErrorCode { Empty = 0, TapeError = 1, DepthError = 2, Success = 3, ParseError = 4 };
+
+	enum class JsonTapeEventStates {
+		ObjectBegin = 0,
+		ObjectField = 1,
+		ObjectContinue = 2,
+		ScopeEnd = 3,
+		ArrayBegin = 4,
+		ArrayValue = 5,
+		ArrayContinue = 6,
+		DocumentEnd = 7
+	};
+
+	enum class TapeType : char {
+		Root = 'r',
+		StartArray = '[',
+		StartObject = '{',
+		EndArray = ']',
+		EndObject = '}',
+		String = '"',
+		Int64 = 'l',
+		Uint64 = 'u',
+		Double = 'd',
+		TrueValue = 't',
+		FalseValue = 'f',
+		NullValue = 'n'
+	};
+
+	struct JsonEvent {
+		JsonEvent* ptrTosStart{};
+		TapeType type{};
+		size_t index{};
+		size_t size{};
+	};
+
+	struct JsonEventWriter {
+		inline void appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
+			JsonEvent returnValue{};
+			returnValue.index = stringIndexNew;
+			returnValue.type = eventTypeNew;
+
+			returnValue.size = sizeNew;
+			this->jsonEvents.emplace_back(returnValue);
+		}
+
+		inline auto begin() {
+			return this->jsonEvents.begin();
+		}
+
+		inline auto end() {
+			return this->jsonEvents.end();
+		}
+
+		inline std::vector<JsonEvent>& getEvents() {
+			return this->jsonEvents;
+		}
+
+	  protected:
+		std::vector<JsonEvent> jsonEvents{};
+	};
+
+	class JsonConstructor {
+	  public:
+		inline JsonConstructor() noexcept = default;
+
+		inline JsonConstructor(std::vector<JsonEvent>& theEvents, std::string_view stringNew) {
+			this->jsonEvents = std::move(theEvents);
 			this->string = stringNew;
-			this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
-			this->stringView = this->string;
-
-		} else {
-			this->stringView = stringNew;
 		}
-		size_t stringSize = this->stringView.size();
-		size_t collectedSize{};
-		while (stringSize > 256) {
-			this->stringSections.emplace_back(std::string_view{ this->stringView.data() + collectedSize, 256 });
-			stringSize -= 256;
-			collectedSize += 256;
-		}
-		if (this->stringView.size() - collectedSize > 0) {
-			this->stringSections.emplace_back(std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize });
-		}
-		this->generateTapeRecord();
-	}
 
-	inline void generateTapeRecord() {
-		for (auto& value: this->stringSections) {
-			std::vector<uint32_t> setBitIndices{ value.getStructuralIndices() };
-			this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
-		}
-		this->next_structural = &this->jsonTape[0];
-	}
-
-	inline ErrorCode recordTrueAtom(const char* value) {
-		if (strcmp(value, "true")) {
-
-			this->jsonData.appendTapeValue(4, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::TrueValue);
-			return ErrorCode::Success;
-		} else {
-			return ErrorCode::ParseError;
-		}
-	}
-
-	inline ErrorCode recordObjectStart() {
-		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordArrayStart() {
-		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordObjectEnd() {
-		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndObject);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordArrayEnd() {
-		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordFalseAtom(const char* value) {
-		if (strcmp(value, "false")) {
-			this->jsonData.appendTapeValue(5, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::FalseValue);
-			return ErrorCode::Success;
-		} else {
-			return ErrorCode::ParseError;
-		}
-	}
-
-	inline ErrorCode recordNullAtom(const char* value) {
-		if (strcmp(value, "null")) {
-			this->jsonData.appendTapeValue(4, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::NullValue);
-			return ErrorCode::Success;
-		} else {
-			return ErrorCode::ParseError;
-		}
-	}
-
-	inline ErrorCode recordNumber(const char* value) {
-		this->jsonData.appendTapeValue(this->peek() - value, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::Uint64);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordKey(const char* value) {
-		this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::String);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordEmptyObject() {
-		this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
-		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndObject);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordEmptyArray() {
-		this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
-		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndArray);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordString(const char* value) {
-		this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::String);
-		return ErrorCode::Success;
-	}
-
-	inline ErrorCode recordPrimitive(const char* value) {
-		switch (*value) {
-			case '"':
-				return this->recordString(value);
-			case 't':
-				return this->recordTrueAtom(value);
-			case 'f':
-				return this->recordFalseAtom(value);
-			case 'n':
-				return this->recordNullAtom(value);
-			case '-':
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-				return this->recordNumber(value);
-			default:
-				throw JsonifierException{"Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError))};
-		}
-	}
-
-	uint32_t* next_structural{ nullptr };
-	uint32_t depth{ 0 };
-
-	inline bool atEof() {
-		return &this->stringView[*this->next_structural] - this->stringView.data() == this->stringView.size();
-	}
-
-	inline const char* peek() noexcept {
-		auto returnValue = &this->stringView[*(this->next_structural)];
-		return returnValue;
-	}
-
-	inline const char* advance(std::source_location location = std::source_location::current()) noexcept {
-		auto returnValue = &this->stringView[*(this->next_structural++)];
-		return returnValue;
-	}
-
-	inline ErrorCode generateJsonData() {
-		switch (this->currentState) {
-			case JsonTapeEventStates::ObjectBegin:{
-				this->depth++;
-				this->recordObjectStart();
-				auto key = this->advance();
-				if (*key != '"') {
-					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
-				}
-				this->recordKey(key);
-				this->currentState = JsonTapeEventStates::ObjectField;
-			}
-			case JsonTapeEventStates::ObjectField: {
-				if (*this->advance() != ':') {
-					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
-				}
-				auto value = this->advance();
-				switch (*value) {
-					case '{':
-						if (*this->peek() == '}') {
-							this->advance();
-							this->recordEmptyObject();
-							break;
+		inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
+			switch (events.begin()->type) {
+				case TapeType::StartObject: {
+					events.erase(events.begin());
+					while (events.begin()->type != TapeType::EndObject) {
+						Jsonifier jsonDataNewer{};
+						auto key = this->collectString();
+						jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, jsonDataNewer);
+						if (events.size() == 0) {
+							return jsonDataNew;
 						}
-						this->currentState = JsonTapeEventStates::ObjectBegin;
-						return this->generateJsonData();
-					case '[':
-						if (*this->peek() == ']') {
-							this->advance();
-							this->recordEmptyArray();
-							break;
-						}
-						this->currentState = JsonTapeEventStates::ArrayBegin;
-						return this->generateJsonData();
-
-					default:
-						this->recordPrimitive(value);
+					}
+					break;
 				}
-				this->currentState = JsonTapeEventStates::ObjectContinue;
+				case TapeType::StartArray: {
+					events.erase(events.begin());
+					while (events.begin()->type != TapeType::EndArray) {
+						Jsonifier jsonDataNewer{};
+						jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, jsonDataNewer));
+
+						if (events.size() == 0) {
+							return jsonDataNew;
+						}
+					}
+					break;
+				}
+				case TapeType::String: {
+					return this->collectString();
+				}
+				case TapeType::Double: {
+					return this->collectFloat();
+				}
+				case TapeType::Uint64: {
+					auto theValue = this->collectUint64();
+					std::cout << "THE NUMBER VALUE: " << theValue << std::endl;
+					return theValue;
+				}
+				case TapeType::Int64: {
+					return this->collectInt64();
+				}
+				case TapeType::TrueValue: {
+					return this->collectTrueOrFalse(true);
+				}
+				case TapeType::FalseValue: {
+					return this->collectTrueOrFalse(false);
+				}
+				case TapeType::NullValue: {
+					return this->collectNull();
+				}
+				default: {
+					return jsonDataNew;
+				}
 			}
-			case JsonTapeEventStates::ObjectContinue: {
-				switch (*this->advance()) {
-					case ',': {
-						auto key = this->advance();
-						if (*key != '"') {
+			events.erase(events.begin());
+			return jsonDataNew;
+		}
+
+
+		inline Jsonifier collectString() {
+			JsonEvent newValue = this->jsonEvents.front();
+			this->jsonEvents.erase(this->jsonEvents.begin());
+			return static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size + 1), newValue.size });
+		}
+
+		inline Jsonifier collectTrueOrFalse(bool returnValue) {
+			JsonEvent newValue = this->jsonEvents.front();
+			this->jsonEvents.erase(this->jsonEvents.begin());
+			return returnValue;
+		}
+
+		inline Jsonifier collectFloat() {
+			JsonEvent newValue = this->jsonEvents.front();
+			this->jsonEvents.erase(this->jsonEvents.begin());
+			return double{ stod(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
+		}
+
+		inline uint64_t collectUint64() {
+			JsonEvent newValue = this->jsonEvents.front();
+			this->jsonEvents.erase(this->jsonEvents.begin());
+			return uint64_t{ stoull(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
+		}
+
+		inline int64_t collectInt64() {
+			JsonEvent newValue = this->jsonEvents.front();
+			this->jsonEvents.erase(this->jsonEvents.begin());
+			return int64_t{ stoll(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
+		}
+
+		inline Jsonifier collectNull() {
+			return nullptr;
+		}
+
+		inline operator Jsonifier() {
+			this->jsonData = this->parseJsonToJsonObject(this->jsonEvents, this->jsonData);
+			return this->jsonData;
+		}
+
+	  protected:
+		std::vector<JsonEvent> jsonEvents{};
+		std::string_view string{};
+		Jsonifier jsonData{};
+	};
+
+
+	class SimdStringScanner {
+	  public:
+		inline SimdStringScanner(std::string_view stringNew) noexcept {
+			if (stringNew.size() % 256 != 0) {
+				this->string = stringNew;
+				this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
+				this->stringView = this->string;
+
+			} else {
+				this->stringView = stringNew;
+			}
+			size_t stringSize = this->stringView.size();
+			size_t collectedSize{};
+			while (stringSize > 256) {
+				this->stringSections.emplace_back(std::string_view{ this->stringView.data() + collectedSize, 256 });
+				stringSize -= 256;
+				collectedSize += 256;
+			}
+			if (this->stringView.size() - collectedSize > 0) {
+				this->stringSections.emplace_back(
+					std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize });
+			}
+			this->generateTapeRecord();
+		}
+
+		inline void generateTapeRecord() {
+			for (auto& value: this->stringSections) {
+				std::vector<uint32_t> setBitIndices{ value.getStructuralIndices() };
+				this->jsonTape.insert(this->jsonTape.end(), setBitIndices.begin(), setBitIndices.end());
+			}
+			this->next_structural = &this->jsonTape[0];
+		}
+
+		inline ErrorCode recordTrueAtom(const char* value) {
+			if (strcmp(value, "true")) {
+				this->jsonData.appendTapeValue(4, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::TrueValue);
+				return ErrorCode::Success;
+			} else {
+				return ErrorCode::ParseError;
+			}
+		}
+
+		inline ErrorCode recordObjectStart() {
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordArrayStart() {
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordObjectEnd() {
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndObject);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordArrayEnd() {
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordFalseAtom(const char* value) {
+			if (strcmp(value, "false")) {
+				this->jsonData.appendTapeValue(5, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::FalseValue);
+				return ErrorCode::Success;
+			} else {
+				return ErrorCode::ParseError;
+			}
+		}
+
+		inline ErrorCode recordNullAtom(const char* value) {
+			if (strcmp(value, "null")) {
+				this->jsonData.appendTapeValue(4, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::NullValue);
+				return ErrorCode::Success;
+			} else {
+				return ErrorCode::ParseError;
+			}
+		}
+
+		inline ErrorCode recordNumber(const char* value) {
+			this->jsonData.appendTapeValue(this->peek() - value, &this->stringView[*this->next_structural] - this->stringView.data(),
+				TapeType::Uint64);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordKey(const char* value) {
+			this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(),
+				TapeType::String);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordEmptyObject() {
+			this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndObject);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordEmptyArray() {
+			this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndArray);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordString(const char* value) {
+			this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(),
+				TapeType::String);
+			return ErrorCode::Success;
+		}
+
+		inline ErrorCode recordPrimitive(const char* value) {
+			switch (*value) {
+				case '"':
+					return this->recordString(value);
+				case 't':
+					return this->recordTrueAtom(value);
+				case 'f':
+					return this->recordFalseAtom(value);
+				case 'n':
+					return this->recordNullAtom(value);
+				case '-':
+				case '0':
+				case '1':
+				case '2':
+				case '3':
+				case '4':
+				case '5':
+				case '6':
+				case '7':
+				case '8':
+				case '9':
+					return this->recordNumber(value);
+				default:
+					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+			}
+		}
+
+		uint32_t* next_structural{ nullptr };
+		uint32_t depth{ 0 };
+
+		inline bool atEof() {
+			return &this->stringView[*this->next_structural] - this->stringView.data() == this->stringView.size();
+		}
+
+		inline const char* peek() noexcept {
+			auto returnValue = &this->stringView[*(this->next_structural)];
+			return returnValue;
+		}
+
+		inline const char* advance(std::source_location location = std::source_location::current()) noexcept {
+			auto returnValue = &this->stringView[*(this->next_structural++)];
+			return returnValue;
+		}
+
+		inline ErrorCode generateJsonData() {
+			switch (this->currentState) {
+				case JsonTapeEventStates::ObjectBegin: {
+					this->depth++;
+					this->recordObjectStart();
+					auto key = this->advance();
+					if (*key != '"') {
+						throw JsonifierException{ "Failed to generate Json data: Reason: " +
+							std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					}
+					this->recordKey(key);
+					this->currentState = JsonTapeEventStates::ObjectField;
+				}
+				case JsonTapeEventStates::ObjectField: {
+					if (*this->advance() != ':') {
+						throw JsonifierException{ "Failed to generate Json data: Reason: " +
+							std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					}
+					auto value = this->advance();
+					switch (*value) {
+						case '{':
+							if (*this->peek() == '}') {
+								this->advance();
+								this->recordEmptyObject();
+								break;
+							}
+							this->currentState = JsonTapeEventStates::ObjectBegin;
+							return this->generateJsonData();
+						case '[':
+							if (*this->peek() == ']') {
+								this->advance();
+								this->recordEmptyArray();
+								break;
+							}
+							this->currentState = JsonTapeEventStates::ArrayBegin;
+							return this->generateJsonData();
+
+						default:
+							this->recordPrimitive(value);
+					}
+					this->currentState = JsonTapeEventStates::ObjectContinue;
+				}
+				case JsonTapeEventStates::ObjectContinue: {
+					switch (*this->advance()) {
+						case ',': {
+							auto key = this->advance();
+							if (*key != '"') {
+								throw JsonifierException{ "Failed to generate Json data: Reason: " +
+									std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+							}
+							this->recordKey(key);
+							this->currentState = JsonTapeEventStates::ObjectField;
+							return this->generateJsonData();
+						}
+						case '}': {
+							this->recordObjectEnd();
+							this->currentState = JsonTapeEventStates::ScopeEnd;
+							return this->generateJsonData();
+						}
+						default: {
+							return this->generateJsonData();
 							throw JsonifierException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 						}
-						this->recordKey(key);
-						this->currentState = JsonTapeEventStates::ObjectField;
-						return this->generateJsonData();
 					}
-					case '}': {
-						this->recordObjectEnd();
-						this->currentState = JsonTapeEventStates::ScopeEnd;
-						return this->generateJsonData();
-					}
-					default: {
-						return this->generateJsonData();
-						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
-					}
-						
 				}
-			}
-			case JsonTapeEventStates::ScopeEnd: {
-				this->depth--;
-				if (this->depth == 0) {
-					this->currentState = JsonTapeEventStates::DocumentEnd;
+				case JsonTapeEventStates::ScopeEnd: {
+					this->depth--;
+					if (this->depth == 0) {
+						this->currentState = JsonTapeEventStates::DocumentEnd;
+						return this->generateJsonData();
+					}
+					this->currentState = JsonTapeEventStates::ObjectContinue;
 					return this->generateJsonData();
 				}
-				this->currentState = JsonTapeEventStates::ObjectContinue;
-				return this->generateJsonData();
-			}
-			case JsonTapeEventStates::ArrayBegin: {
-				this->depth++;
-				this->recordArrayStart();
-				this->currentState = JsonTapeEventStates::ArrayValue;
-			}
-			case JsonTapeEventStates::ArrayValue: {
-				auto value = this->advance();
-				switch (*value) {
-					case '{':
-						if (*this->peek() == '}') {
-							this->advance();
-							this->recordEmptyObject();
-							break;
-						}
-						this->currentState = JsonTapeEventStates::ObjectBegin;
-						return this->generateJsonData();
-					case '[':
-						if (*this->peek() == ']') {
-							this->advance();
-							this->recordEmptyArray();
-							break;
-						}
-						this->currentState = JsonTapeEventStates::ArrayBegin;
-						return this->generateJsonData();
-					default:
-						this->recordPrimitive(value);
+				case JsonTapeEventStates::ArrayBegin: {
+					this->depth++;
+					this->recordArrayStart();
+					this->currentState = JsonTapeEventStates::ArrayValue;
 				}
-			}
-			case JsonTapeEventStates::ArrayContinue: {
-				switch (*this->advance()) {
-					case ',':
-						this->currentState = JsonTapeEventStates::ArrayValue;
-						return this->generateJsonData();
-					case ']':
-						this->recordArrayEnd();
-						this->currentState = JsonTapeEventStates::ScopeEnd;
-						return this->generateJsonData();
-					default:
-						throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+				case JsonTapeEventStates::ArrayValue: {
+					auto value = this->advance();
+					switch (*value) {
+						case '{':
+							if (*this->peek() == '}') {
+								this->advance();
+								this->recordEmptyObject();
+								break;
+							}
+							this->currentState = JsonTapeEventStates::ObjectBegin;
+							return this->generateJsonData();
+						case '[':
+							if (*this->peek() == ']') {
+								this->advance();
+								this->recordEmptyArray();
+								break;
+							}
+							this->currentState = JsonTapeEventStates::ArrayBegin;
+							return this->generateJsonData();
+						default:
+							this->recordPrimitive(value);
+					}
 				}
-				break;
-			}
-			case JsonTapeEventStates::DocumentEnd: {
-				break;
-			}
-			default: {
-				break;
-			}
-		}
-		return ErrorCode::Success;
-	}
-
-	inline Jsonifier getJsonData() {
-		auto value = advance();
-		ErrorCode resultCode{};
-		switch (*value) {
-			case '{':
-				if (*this->peek() == '}') {
-					this->advance();
-					this->recordEmptyObject();
+				case JsonTapeEventStates::ArrayContinue: {
+					switch (*this->advance()) {
+						case ',':
+							this->currentState = JsonTapeEventStates::ArrayValue;
+							return this->generateJsonData();
+						case ']':
+							this->recordArrayEnd();
+							this->currentState = JsonTapeEventStates::ScopeEnd;
+							return this->generateJsonData();
+						default:
+							throw JsonifierException{ "Failed to generate Json data: Reason: " +
+								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					}
 					break;
 				}
-				this->currentState = JsonTapeEventStates::ObjectBegin;
-				resultCode = this->generateJsonData();
-				break;
-		  case '[':
-				if (*this->peek() == ']') {
-					this->advance();
-					this->recordEmptyArray();
+				case JsonTapeEventStates::DocumentEnd: {
 					break;
 				}
-			  this->currentState = JsonTapeEventStates::ArrayBegin;
-			  resultCode = this->generateJsonData();
-			  break;
-		  default:
-			  resultCode = this->recordPrimitive(value);
-			  break;
+				default: {
+					break;
+				}
+			}
+			return ErrorCode::Success;
 		}
- 
-		if (resultCode!= ErrorCode::Success) {
-			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
-		}
-		this->jsonDataFinal = JsonConstructor{ this->jsonData.getEvents(), this->stringView };
-		return this->jsonDataFinal.operator Jsonifier();
-	}
 
-  protected:
-	JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
-	std::vector<SimdStringSection> stringSections{};
-	std::vector<uint32_t> jsonTape{};
-	JsonConstructor jsonDataFinal{};
-	std::string_view stringView{};
-	JsonEventWriter jsonData{};
-	std::string currentKey{};
-	std::string string{};
-};
+		inline Jsonifier getJsonData() {
+			auto value = advance();
+			ErrorCode resultCode{};
+			switch (*value) {
+				case '{':
+					if (*this->peek() == '}') {
+						this->advance();
+						this->recordEmptyObject();
+						break;
+					}
+					this->currentState = JsonTapeEventStates::ObjectBegin;
+					resultCode = this->generateJsonData();
+					break;
+				case '[':
+					if (*this->peek() == ']') {
+						this->advance();
+						this->recordEmptyArray();
+						break;
+					}
+					this->currentState = JsonTapeEventStates::ArrayBegin;
+					resultCode = this->generateJsonData();
+					break;
+				default:
+					resultCode = this->recordPrimitive(value);
+					break;
+			}
+
+			if (resultCode != ErrorCode::Success) {
+				throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
+			}
+			this->jsonDataFinal = JsonConstructor{ this->jsonData.getEvents(), this->stringView };
+			return this->jsonDataFinal.operator Jsonifier();
+		}
+
+	  protected:
+		JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
+		std::vector<SimdStringSection> stringSections{};
+		std::vector<uint32_t> jsonTape{};
+		JsonConstructor jsonDataFinal{};
+		std::string_view stringView{};
+		JsonEventWriter jsonData{};
+		std::string currentKey{};
+		std::string string{};
+	};
 };
