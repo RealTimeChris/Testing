@@ -1037,7 +1037,7 @@ class JsonConstructor {
 	inline Jsonifier collectFloat() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		return uint64_t{ stod(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
+		return double{ stod(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
 	}
 
 	inline uint64_t collectUint64() {
