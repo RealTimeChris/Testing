@@ -380,11 +380,7 @@ namespace Jsonifier {
 
 		Jsonifier& operator[](uint64_t index);
 
-		template<typename Ty> const Ty& getValue() const {
-			return Ty{};
-		}
-
-		template<typename Ty> Ty& getValue() {
+		template<typename Ty> Ty getValue() {
 			return Ty{};
 		}
 
@@ -474,31 +470,31 @@ namespace Jsonifier {
 		friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
 	};
 
-	template<> inline Jsonifier::ObjectType& Jsonifier::getValue() {
+	template<> inline Jsonifier::ObjectType Jsonifier::getValue() {
 		return *this->jsonValue.object;
 	}
 
-	template<> inline Jsonifier::ArrayType& Jsonifier::getValue() {
+	template<> inline Jsonifier::ArrayType Jsonifier::getValue() {
 		return *this->jsonValue.array;
 	}
 
-	template<> inline Jsonifier::StringType& Jsonifier::getValue() {
+	template<> inline Jsonifier::StringType Jsonifier::getValue() {
 		return *this->jsonValue.string;
 	}
 
-	template<> inline Jsonifier::FloatType& Jsonifier::getValue() {
+	template<> inline Jsonifier::FloatType Jsonifier::getValue() {
 		return this->jsonValue.numberDouble;
 	}
 
-	template<> inline Jsonifier::UintType& Jsonifier::getValue() {
+	template<> inline Jsonifier::UintType Jsonifier::getValue() {
 		return this->jsonValue.numberUint;
 	}
 
-	template<> inline Jsonifier::IntType& Jsonifier::getValue() {
+	template<> inline Jsonifier::IntType Jsonifier::getValue() {
 		return this->jsonValue.numberInt;
 	}
 
-	template<> inline Jsonifier::BoolType& Jsonifier::getValue() {
+	template<> inline Jsonifier::BoolType Jsonifier::getValue() {
 		return this->jsonValue.boolean;
 	}
 
