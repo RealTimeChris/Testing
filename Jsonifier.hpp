@@ -1049,7 +1049,7 @@ class JsonConstructor {
 	inline int64_t collectInt64() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		return uint64_t{ stoll(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
+		return int64_t{ stoll(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
 	}
 
 	inline Jsonifier collectNull() {
