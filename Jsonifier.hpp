@@ -1065,9 +1065,9 @@ namespace Jsonifier {
 	};
 
 
-	class SimdStringScanner {
+	class SimdJsonValue {
 	  public:
-		inline SimdStringScanner(std::string_view stringNew) noexcept {
+		inline SimdJsonValue(std::string_view stringNew) noexcept {
 			if (stringNew.size() % 256 != 0) {
 				this->string = stringNew;
 				this->string.resize(this->string.size() + 256 - (this->string.size() % 256));
