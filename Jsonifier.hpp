@@ -683,12 +683,9 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator<<(size_t amount) {
 			SimdBase256 newValue{};
-			for (size_t x = 0; x < 4; ++x) {
-				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
-				if (x > 0) {
-					*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
-				}
-			}
+			//SimdBase256{ this->value }.printBits("THE BITS FINAL: ");
+			newValue |= _mm256_slli_epi64(this->value, amount % 64);
+			//newValue.printBits("THE BITS FINAL: ");
 			return newValue;
 		}
 
