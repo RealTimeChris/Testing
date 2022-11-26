@@ -1,6 +1,6 @@
 #include "Jsonifier.hpp"
-
-
+#include "DataParsingFunctionc.hpp"
+#include <simdjson.h>
 
 int32_t main() noexcept {
 	try {
@@ -14,6 +14,7 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
+		stringNew.reserve(stringNew.size() + 256);
 		Jsonifier::SimdJsonValue stringScanner{ stringNew };
 		auto newJsonData = stringScanner.getJsonData();
 		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -23,7 +24,7 @@ int32_t main() noexcept {
 		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew };
 			auto newJsonData = stringScanner.getJsonData();
-			totalSize += string256.size();
+			totalSize += stringNew.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();
 
@@ -32,8 +33,10 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
+		simdjson::ondemand::parser parser{};
+		auto newDocument = parser.iterate(stringNew);
 		for (size_t x = 0; x < 256 * 16384; ++x) {
-			//SimdBase64 simd8Test{ string64 };
+			DiscordCoreAPI::getInt64(newDocument, "thevalue");
 			totalSize += string64.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();

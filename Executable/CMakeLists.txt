@@ -2,6 +2,7 @@
 	"${PROJECT_NAME}"
 	"../main.cpp"
 	"../Jsonifier.cpp"
+	"../DataParsingFunctionc.cpp"
 )
 
 if (DEFINED ENV{EnableASAN})
@@ -16,6 +17,7 @@ endif()
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
+	simdjson::simdjson
 	#Jsonifier::Jsonifier
 )
 
