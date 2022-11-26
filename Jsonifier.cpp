@@ -370,7 +370,7 @@ namespace Jsonifier {
 			this->setValue(JsonType::Object);
 			this->type = JsonType::Object;
 		}
-
+		std::cout << "THE TYPE: " << ( int32_t )this->type << std::endl;
 		if (this->type == JsonType::Object) {
 			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
 			return result.first->second;
