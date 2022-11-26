@@ -41,7 +41,7 @@ struct TheDJson {
 };
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::Jsonifier value) {
+	TheValueJson(Jsonifier::Jsonifier&& value) {
 		this->theD = value["d"].getValue<TheDJson>();
 	}
 	TheDJson theD{};
@@ -103,10 +103,10 @@ int32_t main() noexcept {
 		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		stopWatch.resetTimer();
-		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
+		for (size_t x = 0; x < 256 * 16384; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew };
 			auto newJsonData = stringScanner.getJsonData();
-			TheValueJson theValue{ newJsonData };
+			TheValueJson theValue{ std::move(newJsonData) };
 			totalSize += stringNew.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();

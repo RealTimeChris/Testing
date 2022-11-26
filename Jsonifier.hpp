@@ -959,25 +959,16 @@ namespace Jsonifier {
 			switch (events.begin()->type) {
 				case TapeType::StartObject: {
 					events.erase(events.begin());
-					while (events.begin()->type != TapeType::EndObject) {
-						Jsonifier jsonDataNewer{};
+					while (events.begin()->type != TapeType::EndObject && events.size() > 0) {
 						auto key = this->collectString();
-						jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, std::move(jsonDataNewer));
-						if (events.size() == 0) {
-							return jsonDataNew;
-						}
+						jsonDataNew[key] = this->parseJsonToJsonObject(events, Jsonifier{});
 					}
 					break;
 				}
 				case TapeType::StartArray: {
 					events.erase(events.begin());
-					while (events.begin()->type != TapeType::EndArray) {
-						Jsonifier jsonDataNewer{};
-						jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, std::move(jsonDataNewer)));
-
-						if (events.size() == 0) {
-							return jsonDataNew;
-						}
+					while (events.begin()->type != TapeType::EndArray && events.size() > 0) {
+						jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, Jsonifier{}));
 					}
 					break;
 				}
@@ -1010,20 +1001,19 @@ namespace Jsonifier {
 			return jsonDataNew;
 		}
 
-
-		inline Jsonifier collectString() {
+		inline std::string collectString() {
 			JsonEvent newValue = std::move(this->jsonEvents.front());
 			this->jsonEvents.erase(this->jsonEvents.begin());
-			return static_cast<std::string>(std::string_view{ this->stringView.data() + newValue.index - (newValue.size + 1), newValue.size });
+			return std::string{ this->stringView.data() + newValue.index - (newValue.size + 1), newValue.size };
 		}
 
-		inline Jsonifier collectTrueOrFalse(bool returnValue) {
+		inline bool collectTrueOrFalse(bool returnValue) {
 			JsonEvent newValue = std::move(this->jsonEvents.front());
 			this->jsonEvents.erase(this->jsonEvents.begin());
 			return returnValue;
 		}
 
-		inline Jsonifier collectFloat() {
+		inline double collectFloat() {
 			JsonEvent newValue = std::move(this->jsonEvents.front());
 			this->jsonEvents.erase(this->jsonEvents.begin());
 			return double{ stod(std::string{ this->stringView.data() + newValue.index - (newValue.size), newValue.size }) };
