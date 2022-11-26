@@ -931,14 +931,6 @@ namespace Jsonifier {
 			this->jsonEvents->emplace_back(JsonEvent{ .type = eventTypeNew, .index = stringIndexNew, .size = sizeNew });
 		}
 
-		inline auto begin() {
-			return this->jsonEvents->begin();
-		}
-
-		inline auto end() {
-			return this->jsonEvents->end();
-		}
-
 	  protected:
 		std::vector<JsonEvent>* jsonEvents{};
 	};
@@ -1048,24 +1040,20 @@ namespace Jsonifier {
 				throw std::runtime_error{ "Failed to parse as the string size is 0." };
 			}
 			this->stringView = stringNew;
+		}
+
+		inline void generateTapeRecord() {
 			size_t stringSize = this->stringView.size();
 			size_t collectedSize{};
 			while (stringSize > 256) {
-				this->stringSections.emplace_back(std::string_view{ this->stringView.data() + collectedSize, 256 });
+				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize, 256 });
+				this->jsonTape += section.getStructuralIndices();
 				stringSize -= 256;
 				collectedSize += 256;
 			}
 			if (this->stringView.size() - collectedSize > 0) {
-				this->stringSections.emplace_back(
-					std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize });
-			}
-			this->generateTapeRecord();
-		}
-
-		inline void generateTapeRecord() {
-			for (auto& value: this->stringSections) {
-				this->jsonTape += value.getStructuralIndices();
-				//std::cout << "JSON TAPE'S SIZE: " << this->jsonTape.size() << std::endl;
+				SimdStringSection section((std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize }));
+				this->jsonTape += section.getStructuralIndices();
 			}
 			this->next_structural = &this->jsonTape[0];
 			this->getJsonDataInner();
@@ -1357,7 +1345,7 @@ namespace Jsonifier {
 
 		inline Jsonifier getJsonData() {
 			
-			//this->generateTapeRecord();
+			this->generateTapeRecord();
 			
 			StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 			//std::cout << "JSON CONSTRUCTOR'S TIME: " << stopWatch.totalTimePassed() << std::endl;
@@ -1367,7 +1355,6 @@ namespace Jsonifier {
 
 	  protected:
 		JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
-		std::vector<SimdStringSection> stringSections{};
 		std::basic_string<uint32_t> jsonTape{};
 		std::vector<JsonEvent> jsonEvents{};
 		JsonConstructor jsonConstructor{ &this->jsonEvents, &this->stringView };
