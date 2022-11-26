@@ -93,21 +93,33 @@ int32_t main() noexcept {
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		std::string stringNew{ "{\"d\":{\"activities\":[],\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
 							   "\"online\",\"user\":{\"id\":\"381531043334717440\",\"new_value\":24.56f}}}" };
-		
+		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
 		stringNew.reserve(stringNew.size() + 256);
+		//auto newJsonData = stringScanner.getJsonData();
+		stopWatch.resetTimer();
+		std::cout << "GETJSONDATA()'s TIME: " << stopWatch.totalTimePassed() << std::endl;
+
+		//newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		//std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
+		stopWatch.resetTimer();
+
+
+		//auto newJsonData = stringScanner.getJsonData();
 
 		Jsonifier::SimdJsonValue stringScanner{ stringNew };
-		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+
 		stringScanner.generateTapeRecord();
 		for (size_t x = 0; x < 256 * 16384; ++x) {
 			Jsonifier::SimdJsonValue stringScannerNew{ stringNew };
+			//stopWatch.resetTimer();
 			stringScannerNew.generateTapeRecord();
 			auto newJsonData = stringScannerNew.getJsonData();
+			//std::cout << "GETJSONDATA()'s TIME: " << stopWatch.totalTimePassed() << std::endl;
 			newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			std::cout << "THE DATA: " << newJsonData.operator std::string() << std::endl;
+			//std::cout << "THE DATA: " << newJsonData.operator std::string() << std::endl;
 			TheValueJson theValue{ std::move(newJsonData) };
 			totalSize += stringNew.size();
 		}
