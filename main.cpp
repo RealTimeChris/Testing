@@ -55,7 +55,7 @@ struct User {
 	std::string id{};
 };
 
-struct ClientStatus{
+struct ClientStatus {
 	ClientStatus() noexcept = default;
 	ClientStatus(simdjson::ondemand::value value) {
 		this->mobile = DiscordCoreAPI::getString(value, "mobile");
@@ -98,20 +98,20 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		stringNew.reserve(stringNew.size() + 256);
 
-		Jsonifier::SimdJsonValue stringScanner{ stringNew };
-		auto newJsonData = stringScanner.getJsonData();
+		//auto newJsonData = stringScanner.getJsonData();
 		std::cout << "GETJSONDATA()'s TIME: " << stopWatch.totalTimePassed() << std::endl;
-		
-		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
+
+		//newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		//std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		stopWatch.resetTimer();
-		
+
+
+		//auto newJsonData = stringScanner.getJsonData();
 		for (size_t x = 0; x < 256 * 16384; ++x) {
-			//auto newJsonData = stringScanner.getJsonData();
-			//std::cout << "GETJSONDATA()'s TIME: " << stopWatch.totalTimePassed() << std::endl;			
-			stringScanner.generateTapeRecord();
-			newJsonData = stringScanner.getJsonData();
+			Jsonifier::SimdJsonValue stringScanner{ stringNew };
+			auto newJsonData = stringScanner.getJsonData();
+			//std::cout << "THE DATA: " << newJsonData.operator std::string() << std::endl;
 			TheValueJson theValue{ std::move(newJsonData) };
 			totalSize += stringNew.size();
 		}
@@ -122,9 +122,9 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		simdjson::ondemand::parser parser{};
-		
+
 		for (size_t x = 0; x < 256 * 16384; ++x) {
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNew);
 			TheValue theValue{ newDocument };
 			totalSize += stringNew.size();

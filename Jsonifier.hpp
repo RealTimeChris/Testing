@@ -928,11 +928,7 @@ namespace Jsonifier {
 		}
 
 		inline void appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
-			JsonEvent returnValue{};
-			returnValue.index = stringIndexNew;
-			returnValue.type = eventTypeNew;
-			returnValue.size = sizeNew;
-			this->jsonEvents->emplace_back(std::move(returnValue));
+			this->jsonEvents->emplace_back(JsonEvent{ .type = eventTypeNew, .index = stringIndexNew, .size = sizeNew });
 		}
 
 		inline auto begin() {
