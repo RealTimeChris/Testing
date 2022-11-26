@@ -862,16 +862,16 @@ namespace Jsonifier {
 		}
 
 		inline SimdStringSection(std::string_view valueNew) {
-			this->stringView = valueNew;
+			this->stringView = &valueNew;
 
-			this->packStringIntoValue(&this->values[0], this->stringView.data());
-			this->packStringIntoValue(&this->values[1], this->stringView.data() + 32);
-			this->packStringIntoValue(&this->values[2], this->stringView.data() + 64);
-			this->packStringIntoValue(&this->values[3], this->stringView.data() + 96);
-			this->packStringIntoValue(&this->values[4], this->stringView.data() + 128);
-			this->packStringIntoValue(&this->values[5], this->stringView.data() + 160);
-			this->packStringIntoValue(&this->values[6], this->stringView.data() + 192);
-			this->packStringIntoValue(&this->values[7], this->stringView.data() + 224);
+			this->packStringIntoValue(&this->values[0], this->stringView->data());
+			this->packStringIntoValue(&this->values[1], this->stringView->data() + 32);
+			this->packStringIntoValue(&this->values[2], this->stringView->data() + 64);
+			this->packStringIntoValue(&this->values[3], this->stringView->data() + 96);
+			this->packStringIntoValue(&this->values[4], this->stringView->data() + 128);
+			this->packStringIntoValue(&this->values[5], this->stringView->data() + 160);
+			this->packStringIntoValue(&this->values[6], this->stringView->data() + 192);
+			this->packStringIntoValue(&this->values[7], this->stringView->data() + 224);
 
 			this->Q256 = this->collectQuotes();
 			this->W256 = this->collectWhiteSpace();
@@ -884,7 +884,7 @@ namespace Jsonifier {
 		SimdBase256 R256{};
 		SimdBase256 S256{};
 		SimdBase256 values[8]{};
-		std::string_view stringView{};
+		std::string_view* stringView{};
 	};
 
 	enum class ErrorCode { Empty = 0, TapeError = 1, DepthError = 2, Success = 3, ParseError = 4 };
