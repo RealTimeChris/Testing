@@ -880,11 +880,6 @@ namespace Jsonifier {
 			this->Q256 = this->collectQuotes();
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
-			//this->S256.printBits("S FINAL VALUES (256) ");
-			//this->W256.printBits("W FINAL VALUES (256) ");
-			//this->R256.printBits("R FINAL VALUES (256) ");
-			//this->Q256.printBits("Q FINAL VALUES (256): ");
-			//std::cout << "THE STRING: " << this->stringView << std::endl;
 		}
 
 	  protected:
