@@ -479,7 +479,7 @@ namespace Jsonifier {
 	}
 
 	template<> inline Jsonifier::StringType Jsonifier::getValue() {
-		return *this->jsonValue.string;
+		return std::move(*this->jsonValue.string);
 	}
 
 	template<> inline Jsonifier::FloatType Jsonifier::getValue() {
@@ -1036,8 +1036,7 @@ namespace Jsonifier {
 		}
 
 		inline operator Jsonifier() {
-			this->jsonData = this->parseJsonToJsonObject(this->jsonEvents, std::move(this->jsonData));
-			return std::move(this->jsonData);
+			return this->parseJsonToJsonObject(this->jsonEvents, std::move(this->jsonData));
 		}
 
 	  protected:
@@ -1352,7 +1351,9 @@ namespace Jsonifier {
 			if (resultCode != ErrorCode::Success) {
 				throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
 			}
+			StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 			this->jsonDataFinal = JsonConstructor{ this->jsonData.getEvents(), this->stringView };
+			//std::cout << "JSON CONSTRUCTOR'S TIME: " << stopWatch.totalTimePassed() << std::endl;
 			return this->jsonDataFinal.operator Jsonifier();
 		}
 
