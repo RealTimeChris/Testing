@@ -4,7 +4,7 @@
 
 int32_t main() noexcept {
 	try {
-		std::string string64{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
+		std::string string64{ "{\"\\\\\\\"Nam[{\":[116,\"\\\\\\\\\",234,\"true\",false],\"t\":\"\\\\\\\"\"}" };
 		std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
@@ -15,14 +15,14 @@ int32_t main() noexcept {
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::SimdJsonValue stringScanner{ stringNew };
-		Jsonifier::Jsonifier theData{};
 		auto newJsonData = stringScanner.getJsonData();
 		newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		stopWatch.resetTimer();
 		for (size_t x = 0; x < 256 * 16384 / 4; ++x) {
-			Jsonifier::SimdJsonValue simd8Test{ string256 };
+			Jsonifier::SimdJsonValue stringScanner{ stringNew };
+			auto newJsonData = stringScanner.getJsonData();
 			totalSize += string256.size();
 		}
 		totalTime += stopWatch.totalTimePassed().count();

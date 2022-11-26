@@ -920,7 +920,6 @@ namespace Jsonifier {
 	};
 
 	struct JsonEvent {
-		JsonEvent* ptrTosStart{};
 		TapeType type{};
 		size_t index{};
 		size_t size{};
@@ -931,7 +930,6 @@ namespace Jsonifier {
 			JsonEvent returnValue{};
 			returnValue.index = stringIndexNew;
 			returnValue.type = eventTypeNew;
-
 			returnValue.size = sizeNew;
 			this->jsonEvents.emplace_back(returnValue);
 		}
@@ -957,7 +955,7 @@ namespace Jsonifier {
 		inline JsonConstructor() noexcept = default;
 
 		inline JsonConstructor(std::vector<JsonEvent>& theEvents, std::string_view stringNew) {
-			this->jsonEvents = std::move(theEvents);
+			this->jsonEvents = theEvents;
 			this->string = stringNew;
 		}
 
@@ -994,9 +992,7 @@ namespace Jsonifier {
 					return this->collectFloat();
 				}
 				case TapeType::Uint64: {
-					auto theValue = this->collectUint64();
-					std::cout << "THE NUMBER VALUE: " << theValue << std::endl;
-					return theValue;
+					return this->collectUint64();
 				}
 				case TapeType::Int64: {
 					return this->collectInt64();
@@ -1197,7 +1193,8 @@ namespace Jsonifier {
 				case '9':
 					return this->recordNumber(value);
 				default:
-					throw JsonifierException{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+					throw JsonifierException{ "Failed to generate Json data: Value: " + *value + std::string{ " Reason : " } +
+						std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 			}
 		}
 
