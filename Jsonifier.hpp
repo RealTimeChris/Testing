@@ -1037,23 +1037,19 @@ class JsonConstructor {
 	inline Jsonifier collectFloat() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		return uint64_t{ stod(static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size), newValue.size })) };
+		return uint64_t{ stod(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
 	}
 
 	inline uint64_t collectUint64() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		auto theValue = std::string_view{ this->string.data() + newValue.index - (newValue.size), newValue.size };
-		std::cout << newValue.size << std::endl;
-		std::cout << theValue << std::endl;
-		return uint64_t{ stoull(
-			static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size), newValue.size })) };
+		return uint64_t{ stoull(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
 	}
 
 	inline int64_t collectInt64() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		return int64_t{ *reinterpret_cast<const int64_t*>(this->string.data() + newValue.index) };
+		return uint64_t{ stoll(std::string{ this->string.data() + newValue.index - (newValue.size), newValue.size }) };
 	}
 
 	inline Jsonifier collectNull() {
