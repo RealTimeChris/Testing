@@ -968,49 +968,65 @@ class JsonConstructor {
 		if (events.size() == 0) {
 			std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
 			return jsonDataNew;
+		} else if (events.begin() == events.end()){
+			return jsonDataNew;
 		}
 		std::cout << "THE FINAL REAL SIZE: 01 " << events.size() << std::endl;
-		for (auto iterator = events.begin(); iterator != events.end(); ++iterator) {
-			//std::cout << "THE TYPE: " << ( char )iterator->type << std::endl;
-			switch (iterator->type) {
-				case TapeType::StartObject: {
-					return this->collectObject(events, jsonDataNew);
+		std::cout << "THE FINAL REAL INDEX: 01 " << events.front().index << std::endl;
+		switch (events.begin()->type) {
+			case TapeType::StartObject: {
+				events.erase(events.begin());
+				while (events.begin()->type != TapeType::EndObject) {
+					Jsonifier jsonDataNewer{};
+					auto key = this->collectString();
+					jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, jsonDataNewer);
+					if (events.size() == 0) {
+						std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
+						return jsonDataNew;
+					}
 				}
-				case TapeType::StartArray: {
-					return this->collectArray(events, jsonDataNew);
-				}
-				case TapeType::String: {
-					return this->collectString();
-				}
-				case TapeType::Double: {
-					return this->collectFloat();
-				}
-				case TapeType::Uint64: {
-					return this->collectUint64();
-				}
-				case TapeType::Int64: {
-					return this->collectInt64();
-				}
-				case TapeType::TrueValue: {
-					return this->collectTrueOrFalse(true);
-				}
-				case TapeType::FalseValue: {
-					return this->collectTrueOrFalse(false);
-				}
-				case TapeType::NullValue: {
-					return this->collectNull();
-				}
-				default: {
-					std::cout << "THE FINAL REAL SIZE: 0333 " << events.size() << std::endl;
-					return jsonDataNew;
-				}
+				break;
 			}
-			events.erase(iterator);
-			if (events.size() == 0) {
-				std::cout << "THE FINAL REAL SIZE: 0334 " << events.size() << std::endl;
+			case TapeType::StartArray: {
+				events.erase(events.begin());
+				while (events.begin()->type != TapeType::EndArray) {
+					Jsonifier jsonDataNewer{};
+					jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, jsonDataNewer));
+
+					if (events.size() == 0) {
+						std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
+						return jsonDataNew;
+					}
+				}
+				break;
+			}
+			case TapeType::String: {
+				return this->collectString();
+			}
+			case TapeType::Double: {
+				return this->collectFloat();
+			}
+			case TapeType::Uint64: {
+				return this->collectUint64();
+			}
+			case TapeType::Int64: {
+				return this->collectInt64();
+			}
+			case TapeType::TrueValue: {
+				return this->collectTrueOrFalse(true);
+			}
+			case TapeType::FalseValue: {
+				return this->collectTrueOrFalse(false);
+			}
+			case TapeType::NullValue: {
+				return this->collectNull();
+			}
+			default: {
+				std::cout << "THE FINAL REAL SIZE: 0333 " << events.size() << std::endl;
 				return jsonDataNew;
 			}
 		}
+		events.erase(events.begin());
 		return jsonDataNew;
 	}
 
@@ -1060,28 +1076,6 @@ class JsonConstructor {
 	inline Jsonifier collectNull() {
 		return nullptr;
 	}
-
-	inline Jsonifier collectObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
-		Jsonifier key = this->collectString();
-		std::cout << "THE KEY: " << key.getValue<std::string>() << std::endl;
-		Jsonifier newJsonData02{};
-		jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, newJsonData02);
-		std::cout << "THE FINAL REAL SIZE 045: " << jsonEvents.size() << std::endl;
-		std::cout << "THE FINAL REAL SIZE 457: " << jsonEvents.size() << std::endl;
-		return jsonDataNew;
-	}
-
-	inline Jsonifier collectArray(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
-		std::cout << "THE FINAL REAL SIZE: 04 " << jsonEvents.size() << std::endl;
-		this->jsonEvents.erase(this->jsonEvents.begin());
-		Jsonifier newJsonData{};
-		jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, newJsonData));
-		std::cout << "THE FINAL REAL SIZE: 03 " << jsonEvents.size() << std::endl;
-		return jsonDataNew;
-	}
-
 
 	inline operator Jsonifier() {
 		this->jsonData = this->parseJsonToJsonObject(this->jsonEvents, this->jsonData);
