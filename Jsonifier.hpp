@@ -965,14 +965,6 @@ class JsonConstructor {
 	}
 
 	inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events, Jsonifier& jsonDataNew) {
-		if (events.size() == 0) {
-			std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
-			return jsonDataNew;
-		} else if (events.begin() == events.end()){
-			return jsonDataNew;
-		}
-		std::cout << "THE FINAL REAL SIZE: 01 " << events.size() << std::endl;
-		std::cout << "THE FINAL REAL INDEX: 01 " << events.front().index << std::endl;
 		switch (events.begin()->type) {
 			case TapeType::StartObject: {
 				events.erase(events.begin());
@@ -981,7 +973,6 @@ class JsonConstructor {
 					auto key = this->collectString();
 					jsonDataNew[key.getValue<std::string>()] = this->parseJsonToJsonObject(events, jsonDataNewer);
 					if (events.size() == 0) {
-						std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
 						return jsonDataNew;
 					}
 				}
@@ -994,7 +985,6 @@ class JsonConstructor {
 					jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events, jsonDataNewer));
 
 					if (events.size() == 0) {
-						std::cout << "THE FINAL REAL SIZE: 02 " << events.size() << std::endl;
 						return jsonDataNew;
 					}
 				}
@@ -1022,7 +1012,6 @@ class JsonConstructor {
 				return this->collectNull();
 			}
 			default: {
-				std::cout << "THE FINAL REAL SIZE: 0333 " << events.size() << std::endl;
 				return jsonDataNew;
 			}
 		}
@@ -1032,44 +1021,32 @@ class JsonConstructor {
 
 
 	inline Jsonifier collectString() {
-		std::cout << "THE FINAL REAL SIZE: STRING " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: STRING " << jsonEvents.size() << std::endl;
-		std::cout << "THE REAL SIZE: STRING " << newValue.size << std::endl;
-		std::cout << "THE REAL INDEX: STRING " << newValue.index << std::endl;
 		return static_cast<std::string>(std::string_view{ this->string.data() + newValue.index - (newValue.size + 1), newValue.size });
 	}
 
 	inline Jsonifier collectTrueOrFalse(bool returnValue) {
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		return returnValue;
 	}
 
 	inline Jsonifier collectFloat() {
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		return double{ *reinterpret_cast<const double*>(this->string.data() + newValue.index) };
 	}
 
-	inline Jsonifier collectUint64() {
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
+	inline uint64_t collectUint64() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		return uint64_t{ *reinterpret_cast<const uint64_t*>(this->string.data() + newValue.index) };
 	}
 
-	inline Jsonifier collectInt64() {
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
+	inline int64_t collectInt64() {
 		JsonEvent newValue = this->jsonEvents.front();
 		this->jsonEvents.erase(this->jsonEvents.begin());
-		std::cout << "THE FINAL REAL SIZE: " << jsonEvents.size() << std::endl;
 		return int64_t{ *reinterpret_cast<const int64_t*>(this->string.data() + newValue.index) };
 	}
 
@@ -1079,7 +1056,6 @@ class JsonConstructor {
 
 	inline operator Jsonifier() {
 		this->jsonData = this->parseJsonToJsonObject(this->jsonEvents, this->jsonData);
-		std::cout << "THE FINAL REAL SIZE: 1241234 " << jsonEvents.size() << std::endl;
 		return this->jsonData;
 		
 	}
@@ -1124,10 +1100,10 @@ class SimdStringScanner {
 		this->next_structural = &this->jsonTape[0];
 	}
 
-	inline ErrorCode recordTrueAtom(char* value) {
+	inline ErrorCode recordTrueAtom(const char* value) {
 		if (strcmp(value, "true")) {
 
-			this->jsonData.appendTapeValue(4, &this->string[*this->next_structural] - this->string.data(), TapeType::TrueValue);
+			this->jsonData.appendTapeValue(4, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::TrueValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
@@ -1135,83 +1111,71 @@ class SimdStringScanner {
 	}
 
 	inline ErrorCode recordObjectStart() {
-		std::cout << "WERE OBJECT STARTING!" << std::endl;
-
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
+		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordArrayStart() {
-		std::cout << "WERE ARRAY STARTING!" << std::endl;
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
+		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordObjectEnd() {
-		std::cout << "WERE OBJECT ENDING!" << std::endl;
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndObject);
+		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordArrayEnd() {
-		std::cout << "WERE ARRAY ENDING!" << std::endl;
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data(), TapeType::EndArray);
+		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode recordFalseAtom(char* value) {
+	inline ErrorCode recordFalseAtom(const char* value) {
 		if (strcmp(value, "false")) {
-			this->jsonData.appendTapeValue(5, &this->string[*this->next_structural] - this->string.data(), TapeType::FalseValue);
+			this->jsonData.appendTapeValue(5, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::FalseValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
 		}
 	}
 
-	inline ErrorCode recordNullAtom(char* value) {
-		std::cout << "WERE NULL ATOMING!" << std::endl;
+	inline ErrorCode recordNullAtom(const char* value) {
 		if (strcmp(value, "null")) {
-			this->jsonData.appendTapeValue(4, &this->string[*this->next_structural] - this->string.data(), TapeType::NullValue);
+			this->jsonData.appendTapeValue(4, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::NullValue);
 			return ErrorCode::Success;
 		} else {
 			return ErrorCode::ParseError;
 		}
 	}
 
-	inline ErrorCode recordNumber(char* value) {
-		std::cout << "WERE NUMBERING!" << std::endl;
-		this->jsonData.appendTapeValue(8, &this->string[*this->next_structural] - this->string.data(), TapeType::Uint64);
+	inline ErrorCode recordNumber(const char* value) {
+		this->jsonData.appendTapeValue(8, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::Uint64);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode recordKey(char* value) {
-		std::cout << "WERE KEYING!" << std::endl;
-		this->jsonData.appendTapeValue(this->peek() - value - 2, &this->string[*this->next_structural] - this->string.data(), TapeType::String);
-		//std::cout << "THE CURRENT KEY: " << this->currentKey << std::endl;
+	inline ErrorCode recordKey(const char* value) {
+		this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::String);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordEmptyObject() {
-		std::cout << "WERE EMTPYING OBJECT!" << std::endl;
-		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartObject);
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data() + 1, TapeType::EndObject);
+		this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
+		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndObject);
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode recordEmptyArray() {
-		std::cout << "WERE EMTPYING ARRAY!" << std::endl;
-		this->jsonData.appendTapeValue(2, &this->string[*this->next_structural] - this->string.data(), TapeType::StartArray);
-		this->jsonData.appendTapeValue(0, &this->string[*this->next_structural] - this->string.data() + 1, TapeType::EndArray);
+		this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
+		this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndArray);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode recordString(char* value) {
-		std::cout << "WERE STRINGING!" << std::endl;
-		this->jsonData.appendTapeValue(this->peek() - value - 2, &this->string[*this->next_structural] - this->string.data(), TapeType::String);
+	inline ErrorCode recordString(const char* value) {
+		this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::String);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode recordPrimitive(char* value) {
+	inline ErrorCode recordPrimitive(const char* value) {
 		switch (*value) {
 			case '"':
 				return this->recordString(value);
@@ -1242,16 +1206,16 @@ class SimdStringScanner {
 	uint32_t depth{ 0 };
 
 	inline bool atEof() {
-		return &this->string[*this->next_structural] - this->string.data() == this->string.size();
+		return &this->stringView[*this->next_structural] - this->stringView.data() == this->stringView.size();
 	}
 
-	inline char* peek() noexcept {
-		auto returnValue = &this->string[*(this->next_structural)];
+	inline const char* peek() noexcept {
+		auto returnValue = &this->stringView[*(this->next_structural)];
 		return returnValue;
 	}
 
-	inline char* advance(std::source_location location = std::source_location::current()) noexcept {
-		auto returnValue = &this->string[*(this->next_structural++)];
+	inline const char* advance(std::source_location location = std::source_location::current()) noexcept {
+		auto returnValue = &this->stringView[*(this->next_structural++)];
 		return returnValue;
 	}
 
@@ -1410,12 +1374,7 @@ class SimdStringScanner {
 		if (resultCode!= ErrorCode::Success) {
 			throw std::runtime_error{ "Failed to generate Json data: Reason: " + std::to_string(static_cast<int32_t>(resultCode)) };
 		}
-		std::cout << "THE FINAL DATA: " << std::endl;
-		for (auto& value: this->jsonData) {
-			std::cout << "INDEX: " << value.index << ", SIZE: " << value.size << ", TYPE: " << ( char )value.type << std::endl;
-		}
-		std::cout << "THE CURRENT SIZE: " << this->jsonData.getEvents().size() << std::endl;
-		this->jsonDataFinal = JsonConstructor{ this->jsonData.getEvents(), this->string };
+		this->jsonDataFinal = JsonConstructor{ this->jsonData.getEvents(), this->stringView };
 		return this->jsonDataFinal.operator Jsonifier();
 	}
 
@@ -1425,7 +1384,6 @@ class SimdStringScanner {
 	std::vector<uint32_t> jsonTape{};
 	JsonConstructor jsonDataFinal{};
 	std::string_view stringView{};
-	std::string currentString{};
 	JsonEventWriter jsonData{};
 	std::string currentKey{};
 	std::string string{};

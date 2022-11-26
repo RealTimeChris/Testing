@@ -11,7 +11,7 @@ int32_t main() noexcept {
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		std::string stringNew{ "{\"d\":{\"activities\":[],\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
-							   "\"online\",\"user\":{\"id\":\"381531043334717440\"}}}" };
+							   "\"online\",\"user\":{\"id\":\"381531043334717440\",\"new_value\":24.56f}}}" };
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
