@@ -1075,13 +1075,15 @@ namespace Jsonifier {
 		}
 
 		inline void appendTapeValue(TapeType typeNew) {
-			if (this->jsonEvents.size() > 0) {
-				this->jsonEvents.emplace_back(
-					JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape.front(), .size = this->jsonRawTape.front() - this->jsonEvents.back().index });
-				this->jsonRawTape.pop_front();
-			} else {
-				this->jsonEvents.emplace_back(
-					JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape.front(), .size = this->jsonRawTape.front() - 0 });
+			if (this->jsonRawTape.size() > 0) {
+				if (this->jsonEvents.size() > 0) {
+					this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew,
+						.index = this->jsonRawTape.front(),
+						.size = this->jsonRawTape.front() - this->jsonEvents.back().index });
+				} else {
+					this->jsonEvents.emplace_back(
+						JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape.front(), .size = this->jsonRawTape.front() - 0 });
+				}
 			}
 		}
 
@@ -1126,6 +1128,7 @@ namespace Jsonifier {
 
 		inline ErrorCode recordObjectStart() {
 			this->appendTapeValue(TapeType::StartObject);
+			std::cout << "APPENDING AN OBJECT START:!" << std::endl;
 			return this->generateJsonData();
 		}
 
@@ -1260,7 +1263,7 @@ namespace Jsonifier {
 					if (key == nullptr) {
 						return ErrorCode::Success;
 					}
-					else if (*key != '"') {
+					if (*key != '"') {
 						throw JsonifierException{ "Failed to generate Json data: Reason: " +
 							std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
@@ -1431,7 +1434,7 @@ namespace Jsonifier {
 						break;
 					}
 					this->currentState = JsonTapeEventStates::ObjectBegin;
-					resultCode = this->generateJsonData();
+					resultCode = this->recordObjectStart();
 					break;
 				case '[':
 					if (*this->peek() == ']') {
@@ -1440,7 +1443,7 @@ namespace Jsonifier {
 						break;
 					}
 					this->currentState = JsonTapeEventStates::ArrayBegin;
-					resultCode = this->generateJsonData();
+					resultCode = this->recordArrayStart();
 					break; 
 				default:
 					resultCode = this->recordPrimitive(value);
