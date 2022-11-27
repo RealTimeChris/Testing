@@ -970,9 +970,6 @@ namespace Jsonifier {
 					return this->collectNull();
 				}
 				default: {
-					if (this->jsonEvents->size() > 0) {
-						this->updateEventLog();
-					}
 					return jsonDataNew;
 				}
 			}
@@ -985,11 +982,11 @@ namespace Jsonifier {
 		inline std::string collectString() {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				std::cout << "EVENTS SIZE: 0434 "
-						  << std::string{ this->stringView->data() + newValue.index + 2, newValue.index - this->previousEvent.index } << std::endl;
-				std::cout << "EVENTS SIZE: 0434 " << newValue.index - this->previousEvent.index << std::endl; 
+				std::cout << "CURRENT INDEX: " << this->jsonEvents->front().index << std::endl;
+				std::cout << "CURRENT SIZE: " << this->jsonEvents->front().size << std::endl;
+				std::cout << "EVENTS STRING: " << std::string{ this->stringView->data() + newValue.index, newValue.size } << std::endl;
 				this->updateEventLog();
-				return std::string{ this->stringView->data() + newValue.index + 2, newValue.index - this->previousEvent.index };
+				return std::string{ this->stringView->data() + newValue.index, newValue.size };
 			} else {
 				return {};
 			}
@@ -1068,17 +1065,9 @@ namespace Jsonifier {
 			this->stringView = stringNew;
 		}
 
-		inline void appendTapeValue(TapeType typeNew) {
+		inline void appendTapeValue(TapeType typeNew, size_t sizeNew) {
 			if (this->jsonRawTape.size() > 0) {
-				if (this->jsonEvents.size() > 0) {
-					this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew,
-						.index = this->jsonRawTape.front(),
-						.size = this->jsonRawTape.front() - this->previousTapeEvent });
-					std::cout << "CURRENTLY HELD SIZE: " << this->jsonRawTape.front() - this->previousTapeEvent << std::endl;
-				} else {
-					this->jsonEvents.emplace_back(
-						JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape.front(), .size = this->jsonRawTape.front() - 0 });
-				}
+				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape.front(), .size = sizeNew });
 			}
 		}
 
@@ -1114,7 +1103,7 @@ namespace Jsonifier {
 
 		inline ErrorCode recordTrueAtom(const char* value) {
 			if (strcmp(value, "true")) {
-				this->appendTapeValue(TapeType::TrueValue);
+				this->appendTapeValue(TapeType::TrueValue, 4);
 				return this->generateJsonData();
 			} else {
 				return ErrorCode::ParseError;
@@ -1122,29 +1111,29 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode recordObjectStart() {
-			this->appendTapeValue(TapeType::StartObject);
+			this->appendTapeValue(TapeType::StartObject, 0);
 			std::cout << "APPENDING AN OBJECT START:!" << std::endl;
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordArrayStart() {
-			this->appendTapeValue(TapeType::StartArray);
+			this->appendTapeValue(TapeType::StartArray, 0);
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordObjectEnd() {
-			this->appendTapeValue(TapeType::EndObject);
+			this->appendTapeValue(TapeType::EndObject, 0);
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordArrayEnd() {
-			this->appendTapeValue(TapeType::EndArray);
+			this->appendTapeValue(TapeType::EndArray, 0);
 			return this->generateJsonData();
 		}
 		
 		inline ErrorCode recordFalseAtom(const char* value) {
 			if (strcmp(value, "false")) {
-				this->appendTapeValue(TapeType::FalseValue);
+				this->appendTapeValue(TapeType::FalseValue, 5);
 				return this->generateJsonData();
 			} else {
 				return ErrorCode::ParseError;
@@ -1153,7 +1142,7 @@ namespace Jsonifier {
 
 		inline ErrorCode recordNullAtom(const char* value) {
 			if (strcmp(value, "null")) {
-				this->appendTapeValue(TapeType::NullValue);
+				this->appendTapeValue(TapeType::NullValue, 4);
 				return this->generateJsonData();
 			} else {
 				return ErrorCode::ParseError;
@@ -1161,29 +1150,35 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode recordNumber(const char* value) {
-			this->appendTapeValue(TapeType::Uint64);
+			if (this->jsonRawTape.size() > 0) {
+				this->appendTapeValue(TapeType::Uint64, *(this->jsonRawTape.begin() + 1) - this->jsonRawTape.front());
+			}
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordKey(const char* value) {
-			this->appendTapeValue(TapeType::String);
+			if (this->jsonRawTape.size() > 0) {
+				this->appendTapeValue(TapeType::String, *(this->jsonRawTape.begin() + 1) - this->jsonRawTape.front());
+			}
 			return ErrorCode::Success;
 		}
 
 		inline ErrorCode recordEmptyObject() {
-			this->appendTapeValue(TapeType::StartObject);
-			this->appendTapeValue(TapeType::EndObject);
+			this->appendTapeValue(TapeType::StartObject, 0);
+			this->appendTapeValue(TapeType::EndObject, 0);
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordEmptyArray() {
-			this->appendTapeValue(TapeType::StartArray);
-			this->appendTapeValue(TapeType::EndArray);
+			this->appendTapeValue(TapeType::StartArray, 0);
+			this->appendTapeValue(TapeType::EndArray, 0);
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordString(const char* value) {
-			this->appendTapeValue(TapeType::String);
+			if (this->jsonRawTape.size() > 0) {
+				this->appendTapeValue(TapeType::String, *(this->jsonRawTape.begin() + 1) - this->jsonRawTape.front());
+			}
 			return this->generateJsonData();
 		}
 
