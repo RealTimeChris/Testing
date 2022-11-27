@@ -1198,7 +1198,6 @@ namespace Jsonifier {
 		inline ErrorCode recordKey(const char* value) {
 			this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(),
 				TapeType::String);
-			std::cout << "THE SIZE: " << this->peek() - value - 2 << std::endl;
 			return ErrorCode::Success;
 		}
 
@@ -1217,12 +1216,10 @@ namespace Jsonifier {
 		inline ErrorCode recordString(const char* value) {
 			this->jsonData.appendTapeValue(this->peek() - value - 2, &this->stringView[*this->next_structural] - this->stringView.data(),
 				TapeType::String);
-			std::cout << "THE SIZE: " << this->peek() - value - 2 << std::endl;
 			return this->generateJsonData();
 		}
 
 		inline ErrorCode recordPrimitive(const char* value) {
-			std::cout << "RECORD PRIMITIVE VALUE: " << *value << std::endl;
 			switch (*value) {
 				case '"':
 					return this->recordString(value);
@@ -1340,12 +1337,11 @@ namespace Jsonifier {
 				}
 				case JsonTapeEventStates::ScopeEnd: {
 					this->depth--;
-					std::cout << "THE CURRENT STATE 0303: " << ( int32_t )this->currentState << std::endl;
 					if (this->depth == 0) {
 						this->currentState = JsonTapeEventStates::DocumentEnd;
 						return this->generateJsonData();
 					}
-					this->currentState = JsonTapeEventStates::ObjectBegin;
+					this->currentState = JsonTapeEventStates::ObjectContinue;
 					return this->generateJsonData();
 				}
 				case JsonTapeEventStates::ArrayBegin: {
