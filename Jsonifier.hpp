@@ -1117,7 +1117,8 @@ namespace Jsonifier {
 					if (x == section.getStructuralIndices().size() - 1) {
 						std::cout << "THE VALUE REAL: " << newValues.back() << ", THE VALUE: " << this->stringView[newValues.back() - 1] << std::endl;
 					} else {
-						std::cout << "THE VALUE REAL: " << newValues.back() << ", THE VALUE: " << this->stringView[newValues.back()] << std::endl;
+						std::cout << "THE VALUE REAL: " << newValues.back() << ", THE VALUE: " << this->stringView[newValues[newValues.size() - 1]]
+								  << std::endl;
 					}
 					
 				}

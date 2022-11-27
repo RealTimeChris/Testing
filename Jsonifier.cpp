@@ -362,7 +362,6 @@ namespace Jsonifier {
 	}
 
 	Jsonifier& Jsonifier::operator[](typename ObjectType::key_type key) {
-		std::cout << "THE JSON TYPE: " << ( int32_t )this->type << std::endl;
 		if (this->type == JsonType::Null) {
 			this->setValue(JsonType::Object);
 			this->type = JsonType::Object;

@@ -86,7 +86,7 @@ struct TheValue {
 
 int32_t main() noexcept {
 	try {
-		std::string string64{ "{\"\\\\\\\"Nam[{\":[116,\"\\\\\\\\\",234,\"true\",false],\"t\":\"\\\\\\\"\"}" };
+		std::string string64{ "{\"Nam\":{\"test\":234,\"true\":false},\"t\":\"\\\\\\\"}" };
 		std::string string256{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
@@ -105,12 +105,13 @@ int32_t main() noexcept {
 		//newJsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::cout << "THE DATA: " << newJsonData.operator std::string&&() << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
+		std::cout << "THE STRING: " << string64 << std::endl;
 		stopWatch.resetTimer();
 
 
 		//auto newJsonData = stringScanner.getJsonData();
 		//Jsonifier::SimdJsonValue stringScanner{ string64 };
-		Jsonifier::SimdJsonValue stringScanner{ stringNew };
+		Jsonifier::SimdJsonValue stringScanner{ string64 };
 
 		stringScanner.generateTapeRecord();
 		for (size_t x = 0; x < 256 * 16384; ++x) {
