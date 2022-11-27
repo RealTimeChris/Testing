@@ -1382,21 +1382,24 @@ namespace Jsonifier {
 							}
 							return this->generateJsonData();
 						default:
+							this->currentState = JsonTapeEventStates::ArrayContinue;
 							return this->recordPrimitive(value);
 					}
 				}
 				case JsonTapeEventStates::ArrayContinue: {
 					switch (*this->advance()) {
-						case ',':
+						case ',': {
 							this->currentState = JsonTapeEventStates::ArrayValue;
 							return this->generateJsonData();
-						case ']':
-							this->recordArrayEnd();
+						}
+						case ']': {
 							this->currentState = JsonTapeEventStates::ScopeEnd;
-							return this->generateJsonData();
-						default:
+							return this->recordArrayEnd();
+						}
+						default: {
 							throw JsonifierException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+						}
 					}
 					break;
 				}
