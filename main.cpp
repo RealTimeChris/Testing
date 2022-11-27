@@ -91,7 +91,7 @@ int32_t main() noexcept {
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }"
 							   "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-		std::string stringNew{ "{\"d\":{\"activities\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
 							   "bitbot.tools\",\"type\":3}],\"client_status\":{\"web\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
 							   "\"online\",\"user\":{\"id\":\"821569769786179584\"}},\"op\":0,\"s\":18349,\"t\":\"PRESENCE_UPDATE\"}" };
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -109,7 +109,7 @@ int32_t main() noexcept {
 
 
 		//auto newJsonData = stringScanner.getJsonData();
-
+		//Jsonifier::SimdJsonValue stringScanner{ string64 };
 		Jsonifier::SimdJsonValue stringScanner{ stringNew };
 
 		stringScanner.generateTapeRecord();
