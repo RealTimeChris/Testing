@@ -1304,10 +1304,9 @@ namespace Jsonifier {
 								this->currentState = JsonTapeEventStates::ArrayBegin;
 								return this->recordEmptyArray();
 							}
-							this->currentState = JsonTapeEventStates::ObjectBegin;
+							this->currentState = JsonTapeEventStates::ArrayBegin;
 							return this->generateJsonData();
 						default:
-							this->currentState = JsonTapeEventStates::ObjectBegin;
 							return this->recordPrimitive(value);
 					}
 				}
