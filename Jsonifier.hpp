@@ -985,10 +985,11 @@ namespace Jsonifier {
 		inline std::string collectString() {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				std::cout << "EVENTS SIZE: 0434 " << std::string{ this->stringView->data() + newValue.index , newValue.index-this->previousEvent.index} << std::endl;
-				std::cout << "EVENTS SIZE: 0434 " << newValue.size << std::endl;
+				std::cout << "EVENTS SIZE: 0434 "
+						  << std::string{ this->stringView->data() + newValue.index + 2, newValue.index - this->previousEvent.index } << std::endl;
+				std::cout << "EVENTS SIZE: 0434 " << newValue.index - this->previousEvent.index << std::endl; 
 				this->updateEventLog();
-				return std::string{ this->stringView->data() + newValue.index, newValue.index - this->previousEvent.index };
+				return std::string{ this->stringView->data() + newValue.index + 2, newValue.index - this->previousEvent.index };
 			} else {
 				return {};
 			}
