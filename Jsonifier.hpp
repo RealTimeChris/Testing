@@ -683,7 +683,12 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator<<(size_t amount) {
 			SimdBase256 newValue{};
-			newValue |= _mm256_slli_epi64(this->value, amount % 64);
+			for (size_t x = 0; x < 4; ++x) {
+				*(reinterpret_cast<int64_t*>(&newValue) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
+				if (x > 0) {
+					*(reinterpret_cast<int64_t*>(&newValue) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
+				}
+			}
 			return newValue;
 		}
 
@@ -923,7 +928,9 @@ namespace Jsonifier {
 		}
 
 		inline void appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
+			std::cout << "THE TYPE: " << ( char )eventTypeNew << std::endl;
 			this->jsonEvents->emplace_back(JsonEvent{ .type = eventTypeNew, .index = stringIndexNew, .size = sizeNew });
+			std::cout << "THE SIZE REAL: " << this->jsonEvents->size() << std::endl;
 		}
 
 	  protected:
@@ -939,14 +946,17 @@ namespace Jsonifier {
 
 		inline Jsonifier parseJsonToJsonObject() {
 			Jsonifier jsonDataNew{};
-			std::cout << "EVENTS SIZE: 01 " << this->currentEvent - this->jsonEvents->data() << ", THE TYPE: " << ( char )this->jsonEvents->begin()->type
-					  << std::endl;
+			if (this->currentEvent - this->jsonEvents->data() >= this->jsonEvents->size()) {
+				return jsonDataNew;
+			}
+			std::cout << "EVENTS SIZE: 01 " << this->currentEvent - this->jsonEvents->data() << ", THE TYPE: " << ( char )this->currentEvent->type
+					  << ", THE INDEX: " << this->currentEvent->index << std::endl;
 			switch (this->currentEvent->type) {
 				case TapeType::StartObject: {
+					this->updateEvent();
 					std::cout << "EVENTS SIZE: 02323 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 					std::cout << "EVENTS SIZE: 02 " << this->currentEvent - this->jsonEvents->data() << std::endl;
-					while (
-						this->currentEvent->type != TapeType::EndObject && this->currentEvent - this->jsonEvents->data() < this->jsonEvents->size()) {
+					while (this->currentEvent->type != TapeType::EndObject) {
 						std::cout << "EVENTS SIZE: 02 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 						auto key = this->collectString();
 						jsonDataNew[key] = this->parseJsonToJsonObject();
@@ -954,10 +964,10 @@ namespace Jsonifier {
 					break;
 				}
 				case TapeType::StartArray: {
+					this->updateEvent();
 					std::cout << "EVENTS SIZE: 02323 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 					std::cout << "EVENTS SIZE: 03 " << this->currentEvent - this->jsonEvents->data() << std::endl;
-					while (
-						this->currentEvent->type != TapeType::EndArray && this->currentEvent - this->jsonEvents->data() < this->jsonEvents->size()) {
+					while (this->currentEvent->type != TapeType::EndArray) {
 						std::cout << "EVENTS SIZE: 02 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 						jsonDataNew.emplaceBack(this->parseJsonToJsonObject());
 					}
@@ -989,6 +999,7 @@ namespace Jsonifier {
 					return jsonDataNew;
 				}
 			}
+			this->updateEvent();
 			std::cout << "EVENTS SIZE: 04 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 			return jsonDataNew;
 		}
@@ -1061,7 +1072,6 @@ namespace Jsonifier {
 
 		inline operator Jsonifier() {
 			this->currentEvent = this->jsonEvents->data();
-			this->updateEvent();
 			return this->parseJsonToJsonObject();
 		}
 
@@ -1090,30 +1100,23 @@ namespace Jsonifier {
 				std::basic_string<uint32_t> newValues{};
 				bool haveWeCollectedZero{ false };
 				for (size_t x = 0; x < section.getStructuralIndices().size();++x) {
-					if (x != 0&&haveWeCollectedZero) {
-						newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
-					} else if (x == 0 && !haveWeCollectedZero) {
-						haveWeCollectedZero = true;
-						newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
-					}
+					newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
+					std::cout << "THE VALUE REAL: " << newValues.back() << std::endl;
 				}
 				this->jsonTape += newValues;
 				stringSize -= 256;
 				collectedSize += 256;
 			}
 			if (this->stringView.size() - collectedSize > 0) {
+				std::cout << "REMAINING SIZE: " << this->stringView.size() - collectedSize << std::endl;
 				SimdStringSection section((std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize }));
 				std::basic_string<uint32_t> newValues{};
-
 				bool haveWeCollectedZero{ false };
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
-					if (x != 0 && haveWeCollectedZero) {
-						newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
-					} else if (x == 0 && !haveWeCollectedZero) {
-						haveWeCollectedZero = true;
-						newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
-					}
+					newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
+					std::cout << "THE VALUE REAL: " << newValues.back() << std::endl;
 				}
+				std::cout << "THE SIZE REAL: " << newValues.size() << std::endl;
 				this->jsonTape += newValues;
 			}
 			this->next_structural = &this->jsonTape[0];
@@ -1135,17 +1138,17 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode recordArrayStart() {
-			this->jsonData.appendTapeValue(1, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
 			return ErrorCode::Success;
 		}
 
 		inline ErrorCode recordObjectEnd() {
-			this->jsonData.appendTapeValue(1, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndObject);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndObject);
 			return ErrorCode::Success;
 		}
 
 		inline ErrorCode recordArrayEnd() {
-			this->jsonData.appendTapeValue(1, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
 			return ErrorCode::Success;
 		}
 
@@ -1182,13 +1185,13 @@ namespace Jsonifier {
 
 		inline ErrorCode recordEmptyObject() {
 			this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartObject);
-			this->jsonData.appendTapeValue(1, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndObject);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndObject);
 			return ErrorCode::Success;
 		}
 
 		inline ErrorCode recordEmptyArray() {
 			this->jsonData.appendTapeValue(2, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::StartArray);
-			this->jsonData.appendTapeValue(1, &this->stringView[*this->next_structural] - this->stringView.data() + 1, TapeType::EndArray);
+			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
 			return ErrorCode::Success;
 		}
 
@@ -1380,7 +1383,7 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
-		inline void getJsonDataInner(){
+		inline void getJsonDataInner() {
 			this->jsonTape.clear();
 			this->jsonEvents.clear();
 			auto value = advance();
