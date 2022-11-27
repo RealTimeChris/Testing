@@ -1273,6 +1273,12 @@ namespace Jsonifier {
 			switch (this->currentState) {
 				case JsonTapeEventStates::ObjectBegin: {
 					this->depth++;
+					std::cout << "THE ARRAY SIZE: " << this->isArray.size() << ", THE DEPTH: " << this->depth << std::endl;
+					if (this->isArray.size() < this->depth ) {
+						this->isArray.push_back(false);
+					} else {
+						this->isArray[this->depth - 1] = true;
+					}
 					auto key = this->advance();
 					std::cout << "THE EVENT: " << *key << std::endl;
 					if (*key != '"') {
@@ -1307,6 +1313,7 @@ namespace Jsonifier {
 							this->currentState = JsonTapeEventStates::ArrayBegin;
 							return this->generateJsonData();
 						default:
+							this->currentState = JsonTapeEventStates::ObjectContinue;
 							return this->recordPrimitive(value);
 					}
 				}
@@ -1338,11 +1345,22 @@ namespace Jsonifier {
 						this->currentState = JsonTapeEventStates::DocumentEnd;
 						return this->generateJsonData();
 					}
-					this->currentState = JsonTapeEventStates::ObjectContinue;
+					std::cout << "THE ARRAY SIZE: " << this->isArray.size() << ", THE DEPTH: " << this->depth << std::endl;
+					if (this->isArray[this->depth - 1]) {
+						this->currentState = JsonTapeEventStates::ArrayContinue;
+					} else{
+						this->currentState = JsonTapeEventStates::ObjectContinue;
+					}
 					return this->generateJsonData();
 				}
 				case JsonTapeEventStates::ArrayBegin: {
 					this->depth++;
+					std::cout << "THE ARRAY SIZE: " << this->isArray.size() << ", THE DEPTH: " << this->depth << std::endl;
+					if (this->isArray.size() < this->depth) {
+						this->isArray.push_back(true);
+					} else {
+						this->isArray[this->depth - 1] = false;
+					}
 					this->currentState = JsonTapeEventStates::ArrayValue;
 					return this->recordArrayStart();
 				}
@@ -1443,5 +1461,6 @@ namespace Jsonifier {
 		JsonConstructor jsonConstructor{ &this->jsonEvents, &this->stringView };
 		std::string_view stringView{};
 		JsonEventWriter jsonData{ &this->jsonEvents };
+		std::vector<bool> isArray{ false };
 	};
 };
