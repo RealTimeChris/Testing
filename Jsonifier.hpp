@@ -1290,28 +1290,26 @@ namespace Jsonifier {
 					}
 					auto value = this->advance();
 					switch (*value) {
-						case '{': {
-							this->currentState = JsonTapeEventStates::ObjectBegin;
+						case '{':
 							if (*this->peek() == '}') {
 								this->advance();
+								this->currentState = JsonTapeEventStates::ObjectBegin;
 								return this->recordEmptyObject();
 							}
+							this->currentState = JsonTapeEventStates::ObjectBegin;
 							return this->generateJsonData();
-						}
-						case '[': {
-							this->currentState = JsonTapeEventStates::ArrayBegin;
+						case '[':
 							if (*this->peek() == ']') {
 								this->advance();
+								this->currentState = JsonTapeEventStates::ArrayBegin;
 								return this->recordEmptyArray();
 							}
+							this->currentState = JsonTapeEventStates::ObjectBegin;
 							return this->generateJsonData();
-						}
-						default: {
-							this->currentState = JsonTapeEventStates::ObjectContinue;
+						default:
+							this->currentState = JsonTapeEventStates::ObjectBegin;
 							return this->recordPrimitive(value);
-						}
 					}
-					
 				}
 				case JsonTapeEventStates::ObjectContinue: {
 					switch (*this->advance()) {
