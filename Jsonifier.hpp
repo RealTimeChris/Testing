@@ -1296,25 +1296,26 @@ namespace Jsonifier {
 					}
 					auto value = this->advance();
 					switch (*value) {
-						case '{':
+						case '{': {
+							this->currentState = JsonTapeEventStates::ObjectBegin;
 							if (*this->peek() == '}') {
 								this->advance();
-								this->currentState = JsonTapeEventStates::ObjectBegin;
 								return this->recordEmptyObject();
 							}
-							this->currentState = JsonTapeEventStates::ObjectBegin;
 							return this->generateJsonData();
-						case '[':
+						}
+						case '[': {
+							this->currentState = JsonTapeEventStates::ArrayBegin;
 							if (*this->peek() == ']') {
 								this->advance();
-								this->currentState = JsonTapeEventStates::ArrayBegin;
 								return this->recordEmptyArray();
 							}
-							this->currentState = JsonTapeEventStates::ArrayBegin;
 							return this->generateJsonData();
-						default:
+						}
+						default: {
 							this->currentState = JsonTapeEventStates::ObjectContinue;
 							return this->recordPrimitive(value);
+						}
 					}
 				}
 				case JsonTapeEventStates::ObjectContinue: {
@@ -1404,10 +1405,10 @@ namespace Jsonifier {
 					break;
 				}
 				case JsonTapeEventStates::DocumentEnd: {
-					break;
+					return ErrorCode::Success;
 				}
 				default: {
-					break;
+					return ErrorCode::Success;
 				}
 			}
 			return ErrorCode::Success;
