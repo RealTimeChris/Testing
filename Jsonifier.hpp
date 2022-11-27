@@ -922,18 +922,32 @@ namespace Jsonifier {
 
 	struct JsonEventWriter {
 
-		JsonEventWriter(std::vector<JsonEvent>* jsonEventsNew) {
+		JsonEventWriter(std::vector<JsonEvent>* jsonEventsNew,std::basic_string<uint32_t>*currentTapeNew,  uint32_t* currentIndexNew) {
+			this->currentIndex = currentIndexNew;
+			this->currentTape = currentTapeNew;
 			this->jsonEvents = jsonEventsNew;
 		}
 
-		inline void appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
+		inline bool appendTapeValue(size_t sizeNew, size_t stringIndexNew, TapeType eventTypeNew) {
+			std::cout << "THE SIZE REALest: " << this->currentTape->size() << std::endl;
+			if ((*this->currentIndex) >= this->currentTape->size()) {
+				return false;
+			} else {
+				this->jsonEvents->emplace_back(JsonEvent{ .type = eventTypeNew,
+					.index = (*this->currentTape)[*this->currentIndex],
+					.size = (*this->currentTape)[*this->currentIndex] - (*this->currentTape)[(*this->currentIndex) - 1] });
+				(*this->currentIndex)++;
+				return true;
+			}
 			std::cout << "THE TYPE: " << ( char )eventTypeNew << std::endl;
-			this->jsonEvents->emplace_back(JsonEvent{ .type = eventTypeNew, .index = stringIndexNew, .size = sizeNew });
+			
 			std::cout << "THE SIZE REALest: " << this->jsonEvents->size() << std::endl;
 		}
 
 	  protected:
+		std::basic_string<uint32_t>* currentTape{ nullptr };
 		std::vector<JsonEvent>* jsonEvents{};
+		uint32_t* currentIndex{ nullptr };
 	};
 
 	class JsonConstructor {
@@ -1097,33 +1111,24 @@ namespace Jsonifier {
 			size_t collectedSize{};
 			while (stringSize > 256) {
 				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize, 256 });
-				std::basic_string<uint32_t> newValues{};
 				bool haveWeCollectedZero{ false };
 				for (size_t x = 0; x < section.getStructuralIndices().size();++x) {
-					newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
-					std::cout << "THE VALUE REAL: " << newValues.back() << ", THE VALUE: " << this->stringView[newValues.back()] << std::endl;
+					this->jsonTape.push_back(collectedSize + section.getStructuralIndices()[x]);
 				}
-				this->jsonTape += newValues;
 				stringSize -= 256;
 				collectedSize += 256;
 			}
 			if (this->stringView.size() - collectedSize > 0) {
 				std::cout << "REMAINING SIZE: " << this->stringView.size() - collectedSize << std::endl;
 				SimdStringSection section((std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize }));
-				std::basic_string<uint32_t> newValues{};
 				bool haveWeCollectedZero{ false };
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
-					newValues.push_back(collectedSize + section.getStructuralIndices()[x]);
-					if (x == section.getStructuralIndices().size() - 1) {
-						std::cout << "THE VALUE REAL: " << newValues.back() << ", THE VALUE: " << this->stringView[newValues.back() - 1] << std::endl;
-					} else {
-						std::cout << "THE VALUE REAL: " << newValues.back() << ", THE VALUE: " << this->stringView[newValues[newValues.size() - 1]]
-								  << std::endl;
-					}
+					this->jsonTape.push_back(collectedSize + section.getStructuralIndices()[x]);
 					
 				}
-				std::cout << "THE SIZE REAL: " << newValues.size() << std::endl;
-				this->jsonTape += newValues;
+				for (auto& value: this->jsonTape) {
+					std::cout << "CURRENT INDEX: " << value << std::endl;
+				}
 				std::cout << "THE SIZE REAL: " << this->jsonTape.size() << std::endl;
 			}
 			this->next_structural = &this->jsonTape[0];
@@ -1158,7 +1163,7 @@ namespace Jsonifier {
 			this->jsonData.appendTapeValue(0, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::EndArray);
 			return this->generateJsonData();
 		}
-
+		
 		inline ErrorCode recordFalseAtom(const char* value) {
 			if (strcmp(value, "false")) {
 				this->jsonData.appendTapeValue(5, &this->stringView[*this->next_structural] - this->stringView.data(), TapeType::FalseValue);
@@ -1258,6 +1263,9 @@ namespace Jsonifier {
 			}
 			std::cout << "THE CURRENT EVENT: " << ( char )*this->peek() << std::endl;
 			std::cout << "THE CURRENT STATE: " << ( int32_t )this->currentState << std::endl;
+			if (this->jsonEvents.size() > 0) {
+				std::cout << "THE CURRENT INDEX: " << ( int32_t )this->jsonEvents.back().index << std::endl;
+			}
 			switch (this->currentState) {
 				case JsonTapeEventStates::ObjectBegin: {
 					this->depth++;
@@ -1405,7 +1413,6 @@ namespace Jsonifier {
 		}
 
 		inline void getJsonDataInner() {
-			this->jsonTape.clear();
 			this->jsonEvents.clear();
 			auto value = advance();
 			ErrorCode resultCode{};
@@ -1451,10 +1458,11 @@ namespace Jsonifier {
 	  protected:
 		JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 		std::basic_string<uint32_t> jsonTape{};
+		uint32_t currentIndex{};
 		std::vector<JsonEvent> jsonEvents{};
 		JsonConstructor jsonConstructor{ &this->jsonEvents, &this->stringView };
 		std::string_view stringView{};
-		JsonEventWriter jsonData{ &this->jsonEvents };
+		JsonEventWriter jsonData{ &this->jsonEvents, &this->jsonTape, &this->currentIndex };
 		std::vector<bool> isArray{ false };
 	};
 };

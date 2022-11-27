@@ -98,6 +98,7 @@ int32_t main() noexcept {
 		size_t totalTime{};
 		size_t totalSize{};
 		stringNew.reserve(stringNew.size() + 256);
+		string64.reserve(stringNew.size() + 256);
 		//auto newJsonData = stringScanner.getJsonData();
 		stopWatch.resetTimer();
 		std::cout << "GETJSONDATA()'s TIME: " << stopWatch.totalTimePassed() << std::endl;
