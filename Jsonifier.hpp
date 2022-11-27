@@ -885,9 +885,6 @@ namespace Jsonifier {
 			this->Q256 = this->collectQuotes();
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
-			this->Q256.printBits("Q VALUES: ");
-			this->S256.printBits("S VALUES: ");
-			this->W256.printBits("W VALUES: ");
 		}
 
 	  protected:
@@ -1277,7 +1274,7 @@ namespace Jsonifier {
 					if (this->isArray.size() < this->depth ) {
 						this->isArray.push_back(false);
 					} else {
-						this->isArray[this->depth - 1] = true;
+						this->isArray[this->depth - 1] = false;
 					}
 					auto key = this->advance();
 					std::cout << "THE EVENT: " << *key << std::endl;
@@ -1335,6 +1332,8 @@ namespace Jsonifier {
 							return this->recordObjectEnd();
 						}
 						default: {
+							this->currentState = JsonTapeEventStates::ObjectContinue;
+							return this->recordPrimitive(this->peek());
 							throw JsonifierException{ "Failed to generate Json data: Reason: " +
 								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 						}
@@ -1360,7 +1359,7 @@ namespace Jsonifier {
 					if (this->isArray.size() < this->depth) {
 						this->isArray.push_back(true);
 					} else {
-						this->isArray[this->depth - 1] = false;
+						this->isArray[this->depth - 1] = true;
 					}
 					this->currentState = JsonTapeEventStates::ArrayValue;
 					return this->recordArrayStart();
