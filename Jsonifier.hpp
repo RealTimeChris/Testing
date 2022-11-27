@@ -934,7 +934,7 @@ namespace Jsonifier {
 			}
 			switch (this->jsonEvents->front().type) {
 				case TapeType::StartObject: {
-					this->jsonEvents->pop_front();
+					this->updateEventLog();
 					while (this->jsonEvents->size() > 0&&this->jsonEvents->front().type != TapeType::EndObject) {
 						auto key = this->collectString();
 						jsonDataNew[key] = this->parseJsonToJsonObject();
@@ -942,7 +942,7 @@ namespace Jsonifier {
 					break;
 				}
 				case TapeType::StartArray: {
-					this->jsonEvents->pop_front();
+					this->updateEventLog();
 					while (this->jsonEvents->size() > 0 && this->jsonEvents->front().type != TapeType::EndArray) {
 						jsonDataNew.emplaceBack(this->parseJsonToJsonObject());
 					}
@@ -971,13 +971,13 @@ namespace Jsonifier {
 				}
 				default: {
 					if (this->jsonEvents->size() > 0) {
-						this->jsonEvents->pop_front();
+						this->updateEventLog();
 					}
 					return jsonDataNew;
 				}
 			}
 			if (this->jsonEvents->size() > 0) {
-				this->jsonEvents->pop_front();
+				this->updateEventLog();
 			}
 			return jsonDataNew;
 		}
@@ -985,11 +985,10 @@ namespace Jsonifier {
 		inline std::string collectString() {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				std::cout << "EVENTS SIZE: 0434 "
-						  << std::string{ this->stringView->data() + newValue.index - (newValue.size + 1) + 2, newValue.size - 2 } << std::endl;
+				std::cout << "EVENTS SIZE: 0434 " << std::string{ this->stringView->data() + newValue.index , newValue.index-this->previousEvent.index} << std::endl;
 				std::cout << "EVENTS SIZE: 0434 " << newValue.size << std::endl;
-				this->jsonEvents->pop_front();
-				return std::string{ this->stringView->data() + newValue.index - (newValue.size + 1) + 2, newValue.size - 2 };
+				this->updateEventLog();
+				return std::string{ this->stringView->data() + newValue.index, newValue.index - this->previousEvent.index };
 			} else {
 				return {};
 			}
@@ -998,7 +997,7 @@ namespace Jsonifier {
 		inline Jsonifier collectTrueOrFalse(bool returnValue) {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				this->jsonEvents->pop_front();
+				this->updateEventLog();
 				return returnValue;
 			} else {
 				return {};
@@ -1008,7 +1007,7 @@ namespace Jsonifier {
 		inline Jsonifier collectFloat() {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				this->jsonEvents->pop_front();
+				this->updateEventLog();
 				return double{ stod(std::string{ this->stringView->data() + newValue.index - (newValue.size), newValue.size }) };
 			} else {
 				return {};
@@ -1018,7 +1017,7 @@ namespace Jsonifier {
 		inline Jsonifier collectUint64() {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				this->jsonEvents->pop_front();
+				this->updateEventLog();
 				return uint64_t{ stoull(std::string{ this->stringView->data() + newValue.index - (newValue.size), newValue.size }) };
 			} else {
 				return {};
@@ -1028,7 +1027,7 @@ namespace Jsonifier {
 		inline Jsonifier collectInt64() {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent newValue = this->jsonEvents->front();
-				this->jsonEvents->pop_front();
+				this->updateEventLog();
 				return int64_t{ stoll(std::string{ this->stringView->data() + newValue.index - (newValue.size), newValue.size }) };
 			} else {
 				return {};
@@ -1037,11 +1036,16 @@ namespace Jsonifier {
 
 		inline Jsonifier collectNull() {
 			if (this->jsonEvents->size() > 0) {
-				this->jsonEvents->pop_front();
+				this->updateEventLog();
 				return nullptr;
 			} else {
 				return {};
 			}
+		}
+
+		void updateEventLog() {
+			this->previousEvent = this->jsonEvents->front();
+			this->jsonEvents->pop_front();
 		}
 
 		inline operator Jsonifier() {
@@ -1051,6 +1055,7 @@ namespace Jsonifier {
 	  protected:
 		std::deque<JsonTapeEvent>* jsonEvents{};
 		std::string_view* stringView{};
+		JsonTapeEvent previousEvent{};
 	};
 
 	class SimdJsonValue {
@@ -1067,7 +1072,8 @@ namespace Jsonifier {
 				if (this->jsonEvents.size() > 0) {
 					this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew,
 						.index = this->jsonRawTape.front(),
-						.size = this->jsonRawTape.front() - this->jsonEvents.back().index });
+						.size = this->jsonRawTape.front() - this->previousTapeEvent });
+					std::cout << "CURRENTLY HELD SIZE: " << this->jsonRawTape.front() - this->previousTapeEvent << std::endl;
 				} else {
 					this->jsonEvents.emplace_back(
 						JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape.front(), .size = this->jsonRawTape.front() - 0 });
@@ -1224,6 +1230,7 @@ namespace Jsonifier {
 
 		inline const char* advance() noexcept {
 			auto returnValue = &this->stringView[this->jsonRawTape.front()];
+			this->previousTapeEvent = this->jsonRawTape.front();
 			this->jsonRawTape.pop_front();
 			return returnValue;
 		}
@@ -1315,7 +1322,7 @@ namespace Jsonifier {
 							return this->recordObjectEnd();
 						}
 						default: {
-							this->currentState = JsonTapeEventStates::ObjectContinue;
+							this->currentState = JsonTapeEventStates::ObjectBegin;
 							return this->generateJsonData();
 						}
 					}
@@ -1385,8 +1392,8 @@ namespace Jsonifier {
 							return this->recordArrayEnd();
 						}
 						default: {
-							throw JsonifierException{ "Failed to generate Json data: Reason: " +
-								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+							this->currentState = JsonTapeEventStates::ObjectBegin;
+							return this->generateJsonData();
 						}
 					}
 					break;
@@ -1456,7 +1463,7 @@ namespace Jsonifier {
 	  protected:
 		JsonTapeEventStates currentState{ JsonTapeEventStates::ObjectBegin };
 		std::deque<uint32_t> jsonRawTape{};
-		uint32_t currentIndex{};
+		uint32_t previousTapeEvent{};
 		std::deque<JsonTapeEvent> jsonEvents{};
 		JsonConstructor jsonConstructor{ &this->jsonEvents, &this->stringView };
 		std::string_view stringView{};
