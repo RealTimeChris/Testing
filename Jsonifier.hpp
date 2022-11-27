@@ -839,21 +839,12 @@ namespace Jsonifier {
 			SimdBase256 quotes = _mm256_set1_epi8('"');
 			SimdBase256 quotesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				std::cout << "THE PRINTED BITS: " << std::endl;
-				std::cout << "STARTING AT: " << x * 32 << std::endl;
-				for (size_t y = 0; y < 32; ++y) {
-					
-					std::cout << *(reinterpret_cast<uint8_t*>((&this->values[x])) + y);
-				}
-				std::cout << std::endl;
-				quotes.printBits("QUOTES PRINTED BITS: ");
 				quotesReal[x] = this->values[x] == quotes;
 			}
 
 			this->Q256 =
 				SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
 					convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
-			this->Q256.printBits("Q VALUES: ");
 			auto S = B256.bitAndNot(B256 << 1);
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
@@ -866,7 +857,6 @@ namespace Jsonifier {
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			this->Q256.printBits("Q VALUES: ");
 			return this->Q256 & ~OD;
 		}
 
