@@ -1405,12 +1405,6 @@ namespace Jsonifier {
 		}
 
 		inline void getJsonDataInner() {
-			std::cout << "THE CURRENT EVENT 01: " << ( char )*this->peek() << std::endl;
-			std::cout << "THE CURRENT STATE 02: " << ( int32_t )this->currentState << std::endl;
-			std::cout << "THE CURRENT INDEX 03: " << ( int32_t )this->jsonRawTape.front() << std::endl;
-			if (this->jsonEvents.size() > 0) {
-				std::cout << "THE CURRENT INDEX 03: " << ( int32_t )this->jsonEvents.back().index << std::endl;
-			}
 			auto value = advance();
 			if (value == nullptr) {
 				return;
