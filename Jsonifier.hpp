@@ -937,27 +937,29 @@ namespace Jsonifier {
 			this->stringView = stringNew;
 		}
 
-		inline Jsonifier parseJsonToJsonObject(std::vector<JsonEvent>& events) {
+		inline Jsonifier parseJsonToJsonObject() {
 			Jsonifier jsonDataNew{};
-			std::cout << "EVENTS SIZE: 01 " << this->currentEvent - this->jsonEvents->data() << ", THE TYPE: " << ( char )events.begin()->type
+			std::cout << "EVENTS SIZE: 01 " << this->currentEvent - this->jsonEvents->data() << ", THE TYPE: " << ( char )this->jsonEvents->begin()->type
 					  << std::endl;
 			switch (this->currentEvent->type) {
 				case TapeType::StartObject: {
 					std::cout << "EVENTS SIZE: 02323 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 					std::cout << "EVENTS SIZE: 02 " << this->currentEvent - this->jsonEvents->data() << std::endl;
-					while (this->currentEvent->type != TapeType::EndObject && this->currentEvent - this->jsonEvents->data() < events.size()) {
+					while (
+						this->currentEvent->type != TapeType::EndObject && this->currentEvent - this->jsonEvents->data() < this->jsonEvents->size()) {
 						std::cout << "EVENTS SIZE: 02 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 						auto key = this->collectString();
-						jsonDataNew[key] = this->parseJsonToJsonObject(events);
+						jsonDataNew[key] = this->parseJsonToJsonObject();
 					}
 					break;
 				}
 				case TapeType::StartArray: {
 					std::cout << "EVENTS SIZE: 02323 " << this->currentEvent - this->jsonEvents->data() << std::endl;
 					std::cout << "EVENTS SIZE: 03 " << this->currentEvent - this->jsonEvents->data() << std::endl;
-					while (this->currentEvent->type != TapeType::EndArray && this->currentEvent - this->jsonEvents->data() < events.size()) {
+					while (
+						this->currentEvent->type != TapeType::EndArray && this->currentEvent - this->jsonEvents->data() < this->jsonEvents->size()) {
 						std::cout << "EVENTS SIZE: 02 " << this->currentEvent - this->jsonEvents->data() << std::endl;
-						jsonDataNew.emplaceBack(this->parseJsonToJsonObject(events));
+						jsonDataNew.emplaceBack(this->parseJsonToJsonObject());
 					}
 					break;
 				}
@@ -1058,14 +1060,9 @@ namespace Jsonifier {
 		}
 
 		inline operator Jsonifier() {
-			auto newEvents = *this->jsonEvents;
-			std::cout << "CURRENT EVENTS: " << std::endl;
-			for (auto& value: newEvents) {
-				std::cout << value.index << std::endl;
-			}
 			this->currentEvent = this->jsonEvents->data();
 			this->updateEvent();
-			return this->parseJsonToJsonObject(newEvents);
+			return this->parseJsonToJsonObject();
 		}
 
 	  protected:
