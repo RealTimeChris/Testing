@@ -938,15 +938,22 @@ namespace Jsonifier {
 		}
 
 		inline Jsonifier parseJsonToJsonObject() {
+			if (!this->currentIndex) {
+				this->currentIndex = this->jsonEvents->data();
+			}			
 			Jsonifier jsonDataNew{};
 			if (this->jsonEvents->size() <= 0) {
 				return jsonDataNew;
 			}
-			std::cout << "THE TYPE: " << ( char )this->jsonEvents->front().type << std::endl;
-			switch (this->jsonEvents->front().type) {
+			std::cout << "THE TYPE: " << ( char )currentIndex->type << std::endl;
+			switch (currentIndex->type) {
+				case TapeType::Root: {
+					this->updateEventLog();
+					return this->parseJsonToJsonObject();
+				}
 				case TapeType::StartObject: {
 					this->updateEventLog();
-					while (this->jsonEvents->size() > 0 && this->jsonEvents->front().type != TapeType::EndObject) {
+					while (currentIndex->type != TapeType::EndObject) {
 						auto key = this->collectString();
 						jsonDataNew[key] = this->parseJsonToJsonObject();
 					}
@@ -955,7 +962,7 @@ namespace Jsonifier {
 				}
 				case TapeType::StartArray: {
 					this->updateEventLog();
-					while (this->jsonEvents->size() > 0 && this->jsonEvents->front().type != TapeType::EndArray) {
+					while (currentIndex->type != TapeType::EndArray) {
 						jsonDataNew.emplaceBack(this->parseJsonToJsonObject());
 					}
 					this->updateEventLog();
@@ -1005,7 +1012,6 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = *this->currentIndex;
 				this->updateEventLog();
-				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
 				std::cout << "THE CURRENT SIZE REALER: " << value.size - 2 << std::endl;
 				std::cout << "THE CURRENT INDEX REALER: " << value.index << std::endl;
 				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index + 1, value.size - 2 } << std::endl;
@@ -1088,13 +1094,8 @@ namespace Jsonifier {
 		}
 
 		inline void appendTapeValue(TapeType typeNew, size_t sizeNew) {
-			if (this->jsonRawTape.size() > 0) {
-				std::cout << "THE EVENT TYPE: " << ( char )typeNew << ", THE INDEX: " << this->getCurrentIndex() << std::endl;
-				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->getCurrentIndex(), .size = sizeNew });
-			} else {
-				this->jsonEvents.emplace_back(
-					JsonTapeEvent{ .type = TapeType::DocumentEnd, .index = static_cast<int64_t>(this->stringView.size() - 1), .size = 0 });
-			}
+			std::cout << "THE EVENT TYPE: " << ( char )typeNew << ", THE INDEX: " << this->getCurrentIndex() << std::endl;
+			this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->getCurrentIndex(), .size = sizeNew });
 		}
 
 		inline void generateJsonEvents() {
@@ -1184,11 +1185,11 @@ namespace Jsonifier {
 		inline ErrorCode recordKey(const char* value) {
 			this->appendTapeValue(TapeType::String, this->getNextIndex() - this->getCurrentIndex());
 			this->advance();
-			return this->generateJsonData();
+			return this->recordObjectStart();
 		}
 
 		inline ErrorCode recordDocumentEnd() {
-			this->appendTapeValue(TapeType::DocumentEnd, 0);
+			this->appendTapeValue(TapeType::DocumentEnd, this->stringView.size() - this->getCurrentIndex());
 			this->advance();
 			return ErrorCode::Success;
 		}
@@ -1215,15 +1216,11 @@ namespace Jsonifier {
 		}
 
 		inline bool atEof() {
-			if (this->nextStructural >= this->jsonRawTape.data() + this->jsonRawTape.size()) {
+			if (*this->nextStructural >= this->stringView.size()) {
 				return true;
 			} else {
 				return false;
 			}
-		}
-
-		inline const char* peekNext() noexcept {
-			return &this->stringView[*this->nextStructural + 1];
 		}
 
 		inline const char* peek() noexcept {
@@ -1242,7 +1239,7 @@ namespace Jsonifier {
 			std::cout << "CURRENT STATE: " << ( char )this->currentState << std::endl;
 			switch (*this->peek()) {
 				case '{': {
-					return this->recordObjectStart();
+					return this->recordKey(this->peek());
 				}
 				case '[': {
 					return this->recordArrayStart();
