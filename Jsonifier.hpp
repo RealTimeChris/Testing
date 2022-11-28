@@ -767,9 +767,9 @@ namespace Jsonifier {
 	};
 
 	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB) {
-		uint64_t r_lo = _mm256_movemask_epi8(inputA);
-		uint64_t r_hi = _mm256_movemask_epi8(inputB);
-		return r_lo | (r_hi << 32);
+		uint64_t lowBytes = _mm256_movemask_epi8(inputA);
+		uint64_t highBytes = _mm256_movemask_epi8(inputB);
+		return lowBytes | (highBytes << 32);
 	}
 
 	enum class IndexTypes { Whitespace = 0, Quotes = 1, Structural = 2 };
@@ -1064,7 +1064,7 @@ namespace Jsonifier {
 				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew,
 					.index = &this->stringView[this->jsonRawTape[this->currentIndex]] - this->stringView.data(),
 					.size = sizeNew });
-				std::cout << "THE INDEX : " << &this->stringView[this->jsonRawTape[this->currentIndex]] - this->stringView.data() << std::endl;
+				std::cout << "THE INDEX : " << &this->stringView[this->jsonRawTape[this->currentIndex + 1]] - this->stringView.data() << std::endl;
 				std::cout << "THE SIZE: " << sizeNew << std::endl;
 			}
 		}
@@ -1222,7 +1222,8 @@ namespace Jsonifier {
 				return nullptr;
 			}
 			auto returnValue = &this->stringView[this->jsonRawTape[this->currentIndex]];
-			std::cout << "THE CURRENT INDEX: " << ( char )*returnValue << std::endl;
+			std::cout << "THE CURRENT INDEX: (REAL) " << this->currentIndex << std::endl;
+			std::cout << "THE CURRENT VALUE: (REAL) " << *returnValue << std::endl;
 			this->currentIndex++;
 			return returnValue;
 		}
@@ -1241,7 +1242,6 @@ namespace Jsonifier {
 						this->isArray[this->depth - 1] = false;
 					}
 					auto key = this->advance();
-					std::cout << "PREVIOUS INDEX: " << this->jsonRawTape.front() << std::endl;
 					if (key == nullptr) {
 						return ErrorCode::Success;
 					}
@@ -1308,7 +1308,7 @@ namespace Jsonifier {
 							return this->recordObjectEnd();
 						}
 						default: {
-							this->currentState = JsonTapeEventStates::ObjectBegin;
+							this->currentState = JsonTapeEventStates::ObjectField;
 							return this->generateJsonData();
 						}
 					}
