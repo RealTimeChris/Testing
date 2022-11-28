@@ -937,13 +937,15 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() <= 0) {
 				return jsonDataNew;
 			}
+			std::cout << "THE TYPE: " << ( char )this->jsonEvents->front().type << std::endl;
 			switch (this->jsonEvents->front().type) {
 				case TapeType::StartObject: {
 					this->updateEventLog();
-					while (this->jsonEvents->size() > 0) {
+					while (this->jsonEvents->size() > 0 && this->jsonEvents->front().type != TapeType::EndObject) {
 						auto key = this->collectString();
 						jsonDataNew[key] = this->parseJsonToJsonObject();
 					}
+					this->updateEventLog();
 					return jsonDataNew;
 				}
 				case TapeType::StartArray: {
@@ -951,6 +953,7 @@ namespace Jsonifier {
 					while (this->jsonEvents->size() > 0) {
 						jsonDataNew.emplaceBack(this->parseJsonToJsonObject());
 					}
+					this->updateEventLog();
 					return jsonDataNew;
 				}
 				case TapeType::String: {
@@ -974,6 +977,14 @@ namespace Jsonifier {
 				case TapeType::NullValue: {
 					return this->collectNull();
 				}
+				case TapeType::EndObject: {
+					this->updateEventLog();
+					return jsonDataNew;
+				}
+				case TapeType::EndArray: {
+					this->updateEventLog();
+					return jsonDataNew;
+				}
 				case TapeType::DocumentEnd: {
 					return jsonDataNew;
 				}
@@ -990,6 +1001,7 @@ namespace Jsonifier {
 				this->updateEventLog();
 				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
 				std::cout << "THE CURRENT SIZE REALER: " << value.size - 2 << std::endl;
+				std::cout << "THE CURRENT INDEX REALER: " << value.index << std::endl;
 				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index + 1, value.size - 2 } << std::endl;
 				return std::string{ this->stringView->data() + value.index + 1, value.size - 2 };
 			} else {
@@ -1011,7 +1023,6 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
-				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index, value.size } << std::endl;
 				return double{ stod(std::string{ this->stringView->data() + value.index , value.size }) };
 			} else {
 				return {};
@@ -1022,7 +1033,6 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
-				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index, value.size } << std::endl;
 				return uint64_t{ stoull(std::string{ this->stringView->data() + value.index, value.size }) };
 			} else {
 				return {};
@@ -1033,8 +1043,6 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
-				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
-				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index, value.size } << std::endl;
 				return int64_t{ stoll(std::string{ this->stringView->data() + value.index, value.size }) };
 			} else {
 				return {};
@@ -1051,7 +1059,10 @@ namespace Jsonifier {
 		}
 
 		void updateEventLog() {
-			this->jsonEvents->pop_front();
+			if (this->jsonEvents->size() > 0) {
+				std::cout << "THE POPPING EVENT: " << ( char )this->jsonEvents->front().type << std::endl;
+				this->jsonEvents->pop_front();
+			}
 		}
 
 		inline operator Jsonifier() {
@@ -1366,6 +1377,7 @@ namespace Jsonifier {
 					depth--;
 					if (depth == 0) {
 						this->currentState = JsonTapeEventStates::DocumentEnd;
+						std::cout << "DOCUMENT ENDING!" << std::endl;
 						return this->generateJsonData();
 					}
 					if (this->isArray[depth]) {
