@@ -982,8 +982,8 @@ namespace Jsonifier {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
 				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
-				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index + 1, value.size - 2 } << std::endl;
-				return std::string{ this->stringView->data() + value.index + 1, value.size - 2 };
+				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index, value.size } << std::endl;
+				return std::string{ this->stringView->data() + value.index, value.size };
 			} else {
 				return {};
 			}
@@ -1090,7 +1090,7 @@ namespace Jsonifier {
 				bool haveWeCollectedZero{ false };
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
 					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
-					std::cout << "TAPE VALUES: " << this->jsonRawTape.back() << ", THE VALUE: " << this->stringView[this->jsonRawTape.back()]
+					std::cout << "TAPE INDEX VALUE: " << this->jsonRawTape.back() << ", THE VALUE: " << this->stringView[this->jsonRawTape.back()]
 							  << std::endl;
 				}
 			}
@@ -1115,12 +1115,12 @@ namespace Jsonifier {
 
 		inline void recordObjectField() {
 			std::cout << "RECORDING OBJECT FIELD, AT INDEX: " << this->appendIndex << std::endl;
-
-			this->appendIndex++;
+			//this->appendIndex++;
 			return;
 		}
 
 		inline void recordObjectContinue() {
+			//this->appendIndex++;
 			return;
 		}
 
@@ -1150,14 +1150,14 @@ namespace Jsonifier {
 
 		inline void recordNumber(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
-				this->appendTapeValue(TapeType::Uint64, this->jsonRawTape[this->appendIndex+1] - this->jsonRawTape[this->appendIndex ]);
+				this->appendTapeValue(TapeType::Uint64, this->jsonRawTape[this->appendIndex]);
 			}
 			return;
 		}
 
 		inline void recordKey(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
-				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex + 1] - this->jsonRawTape[this->appendIndex]);
+				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
 			}
 			return;
 		}
@@ -1176,7 +1176,7 @@ namespace Jsonifier {
 
 		inline void recordString(const char* value) {
 			if (this->jsonRawTape.size() > this->appendIndex) {
-				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex + 1] - this->jsonRawTape[this->appendIndex]);
+				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
 			}
 			return;
 		}
@@ -1228,8 +1228,6 @@ namespace Jsonifier {
 				return nullptr;
 			}
 			auto returnValue = &this->stringView[this->jsonRawTape[this->readIndex]];
-			std::cout << "THE CURRENT INDEX: (REAL) " << this->readIndex << std::endl;
-			std::cout << "THE CURRENT VALUE: (REAL) " << *returnValue << std::endl;
 			this->readIndex++;
 			return returnValue;
 		}
@@ -1238,8 +1236,6 @@ namespace Jsonifier {
 			if (this->atEof()) {
 				return ErrorCode::Success;
 			}
-			
-			std::cout << "CURRENT STATE: " << ( int32_t )this->currentState << std::endl;
 			switch (this->currentState) {
 				case JsonTapeEventStates::DocumentStart: {
 					auto value = this->advance();
@@ -1296,6 +1292,7 @@ namespace Jsonifier {
 						throw JsonifierException{ "Failed to generate Json data: Reason: " +
 							std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
+					this->recordObjectField();
 					auto value = this->advance();
 					if (!value) {
 						return ErrorCode::Success;
@@ -1340,13 +1337,13 @@ namespace Jsonifier {
 							}
 							this->recordKey(key);
 							this->currentState = JsonTapeEventStates::ObjectField;
-							this->recordObjectField();
 							return this->generateJsonData();
 						}
 
 						case '}':
 							this->recordObjectEnd();
 							this->currentState = JsonTapeEventStates::ScopeEnd;
+							this->recordObjectContinue();
 							return this->generateJsonData();
 						default:
 							throw JsonifierException{ "Failed to generate Json data: Reason: " +
