@@ -985,8 +985,8 @@ namespace Jsonifier {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
 				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
-				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index, value.size } << std::endl;
-				return std::string{ this->stringView->data() + value.index, value.size };
+				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index + 1, value.size - 2 } << std::endl;
+				return std::string{ this->stringView->data() + value.index + 1, value.size - 2 };
 			} else {
 				return {};
 			}
@@ -1069,6 +1069,7 @@ namespace Jsonifier {
 
 		inline void appendTapeValue(TapeType typeNew, size_t sizeNew) {
 			if (this->jsonRawTape.size() > 0 && this->appendIndex < this->jsonRawTape.size()) {
+				std::cout << "THE EVENT TYPE: " << ( int32_t )typeNew << ", THE INDEX: " << this->getCurrentIndex() << std::endl;
 				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->getCurrentIndex(), .size = sizeNew });
 			}
 		}
@@ -1141,14 +1142,14 @@ namespace Jsonifier {
 
 		inline void recordNumber(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
-				this->appendTapeValue(TapeType::Uint64, this->jsonRawTape[this->appendIndex]);
+				this->appendTapeValue(TapeType::Uint64, this->jsonRawTape[this->appendIndex] - this->getCurrentIndex());
 			}
 			return;
 		}
 
 		inline void recordKey(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
-				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
+				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex] - this->getCurrentIndex());
 			}
 			return;
 		}
@@ -1167,7 +1168,7 @@ namespace Jsonifier {
 
 		inline void recordString(const char* value) {
 			if (this->jsonRawTape.size() > this->appendIndex) {
-				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
+				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex] - this->getCurrentIndex());
 			}
 			return;
 		}
@@ -1203,7 +1204,11 @@ namespace Jsonifier {
 		uint32_t depth{ 0 };
 
 		uint32_t getCurrentIndex() {
-			return this->jsonRawTape[this->appendIndex - 1];
+			if (this->appendIndex == 0) {
+				return this->jsonRawTape[0];
+			} else {
+				return this->jsonRawTape[this->appendIndex - 1];
+			}
 		}
 
 		inline bool atEof() {
@@ -1231,6 +1236,8 @@ namespace Jsonifier {
 			if (this->atEof()) {
 				return ErrorCode::Success;
 			}
+			std::cout << "CURRENT STATE: " << ( int32_t )this->currentState << ", THE INDEX: " << this->appendIndex
+					  << ", THE VALUE: " << this->stringView[this->getCurrentIndex()] << std::endl;
 			switch (this->currentState) {
 				case JsonTapeEventStates::DocumentStart: {
 					auto value = this->advance();
