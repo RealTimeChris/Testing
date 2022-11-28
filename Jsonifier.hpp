@@ -873,8 +873,11 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[7], this->stringView->data() + 224);
 
 			this->Q256 = this->collectQuotes();
+			this->Q256.printBits("THE Q VALUES: ");
 			this->W256 = this->collectWhiteSpace();
+			this->W256.printBits("THE W VALUES: ");
 			this->S256 = this->collectStructuralCharacters();
+			this->S256.printBits("THE S VALUES: ");
 		}
 
 	  protected:
@@ -1067,7 +1070,6 @@ namespace Jsonifier {
 		inline void appendTapeValue(TapeType typeNew, size_t sizeNew) {
 			if (this->jsonRawTape.size() > 0 && this->appendIndex < this->jsonRawTape.size()) {
 				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape[this->appendIndex], .size = sizeNew });
-				this->appendIndex++;
 			}
 		}
 
@@ -1113,17 +1115,6 @@ namespace Jsonifier {
 			return;
 		}
 
-		inline void recordObjectField() {
-			std::cout << "RECORDING OBJECT FIELD, AT INDEX: " << this->appendIndex << std::endl;
-			//this->appendIndex++;
-			return;
-		}
-
-		inline void recordObjectContinue() {
-			//this->appendIndex++;
-			return;
-		}
-
 		inline void recordObjectEnd() {
 			this->appendTapeValue(TapeType::EndObject, 0);
 			return;
@@ -1158,6 +1149,7 @@ namespace Jsonifier {
 		inline void recordKey(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
+				this->appendIndex++;
 			}
 			return;
 		}
@@ -1177,6 +1169,7 @@ namespace Jsonifier {
 		inline void recordString(const char* value) {
 			if (this->jsonRawTape.size() > this->appendIndex) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
+				this->appendIndex++;
 			}
 			return;
 		}
@@ -1212,7 +1205,7 @@ namespace Jsonifier {
 		uint32_t depth{ 0 };
 
 		inline bool atEof() {
-			if (this->readIndex >= this->jsonRawTape.size()){
+			if (this->appendIndex >= this->jsonRawTape.size()){
 				return true;
 			} else {
 				return false;
@@ -1220,15 +1213,15 @@ namespace Jsonifier {
 		}
 
 		inline const char* peek() noexcept {
-			return &this->stringView[this->readIndex];
+			return &this->stringView[this->appendIndex];
 		}
 
 		inline const char* advance() noexcept {
-			if (this->readIndex >= this->jsonRawTape.size()) {
+			if (this->appendIndex >= this->jsonRawTape.size()) {
 				return nullptr;
 			}
-			auto returnValue = &this->stringView[this->jsonRawTape[this->readIndex]];
-			this->readIndex++;
+			auto returnValue = &this->stringView[this->jsonRawTape[this->appendIndex]];
+			this->appendIndex++;
 			return returnValue;
 		}
 
@@ -1284,7 +1277,6 @@ namespace Jsonifier {
 					}
 					this->recordKey(key);
 					this->currentState = JsonTapeEventStates::ObjectField;
-					this->recordObjectField();
 					return this->generateJsonData();
 				} 
 				case JsonTapeEventStates::ObjectField: {
@@ -1292,7 +1284,6 @@ namespace Jsonifier {
 						throw JsonifierException{ "Failed to generate Json data: Reason: " +
 							std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
-					this->recordObjectField();
 					auto value = this->advance();
 					if (!value) {
 						return ErrorCode::Success;
@@ -1343,7 +1334,6 @@ namespace Jsonifier {
 						case '}':
 							this->recordObjectEnd();
 							this->currentState = JsonTapeEventStates::ScopeEnd;
-							this->recordObjectContinue();
 							return this->generateJsonData();
 						default:
 							throw JsonifierException{ "Failed to generate Json data: Reason: " +
@@ -1429,7 +1419,6 @@ document_end:
 		JsonTapeEventStates currentState{ JsonTapeEventStates::DocumentStart};
 		std::deque<uint32_t> jsonRawTape{};
 		uint32_t appendIndex{};
-		uint32_t readIndex{};
 		std::deque<JsonTapeEvent> jsonEvents{};
 		JsonConstructor jsonConstructor{ &this->jsonEvents, &this->stringView };
 		std::string_view stringView{};
