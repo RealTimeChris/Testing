@@ -981,6 +981,7 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
+				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
 				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index + 1, value.size - 2 } << std::endl;
 				return std::string{ this->stringView->data() + value.index + 1, value.size - 2 };
 			} else {
@@ -1024,6 +1025,7 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = this->jsonEvents->front();
 				this->updateEventLog();
+				std::cout << "THE CURRENT INDEX REALER: " << this->jsonEvents->size() << std::endl;
 				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index, value.size } << std::endl;
 				return int64_t{ stoll(std::string{ this->stringView->data() + value.index, value.size }) };
 			} else {
@@ -1112,7 +1114,8 @@ namespace Jsonifier {
 		}
 
 		inline void recordObjectField() {
-			std::cout << "RECORDING OBJECT FIELD!"<< std::endl;
+			std::cout << "RECORDING OBJECT FIELD, AT INDEX: " << this->appendIndex << std::endl;
+
 			this->appendIndex++;
 			return;
 		}
