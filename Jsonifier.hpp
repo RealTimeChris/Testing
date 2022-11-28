@@ -1149,7 +1149,6 @@ namespace Jsonifier {
 		inline void recordKey(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
-				this->appendIndex++;
 			}
 			return;
 		}
@@ -1169,7 +1168,6 @@ namespace Jsonifier {
 		inline void recordString(const char* value) {
 			if (this->jsonRawTape.size() > this->appendIndex) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex]);
-				this->appendIndex++;
 			}
 			return;
 		}
