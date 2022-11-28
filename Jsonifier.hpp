@@ -1095,87 +1095,80 @@ namespace Jsonifier {
 			this->getJsonDataInner();
 		}
 
-		inline ErrorCode recordTrueAtom(const char* value) {
+		inline void recordTrueAtom(const char* value) {
 			if (strcmp(value, "true")) {
 				this->appendTapeValue(TapeType::TrueValue, 4);
-				return this->generateJsonData();
-			} else {
-				return ErrorCode::ParseError;
 			}
 		}
 
-		inline ErrorCode recordObjectStart() {
+		inline void recordObjectStart() {
 			this->appendTapeValue(TapeType::StartObject, 0);
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordArrayStart() {
+		inline void recordArrayStart() {
 			this->appendTapeValue(TapeType::StartArray, 0);
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordObjectEnd() {
+		inline void recordObjectEnd() {
 			this->appendTapeValue(TapeType::EndObject, 0);
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordArrayEnd() {
+		inline void recordArrayEnd() {
 			this->appendTapeValue(TapeType::EndArray, 0);
-			return this->generateJsonData();
+			return;
 		}
 		
-		inline ErrorCode recordFalseAtom(const char* value) {
+		inline void recordFalseAtom(const char* value) {
 			if (strcmp(value, "false")) {
 				this->appendTapeValue(TapeType::FalseValue, 5);
-				return this->generateJsonData();
-			} else {
-				return ErrorCode::ParseError;
+				return;
 			}
 		}
 
-		inline ErrorCode recordNullAtom(const char* value) {
+		inline void recordNullAtom(const char* value) {
 			if (strcmp(value, "null")) {
 				this->appendTapeValue(TapeType::NullValue, 4);
-				return this->generateJsonData();
-			} else {
-				return ErrorCode::ParseError;
+				return;
 			}
 		}
 
-		inline ErrorCode recordNumber(const char* value) {
+		inline void recordNumber(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
 				this->appendTapeValue(TapeType::Uint64, this->jsonRawTape[this->currentIndex + 1] - this->jsonRawTape[this->currentIndex ]);
 			}
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordKey(const char* value) {
+		inline void recordKey(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->currentIndex + 1] - this->jsonRawTape[this->currentIndex ]);
 			}
-			return this->recordObjectStart();
+			return;
 		}
 
-		inline ErrorCode recordEmptyObject() {
+		inline void recordEmptyObject() {
 			this->appendTapeValue(TapeType::StartObject, 0);
 			this->appendTapeValue(TapeType::EndObject, 0);
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordEmptyArray() {
+		inline void recordEmptyArray() {
 			this->appendTapeValue(TapeType::StartArray, 0);
 			this->appendTapeValue(TapeType::EndArray, 0);
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordString(const char* value) {
+		inline void recordString(const char* value) {
 			if (this->jsonRawTape.size() > 0) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->currentIndex + 1] - this->jsonRawTape[this->currentIndex]);
 			}
-			return this->generateJsonData();
+			return;
 		}
 
-		inline ErrorCode recordPrimitive(const char* value) {
+		inline void recordPrimitive(const char* value) {
 			switch (*value) {
 				case '"':
 					return this->recordString(value);
@@ -1250,7 +1243,8 @@ namespace Jsonifier {
 							std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
 					}
 					this->currentState = JsonTapeEventStates::ObjectField;
-					return this->recordKey(key);
+					this->recordKey(key);
+					return this->generateJsonData();
 				}
 				case JsonTapeEventStates::ObjectField: {
 					if (*this->advance() != ':') {
@@ -1266,7 +1260,8 @@ namespace Jsonifier {
 							this->currentState = JsonTapeEventStates::ObjectBegin;
 							if (*this->peek() == '}') {
 								this->advance();
-								return this->recordEmptyObject();
+								this->recordEmptyObject();
+								return this->generateJsonData();
 							}
 							return this->generateJsonData();
 						}
@@ -1274,13 +1269,15 @@ namespace Jsonifier {
 							this->currentState = JsonTapeEventStates::ArrayBegin;
 							if (*this->peek() == ']') {
 								this->advance();
-								return this->recordEmptyArray();
+								this->recordEmptyArray();
+								return this->generateJsonData();
 							}
 							return this->generateJsonData();
 						}
 						default: {
 							this->currentState = JsonTapeEventStates::ObjectContinue;
-							return this->recordPrimitive(value);
+							this->recordPrimitive(value);
+							return this->generateJsonData();
 						}
 					}
 				}
@@ -1305,10 +1302,12 @@ namespace Jsonifier {
 						}
 						case '}': {
 							this->currentState = JsonTapeEventStates::ScopeEnd;
-							return this->recordObjectEnd();
+							this->recordObjectEnd();
+							return this->generateJsonData();
 						}
 						default: {
 							this->currentState = JsonTapeEventStates::ObjectField;
+							this->recordPrimitive(newValue);
 							return this->generateJsonData();
 						}
 					}
@@ -1334,7 +1333,8 @@ namespace Jsonifier {
 						this->isArray[this->depth - 1] = true;
 					}
 					this->currentState = JsonTapeEventStates::ArrayValue;
-					return this->recordArrayStart();
+					this->recordArrayStart();
+					return this->generateJsonData();
 				}
 				case JsonTapeEventStates::ArrayValue: {
 					auto value = this->advance();
@@ -1346,19 +1346,22 @@ namespace Jsonifier {
 							this->currentState = JsonTapeEventStates::ObjectBegin;
 							if (*this->peek() == '}') {
 								this->advance();
-								return this->recordEmptyObject();
+								this->recordEmptyObject();
+								return this->generateJsonData();
 							}
 							return this->generateJsonData();
 						case '[':
 							this->currentState = JsonTapeEventStates::ArrayBegin;
 							if (*this->peek() == ']') {
 								this->advance();
-								return this->recordEmptyArray();
+								this->recordEmptyArray();
+								return this->generateJsonData();
 							}
 							return this->generateJsonData();
 						default:
 							this->currentState = JsonTapeEventStates::ArrayContinue;
-							return this->recordPrimitive(value);
+							this->recordPrimitive(value);
+							return this->generateJsonData();
 					}
 				}
 				case JsonTapeEventStates::ArrayContinue: {
@@ -1373,7 +1376,8 @@ namespace Jsonifier {
 						}
 						case ']': {
 							this->currentState = JsonTapeEventStates::ScopeEnd;
-							return this->recordArrayEnd();
+							this->recordArrayEnd();
+							return this->generateJsonData();
 						}
 						default: {
 							this->currentState = JsonTapeEventStates::ObjectBegin;
@@ -1407,7 +1411,8 @@ namespace Jsonifier {
 						break;
 					}
 					this->currentState = JsonTapeEventStates::ObjectBegin;
-					resultCode = this->recordObjectStart();
+					this->recordObjectStart();
+					resultCode = this->generateJsonData();
 					break;
 				case '[':
 					if (*this->peek() == ']') {
@@ -1416,10 +1421,12 @@ namespace Jsonifier {
 						break;
 					}
 					this->currentState = JsonTapeEventStates::ArrayBegin;
-					resultCode = this->recordArrayStart();
+					this->recordArrayStart();
+					resultCode = this->generateJsonData();
 					break; 
 				default:
-					resultCode = this->recordPrimitive(value);
+					this->recordPrimitive(value);
+					resultCode = this->generateJsonData();
 					break;
 			}
 
