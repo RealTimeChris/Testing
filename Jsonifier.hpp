@@ -1074,7 +1074,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline void generateRawTape() {
+		inline void generateJsonEvents() {
 			this->jsonEvents.clear();
 			this->jsonRawTape.clear();
 			size_t stringSize = this->stringView.size();
@@ -1419,7 +1419,7 @@ document_end:
 */
 
 		inline Jsonifier getJsonData() {
-			this->generateRawTape();
+			this->generateJsonEvents();
 			std::cout << "JSON EVENTS SIZE: " << this->jsonEvents.size() << std::endl;
 			this->currentState = JsonTapeEventStates::DocumentStart;
 			return this->jsonConstructor.operator Jsonifier();
