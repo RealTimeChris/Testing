@@ -1167,8 +1167,12 @@ namespace Jsonifier {
 		}
 
 		inline void recordString(const char* value) {
+			std::cout << "CURRENT STATE 01: " << ( int32_t )this->currentState << ", THE INDEX 01: " << this->appendIndex
+					  << ", THE VALUE 01: " << this->stringView[this->getCurrentIndex()] << std::endl;
 			if (this->jsonRawTape.size() > this->appendIndex) {
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex] - this->getCurrentIndex());
+			} else {
+				this->appendTapeValue(TapeType::String, this->stringView.size() - this->getCurrentIndex());
 			}
 			return;
 		}
