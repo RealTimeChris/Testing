@@ -1069,7 +1069,7 @@ namespace Jsonifier {
 
 		inline void appendTapeValue(TapeType typeNew, size_t sizeNew) {
 			if (this->jsonRawTape.size() > 0 && this->appendIndex < this->jsonRawTape.size()) {
-				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->jsonRawTape[this->appendIndex], .size = sizeNew });
+				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->getCurrentIndex(), .size = sizeNew });
 			}
 		}
 
@@ -1201,6 +1201,10 @@ namespace Jsonifier {
 		}
 
 		uint32_t depth{ 0 };
+
+		uint32_t getCurrentIndex() {
+			return this->jsonRawTape[this->appendIndex - 1];
+		}
 
 		inline bool atEof() {
 			if (this->appendIndex >= this->jsonRawTape.size()){
