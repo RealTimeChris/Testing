@@ -1064,8 +1064,7 @@ namespace Jsonifier {
 				this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew,
 					.index = &this->stringView[this->jsonRawTape[this->currentIndex]] - this->stringView.data(),
 					.size = sizeNew });
-				std::cout << "THE TYPE: " << ( char )this->jsonEvents.back().type
-						  << ", THE INDEX: " << &this->stringView[this->jsonRawTape[this->currentIndex]] - this->stringView.data() << std::endl;
+				std::cout << "THE INDEX : " << &this->stringView[this->jsonRawTape[this->currentIndex]] - this->stringView.data() << std::endl;
 				std::cout << "THE SIZE: " << sizeNew << std::endl;
 			}
 		}
