@@ -1097,7 +1097,7 @@ namespace Jsonifier {
 							  << std::endl;
 				}
 			}
-			this->getJsonDataInner();
+			this->generateJsonData();
 		}
 
 		inline void recordTrueAtom(const char* value) {
@@ -1167,11 +1167,14 @@ namespace Jsonifier {
 		}
 
 		inline void recordString(const char* value) {
-			std::cout << "CURRENT STATE 01: " << ( int32_t )this->currentState << ", THE INDEX 01: " << this->appendIndex
-					  << ", THE VALUE 01: " << this->stringView[this->getCurrentIndex()] << std::endl;
+			
 			if (this->jsonRawTape.size() > this->appendIndex) {
+				std::cout << "CURRENT STATE 032: " << ( int32_t )this->currentState << ", THE INDEX 032: " << this->appendIndex
+						  << ", THE VALUE 032: " << this->stringView[this->getCurrentIndex()] << std::endl;
 				this->appendTapeValue(TapeType::String, this->jsonRawTape[this->appendIndex] - this->getCurrentIndex());
 			} else {
+				std::cout << "CURRENT STATE 0333: " << ( int32_t )this->currentState << ", THE INDEX 0333: " << this->appendIndex
+						  << ", THE VALUE 0333: " << this->stringView[this->getCurrentIndex()] << std::endl;
 				this->appendTapeValue(TapeType::String, this->stringView.size() - this->getCurrentIndex());
 			}
 			return;
@@ -1232,6 +1235,8 @@ namespace Jsonifier {
 				return nullptr;
 			}
 			auto returnValue = &this->stringView[this->jsonRawTape[this->appendIndex]];
+			std::cout << "CURRENT STATE 01: " << *returnValue << ", THE INDEX 01: " << this->appendIndex
+					  << ", THE VALUE 01: " << this->stringView[this->getCurrentIndex()] << std::endl;
 			this->appendIndex++;
 			return returnValue;
 		}
@@ -1241,7 +1246,7 @@ namespace Jsonifier {
 				return ErrorCode::Success;
 			}
 			std::cout << "CURRENT STATE: " << ( int32_t )this->currentState << ", THE INDEX: " << this->appendIndex
-					  << ", THE VALUE: " << this->stringView[this->getCurrentIndex()] << std::endl;
+					  << ", THE VALUE: " << this->stringView[this->jsonRawTape[this->appendIndex]] << std::endl;
 			switch (this->currentState) {
 				case JsonTapeEventStates::DocumentStart: {
 					auto value = this->advance();
@@ -1331,26 +1336,22 @@ namespace Jsonifier {
 					}
 					switch (*value) {
 						case ',': {
-							auto key = this->advance();
-							if (!key) {
-								return ErrorCode::Success;
+								auto key = this->advance();
+								if (*key != '"') {
+									throw JsonifierException{ "Failed to generate Json data: Reason: " +
+										std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+								}
+								this->recordKey(key);
+								this->currentState = JsonTapeEventStates::ObjectField;
+								return this->generateJsonData();
 							}
-							if (*key != '"') {
-								throw JsonifierException{ "Failed to generate Json data: Reason: " +
-									std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
-							}
-							this->recordKey(key);
-							this->currentState = JsonTapeEventStates::ObjectField;
-							return this->generateJsonData();
-						}
-
 						case '}':
 							this->recordObjectEnd();
 							this->currentState = JsonTapeEventStates::ScopeEnd;
 							return this->generateJsonData();
 						default:
-							throw JsonifierException{ "Failed to generate Json data: Reason: " +
-								std::to_string(static_cast<int32_t>(ErrorCode::TapeError)) };
+							this->currentState = JsonTapeEventStates::ObjectField;
+							return this->generateJsonData();
 					}
 				}
 				case JsonTapeEventStates::ScopeEnd: {
@@ -1416,10 +1417,6 @@ document_end:
 
   return SUCCESS;
 */
-		inline void getJsonDataInner() {
-			this->generateJsonData();
-
-		}
 
 		inline Jsonifier getJsonData() {
 			this->generateRawTape();
