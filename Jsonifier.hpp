@@ -646,6 +646,40 @@ namespace Jsonifier {
 			return this->value;
 		}
 
+		uint64_t getUint64(size_t index) {
+			switch (index) {
+				case 0: {
+					return _mm256_extract_epi64(*this, 0);
+				}
+				case 1: {
+					return _mm256_extract_epi64(*this, 1);
+				}
+				case 2: {
+					return _mm256_extract_epi64(*this, 2);
+				}
+				case 3: {
+					return _mm256_extract_epi64(*this, 3);
+				}
+			}
+		}
+
+		void insertUint64(uint64_t value,size_t index) {
+			switch (index) {
+				case 0: {
+					*this = _mm256_insert_epi64(*this, value, 0);
+				}
+				case 1: {
+					*this = _mm256_insert_epi64(*this, value, 1);
+				}
+				case 2: {
+					*this = _mm256_insert_epi64(*this, value, 2);
+				}
+				case 3: {
+					*this = _mm256_insert_epi64(*this, value, 3);
+				}
+			}
+		}
+
 		inline SimdBase256 operator|(SimdBase256 other) {
 			return _mm256_or_si256(this->value, other);
 		}
@@ -677,6 +711,11 @@ namespace Jsonifier {
 			return *this;
 		}
 
+		inline SimdBase256 operator==(char other) {
+			*this == _mm256_set1_epi8(other);
+			return *this;
+		}
+
 		inline SimdBase256 operator==(SimdBase256 other) {
 			return _mm256_cmpeq_epi8(this->value, other);
 		}
@@ -687,6 +726,17 @@ namespace Jsonifier {
 				*(reinterpret_cast<int64_t*>(&value) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) << (amount % 64));
 				if (x > 0) {
 					*(reinterpret_cast<int64_t*>(&value) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) >> 63) & 1);
+				}
+			}
+			return value;
+		}
+
+		inline SimdBase256 operator>>(size_t amount) {
+			SimdBase256 value{};
+			for (size_t x = 0; x < 4; ++x) {
+				*(reinterpret_cast<int64_t*>(&value) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) >> (amount % 64));
+				if (x > 0) {
+					*(reinterpret_cast<int64_t*>(&value) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) << 63) & 1);
 				}
 			}
 			return value;
@@ -784,6 +834,57 @@ namespace Jsonifier {
 			}
 		}
 
+		inline SimdStringSection(SimdBase256 backslash, SimdBase256 escaped, SimdBase256 quote, SimdBase256 in_string)
+			: backSlashSimd(backslash), escapedSimd(escaped), quoteSimd(quote), inString(in_string) {
+		}
+
+		inline SimdBase256 escaped() {
+			return this->escapedSimd;
+		}
+		inline SimdBase256 escape() {
+			return this->backSlashSimd & ~this->escapedSimd;
+		}
+		inline SimdBase256 quote() {
+			return this->quoteSimd;
+		}
+		inline SimdBase256 stringStart() {
+			return this->quoteSimd & this->inString;
+		}
+		inline SimdBase256 stringEnd() {
+			return this->quoteSimd & ~this->inString;
+		}
+		inline SimdBase256 stringContent() {
+			return this->inString & ~this->quoteSimd;
+		}
+		inline SimdBase256 nonQuoteInsideString(SimdBase256 mask) {
+			return mask & this->inString;
+		}
+		inline SimdBase256 nonQuoteOutsideString(SimdBase256 mask) {
+			return mask & ~this->inString;
+		}
+		inline SimdBase256 stringTail() {
+			return this->inString ^ this->quoteSimd;
+		}
+
+		SimdBase256 operator==(char other) {
+			SimdBase256 returnValue{};
+			SimdBase256 backslashes = _mm256_set1_epi8(other);
+			SimdBase256 returnValuesReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				returnValuesReal[x] = this->values[x] == backslashes;
+			}
+			returnValue = SimdBase256{ convertSimd256To64BitUint(returnValuesReal[0], returnValuesReal[1]),
+				convertSimd256To64BitUint(returnValuesReal[2], returnValuesReal[3]),
+				convertSimd256To64BitUint(returnValuesReal[4], returnValuesReal[5]),
+				convertSimd256To64BitUint(returnValuesReal[6], returnValuesReal[7]) };
+			return returnValue;
+		}
+
+		SimdBase256 backSlashSimd{};
+		SimdBase256 escapedSimd{};
+		SimdBase256 quoteSimd{};
+		SimdBase256 inString{};
+
 		inline std::basic_string<uint32_t> getStructuralIndices() {
 			return this->S256.getSetBitIndices();
 		}
@@ -860,7 +961,7 @@ namespace Jsonifier {
 			return this->Q256 & ~OD;
 		}
 
-		inline SimdStringSection(std::string_view valueNew) {
+		inline SimdStringSection(std::string_view valueNew, SimdBase256 prevInString) {
 			this->stringView = &valueNew;
 
 			this->packStringIntoValue(&this->values[0], this->stringView->data());
@@ -877,6 +978,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->W256.printBits("THE W VALUES: ");
 			this->S256 = this->collectStructuralCharacters();
+			this->S256.printBits("THE S VALUES: ");
 			this->S256.printBits("THE S VALUES: ");
 		}
 
@@ -1065,6 +1167,16 @@ namespace Jsonifier {
 		JsonTapeEvent* currentIndex{};
 	};
 
+	inline SimdBase256 prefixXor(SimdBase256 bitmask) {
+		SimdBase256 newValue{};
+		for (size_t x = 0; x < 4; ++x) {
+			__m128i allOnes = _mm_set1_epi8('\xFF');
+			__m128i result = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, bitmask.getUint64(x)), allOnes, 0);
+			newValue.insertUint64(_mm_cvtsi128_si64(result), x);
+		}
+		return newValue;
+	}
+
 	class SimdJsonValue {
 	  public:
 		inline SimdJsonValue(std::string_view stringNew) {
@@ -1079,13 +1191,42 @@ namespace Jsonifier {
 			this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->getCurrentIndex(), .size = sizeNew });
 		}
 
+		SimdBase256 prevEscaped{};
+		SimdBase256 prevInString{};
+
+		inline SimdBase256 findEscapedBranchless(SimdBase256 backslash) {
+			backslash &= ~this->prevEscaped;
+			SimdBase256 follows_escape = backslash << 1 | this->prevEscaped;
+
+			SimdBase256 even_bits = 0x5555555555555555ULL;
+			SimdBase256 odd_sequence_starts = backslash & ~even_bits & ~follows_escape;
+			SimdBase256 sequences_starting_on_even_bits;
+			this->prevEscaped = odd_sequence_starts.collectCarries(sequences_starting_on_even_bits);
+			SimdBase256 invert_mask = sequences_starting_on_even_bits << 1;
+			return (even_bits ^ invert_mask) & follows_escape;
+		}
+
 		inline void generateJsonEvents() {
 			this->jsonEvents.clear();
 			this->jsonRawTape.clear();
 			size_t stringSize = this->stringView.size();
 			uint32_t collectedSize{};
 			while (stringSize > 256) {
-				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize, 256 });
+				
+				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize, 256 },this-> prevInString);
+				std::cout << "WERE HERE THIS IS NOT IT! 030303" << std::string_view{ this->stringView.data(), 256 } << std::endl;
+				SimdBase256 backslash = section == '\\';
+				SimdBase256 escaped = findEscapedBranchless(backslash);
+				SimdBase256 quote = section == '"' & ~escaped;
+
+				//
+				// prefix_xor flips on bits inside the string (and flips off the end quote).
+				//
+				// Then we xor with prev_in_string: if we were in a string already, its effect is flipped
+				// (characters inside strings are outside, and characters outside strings are inside).
+				//
+				SimdBase256 in_string = prefixXor(quote) ^ this->prevInString;
+				this->prevInString = in_string >> 63;
 				for (size_t x = 0; x < section.getStructuralIndices().size();++x) {
 					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
 					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
@@ -1096,12 +1237,12 @@ namespace Jsonifier {
 				collectedSize += 256;
 			}
 			if (this->stringView.size() - collectedSize > 0) {
-				std::cout << "WERE HERE THIS IS NOT IT! 030303" << std::endl;
-				SimdStringSection section(
-					(std::string_view{ this->stringView.data() + collectedSize - 1, this->stringView.size() - collectedSize - 1 }));
+				std::cout << "WERE HERE THIS IS NOT IT! 030303"
+						  << std::string_view{ this->stringView.data() + collectedSize + 1, this->stringView.size() - collectedSize } << std::endl;
+				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize + 1, this->stringView.size() - collectedSize },
+					prevInString);
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
-					std::cout << "WERE HERE THIS IS NOT IT! 040404" << std::endl;
-					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] );
+					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] - 1);
 					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
 							  << std::endl;
 				}
@@ -1170,13 +1311,9 @@ namespace Jsonifier {
 		inline ErrorCode recordKey(const char* value) {
 			if (this->atEof()) {
 				this->appendTapeValue(TapeType::String, this->stringView.size() - this->getCurrentIndex());
-				std::cout << "CURRENT INDEX: 02 " << this->getCurrentIndex() << std::endl;
-				std::cout << "CURRENT SIZE: 02 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
 				this->advance();
 			} else {
 				this->appendTapeValue(TapeType::String, this->getNextIndex() - this->getCurrentIndex());
-				std::cout << "CURRENT INDEX: 01 " << this->getCurrentIndex() << std::endl;
-				std::cout << "CURRENT SIZE: 01 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
 				this->advance();
 			}
 			return this->generateJsonData();
@@ -1196,13 +1333,9 @@ namespace Jsonifier {
 		inline ErrorCode recordString(const char* value) {
 			if (this->atEof()) {
 				this->appendTapeValue(TapeType::String, this->stringView.size() - this->getCurrentIndex());
-				std::cout << "CURRENT INDEX: 02 " << this->getCurrentIndex() << std::endl;
-				std::cout << "CURRENT SIZE: 02 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
 				this->advance();
 			} else {
 				this->appendTapeValue(TapeType::String, this->getNextIndex() - this->getCurrentIndex());
-				std::cout << "CURRENT INDEX: 01 " << this->getCurrentIndex() << std::endl;
-				std::cout << "CURRENT SIZE: 01 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
 				this->advance();
 			}
 			return this->generateJsonData();
