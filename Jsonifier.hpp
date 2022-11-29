@@ -891,22 +891,6 @@ namespace Jsonifier {
 
 	enum class ErrorCode { Empty = 0, TapeError = 1, DepthError = 2, Success = 3, ParseError = 4 };
 
-	enum class JsonTapeEventStates : char {
-		DocumentStart = 's',
-		DocumentEnd = 'e',
-		ObjectStart = '{',
-		String = '"',
-		ObjectField = ':',
-		ArrayStart = '[',
-		Continuation = ',',
-		Number = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9',
-		ObjectEnd = '}',
-		ArrayEnd = ']',
-		Null = 'n',
-		False = 'f',
-		True = 't',
-	};
-
 	enum class TapeType : char {
 		Root = 'r',
 		StartArray = '[',
@@ -1242,6 +1226,10 @@ namespace Jsonifier {
 			}
 		}
 
+		inline const char* peekNext() noexcept {
+			return &this->stringView[*(this->nextStructural + 1)];
+		}
+
 		inline const char* peek() noexcept {
 			return &this->stringView[*this->nextStructural];
 		}
@@ -1272,7 +1260,7 @@ namespace Jsonifier {
 					return this->recordArrayEnd();
 				}
 				case '"': {
-					return this->recordString(this->peek());
+					return this->recordString(this->peekNext());
 				}
 				case ':': {
 					this->advance();
@@ -1284,15 +1272,15 @@ namespace Jsonifier {
 				}
 
 				case 't': {
-					return this->recordTrueAtom(this->peek());
+					return this->recordTrueAtom(this->peekNext());
 				}
 
 				case 'f': {
-					return this->recordFalseAtom(this->peek());
+					return this->recordFalseAtom(this->peekNext());
 				}
 
 				case 'n': {
-					return this->recordNullAtom(this->peek());
+					return this->recordNullAtom(this->peekNext());
 				}
 
 				case '-':
