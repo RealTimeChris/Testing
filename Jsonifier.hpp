@@ -926,7 +926,7 @@ namespace Jsonifier {
 				this->currentIndex = this->jsonEvents->data();
 			}
 			Jsonifier jsonDataNew{};
-			std::cout << "THE TYPE: " << ( int32_t )currentIndex->type << std::endl;
+			std::cout << "THE TYPE: " << ( int32_t )currentIndex->type << " THE INDEX: " << currentIndex->index << std::endl;
 			switch (currentIndex->type) {
 				case TapeType::Root: {
 					this->updateEventLog();
@@ -1088,7 +1088,8 @@ namespace Jsonifier {
 				SimdStringSection section(std::string_view{ this->stringView.data() + collectedSize, 256 });
 				for (size_t x = 0; x < section.getStructuralIndices().size();++x) {
 					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
-					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << std::endl;
+					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
+							  << std::endl;
 				}
 				std::cout << "WERE HERE THIS IS NOT It!" << std::endl;
 				stringSize -= 256;
@@ -1096,10 +1097,13 @@ namespace Jsonifier {
 			}
 			if (this->stringView.size() - collectedSize > 0) {
 				std::cout << "WERE HERE THIS IS NOT IT! 030303" << std::endl;
-				SimdStringSection section((std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize }));
+				SimdStringSection section(
+					(std::string_view{ this->stringView.data() + collectedSize - 1, this->stringView.size() - collectedSize - 1 }));
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
 					std::cout << "WERE HERE THIS IS NOT IT! 040404" << std::endl;
-					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
+					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] );
+					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
+							  << std::endl;
 				}
 			}
 			this->nextStructural = this->jsonRawTape.data();
@@ -1164,8 +1168,17 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode recordKey(const char* value) {
-			this->appendTapeValue(TapeType::String, this->getNextIndex() - this->getCurrentIndex());
-			this->advance();
+			if (this->atEof()) {
+				this->appendTapeValue(TapeType::String, this->stringView.size() - this->getCurrentIndex());
+				std::cout << "CURRENT INDEX: 02 " << this->getCurrentIndex() << std::endl;
+				std::cout << "CURRENT SIZE: 02 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
+				this->advance();
+			} else {
+				this->appendTapeValue(TapeType::String, this->getNextIndex() - this->getCurrentIndex());
+				std::cout << "CURRENT INDEX: 01 " << this->getCurrentIndex() << std::endl;
+				std::cout << "CURRENT SIZE: 01 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
+				this->advance();
+			}
 			return this->generateJsonData();
 		}
 
@@ -1183,13 +1196,13 @@ namespace Jsonifier {
 		inline ErrorCode recordString(const char* value) {
 			if (this->atEof()) {
 				this->appendTapeValue(TapeType::String, this->stringView.size() - this->getCurrentIndex());
-				std::cout << "CURRENT INDEX: " << this->getCurrentIndex() << std::endl;
-				std::cout << "CURRENT SIZE: " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
+				std::cout << "CURRENT INDEX: 02 " << this->getCurrentIndex() << std::endl;
+				std::cout << "CURRENT SIZE: 02 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
 				this->advance();
 			} else {
 				this->appendTapeValue(TapeType::String, this->getNextIndex() - this->getCurrentIndex());
-				std::cout << "CURRENT INDEX: " << this->getCurrentIndex() << std::endl;
-				std::cout << "CURRENT SIZE: " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
+				std::cout << "CURRENT INDEX: 01 " << this->getCurrentIndex() << std::endl;
+				std::cout << "CURRENT SIZE: 01 " << this->getNextIndex() - this->getCurrentIndex() << std::endl;
 				this->advance();
 			}
 			return this->generateJsonData();
@@ -1240,6 +1253,7 @@ namespace Jsonifier {
 
 		inline ErrorCode generateJsonData() {
 			if (this->atStart()) {
+				std::cout << "STARTING THE FILE!" << std::endl;
 				return this->recordRoot();
 			}
 			if (this->atEof()) {
@@ -1260,7 +1274,7 @@ namespace Jsonifier {
 					return this->recordArrayEnd();
 				}
 				case '"': {
-					return this->recordString(this->peekNext());
+					return this->recordString(this->peek());
 				}
 				case ':': {
 					this->advance();
@@ -1272,15 +1286,15 @@ namespace Jsonifier {
 				}
 
 				case 't': {
-					return this->recordTrueAtom(this->peekNext());
+					return this->recordTrueAtom(this->peek());
 				}
 
 				case 'f': {
-					return this->recordFalseAtom(this->peekNext());
+					return this->recordFalseAtom(this->peek());
 				}
 
 				case 'n': {
-					return this->recordNullAtom(this->peekNext());
+					return this->recordNullAtom(this->peek());
 				}
 
 				case '-':
