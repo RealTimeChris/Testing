@@ -1135,12 +1135,27 @@ namespace Jsonifier {
 			this->jsonRawTape.clear();
 			size_t stringSize = this->stringView.size();
 			uint32_t collectedSize{};
+			bool prevInString{ false };
 			while (stringSize > 256) {
 				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize, 256 } };
 				for (size_t x = 0; x < section.getStructuralIndices().size();++x) {
-					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
+					if (prevInString) {
+						prevInString = false;
+
+					} else {
+						this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
+					}
+					
 					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
 							  << std::endl;
+				}
+				if (this->stringView[this->jsonRawTape.back()] == '"') {
+					std::cout << "WERE HERE THIS IS NOT IT )@)@)@_@@@@" << std::endl;
+					if (std::string_view{ this->stringView.data() + collectedSize, 256-collectedSize }.find_first_of('"',
+							this->jsonRawTape.back() + 1) == std::string::npos) {
+						std::cout << "WERE HERE THIS IS NOT IT )@)@)@_@@@@" << std::endl;
+						prevInString = true;
+					}
 				}
 				std::cout << "WERE HERE THIS IS NOT It!" << std::endl;
 				stringSize -= 256;
@@ -1148,10 +1163,14 @@ namespace Jsonifier {
 			}
 			if (this->stringView.size() - collectedSize > 0) {
 				std::cout << "WERE HERE THIS IS NOT IT! 030303"
-						  << std::string_view{ this->stringView.data() + collectedSize + 1, this->stringView.size() - collectedSize } << std::endl;
-				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize + 1, this->stringView.size() - collectedSize } };
+						  << std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize } << std::endl;
+				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize } };
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
-					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] - 1);
+					if (prevInString) {
+						prevInString = false;
+					} else {
+						this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] - 1);
+					}
 					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
 							  << std::endl;
 				}
