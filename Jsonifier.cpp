@@ -59,9 +59,18 @@ namespace Jsonifier {
 				break;
 			}
 		}
-		this->string = std::move(data.string);
+		 this->string = std::move(data.string);
 		this->type = data.type;
 		return *this;
+	}
+
+	Jsonifier& Jsonifier::operator=(ErrorCode data)  {
+		throw std::runtime_error{ std::string{ "Error Parsing Json Data - it is: " } + std::to_string(data) };
+		return *this;
+	}
+
+	Jsonifier::Jsonifier(ErrorCode data) {
+		*this = std::move(data);
 	}
 
 	Jsonifier& Jsonifier::operator=(ObjectType&& data) noexcept {
@@ -135,11 +144,7 @@ namespace Jsonifier {
 		*this = data;
 	}
 
-	Jsonifier::operator std::string&&() noexcept {
-		return std::move(this->string);
-	}
-
-	Jsonifier::operator std::string() noexcept {
+	Jsonifier::operator std::string_view() noexcept {
 		return this->string;
 	}
 
@@ -188,6 +193,28 @@ namespace Jsonifier {
 	}
 
 	Jsonifier::Jsonifier(const EnumConverter& data) noexcept {
+		*this = data;
+	}
+
+	Jsonifier& Jsonifier::operator=(std::string_view&& data) noexcept {
+		this->setValue(JsonType::String);
+		*this->jsonValue.string = std::move(data);
+		this->type = JsonType::String;
+		return *this;
+	}
+
+	Jsonifier::Jsonifier(std::string_view&& data) noexcept {
+		*this = std::move(data);
+	}
+
+	Jsonifier& Jsonifier::operator=(std::string_view& data) noexcept {
+		this->setValue(JsonType::String);
+		*this->jsonValue.string = data;
+		this->type = JsonType::String;
+		return *this;
+	}
+
+	Jsonifier::Jsonifier(std::string_view& data) noexcept {
 		*this = data;
 	}
 
@@ -344,8 +371,7 @@ namespace Jsonifier {
 	}
 
 	Jsonifier& Jsonifier::operator=(JsonType typeNew) noexcept {
-		this->type = typeNew;
-		this->setValue(this->type);
+		this->setValue(typeNew);
 		return *this;
 	}
 
@@ -389,7 +415,7 @@ namespace Jsonifier {
 		throw std::runtime_error{ "Sorry, but that index could not be produced/accessed." };
 	}
 
-	void Jsonifier::emplaceBack(Jsonifier&& other) noexcept {
+	Jsonifier& Jsonifier::emplaceBack(Jsonifier&& other) noexcept {
 		if (this->type == JsonType::Null) {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
@@ -398,17 +424,19 @@ namespace Jsonifier {
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(std::move(other));
 		}
+		return *this;
 	}
 
-	void Jsonifier::emplaceBack(Jsonifier& other) noexcept {
+	Jsonifier& Jsonifier::emplaceBack(Jsonifier& other) noexcept {
 		if (this->type == JsonType::Null) {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
 		}
 
 		if (this->type == JsonType::Array) {
-			this->jsonValue.array->emplace_back(other);
+			this->jsonValue.array->emplace_back(std::move(other));
 		}
+		return *this;
 	}
 
 	void Jsonifier::serializeJsonToEtfString(const Jsonifier* jsonDataNew) {
@@ -680,7 +708,7 @@ namespace Jsonifier {
 		return true;
 	}
 
-	void Jsonifier::appendBinaryExt(const std::string& bytes, uint32_t sizeNew) {
+	void Jsonifier::appendBinaryExt(std::string_view bytes, uint32_t sizeNew) {
 		char newBuffer[5]{ static_cast<int8_t>(EtfType::Binary_Ext) };
 		storeBits(newBuffer + 1, sizeNew);
 		this->writeString(newBuffer, std::size(newBuffer));
@@ -697,7 +725,7 @@ namespace Jsonifier {
 		}
 		newBuffer[1] = encodedBytes;
 		newBuffer[2] = 0;
-		this->writeString(newBuffer, 1 + 2 + encodedBytes);
+		this->writeString(newBuffer, 1ull + 2ull + static_cast<size_t>(encodedBytes));
 	}
 
 	void Jsonifier::appendNewFloatExt(const double FloatValue) {
