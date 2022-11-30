@@ -663,21 +663,38 @@ namespace Jsonifier {
 			}
 		}
 
-		void insertUint64(uint64_t value,size_t index) {
+		void insertUint64(uint64_t value, size_t index) {
 			switch (index) {
 				case 0: {
 					*this = _mm256_insert_epi64(*this, value, 0);
+					break;
 				}
 				case 1: {
 					*this = _mm256_insert_epi64(*this, value, 1);
+					break;
 				}
 				case 2: {
 					*this = _mm256_insert_epi64(*this, value, 2);
+					break;
 				}
 				case 3: {
 					*this = _mm256_insert_epi64(*this, value, 3);
+					break;
 				}
 			}
+		}
+
+		uint32_t leadingZeroes() {
+			for (size_t x = 0; x < 4; ++x) {
+				return int32_t(_tzcnt_u64(this->getUint64(x)));
+			}
+		}
+
+		void flipFirstBit() {
+			SimdBase256 newValue{};
+			newValue.insertUint64(1, 0);
+			newValue = newValue << this->leadingZeroes();
+			*this &= ~newValue;
 		}
 
 		inline SimdBase256 operator|(SimdBase256 other) {
@@ -735,8 +752,8 @@ namespace Jsonifier {
 			SimdBase256 value{};
 			for (size_t x = 0; x < 4; ++x) {
 				*(reinterpret_cast<int64_t*>(&value) + x) |= (*(reinterpret_cast<int64_t*>(&this->value) + x) >> (amount % 64));
-				if (x > 0) {
-					*(reinterpret_cast<int64_t*>(&value) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x - 1) << 63) & 1);
+				if (x < 3) {
+					*(reinterpret_cast<int64_t*>(&value) + x) |= ((*(reinterpret_cast<int64_t*>(&this->value) + x + 1) >> 63) & 1);
 				}
 			}
 			return value;
@@ -850,9 +867,10 @@ namespace Jsonifier {
 				convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
 		}
 
-		inline SimdBase256 collectStructuralCharacters() {
+		inline SimdBase256 collectStructuralCharacters(bool prevInString) {
 			this->R256 = this->Q256;
 			this->R256 = this->R256.carrylessMultiplication('\xFF');
+			
 			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ valuesNew };
 			SimdBase256 structural[8]{};
@@ -865,6 +883,7 @@ namespace Jsonifier {
 				SimdBase256{ convertSimd256To64BitUint(structural[0], structural[1]), convertSimd256To64BitUint(structural[2], structural[3]),
 					convertSimd256To64BitUint(structural[4], structural[5]), convertSimd256To64BitUint(structural[6], structural[7]) };
 
+			
 			this->S256 = this->S256.bitAndNot(R256);
 			this->S256 = this->S256 | this->Q256;
 			auto P256 = this->S256 | this->W256;
@@ -910,7 +929,7 @@ namespace Jsonifier {
 			return this->Q256 & ~OD;
 		}
 
-		inline SimdStringSection(std::string_view valueNew) {
+		inline SimdStringSection(std::string_view valueNew, bool prevInString) {
 			this->stringView = &valueNew;
 
 			this->packStringIntoValue(&this->values[0], this->stringView->data());
@@ -923,12 +942,13 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[7], this->stringView->data() + 224);
 
 			this->Q256 = this->collectQuotes();
-			this->Q256.printBits("THE Q VALUES: ");
+			if (prevInString) {
+				this->Q256.flipFirstBit();
+			}
 			this->W256 = this->collectWhiteSpace();
-			this->W256.printBits("THE W VALUES: ");
-			this->S256 = this->collectStructuralCharacters();
-			this->S256.printBits("THE S VALUES: ");
-			this->S256.printBits("THE S VALUES: ");
+			this->S256 = this->collectStructuralCharacters(prevInString);
+			
+			
 		}
 
 	  protected:
@@ -940,7 +960,18 @@ namespace Jsonifier {
 		std::string_view* stringView{};
 	};
 
-	enum class ErrorCode { Empty = 0, TapeError = 1, DepthError = 2, Success = 3, ParseError = 4 };
+	enum class ErrorCode {
+		Empty = 0,
+		TapeError = 1,
+		DepthError = 2,
+		Success = 3,
+		ParseError = 4,
+		StringError = 5,
+		TAtomError = 6,
+		FAtomError = 7,
+		NAtomError = 8,
+		MemAlloc = 9
+	};
 
 	enum class TapeType : char {
 		Root = 'r',
@@ -966,7 +997,7 @@ namespace Jsonifier {
 
 	class JsonConstructor {
 	  public:
-		inline JsonConstructor(std::vector<JsonTapeEvent>* theEvents, std::string_view* stringNew) {
+		inline JsonConstructor(std::vector<JsonTapeEvent>* theEvents, std::string* stringNew) {
 			this->jsonEvents = theEvents;
 			this->stringView = stringNew;
 			this->currentIndex = this->jsonEvents->data();
@@ -977,7 +1008,6 @@ namespace Jsonifier {
 				this->currentIndex = this->jsonEvents->data();
 			}
 			Jsonifier jsonDataNew{};
-			std::cout << "THE TYPE: " << ( int32_t )currentIndex->type << " THE INDEX: " << currentIndex->index << std::endl;
 			switch (currentIndex->type) {
 				case TapeType::Root: {
 					this->updateEventLog();
@@ -1044,9 +1074,6 @@ namespace Jsonifier {
 			if (this->jsonEvents->size() > 0) {
 				JsonTapeEvent value = *this->currentIndex;
 				this->updateEventLog();
-				std::cout << "THE CURRENT SIZE REALER: " << value.size - 2 << std::endl;
-				std::cout << "THE CURRENT INDEX REALER: " << value.index << std::endl;
-				std::cout << "THE STRING: " << std::string{ this->stringView->data() + value.index + 1, value.size - 2 } << std::endl;
 				return std::string{ this->stringView->data() + value.index + 1, value.size - 2 };
 			} else {
 				return {};
@@ -1112,21 +1139,38 @@ namespace Jsonifier {
 
 	  protected:
 		std::vector<JsonTapeEvent>* jsonEvents{};
-		std::string_view* stringView{};
+		std::string* stringView{};
 		JsonTapeEvent* currentIndex{};
+	};
+
+	struct openContainer {
+		uint32_t tapeIndex{};// where, on the tape, does the scope ([,{) begins
+		uint32_t count{};// how many elements in the scope
 	};
 
 	class SimdJsonValue {
 	  public:
+		std::unique_ptr<uint64_t[]> tape{};
+		std::unique_ptr<openContainer[]> openContainers{};
+		uint8_t* stringBuf{};
+		std::unique_ptr<bool[]> isArray{};
+		uint32_t nStructuralIndexes{ 0 };
+		std::unique_ptr<uint32_t[]> structuralIndexes{};
+		uint32_t nextStructuralIndex{ 0 };
+		uint8_t* buf{};
+		uint32_t maxDepth{};
+		size_t len{ 0 };
+		SimdJsonValue() noexcept = default;
+
 		inline SimdJsonValue(std::string_view stringNew) {
 			if (stringNew.size() == 0) {
 				throw std::runtime_error{ "Failed to parse as the string size is 0." };
 			}
 			this->stringView = stringNew;
+			this->stringBuf = reinterpret_cast<uint8_t*>(this->stringView.data());
 		}
 
 		inline void appendTapeValue(TapeType typeNew, size_t sizeNew) {
-			std::cout << "THE EVENT TYPE: " << ( int32_t )typeNew << ", THE INDEX: " << this->getCurrentIndex() << std::endl;
 			this->jsonEvents.emplace_back(JsonTapeEvent{ .type = typeNew, .index = this->getCurrentIndex(), .size = sizeNew });
 		}
 
@@ -1137,42 +1181,27 @@ namespace Jsonifier {
 			uint32_t collectedSize{};
 			bool prevInString{ false };
 			while (stringSize > 256) {
-				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize, 256 } };
+				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize, 256 }, prevInString };
 				for (size_t x = 0; x < section.getStructuralIndices().size();++x) {
-					if (prevInString) {
-						prevInString = false;
-
-					} else {
-						this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
-					}
-					
-					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
-							  << std::endl;
+					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x]);
 				}
 				if (this->stringView[this->jsonRawTape.back()] == '"') {
-					std::cout << "WERE HERE THIS IS NOT IT )@)@)@_@@@@" << std::endl;
 					if (std::string_view{ this->stringView.data() + collectedSize, 256-collectedSize }.find_first_of('"',
 							this->jsonRawTape.back() + 1) == std::string::npos) {
-						std::cout << "WERE HERE THIS IS NOT IT )@)@)@_@@@@" << std::endl;
 						prevInString = true;
 					}
 				}
-				std::cout << "WERE HERE THIS IS NOT It!" << std::endl;
 				stringSize -= 256;
 				collectedSize += 256;
 			}
 			if (this->stringView.size() - collectedSize > 0) {
-				std::cout << "WERE HERE THIS IS NOT IT! 030303"
-						  << std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize } << std::endl;
-				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize } };
+				SimdStringSection section{ std::string_view{ this->stringView.data() + collectedSize, this->stringView.size() - collectedSize },
+					prevInString };
 				for (size_t x = 0; x < section.getStructuralIndices().size(); ++x) {
-					if (prevInString) {
-						prevInString = false;
-					} else {
-						this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] - 1);
+					this->jsonRawTape.emplace_back(collectedSize + section.getStructuralIndices()[x] );
+					if (x == section.getStructuralIndices().size() - 1) {
+						break;
 					}
-					std::cout << "THE TYPE: " << ( char )this->stringView[this->jsonRawTape.back()] << " THE INDEX: " << this->jsonRawTape.back()
-							  << std::endl;
 				}
 			}
 			this->nextStructural = this->jsonRawTape.data();
@@ -1314,11 +1343,9 @@ namespace Jsonifier {
 
 		inline ErrorCode generateJsonData() {
 			if (this->atStart()) {
-				std::cout << "STARTING THE FILE!" << std::endl;
 				return this->recordRoot();
 			}
 			if (this->atEof()) {
-				std::cout << "ENDING THE FILE!" << std::endl;
 				return ErrorCode::Success;
 			}
 			switch (*this->peek()) {
@@ -1379,11 +1406,8 @@ namespace Jsonifier {
 
 		}
 
-
-
 		inline Jsonifier getJsonData() {
 			this->generateJsonEvents();
-			std::cout << "JSON EVENTS SIZE: " << this->jsonEvents.size() << std::endl;
 			return this->jsonConstructor.operator Jsonifier();
 		}
 
@@ -1391,7 +1415,896 @@ namespace Jsonifier {
 		std::vector<uint32_t> jsonRawTape{};
 		std::vector<JsonTapeEvent> jsonEvents{};
 		JsonConstructor jsonConstructor{ &this->jsonEvents, &this->stringView };
-		std::string_view stringView{};
-		std::vector<bool> isArray{ false };
+		std::string stringView{};
 	};
+
+	const bool structural_or_whitespace_negated[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
+
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1,
+
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+
+	const bool structural_or_whitespace[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+	const uint32_t digit_to_val32[886] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa0,
+		0xb0, 0xc0, 0xd0, 0xe0, 0xf0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x100, 0x200, 0x300, 0x400, 0x500, 0x600, 0x700, 0x800, 0x900, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa00, 0xb00, 0xc00, 0xd00, 0xe00, 0xf00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa00,
+		0xb00, 0xc00, 0xd00, 0xe00, 0xf00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000, 0x7000, 0x8000, 0x9000, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xf000, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xf000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+
+
+	inline uint32_t is_not_structural_or_whitespace(uint8_t c) {
+		return structural_or_whitespace_negated[c];
+	}
+
+	namespace atomparsing {
+
+		// The string_to_uint32 is exclusively used to map literal strings to 32-bit values.
+		// We use memcpy instead of a pointer cast to avoid undefined behaviors since we cannot
+		// be certain that the character pointer will be properly aligned.
+		// You might think that using memcpy makes this function expensive, but you'd be wrong.
+		// All decent optimizing compilers (GCC, clang, Visual Studio) will compile string_to_uint32("false");
+		// to the compile-time constant 1936482662.
+		inline uint32_t string_to_uint32(const char* str) {
+			uint32_t val;
+			std::memcpy(&val, str, sizeof(uint32_t));
+			return val;
+		}
+
+
+		// Again in str4ncmp we use a memcpy to avoid undefined behavior. The memcpy may appear expensive.
+		// Yet all decent optimizing compilers will compile memcpy to a single instruction, just about.
+		inline uint32_t str4ncmp(const uint8_t* src, const char* atom) {
+			uint32_t srcval;// we want to avoid unaligned 32-bit loads (undefined in C/C++)
+			static_assert(sizeof(uint32_t) <= 256, "256 must be larger than 4 bytes");
+			std::memcpy(&srcval, src, sizeof(uint32_t));
+			return srcval ^ string_to_uint32(atom);
+		}
+
+		inline bool is_valid_true_atom(const uint8_t* src) {
+			return (str4ncmp(src, "true") | is_not_structural_or_whitespace(src[4])) == 0;
+		}
+
+		inline bool is_valid_true_atom(const uint8_t* src, size_t len) {
+			if (len > 4) {
+				return is_valid_true_atom(src);
+			} else if (len == 4) {
+				return !str4ncmp(src, "true");
+			} else {
+				return false;
+			}
+		}
+
+		inline bool is_valid_false_atom(const uint8_t* src) {
+			return (str4ncmp(src + 1, "alse") | is_not_structural_or_whitespace(src[5])) == 0;
+		}
+
+		inline bool is_valid_false_atom(const uint8_t* src, size_t len) {
+			if (len > 5) {
+				return is_valid_false_atom(src);
+			} else if (len == 5) {
+				return !str4ncmp(src + 1, "alse");
+			} else {
+				return false;
+			}
+		}
+
+		inline bool is_valid_null_atom(const uint8_t* src) {
+			return (str4ncmp(src, "null") | is_not_structural_or_whitespace(src[4])) == 0;
+		}
+
+		inline bool is_valid_null_atom(const uint8_t* src, size_t len) {
+			if (len > 4) {
+				return is_valid_null_atom(src);
+			} else if (len == 4) {
+				return !str4ncmp(src, "null");
+			} else {
+				return false;
+			}
+		}
+	}
+	class json_iterator {
+	  public:
+		uint8_t* buf;
+		uint32_t* next_structural;
+		SimdJsonValue& dom_parser;
+		uint32_t depth{ 0 };
+
+		/**
+   * Walk the JSON document.
+   *
+   * The visitor receives callbacks when values are encountered. All callbacks pass the iterator as
+   * the first parameter; some callbacks have other parameters as well:
+   *
+   * - visit_document_start() - at the beginning.
+   * - visit_document_end() - at the end (if things were successful).
+   *
+   * - visit_array_start() - at the start `[` of a non-empty array.
+   * - visit_array_end() - at the end `]` of a non-empty array.
+   * - visit_empty_array() - when an empty array is encountered.
+   *
+   * - visit_object_end() - at the start `]` of a non-empty object.
+   * - visit_object_start() - at the end `]` of a non-empty object.
+   * - visit_empty_object() - when an empty object is encountered.
+   * - visit_key(const uint8_t *key) - when a key in an object field is encountered. key is
+   *                                   guaranteed to point at the first quote of the string (`"key"`).
+   * - visit_primitive(const uint8_t *value) - when a value is a string, number, boolean or null.
+   * - visit_root_primitive(iter, uint8_t *value) - when the top-level value is a string, number, boolean or null.
+   *
+   * - increment_count(iter) - each time a value is found in an array or object.
+   */
+		template<bool STREAMING, typename V> inline ErrorCode walk_document(V& visitor) noexcept;
+
+		/**
+   * Create an iterator capable of walking a JSON document.
+   *
+   * The document must have already passed through stage 1.
+   */
+		inline json_iterator(SimdJsonValue& _dom_parser, size_t start_structural_index);
+
+		/**
+   * Look at the next token.
+   *
+   * Tokens can be strings, numbers, booleans, null, or operators (`[{]},:`)).
+   *
+   * They may include invalid JSON as well (such as `1.2.3` or `ture`).
+   */
+		inline uint8_t* peek()  noexcept;
+		/**
+   * Advance to the next token.
+   *
+   * Tokens can be strings, numbers, booleans, null, or operators (`[{]},:`)).
+   *
+   * They may include invalid JSON as well (such as `1.2.3` or `ture`).
+   */
+		inline uint8_t* advance() noexcept;
+		/**
+   * Get the remaining length of the document, from the start of the current token.
+   */
+		inline size_t remaining_len()  noexcept;
+		/**
+   * Check if we are at the end of the document.
+   *
+   * If this is true, there are no more tokens.
+   */
+		inline bool at_eof()  noexcept;
+		/**
+   * Check if we are at the beginning of the document.
+   */
+		inline bool at_beginning()  noexcept;
+		inline uint8_t last_structural()  noexcept;
+
+		template<typename V> inline ErrorCode visit_root_primitive(V& visitor, uint8_t* value) noexcept;
+		template<typename V> inline ErrorCode visit_primitive(V& visitor, uint8_t* value) noexcept;
+	};
+
+	template<bool STREAMING, typename V> inline ErrorCode json_iterator::walk_document(V& visitor) noexcept {
+
+		//
+		// Start the document
+		//
+		if (at_eof()) {
+			return ErrorCode::Empty;
+		}
+		(visitor.visit_document_start(*this));
+
+		//
+		// Read first value
+		//
+		{
+			auto value = advance();
+
+			// Make sure the outer object or array is closed before continuing; otherwise, there are ways we
+			// could get into memory corruption. See https://github.com/simdjson/simdjson/issues/906
+			if (!STREAMING) {
+				switch (*value) {
+					case '{':
+						if (last_structural() != '}') {
+							return ErrorCode::TapeError;
+						};
+						break;
+					case '[':
+						if (last_structural() != ']') {
+							return ErrorCode::TapeError;
+						};
+						break;
+				}
+			}
+
+			switch (*value) {
+				case '{':
+					if (*peek() == '}') {
+						advance();
+						(visitor.visit_empty_object(*this));
+						break;
+					}
+					goto object_begin;
+				case '[':
+					if (*peek() == ']') {
+						advance();
+						(visitor.visit_empty_array(*this));
+						break;
+					}
+					goto array_begin;
+				default:
+					(visitor.visit_root_primitive(*this, value));
+					break;
+			}
+		}
+		goto document_end;
+
+	//
+	// Object parser states
+	//
+	object_begin:
+		depth++;
+		if (depth >= dom_parser.maxDepth) {
+			return ErrorCode::DepthError;
+		}
+		dom_parser.isArray[depth] = false;
+		(visitor.visit_object_start(*this));
+
+		{
+			auto key = advance();
+			if (*key != '"') {
+				return ErrorCode::TapeError;
+			}
+			(visitor.increment_count(*this));
+			(visitor.visit_key(*this, key));
+		}
+
+	object_field:
+		if ((*advance() != ':')) {
+			return ErrorCode::TapeError;
+		}
+		{
+			auto value = advance();
+			switch (*value) {
+				case '{':
+					if (*peek() == '}') {
+						advance();
+						(visitor.visit_empty_object(*this));
+						break;
+					}
+					goto object_begin;
+				case '[':
+					if (*peek() == ']') {
+						advance();
+						(visitor.visit_empty_array(*this));
+						break;
+					}
+					goto array_begin;
+				default:
+					(visitor.visit_primitive(*this, value));
+					break;
+			}
+		}
+
+	object_continue:
+		switch (*advance()) {
+			case ',':
+				(visitor.increment_count(*this));
+				{
+					auto key = advance();
+					if ((*key != '"')) {
+						return ErrorCode::TapeError;
+					}
+					(visitor.visit_key(*this, key));
+				}
+				goto object_field;
+			case '}':
+				(visitor.visit_object_end(*this));
+				goto scope_end;
+			default:
+				return ErrorCode::TapeError;
+		}
+
+	scope_end:
+		depth--;
+		if (depth == 0) {
+			goto document_end;
+		}
+		if (dom_parser.isArray[depth]) {
+			goto array_continue;
+		}
+		goto object_continue;
+
+	//
+	// Array parser states
+	//
+	array_begin:
+		depth++;
+		if (depth >= dom_parser.maxDepth) {
+			return ErrorCode::DepthError;
+		}
+		dom_parser.isArray[depth] = true;
+		(visitor.visit_array_start(*this));
+		(visitor.increment_count(*this));
+
+	array_value : {
+		auto value = advance();
+		switch (*value) {
+			case '{':
+				if (*peek() == '}') {
+					advance();
+					(visitor.visit_empty_object(*this));
+					break;
+				}
+				goto object_begin;
+			case '[':
+				if (*peek() == ']') {
+					advance();
+					(visitor.visit_empty_array(*this));
+					break;
+				}
+				goto array_begin;
+			default:
+				(visitor.visit_primitive(*this, value));
+				break;
+		}
+	}
+
+	array_continue:
+		switch (*advance()) {
+			case ',':
+				(visitor.increment_count(*this));
+				goto array_value;
+			case ']':
+				(visitor.visit_array_end(*this));
+				goto scope_end;
+			default:
+				return ErrorCode::TapeError;
+		}
+
+	document_end:
+		(visitor.visit_document_end(*this));
+
+		dom_parser.nextStructuralIndex = uint32_t(next_structural - &dom_parser.structuralIndexes[0]);
+
+		// If we didn't make it to the end, it's an error
+		if (!STREAMING && dom_parser.nextStructuralIndex != dom_parser.nStructuralIndexes) {
+			return ErrorCode::TapeError;
+		}
+
+		return ErrorCode::Success;
+
+	}// walk_document()
+
+	inline json_iterator::json_iterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
+		: buf{ _dom_parser.buf }, next_structural{ &_dom_parser.structuralIndexes[start_structural_index] }, dom_parser{ _dom_parser } {
+	}
+
+	inline uint8_t* json_iterator::peek()  noexcept {
+		return &buf[*(next_structural)];
+	}
+	inline uint8_t* json_iterator::advance() noexcept {
+		return &buf[*(next_structural++)];
+	}
+	inline size_t json_iterator::remaining_len()  noexcept {
+		return dom_parser.len - *(next_structural - 1);
+	}
+
+	inline bool json_iterator::at_eof()  noexcept {
+		return next_structural == &dom_parser.structuralIndexes[dom_parser.nStructuralIndexes];
+	}
+	inline bool json_iterator::at_beginning()  noexcept {
+		return next_structural == dom_parser.structuralIndexes.get();
+	}
+	inline uint8_t json_iterator::last_structural()  noexcept {
+		return buf[dom_parser.structuralIndexes[dom_parser.nStructuralIndexes - 1]];
+	}
+
+	template<typename V>
+	inline ErrorCode json_iterator::visit_root_primitive(V& visitor, uint8_t* value) noexcept {
+		switch (*value) {
+			case '"':
+				return visitor.visit_root_string(*this, value);
+			case 't':
+				return visitor.visit_root_true_atom(*this, value);
+			case 'f':
+				return visitor.visit_root_false_atom(*this, value);
+			case 'n':
+				return visitor.visit_root_null_atom(*this, value);
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return visitor.visit_root_number(*this, value);
+			default:
+				return ErrorCode::TapeError;
+		}
+	}
+	template<typename V> inline ErrorCode json_iterator::visit_primitive(V& visitor, uint8_t* value) noexcept {
+		switch (*value) {
+			case '"':
+				return visitor.visit_string(*this, value);
+			case 't':
+				return visitor.visit_true_atom(*this, value);
+			case 'f':
+				return visitor.visit_false_atom(*this, value);
+			case 'n':
+				return visitor.visit_null_atom(*this, value);
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return visitor.visit_number(*this, value);
+			default:
+				return ErrorCode::TapeError;
+		}
+	}
+
+	struct tape_writer {
+		/** The next place to write to tape */
+		uint64_t* next_tape_loc;
+
+		/** Write a signed 64-bit value to tape. */
+		inline void append_s64(int64_t value) noexcept;
+
+		/** Write an unsigned 64-bit value to tape. */
+		inline void append_u64(uint64_t value) noexcept;
+
+		/** Write a double value to tape. */
+		inline void append_double(double value) noexcept;
+		uint64_t* begin() {
+			return this->next_tape_loc;
+		}
+		uint64_t* end() {
+			return this->next_tape_loc;
+		}
+		/**
+   * Append a tape entry (an 8-bit type,and 56 bits worth of value).
+   */
+		inline void append(uint64_t val, TapeType t) noexcept;
+
+		/**
+   * Skip the current tape entry without writing.
+   *
+   * Used to skip the start of the container, since we'll come back later to fill it in when the
+   * container ends.
+   */
+		inline void skip() noexcept;
+
+		/**
+   * Skip the number of tape entries necessary to write a large u64 or i64.
+   */
+		inline void skip_large_integer() noexcept;
+
+		/**
+   * Skip the number of tape entries necessary to write a double.
+   */
+		inline void skip_double() noexcept;
+
+		/**
+   * Write a value to a known location on tape.
+   *
+   * Used to go back and write out the start of a container after the container ends.
+   */
+		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
+
+	  private:
+		/**
+   * Append both the tape entry, and a supplementary value following it. Used for types that need
+   * all 64 bits, such as double and uint64_t.
+   */
+		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
+	};// struct number_writer
+
+	inline void tape_writer::append_s64(int64_t value) noexcept {
+		append2(0, value, TapeType ::Int64);
+	}
+
+	inline void tape_writer::append_u64(uint64_t value) noexcept {
+		append(0, TapeType ::Uint64);
+		*next_tape_loc = value;
+		next_tape_loc++;
+	}
+
+	/** Write a double value to tape. */
+	inline void tape_writer::append_double(double value) noexcept {
+		append2(0, value, TapeType ::Double);
+	}
+
+	inline void tape_writer::skip() noexcept {
+		next_tape_loc++;
+	}
+
+	inline void tape_writer::skip_large_integer() noexcept {
+		next_tape_loc += 2;
+	}
+
+	inline void tape_writer::skip_double() noexcept {
+		next_tape_loc += 2;
+	}
+
+	inline void tape_writer::append(uint64_t val, TapeType t) noexcept {
+		*next_tape_loc = val | ((uint64_t(char(t))) << 56);
+		next_tape_loc++;
+	}
+
+	template<typename T> inline void tape_writer::append2(uint64_t val, T val2, TapeType t) noexcept {
+		append(val, t);
+		static_assert(sizeof(val2) == sizeof(*next_tape_loc), "Type is not 64 bits!");
+		memcpy(next_tape_loc, &val2, sizeof(val2));
+		next_tape_loc++;
+	}
+
+	inline void tape_writer::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
+		tape_loc = val | ((uint64_t(char(t))) << 56);
+	}
+
+	struct tape_builder {
+		template<bool STREAMING> static inline ErrorCode parse_document(SimdJsonValue& dom_parser) noexcept;
+
+		/** Called when a non-empty document starts. */
+		inline ErrorCode visit_document_start(json_iterator& iter) noexcept;
+		/** Called when a non-empty document ends without error. */
+		inline ErrorCode visit_document_end(json_iterator& iter) noexcept;
+
+		/** Called when a non-empty array starts. */
+		inline ErrorCode visit_array_start(json_iterator& iter) noexcept;
+		/** Called when a non-empty array ends. */
+		inline ErrorCode visit_array_end(json_iterator& iter) noexcept;
+		/** Called when an empty array is found. */
+		inline ErrorCode visit_empty_array(json_iterator& iter) noexcept;
+
+		/** Called when a non-empty object starts. */
+		inline ErrorCode visit_object_start(json_iterator& iter) noexcept;
+		/**
+   * Called when a key in a field is encountered.
+   *
+   * primitive, visit_object_start, visit_empty_object, visit_array_start, or visit_empty_array
+   * will be called after this with the field value.
+   */
+		inline ErrorCode visit_key(json_iterator& iter, uint8_t* key) noexcept;
+		/** Called when a non-empty object ends. */
+		inline ErrorCode visit_object_end(json_iterator& iter) noexcept;
+		/** Called when an empty object is found. */
+		inline ErrorCode visit_empty_object(json_iterator& iter) noexcept;
+
+		/**
+   * Called when a string, number, boolean or null is found.
+   */
+		inline ErrorCode visit_primitive(json_iterator& iter, uint8_t* value) noexcept;
+		/**
+   * Called when a string, number, boolean or null is found at the top level of a document (i.e.
+   * when there is no array or object and the entire document is a single string, number, boolean or
+   * null.
+   *
+   * This is separate from primitive() because simdjson's normal primitive parsing routines assume
+   * there is at least one more token after the value, which is only true in an array or object.
+   */
+		inline ErrorCode visit_root_primitive(json_iterator& iter, uint8_t* value) noexcept;
+
+		inline ErrorCode visit_string(json_iterator& iter, uint8_t* value, bool key = false) noexcept;
+		inline ErrorCode visit_number(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_true_atom(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_false_atom(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_null_atom(json_iterator& iter, uint8_t* value) noexcept;
+
+		inline ErrorCode visit_root_string(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_root_number(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_root_true_atom(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_root_false_atom(json_iterator& iter, uint8_t* value) noexcept;
+		inline ErrorCode visit_root_null_atom(json_iterator& iter, uint8_t* value) noexcept;
+
+		/** Called each time a new field or element in an array or object is found. */
+		inline ErrorCode increment_count(json_iterator& iter) noexcept;
+
+		/** Next location to write to tape */
+		tape_writer tape;
+
+		inline tape_builder(SimdJsonValue& doc) noexcept;
+
+	  private:
+		/** Next write location in the string buf for stage 2 parsing */
+		uint8_t* currentStringBufLoc;
+
+		
+
+		inline uint32_t next_tapeIndex(json_iterator& iter)  noexcept;
+		inline void start_container(json_iterator& iter) noexcept;
+		inline ErrorCode end_container(json_iterator& iter, TapeType start,
+			TapeType end) noexcept;
+		inline ErrorCode empty_container(json_iterator& iter, TapeType start,
+			TapeType end) noexcept;
+		inline uint8_t* on_start_string(json_iterator& iter) noexcept;
+		inline void on_end_string(uint8_t* dst) noexcept;
+	};// class tape_builder
+
+	template<bool STREAMING> inline ErrorCode tape_builder::parse_document(SimdJsonValue& dom_parser) noexcept {
+		json_iterator iter(dom_parser, STREAMING ? dom_parser.nextStructuralIndex : 0);
+		tape_builder builder(dom_parser);
+		return iter.walk_document<STREAMING>(builder);
+	}
+
+	inline ErrorCode tape_builder::visit_root_primitive(json_iterator& iter, uint8_t* value) noexcept {
+		return iter.visit_root_primitive(*this, value);
+	}
+	inline ErrorCode tape_builder::visit_primitive(json_iterator& iter, uint8_t* value) noexcept {
+		return iter.visit_primitive(*this, value);
+	}
+	inline ErrorCode tape_builder::visit_empty_object(json_iterator& iter) noexcept {
+		return empty_container(iter, TapeType::StartObject, TapeType::EndObject);
+	}
+	inline ErrorCode tape_builder::visit_empty_array(json_iterator& iter) noexcept {
+		return empty_container(iter, TapeType::StartArray, TapeType::EndArray);
+	}
+
+	inline ErrorCode tape_builder::visit_document_start(json_iterator& iter) noexcept {
+		start_container(iter);
+		return ErrorCode::Success;
+	}
+	inline ErrorCode tape_builder::visit_object_start(json_iterator& iter) noexcept {
+		start_container(iter);
+		return ErrorCode::Success;
+	}
+	inline ErrorCode tape_builder::visit_array_start(json_iterator& iter) noexcept {
+		start_container(iter);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_object_end(json_iterator& iter) noexcept {
+		return end_container(iter, TapeType::StartObject, TapeType::EndObject);
+	}
+	inline ErrorCode tape_builder::visit_array_end(json_iterator& iter) noexcept {
+		return end_container(iter, TapeType::StartArray, TapeType::EndArray);
+	}
+	inline ErrorCode tape_builder::visit_document_end(json_iterator& iter) noexcept {
+		constexpr uint32_t start_tapeIndex = 0;
+		tape.append(start_tapeIndex, TapeType::Root);
+		tape_writer::write(iter.dom_parser.tape[start_tapeIndex], next_tapeIndex(iter), TapeType::Root);
+		return ErrorCode::Success;
+	}
+	inline ErrorCode tape_builder::visit_key(json_iterator& iter, uint8_t* key) noexcept {
+		return visit_string(iter, key, true);
+	}
+
+	inline ErrorCode tape_builder::increment_count(json_iterator& iter) noexcept {
+		iter.dom_parser.openContainers[iter.depth].count++;// we have a key value pair in the object at parser.dom_parser.depth - 1
+		return ErrorCode::Success;
+	}
+
+	inline tape_builder::tape_builder(SimdJsonValue& doc) noexcept : tape{ doc.tape.get() }, currentStringBufLoc{ doc.stringBuf } {};
+
+	inline ErrorCode tape_builder::visit_string(json_iterator& iter, uint8_t* value, bool key) noexcept {
+		uint8_t* dst = on_start_string(iter);
+		if (dst == nullptr) {
+			return ErrorCode::StringError;
+		}
+		on_end_string(dst);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_root_string(json_iterator& iter, uint8_t* value) noexcept {
+		return visit_string(iter, value);
+	}
+
+	inline ErrorCode tape_builder::visit_number(json_iterator& iter,  uint8_t* value) noexcept {
+		std::copy(tape.next_tape_loc, tape.next_tape_loc, value);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_root_number(json_iterator& iter, uint8_t* value) noexcept {
+		//
+		// We need to make a copy to make sure that the string is space terminated.
+		// This is not about padding the input, which should already padded up
+		// to len + 256. However, we have no control at this stage
+		// on how the padding was done. What if the input string was padded with nulls?
+		// It is quite common for an input string to have an extra null character (C string).
+		// We do not want to allow 9\0 (where \0 is the null character) inside a JSON
+		// document, but the string "9\0" by itself is fine. So we make a copy and
+		// pad the input with spaces when we know that there is just one input element.
+		// This copy is relatively expensive, but it will almost never be called in
+		// practice unless you are in the strange scenario where you have many JSON
+		// documents made of single atoms.
+		//
+		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remaining_len() + 256]);
+		if (copy.get() == nullptr) {
+			return ErrorCode::MemAlloc;
+		}
+		std::memcpy(copy.get(), value, iter.remaining_len());
+		std::memset(copy.get() + iter.remaining_len(), ' ', 256);
+		ErrorCode error = visit_number(iter, copy.get());
+		return error;
+	}
+
+	inline ErrorCode tape_builder::visit_true_atom(json_iterator& iter, uint8_t* value) noexcept {
+		if (!atomparsing::is_valid_true_atom(value)) {
+			return ErrorCode::TAtomError;
+		}
+		tape.append(0, TapeType::TrueValue);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_root_true_atom(json_iterator& iter, uint8_t* value) noexcept {
+		if (!atomparsing::is_valid_true_atom(value, iter.remaining_len())) {
+			return ErrorCode::TAtomError;
+		}
+		tape.append(0, TapeType::TrueValue);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_false_atom(json_iterator& iter, uint8_t* value) noexcept {
+		if (!atomparsing::is_valid_false_atom(value)) {
+			return ErrorCode::FAtomError;
+		}
+		tape.append(0, TapeType::FalseValue);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_root_false_atom(json_iterator& iter, uint8_t* value) noexcept {
+		if (!atomparsing::is_valid_false_atom(value, iter.remaining_len())) {
+			return ErrorCode::FAtomError;
+		}
+		tape.append(0, TapeType::FalseValue);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_null_atom(json_iterator& iter, uint8_t* value) noexcept {
+		if (!atomparsing::is_valid_null_atom(value)) {
+			return ErrorCode::NAtomError;
+		}
+		tape.append(0, TapeType::NullValue);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode tape_builder::visit_root_null_atom(json_iterator& iter, uint8_t* value) noexcept {
+		if (!atomparsing::is_valid_null_atom(value, iter.remaining_len())) {
+			return ErrorCode::NAtomError;
+		}
+		tape.append(0, TapeType::NullValue);
+		return ErrorCode::Success;
+	}
+
+	// private:
+
+	inline uint32_t tape_builder::next_tapeIndex(json_iterator& iter)  noexcept {
+		return uint32_t(tape.next_tape_loc - iter.dom_parser.tape.get());
+	}
+
+	inline ErrorCode tape_builder::empty_container(json_iterator& iter, TapeType start,
+		TapeType end) noexcept {
+		auto start_index = next_tapeIndex(iter);
+		tape.append(start_index + 2, start);
+		tape.append(start_index, end);
+		return ErrorCode::Success;
+	}
+
+	inline void tape_builder::start_container(json_iterator& iter) noexcept {
+		iter.dom_parser.openContainers[iter.depth].tapeIndex = next_tapeIndex(iter);
+		iter.dom_parser.openContainers[iter.depth].count = 0;
+		tape.skip();// We don't actually *write* the start element until the end.
+	}
+
+	inline ErrorCode tape_builder::end_container(json_iterator& iter, TapeType start,
+		TapeType end) noexcept {
+		// Write the ending tape element, pointing at the start location
+		const uint32_t start_tapeIndex = iter.dom_parser.openContainers[iter.depth].tapeIndex;
+		tape.append(start_tapeIndex, end);
+		// Write the start tape element, pointing at the end location (and including count)
+		// count can overflow if it exceeds 24 bits... so we saturate
+		// the convention being that a cnt of 0xffffff or more is undetermined in value (>=  0xffffff).
+		const uint32_t count = iter.dom_parser.openContainers[iter.depth].count;
+		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
+		tape_writer::write(iter.dom_parser.tape[start_tapeIndex], next_tapeIndex(iter) | (uint64_t(cntsat) << 32), start);
+		return ErrorCode::Success;
+	}
+
+	inline uint8_t* tape_builder::on_start_string(json_iterator& iter) noexcept {
+		// we advance the point, accounting for the fact that we have a NULL termination
+		tape.append(currentStringBufLoc - iter.dom_parser.stringBuf, TapeType::String);
+		return currentStringBufLoc + sizeof(uint32_t);
+	}
+
+	inline void tape_builder::on_end_string(uint8_t* dst) noexcept {
+		uint32_t str_length = uint32_t(dst - (currentStringBufLoc + sizeof(uint32_t)));
+		// TODO check for overflow in case someone has a crazy string (>=4GB?)
+		// But only add the overflow check when the document itself exceeds 4GB
+		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
+		memcpy(currentStringBufLoc, &str_length, sizeof(uint32_t));
+		// NULL termination is still handy if you expect all your strings to
+		// be NULL terminated? It comes at a small cost
+		*dst = 0;
+		currentStringBufLoc = dst + 1;
+	}
+
 };
+
