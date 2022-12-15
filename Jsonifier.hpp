@@ -598,6 +598,15 @@ namespace Jsonifier {
 	  public:
 		inline SimdBase256() noexcept = default;
 
+		inline SimdBase256& operator=(__m256i other) {
+			this->value = other;
+			return *this;
+		}
+
+		inline SimdBase256(__m256i other) {
+			*this = other;
+		}
+
 		inline SimdBase256& operator=(char other) {
 			this->value = _mm256_set1_epi8(other);
 			return *this;
@@ -608,7 +617,7 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256& operator=(const char* values){
-			*this = _mm256_loadu_epi8(values);
+			this->value = _mm256_loadu_epi8(values);
 			return *this;
 		}
 
@@ -623,15 +632,6 @@ namespace Jsonifier {
 		inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
 			this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
 				static_cast<int64_t>(value00));
-		}
-
-		inline SimdBase256& operator=(__m256i other) {
-			this->value = other;
-			return *this;
-		}
-
-		inline SimdBase256(__m256i other) {
-			*this = other;
 		}
 
 		inline uint64_t getUint64(size_t index) {
