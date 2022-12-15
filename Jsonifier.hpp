@@ -530,51 +530,6 @@ namespace Jsonifier {
 
 	class SimdBase256;
 
-	class SimdTape {
-	  public:
-		inline SimdTape& operator=(SimdTape&& other) noexcept {
-			this->tapePtrs = std::move(other.tapePtrs);
-			this->currentIndex = other.currentIndex;
-			return *this;
-		}
-
-		inline SimdTape(SimdTape&& other) noexcept {
-			*this = std::move(other);
-		}
-
-		inline SimdTape& operator=(const SimdTape&) noexcept = delete;
-		inline SimdTape(const SimdTape&) noexcept = delete;
-
-		inline SimdTape() noexcept = default;
-
-		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = std::make_unique<uint32_t[]>(count);
-		};
-
-		inline uint32_t* operator[](size_t index) {
-			return &this->tapePtrs[index];
-		}
-
-		inline operator uint32_t*() {
-			return &this->tapePtrs[0];
-		}
-
-		inline int64_t addTapeValues(int64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
-			int64_t value = static_cast<int64_t>(__popcnt64(*theBits));
-			for (int i = 0; i < value; i++) {
-				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-				*theBits = _blsr_u64(*theBits);
-			}
-
-			this->currentIndex += value;
-			return value;
-		}
-
-	  protected:
-		uint32_t currentIndex{};
-		std::unique_ptr<uint32_t[]> tapePtrs{};
-	};
-
 	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
 
 	class SimdBase128 {
@@ -611,7 +566,7 @@ namespace Jsonifier {
 			*this = other;
 		}
 
-		inline SimdBase256& operator=(const char* values) {
+		inline SimdBase256& operator=(const char* values){
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
@@ -702,24 +657,20 @@ namespace Jsonifier {
 			return this->value;
 		}
 
-		inline SimdBase256& operator|(SimdBase256 other) {
-			*this = _mm256_or_si256(this->value, other);
-			return *this;
+		inline SimdBase256 operator|(SimdBase256 other) {
+			return _mm256_or_si256(this->value, other);
 		}
 
-		inline SimdBase256& operator&(SimdBase256 other) {
-			*this = _mm256_and_si256(this->value, other);
-			return *this;
+		inline SimdBase256 operator&(SimdBase256 other) {
+			return _mm256_and_si256(this->value, other);
 		}
 
-		inline SimdBase256& operator^(SimdBase256 other) {
-			*this = _mm256_xor_si256(this->value, other);
-			return *this;
+		inline SimdBase256 operator^(SimdBase256 other) {
+			return _mm256_xor_si256(this->value, other);
 		}
 
-		inline SimdBase256& operator+(SimdBase256 other) {
-			*this = _mm256_add_epi8(this->value, other);
-			return *this;
+		inline SimdBase256 operator+(SimdBase256 other) {
+			return _mm256_add_epi8(this->value, other);
 		}
 
 		inline SimdBase256& operator|=(SimdBase256 other) {
@@ -766,13 +717,17 @@ namespace Jsonifier {
 
 		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
-			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
+			auto inString00 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
-			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
+			auto inString01 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
 			prevInString = inString01 >> 63;
-			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
+			auto inString02 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
 			prevInString = inString02 >> 63;
-			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
+			auto inString03 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
 			prevInString = inString03 >> 63;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
@@ -811,10 +766,63 @@ namespace Jsonifier {
 		__m256i value{};
 	};
 
-	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB) {
-		uint32_t r_lo = _mm256_movemask_epi8(inputA);
-		uint32_t r_hi = _mm256_movemask_epi8(inputB);
-		return static_cast<uint64_t>(r_lo) | static_cast<uint64_t>(r_hi) << 32;
+	class SimdTape {
+	  public:
+		inline SimdTape& operator=(SimdTape&& other) noexcept {
+			this->tapePtrs = std::move(other.tapePtrs);
+			this->currentIndex = other.currentIndex;
+			return *this;
+		}
+
+		inline SimdTape(SimdTape&& other) noexcept {
+			*this = std::move(other);
+		}
+
+		inline SimdTape& operator=(const SimdTape&) noexcept = delete;
+		inline SimdTape(const SimdTape&) noexcept = delete;
+
+		inline SimdTape() noexcept = default;
+
+		inline SimdTape(size_t count) noexcept {
+			this->tapePtrs = std::make_unique<uint32_t[]>(count / 4);
+		};
+
+		inline uint32_t* operator[](size_t index) {
+			return &this->tapePtrs[index];
+		}
+
+		inline operator uint32_t*() {
+			return &this->tapePtrs[0];
+		}
+
+		inline uint64_t addTapeValues(uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
+			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
+			for (int i = 0; i < value; i++) {
+				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+				*theBits = _blsr_u64(*theBits);
+			}
+
+			this->currentIndex += value;
+			return value;
+		}
+
+	  protected:
+		uint32_t currentIndex{};
+		std::unique_ptr<uint32_t[]> tapePtrs{};
+	};
+
+	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00, SimdBase256 input01, SimdBase256 input02, SimdBase256 input03, SimdBase256 input04,
+		SimdBase256 input05, SimdBase256 input06, SimdBase256 input07) {
+		SimdBase256 returnValue{};
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00), 0);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input01), 1);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input02), 2);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input03), 3);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input04), 4);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input05), 5);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input06), 6);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input07), 7);
+		return returnValue;
 	}
 
 	class SimdStringSection {
@@ -830,7 +838,7 @@ namespace Jsonifier {
 		inline size_t getStructuralIndices(SimdTape& jsonRawTape, size_t currentIndex) {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
-				auto newValue = this->S256.getInt64(x);
+				auto newValue = this->S256.getUint64(x);
 				returnValue += jsonRawTape.addTapeValues(&newValue, x, currentIndex);
 			}
 			return returnValue;
@@ -844,8 +852,8 @@ namespace Jsonifier {
 			for (size_t x = 0; x < 8; ++x) {
 				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
 			}
-			return { convertSimd256To64BitUint(whiteSpaceReal[0], whiteSpaceReal[1]), convertSimd256To64BitUint(whiteSpaceReal[2], whiteSpaceReal[3]),
-				convertSimd256To64BitUint(whiteSpaceReal[4], whiteSpaceReal[5]), convertSimd256To64BitUint(whiteSpaceReal[6], whiteSpaceReal[7]) };
+			return convertSimdBytesToBits(whiteSpaceReal[0], whiteSpaceReal[1], whiteSpaceReal[2], whiteSpaceReal[3], whiteSpaceReal[4],
+				whiteSpaceReal[5], whiteSpaceReal[6], whiteSpaceReal[7]);
 		}
 
 		inline SimdBase256 collectStructuralCharacters() {
@@ -857,8 +865,8 @@ namespace Jsonifier {
 				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
 			}
 
-			return SimdBase256{ convertSimd256To64BitUint(structural[0], structural[1]), convertSimd256To64BitUint(structural[2], structural[3]),
-				convertSimd256To64BitUint(structural[4], structural[5]), convertSimd256To64BitUint(structural[6], structural[7]) };
+			return convertSimdBytesToBits(structural[0], structural[1], structural[2], structural[3], structural[4], structural[5], structural[6],
+				structural[7]);
 		}
 
 		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
@@ -868,9 +876,8 @@ namespace Jsonifier {
 				backslashesReal[x] = this->values[x] == backslashes;
 			}
 
-			auto B256 = SimdBase256{ convertSimd256To64BitUint(backslashesReal[0], backslashesReal[1]),
-				convertSimd256To64BitUint(backslashesReal[2], backslashesReal[3]), convertSimd256To64BitUint(backslashesReal[4], backslashesReal[5]),
-				convertSimd256To64BitUint(backslashesReal[6], backslashesReal[7]) };
+			auto B256 = convertSimdBytesToBits(backslashesReal[0], backslashesReal[1], backslashesReal[2], backslashesReal[3], backslashesReal[4],
+				backslashesReal[5], backslashesReal[6], backslashesReal[7]);
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
@@ -896,8 +903,8 @@ namespace Jsonifier {
 				quotesReal[x] = (this->values[x] == quotes);
 			}
 
-			return SimdBase256{ convertSimd256To64BitUint(quotesReal[0], quotesReal[1]), convertSimd256To64BitUint(quotesReal[2], quotesReal[3]),
-				convertSimd256To64BitUint(quotesReal[4], quotesReal[5]), convertSimd256To64BitUint(quotesReal[6], quotesReal[7]) };
+			return convertSimdBytesToBits(quotesReal[0], quotesReal[1], quotesReal[2], quotesReal[3], quotesReal[4], quotesReal[5], quotesReal[6],
+				quotesReal[7]);
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
@@ -939,33 +946,15 @@ namespace Jsonifier {
 
 	class SimdJsonValue {
 	  public:
+		
 		inline SimdJsonValue() noexcept = default;
 
-		inline SimdJsonValue(char* stringNew, size_t tapeLength);
-
-		inline uint32_t* getAndIncrementNextStructural() {
-			return this->nextStructural++;
-		}
-
-		inline const char* getStringView() {
-			return this->stringView;
-		}
-
-		inline uint32_t* getNextStructural() {
-			return this->nextStructural;
-		}
-
-		inline Jsonifier getJsonData();
+		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity);
 
 		inline void generateJsonEvents() {
 			int64_t stringSize = this->stringLength;
 			this->jsonRawTape = SimdTape{ stringLength };
-			std::allocator<bool> allocatorBool{};
-			std::allocator_traits<std::allocator<bool>> allocTraitsBool{};
-			if (this->isArray) {
-				delete[] this->isArray;
-			}
-			this->isArray = new bool[25]{};
+			this->isArray = std::make_unique<bool[]>(12);
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
@@ -973,13 +962,31 @@ namespace Jsonifier {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
 				tapeSize += indexCount;
-
+				
 				stringSize -= 256;
 				collectedSize += 256;
 			}
 			this->tapeLength = tapeSize;
 			this->nextStructural = this->jsonRawTape.operator uint32_t*();
 		}
+
+		inline ~SimdJsonValue() noexcept {
+			delete[] this->stringView;
+		}
+
+		inline char* getStringView() {
+			return this->stringView;
+		}
+
+		inline uint32_t* getAndIncrementNextStructural() {
+			return this->nextStructural++;
+		}
+
+		inline uint32_t* getNextStructural() {
+			return this->nextStructural;
+		}
+
+		inline Jsonifier getJsonData();
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -990,14 +997,11 @@ namespace Jsonifier {
 		}
 
 		inline bool* getIsArray() {
-			return this->isArray;
-		}
-
-		inline ~SimdJsonValue() noexcept {
-			delete[] this->isArray;
+			return this->isArray.get();
 		}
 
 	  protected:
+		std::unique_ptr<bool[]> isArray{};
 		uint32_t* nextStructural{};
 		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
@@ -1005,7 +1009,6 @@ namespace Jsonifier {
 		size_t stringLength{};
 		uint32_t depth{ 0 };
 		char* stringView{};
-		bool* isArray{};
 	};
 
 	const bool structuralOrWhitespaceNegated[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -1038,42 +1041,12 @@ namespace Jsonifier {
 		return (str4ncmp(src, "true") | isNotStructuralOrWhitespace(src[4])) == 0;
 	}
 
-	inline bool isValidTrueAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 4) {
-			return isValidTrueAtom(src);
-		} else if (tapeLength == 4) {
-			return !str4ncmp(src, "true");
-		} else {
-			return false;
-		}
-	}
-
 	inline bool isValidFalseAtom(const char* src) {
 		return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhitespace(src[5])) == 0;
 	}
 
-	inline bool isValidFalseAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 5) {
-			return isValidFalseAtom(src);
-		} else if (tapeLength == 5) {
-			return !str4ncmp(src + 1, "alse");
-		} else {
-			return false;
-		}
-	}
-
 	inline bool isValidNullAtom(const char* src) {
 		return (str4ncmp(src, "null") | isNotStructuralOrWhitespace(src[4])) == 0;
-	}
-
-	inline bool isValidNullAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 4) {
-			return isValidNullAtom(src);
-		} else if (tapeLength == 4) {
-			return !str4ncmp(src, "null");
-		} else {
-			return false;
-		}
 	}
 
 	enum class ParsingState {
@@ -1090,12 +1063,12 @@ namespace Jsonifier {
 
 	struct JsonConstructor {
 		inline uint32_t nextStringIndex() noexcept;
-		inline size_t getCurrentElementSize() noexcept;
+		inline uint32_t getCurrentElementSize() noexcept;
 		inline uint32_t currentStringIndex() noexcept;
 		inline std::string_view visitKey() noexcept;
 		inline Jsonifier visitEmptyObject();
 		inline Jsonifier visitEmptyArray();
-		inline Jsonifier startDocument(Jsonifier);
+		inline Jsonifier startDocument();
 		inline Jsonifier objectBegin(Jsonifier);
 		inline Jsonifier objectField(Jsonifier);
 		inline Jsonifier objectContinue(Jsonifier);
@@ -1126,22 +1099,19 @@ namespace Jsonifier {
 	};
 
 	inline std::string_view JsonConstructor::visitKey() noexcept {
-		auto currentKey = visitString();
-		return currentKey;
+		return visitString();
 	}
 
 	inline std::string_view JsonConstructor::visitString() noexcept {
-		auto currentKey = std::string_view{ &this->masterParser->getStringView()[this->currentStringIndex()] + 1, this->getCurrentElementSize() - 2 };
-		return currentKey;
+		return std::string_view{ &this->masterParser->getStringView()[this->currentStringIndex()] + 1, this->getCurrentElementSize() - 2 };
 	}
 
-	inline size_t JsonConstructor::getCurrentElementSize() noexcept {
+	inline uint32_t JsonConstructor::getCurrentElementSize() noexcept {
 		return this->nextStringIndex() - this->currentStringIndex();
 	}
 
 	inline Jsonifier JsonConstructor::visitNumber(const char value) noexcept {
-		auto currentKey = std::string{ &this->masterParser->getStringView()[this->currentStringIndex()], this->getCurrentElementSize() };
-		return stoull(currentKey);
+		return stoull(std::string{ &this->masterParser->getStringView()[this->currentStringIndex()], this->getCurrentElementSize() });
 	}
 
 	inline bool JsonConstructor::visitTrueAtom(const char value) noexcept {
@@ -1180,10 +1150,11 @@ namespace Jsonifier {
 	inline uint32_t JsonConstructor::nextStringIndex() noexcept {
 		return *this->masterParser->getNextStructural();
 	}
-
-	inline Jsonifier JsonConstructor::startDocument(Jsonifier jsonData) {
+				
+	inline Jsonifier JsonConstructor::startDocument() {
+		Jsonifier jsonData{};
 		if (this->atEof()) {
-			return jsonData;
+			return std::move(jsonData);
 		}
 		auto value = this->advance();
 		switch (value) {
@@ -1204,6 +1175,7 @@ namespace Jsonifier {
 			default:
 				return this->visitPrimitive(value);
 		}
+
 	}
 
 	inline Jsonifier JsonConstructor::objectBegin(Jsonifier jsonData) {
@@ -1216,14 +1188,13 @@ namespace Jsonifier {
 		if (key != '"') {
 			return ErrorCode::TapeError;
 		}
-		auto currentKey = this->visitKey();
-		this->currentKey = currentKey;
+		this->currentKey = this->visitKey();
 		return this->objectField(std::move(jsonData));
 	}
 
 	inline Jsonifier JsonConstructor::objectField(Jsonifier jsonData) {
 		if (this->advance() != ':') {
-			return ErrorCode::TapeError;
+				return ErrorCode::TapeError;
 		}
 		auto value = this->advance();
 		switch (value) {
@@ -1233,9 +1204,9 @@ namespace Jsonifier {
 					this->advance();
 					return this->visitEmptyObject();
 				}
-				auto currentKey = this->currentKey;
-				jsonData[currentKey] = this->objectBegin(jsonDataNew);
-				return jsonData;
+				std::string currentKey = std::move(this->currentKey);
+				jsonData[currentKey] = this->objectBegin(std::move(jsonDataNew));
+				return std::move( jsonData);
 			}
 			case '[': {
 				Jsonifier jsonDataNew{};
@@ -1243,13 +1214,13 @@ namespace Jsonifier {
 					this->advance();
 					return this->visitEmptyArray();
 				}
-				auto currentKey = this->currentKey;
-				jsonData[currentKey] = this->arrayBegin(jsonDataNew);
-				return jsonData;
+				std::string currentKey = std::move(this->currentKey);
+				jsonData[currentKey] = this->arrayBegin(std::move(jsonDataNew));
+				return std::move( jsonData);
 			}
-
+				
 			default:
-				auto currentKey = this->currentKey;
+				std::string currentKey = std::move(this->currentKey);
 				jsonData[currentKey] = this->visitPrimitive(value);
 				return this->objectContinue(std::move(jsonData));
 		}
@@ -1263,8 +1234,7 @@ namespace Jsonifier {
 				if (key != '"') {
 					return ErrorCode::TapeError;
 				}
-				auto currentKey = this->visitKey();
-				this->currentKey = currentKey;
+				this->currentKey = this->visitKey();
 				return this->objectField(std::move(jsonData));
 			}
 			case '}':
@@ -1275,15 +1245,13 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier JsonConstructor::arrayBegin(Jsonifier jsonData) {
-		jsonData.refreshString(JsonifierSerializeType::Json);
-		std::cout << "THE JSON ARRAY BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		Jsonifier jsonDataNew{};
 		this->depth++;
 		this->masterParser->getIsArray()[this->depth] = true;
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		Jsonifier jsonDataNew{};
-		return this->arrayValue(std::move(jsonDataNew));
+		return this->arrayValue(std::move(jsonData));
 	}
 
 	inline Jsonifier JsonConstructor::arrayValue(Jsonifier jsonData) {
@@ -1293,50 +1261,38 @@ namespace Jsonifier {
 				Jsonifier jsonDataNew{};
 				if (this->peek() == '}') {
 					this->advance();
-					return this->visitEmptyObject();
+					jsonData.emplaceBack(this->visitEmptyObject());
+					return std::move(jsonData);
 				}
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE JSON DATA OBJECT: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-				return this->objectBegin(std::move(jsonData));
+				jsonData.emplaceBack(this->objectBegin(std::move(jsonDataNew)));
+				return std::move(jsonData);
 			}
 			case '[': {
 				Jsonifier jsonDataNew{};
 				if (this->peek() == ']') {
 					this->advance();
-					return this->visitEmptyArray();
+					jsonData.emplaceBack(this->visitEmptyArray());
+					return std::move(jsonData);
 				}
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE JSON DATA ARRAY: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-				return this->arrayBegin(std::move(jsonData));
+				jsonData.emplaceBack(this->arrayBegin(std::move(jsonDataNew)));
+				return std::move(jsonData);
 			}
 			default:
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE JSON DATA ARRAY (CONTINUE 0101): " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-				jsonData = this->visitPrimitive(value);
-				jsonData.emplaceBack(this->arrayContinue(jsonData));
-				
-				return jsonData;
+				jsonData.emplaceBack(this->visitPrimitive(value));
+				return std::move(jsonData);
 		}
 	}
 
 	inline Jsonifier JsonConstructor::arrayContinue(Jsonifier jsonData) {
-		jsonData.refreshString(JsonifierSerializeType::Json);
-		std::cout << "THE JSON DATA ARRAY (CONTINUE): " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		
 		switch (this->advance()) {
 			case ',': {
-				jsonData=this->arrayValue(std::move(jsonData));
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE JSON DATA ARRAY (CONTINUE): " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return jsonData;
+				Jsonifier jsonDataNew{};
+				return this->arrayValue(std::move(jsonDataNew));
 			}
 			case ']': {
-				jsonData.emplaceBack(this->scopeEnd(std::move(jsonData)));
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "THE JSON DATA ARRAY (CONTINUE): 0202 " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return jsonData;
-			}
+				return this->scopeEnd(std::move(jsonData));
+			}				
 			default:
 				return ErrorCode::TapeError;
 		}
@@ -1348,17 +1304,16 @@ namespace Jsonifier {
 			return this->endDocument(std::move(jsonData));
 		}
 		if (this->masterParser->getIsArray()[depth]) {
-			jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "THE JSON DATA SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			return jsonData.emplaceBack(this->arrayContinue(std::move(jsonData)));
+			return this->arrayContinue(std::move(jsonData));
 		}
 		return this->objectContinue(std::move(jsonData));
 	}
 	inline Jsonifier JsonConstructor::endDocument(Jsonifier jsonData) {
-		return jsonData;
+		return std::move( jsonData);
 	}
-
-	inline JsonConstructor::JsonConstructor(SimdJsonValue& _dom_parser) noexcept : masterParser{ &_dom_parser } {};
+	
+	inline JsonConstructor::JsonConstructor(SimdJsonValue& _dom_parser) noexcept : masterParser{ &_dom_parser } {
+	};
 
 	inline const char JsonConstructor::peek() noexcept {
 		return this->masterParser->getStringView()[*(this->masterParser->getNextStructural())];
@@ -1403,22 +1358,19 @@ namespace Jsonifier {
 		}
 	}
 
-	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t length) {
-		if (length == 0) {
+	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity) {
+		if (tapeLength == 0) {
 			throw DCAException{ "Failed to parse as the string size is 0." };
 		}
-		this->stringLength = length;
-		this->stringView = stringNew;
-		//new char[this->stringLength]{};
-		//std::copy(stringNew, stringNew + length, this->stringView);
+		this->stringLength = tapeLength;
+		this->stringView = new char[this->stringLength]{};
+		std::copy(stringNew, stringNew + tapeLength, this->stringView);
 	}
 
 	Jsonifier SimdJsonValue::getJsonData() {
 		this->generateJsonEvents();
-		JsonConstructor theBuilder{ *this };
-		Jsonifier jsonData{};
-		jsonData = theBuilder.startDocument(std::move(jsonData));
-		return jsonData;
+		return JsonConstructor{ *this }.startDocument();
+		
 	}
 
 };
