@@ -96,17 +96,17 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		
+		auto stringNewer = stringNew;
 		
 
-		stringNew.reserve(stringNew.size() + simdjson::SIMDJSON_PADDING);
+		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			simdjson::ondemand::parser parser{};
-			auto newDocument = parser.iterate(stringNew.data(), stringNew.size(), stringNew.capacity());
+			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue theValue{ newDocument };
 			totalSize += oldSize;
 			

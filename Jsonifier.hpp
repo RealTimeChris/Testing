@@ -211,7 +211,7 @@ namespace Jsonifier {
 		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
 		using ObjectType = std::map<std::string, Jsonifier, std::less<>, MapAllocatorType>;
 		using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
-		using StringType = std::string;
+		using StringType = std::string_view;
 		using FloatType = double;
 		using UintType = uint64_t;
 		using IntType = int64_t;
@@ -790,7 +790,7 @@ namespace Jsonifier {
 		inline SimdTape() noexcept = default;
 
 		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = new uint32_t[count / 4]{};
+			this->tapePtrs = std::make_unique<uint32_t[]>(count / 4);
 		};
 
 		inline uint32_t* operator[](size_t index) {
@@ -814,7 +814,7 @@ namespace Jsonifier {
 
 	  protected:
 		uint32_t currentIndex{};
-		uint32_t* tapePtrs{};
+		std::unique_ptr<uint32_t[]> tapePtrs{};
 	};
 
 	class SimdStringSection {
@@ -949,13 +949,7 @@ namespace Jsonifier {
 		inline void generateJsonEvents() {
 			int64_t stringSize = this->stringLength;
 			this->jsonRawTape = SimdTape{ stringLength };
-			std::allocator<bool> allocatorBool{};
-			std::allocator_traits<std::allocator<bool>> allocTraitsBool{};
-			if (this->isArray) {
-				allocTraitsBool.destroy(allocatorBool, this->isArray);
-				allocTraitsBool.deallocate(allocatorBool, this->isArray, 25);
-			}
-			this->isArray = allocTraitsBool.allocate(allocatorBool, 25);
+			this->isArray = std::make_unique<bool[]>(12);
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
@@ -973,7 +967,6 @@ namespace Jsonifier {
 
 		inline ~SimdJsonValue() noexcept {
 			delete[] this->stringView;
-			delete[] this->isArray;
 		}
 
 		inline char* getStringView() {
@@ -999,10 +992,11 @@ namespace Jsonifier {
 		}
 
 		inline bool* getIsArray() {
-			return this->isArray;
+			return this->isArray.get();
 		}
 
 	  protected:
+		std::unique_ptr<bool[]> isArray{};
 		uint32_t* nextStructural{};
 		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
@@ -1010,7 +1004,6 @@ namespace Jsonifier {
 		size_t stringLength{};
 		uint32_t depth{ 0 };
 		char* stringView{};
-		bool* isArray{};
 	};
 
 	const bool structuralOrWhitespaceNegated[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -1043,42 +1036,12 @@ namespace Jsonifier {
 		return (str4ncmp(src, "true") | isNotStructuralOrWhitespace(src[4])) == 0;
 	}
 
-	inline bool isValidTrueAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 4) {
-			return isValidTrueAtom(src);
-		} else if (tapeLength == 4) {
-			return !str4ncmp(src, "true");
-		} else {
-			return false;
-		}
-	}
-
 	inline bool isValidFalseAtom(const char* src) {
 		return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhitespace(src[5])) == 0;
 	}
 
-	inline bool isValidFalseAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 5) {
-			return isValidFalseAtom(src);
-		} else if (tapeLength == 5) {
-			return !str4ncmp(src + 1, "alse");
-		} else {
-			return false;
-		}
-	}
-
 	inline bool isValidNullAtom(const char* src) {
 		return (str4ncmp(src, "null") | isNotStructuralOrWhitespace(src[4])) == 0;
-	}
-
-	inline bool isValidNullAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 4) {
-			return isValidNullAtom(src);
-		} else if (tapeLength == 4) {
-			return !str4ncmp(src, "null");
-		} else {
-			return false;
-		}
 	}
 
 	enum class ParsingState {
@@ -1131,13 +1094,11 @@ namespace Jsonifier {
 	};
 
 	inline std::string_view JsonConstructor::visitKey() noexcept {
-		auto currentKey = visitString();
-		return currentKey;
+		return visitString();
 	}
 
 	inline std::string_view JsonConstructor::visitString() noexcept {
-		auto currentKey = std::string_view{ &this->masterParser->getStringView()[this->currentStringIndex()] + 1, this->getCurrentElementSize() - 2 };
-		return currentKey;
+		return std::string_view{ &this->masterParser->getStringView()[this->currentStringIndex()] + 1, this->getCurrentElementSize() - 2 };
 	}
 
 	inline uint32_t JsonConstructor::getCurrentElementSize() noexcept {
@@ -1145,8 +1106,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier JsonConstructor::visitNumber(const char value) noexcept {
-		auto currentKey = std::string{ &this->masterParser->getStringView()[this->currentStringIndex()], this->getCurrentElementSize() };
-		return stoull(currentKey);
+		return stoull(std::string{ &this->masterParser->getStringView()[this->currentStringIndex()], this->getCurrentElementSize() });
 	}
 
 	inline bool JsonConstructor::visitTrueAtom(const char value) noexcept {
@@ -1189,7 +1149,7 @@ namespace Jsonifier {
 	inline Jsonifier JsonConstructor::startDocument() {
 		Jsonifier jsonData{};
 		if (this->atEof()) {
-			return jsonData;
+			return std::move(jsonData);
 		}
 		auto value = this->advance();
 		switch (value) {
@@ -1297,24 +1257,24 @@ namespace Jsonifier {
 				if (this->peek() == '}') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyObject());
-					return jsonData;
+					return std::move(jsonData);
 				}
 				jsonData.emplaceBack(this->objectBegin(std::move(jsonDataNew)));
-				return jsonData;
+				return std::move(jsonData);
 			}
 			case '[': {
 				Jsonifier jsonDataNew{};
 				if (this->peek() == ']') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyArray());
-					return jsonData;
+					return std::move(jsonData);
 				}
 				jsonData.emplaceBack(this->arrayBegin(std::move(jsonDataNew)));
-				return jsonData;
+				return std::move(jsonData);
 			}
 			default:
 				jsonData.emplaceBack(this->visitPrimitive(value));
-				return jsonData;
+				return std::move(jsonData);
 		}
 	}
 
@@ -1404,8 +1364,7 @@ namespace Jsonifier {
 
 	Jsonifier SimdJsonValue::getJsonData() {
 		this->generateJsonEvents();
-		JsonConstructor theBuilder{ *this };
-		return theBuilder.startDocument();
+		return JsonConstructor{ *this }.startDocument();
 		
 	}
 
