@@ -784,7 +784,7 @@ namespace Jsonifier {
 		inline SimdTape() noexcept = default;
 
 		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = std::make_unique<uint32_t[]>(count / 4);
+			this->tapePtrs = std::make_unique<uint32_t[]>(count / 5);
 		};
 
 		inline uint32_t* operator[](size_t index) {
@@ -835,13 +835,8 @@ namespace Jsonifier {
 			}
 		}
 
-		inline size_t getStructuralIndices(SimdTape& jsonRawTape, size_t currentIndex) {
-			size_t returnValue{};
-			for (size_t x = 0; x < 4; ++x) {
-				auto newValue = this->S256.getUint64(x);
-				returnValue += jsonRawTape.addTapeValues(&newValue, x, currentIndex);
-			}
-			return returnValue;
+		inline SimdBase256& getStructuralIndices() {
+			return this->S256;
 		}
 
 		inline SimdBase256 collectWhiteSpace() {
@@ -949,27 +944,60 @@ namespace Jsonifier {
 		
 		inline SimdJsonValue() noexcept = default;
 
-		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity);
+		inline SimdJsonValue(char* stringNew, size_t tapeLength);
 
 		inline void generateJsonEvents() {
 			int64_t stringSize = this->stringLength;
-			this->jsonRawTape = SimdTape{ stringLength };
+			this->tapePtrs = std::make_unique<uint32_t[]>(this->stringLength / 4);
 			this->isArray = std::make_unique<bool[]>(12);
+			this->currentIndex = 0;
+			this->tapeLength = 0;
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
+			size_t returnValue{};
 			while (stringSize > 0) {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
-				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
-				tapeSize += indexCount;
+				auto sectionNew = section.getStructuralIndices();
+				sectionNew.printBits("NEW VALUES: ");
+
 				
-				stringSize -= 256;
+				for (size_t x = 0; x < 4 && stringSize > 0; ++x) {
+					auto newValue = sectionNew.getUint64(x);
+					returnValue += this->addTapeValues(&newValue, x, this->currentIndex);
+					std::cout << "RETURN VALUE: " << returnValue << std::endl;
+					this->currentIndex += returnValue;
+					stringSize -= 32;
+					tapeSize += returnValue;
+				}
+				
 				collectedSize += 256;
 			}
 			this->tapeLength = tapeSize;
-			this->nextStructural = this->jsonRawTape.operator uint32_t*();
+			this->nextStructural = this->tapePtrs.get();
 		}
 
+		inline uint32_t* operator[](size_t index) {
+			return &this->tapePtrs[index];
+		}
+
+		inline operator uint32_t*() {
+			return &this->tapePtrs[0];
+		}
+
+		inline uint64_t addTapeValues(uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
+			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
+			for (int i = 0; i < value; i++) {
+				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndex;
+				*theBits = _blsr_u64(*theBits);
+			}
+			for (size_t x = 0; x < value; ++x) {
+				std::cout << "CURRENT INDEX" << this->tapePtrs[x] << std::endl;
+			}
+			this->currentIndex += value;
+			return value;
+		}
+		
 		inline ~SimdJsonValue() noexcept {
 			delete[] this->stringView;
 		}
@@ -1001,11 +1029,12 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		std::unique_ptr<uint32_t[]> tapePtrs{};
 		std::unique_ptr<bool[]> isArray{};
 		uint32_t* nextStructural{};
 		uint32_t maxDepth{ 500 };
+		uint32_t currentIndex{};
 		size_t tapeLength{ 0 };
-		SimdTape jsonRawTape{};
 		size_t stringLength{};
 		uint32_t depth{ 0 };
 		char* stringView{};
@@ -1358,7 +1387,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity) {
+	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t tapeLength) {
 		if (tapeLength == 0) {
 			throw DCAException{ "Failed to parse as the string size is 0." };
 		}
