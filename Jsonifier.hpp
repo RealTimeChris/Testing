@@ -530,52 +530,6 @@ namespace Jsonifier {
 
 	class SimdBase256;
 
-	class SimdTape {
-	  public:
-
-		inline SimdTape& operator=(SimdTape&& other) noexcept {
-			this->tapePtrs = std::move(other.tapePtrs);
-			this->currentIndex = other.currentIndex;
-			return *this;
-		}
-
-		inline SimdTape(SimdTape&& other) noexcept {
-			*this = std::move(other);
-		}
-
-		inline SimdTape& operator=(const SimdTape&) noexcept = delete;
-		inline SimdTape(const SimdTape&) noexcept = delete;
-
-		inline SimdTape() noexcept = default;
-
-		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = new uint32_t[count / 4]{};
-		};
-
-		inline uint32_t* operator[](size_t index) {
-			return &this->tapePtrs[index];
-		}
-
-		inline operator uint32_t*() {
-			return &this->tapePtrs[0];
-		}
-
-		inline uint64_t addTapeValues(uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
-			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
-			for (int i = 0; i < value; i++) {
-				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-				*theBits = _blsr_u64(*theBits);
-			}
-
-			this->currentIndex += value;
-			return value;
-		}
-
-	  protected:
-		uint32_t currentIndex{};
-		uint32_t* tapePtrs{};
-	};
-
 	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
 
 	class SimdBase128 {
@@ -817,6 +771,51 @@ namespace Jsonifier {
 		uint32_t r_hi = _mm256_movemask_epi8(inputB);
 		return static_cast<uint64_t>(r_lo) | static_cast<uint64_t>(r_hi) << 32;
 	}
+
+	class SimdTape {
+	  public:
+		inline SimdTape& operator=(SimdTape&& other) noexcept {
+			this->tapePtrs = std::move(other.tapePtrs);
+			this->currentIndex = other.currentIndex;
+			return *this;
+		}
+
+		inline SimdTape(SimdTape&& other) noexcept {
+			*this = std::move(other);
+		}
+
+		inline SimdTape& operator=(const SimdTape&) noexcept = delete;
+		inline SimdTape(const SimdTape&) noexcept = delete;
+
+		inline SimdTape() noexcept = default;
+
+		inline SimdTape(size_t count) noexcept {
+			this->tapePtrs = new uint32_t[count / 4]{};
+		};
+
+		inline uint32_t* operator[](size_t index) {
+			return &this->tapePtrs[index];
+		}
+
+		inline operator uint32_t*() {
+			return &this->tapePtrs[0];
+		}
+
+		inline uint64_t addTapeValues(uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
+			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
+			for (int i = 0; i < value; i++) {
+				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+				*theBits = _blsr_u64(*theBits);
+			}
+
+			this->currentIndex += value;
+			return value;
+		}
+
+	  protected:
+		uint32_t currentIndex{};
+		uint32_t* tapePtrs{};
+	};
 
 	class SimdStringSection {
 	  public:
