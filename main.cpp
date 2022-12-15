@@ -94,31 +94,22 @@ struct TheValue {
 
 template<typename OTy>
 void prepStringForParsing(std::basic_string<OTy>&string) {
-	string.resize(string.size() + 256 - string.size() % 256);
+	string.reserve(string.size() + 256 - string.size() % 256);
 }
 
 int32_t main() noexcept {
-	try {
-
-		//std::string stringNew{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
-		
-		//std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-				//"bitbot.tools\",\"type\":3}],\"client_status\":{\"web\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
-				//			   "\"online\",\"user\":{\"id\":\"821569769786179584\"}},\"op\":0,\"s\":18349,\"t\":\"PRESENCE_UPDATE\"}" };
-							   
+	try {  
 		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-							   "bitbot.tools\",\"type\":3}]}}" };
+							   "bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\"}]}}" };
 		
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
-		//string64.reserve(string64.size() + 256);
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
 		std::cout << "THE STRING: " << stringNew << std::endl;
-		//stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
 		prepStringForParsing(stringNew);
 		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
 		stopWatch.resetTimer();
@@ -130,28 +121,17 @@ int32_t main() noexcept {
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
-
-		//std::cout << "THE FINAL STRING: " << stringNewer << std::endl;
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		//std::cout << "THE SIZE: " << string64.size() << std::endl;
 		
 
 		stringNew.reserve(stringNew.size() + simdjson::SIMDJSON_PADDING);
-		////string64.reserve(string64.size() + simdjson::SIMDJSON_PADDING);
-		std::cout << "SIZE: " << stringNew.size() << ", CAPACITY: " << stringNew.capacity() << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
-		////std::cout << "THE STRING: " << string64 << std::endl;
-		
-
 		totalSize = 0;
 		totalTime = 0;
-
 		stopWatch.resetTimer();
-		
 		for (size_t x = 0; x < 2048; ++x) {
-			
 			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNew.data(), stringNew.size(), stringNew.capacity());
 			TheValue theValue{ newDocument };
@@ -160,7 +140,6 @@ int32_t main() noexcept {
 		}
 		
 		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "THE FINAL STRING: " << stringNew << std::endl;
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 		
