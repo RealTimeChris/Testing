@@ -4,12 +4,12 @@
 //#include "src/generic/stage2/tape_builder.h"
 
 struct ActivitiesJson {
-	ActivitiesJson(Jsonifier::Jsonifier& value) {
-		this->createdAt = value["created_at"].getValue<std::string>();
-		this->id= value["id"].getValue<std::string>();
-		this->name= value["name"].getValue<std::string>();
-		this->type = value["type"].getValue<int32_t>();
-	};
+	//ActivitiesJson(Jsonifier::Jsonifier& value) {
+	//this->createdAt = value["created_at"].getValue<std::string>();
+	//		this->id= value["id"].getValue<std::string>();
+	//		this->name= value["name"].getValue<std::string>();
+	//		this->type = value["type"].getValue<int32_t>();
+	//};
 	std::string createdAt{};
 	std::string name{};
 	std::string id{};
@@ -93,10 +93,30 @@ int32_t main() noexcept {
 		size_t totalTime{};
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
+		std::string stringNewer = stringNew;
+		prepStringForParsing(stringNew);
+		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
+
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		auto stringNewer = stringNew;
+
+		Jsonifier::Jsonifier jsonData{};
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
+			jsonData = std::move(stringScanner.getJsonData());
+			TheValueJson theValue{ jsonData };
+			totalSize += oldSize;
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		
 		
 
 		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
@@ -115,24 +135,7 @@ int32_t main() noexcept {
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
-		prepStringForParsing(stringNew);
-		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
-
-		totalSize = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
 		
-		Jsonifier::Jsonifier jsonData{}; 
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
-			jsonData = std::move(stringScanner.getJsonData());
-			TheValueJson theValue{ jsonData };
-			totalSize += oldSize;
-		}
-		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		
 
 

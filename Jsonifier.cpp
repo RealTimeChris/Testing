@@ -43,24 +43,27 @@ namespace Jsonifier {
 				break;
 			}
 			case JsonType::Float: {
+				this->setValue(JsonType::Float);
 				this->jsonValue.numberDouble = data.jsonValue.numberDouble;
 				break;
 			}
 			case JsonType::Uint64: {
+				this->setValue(JsonType::Uint64);
 				this->jsonValue.numberUint = data.jsonValue.numberUint;
 				break;
 			}
 			case JsonType::Int64: {
+				this->setValue(JsonType::Int64);
 				this->jsonValue.numberInt = data.jsonValue.numberInt;
 				break;
 			}
 			case JsonType::Bool: {
+				this->setValue(JsonType::Bool);
 				this->jsonValue.boolean = data.jsonValue.boolean;
 				break;
 			}
 		}
-		 this->string = std::move(data.string);
-		this->type = data.type;
+		this->string = std::move(data.string);
 		return *this;
 	}
 

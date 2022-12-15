@@ -790,12 +790,8 @@ namespace Jsonifier {
 		inline SimdTape() noexcept = default;
 
 		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = std::make_unique<uint32_t[]>(count / 4);
+			this->tapePtrs = std::make_unique<uint32_t[]>(count / 5);
 		};
-
-		inline uint32_t* operator[](size_t index) {
-			return &this->tapePtrs[index];
-		}
 
 		inline operator uint32_t*() {
 			return &this->tapePtrs[0];
@@ -822,15 +818,13 @@ namespace Jsonifier {
 		inline SimdStringSection() noexcept = default;
 
 		inline void packStringIntoValue(SimdBase256* theValue,const char string[32]) {
-			for (size_t x = 0; x < 32; ++x) {
-				*theValue = string;
-			}
+			*theValue = string;
 		}
 
 		inline size_t getStructuralIndices(SimdTape& jsonRawTape, size_t currentIndex) {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
-				auto newValue = this->S256.getUint64(x);
+				auto newValue = this->S256->getUint64(x);
 				returnValue += jsonRawTape.addTapeValues(&newValue, x, currentIndex);
 			}
 			return returnValue;
@@ -875,19 +869,19 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256 << 1);
-			auto ES = E & this->S256;
+			*this->S256 = B256.bitAndNot(B256 << 1);
+			auto ES = E & *this->S256;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
 			auto OD1 = ECE.bitAndNot(E);
-			auto OS = this->S256 & O;
+			auto OS = *this->S256 & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(prevInString);
+			*this->Q256 = this->Q256->bitAndNot(OD);
+			return this->Q256->carrylessMultiplication(prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -903,13 +897,13 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			this->S256 = this->S256.bitAndNot(this->R256);
-			this->S256 = this->S256 | this->Q256;
-			auto P = this->S256 | this->W256;
+			*this->S256 = this->S256->bitAndNot(*this->R256);
+			*this->S256 = *this->S256 | *this->Q256;
+			auto P = *this->S256 | *this->W256;
 			P = P << 1;
-			P &= (~W256).bitAndNot(this->R256);
-			this->S256 = this->S256 | P;
-			return S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
+			P &= (~*this->W256).bitAndNot(*this->R256);
+			*this->S256 = *this->S256 | P;
+			return this->S256->bitAndNot((this->Q256->bitAndNot(*this->R256)));
 		}
 
 		inline SimdStringSection(const char*valueNew,  int64_t& prevInString) {
@@ -922,19 +916,19 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			
-			this->Q256 = this->collectQuotes();
-			this->R256 = this->collectQuotedRange(prevInString);
-			this->W256 = this->collectWhiteSpace();
-			this->S256 = this->collectStructuralCharacters();
-			this->S256 = this->collectFinalStructurals();
+			*this->Q256 = this->collectQuotes();
+			*this->R256 = this->collectQuotedRange(prevInString);
+			*this->W256 = this->collectWhiteSpace();
+			*this->S256 = this->collectStructuralCharacters();
+			*this->S256 = this->collectFinalStructurals();
 		}
 
 	  protected:
-		SimdBase256 values[8]{};
-		SimdBase256 Q256{};
-		SimdBase256 W256{};
-		SimdBase256 R256{};
-		SimdBase256 S256{};
+		std::unique_ptr<SimdBase256[]> values{ std::make_unique<SimdBase256[]>(8) };
+		std::unique_ptr<SimdBase256> Q256{ std::make_unique<SimdBase256>() };
+		std::unique_ptr<SimdBase256> R256{ std::make_unique<SimdBase256>() };
+		std::unique_ptr<SimdBase256> W256{ std::make_unique<SimdBase256>() };
+		std::unique_ptr<SimdBase256> S256{ std::make_unique<SimdBase256>() };
 	};
 
 	class JsonConstructor;
@@ -944,7 +938,7 @@ namespace Jsonifier {
 		
 		inline SimdJsonValue() noexcept = default;
 
-		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity);
+		inline SimdJsonValue(char* stringNew, size_t tapeLength);
 
 		inline void generateJsonEvents() {
 			int64_t stringSize = this->stringLength;
@@ -1002,7 +996,6 @@ namespace Jsonifier {
 		size_t tapeLength{ 0 };
 		SimdTape jsonRawTape{};
 		size_t stringLength{};
-		uint32_t depth{ 0 };
 		char* stringView{};
 	};
 
@@ -1353,7 +1346,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity) {
+	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t tapeLength) {
 		if (tapeLength == 0) {
 			throw DCAException{ "Failed to parse as the string size is 0." };
 		}
