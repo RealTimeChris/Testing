@@ -572,11 +572,9 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		uint32_t currentIndex{};
 		std::unique_ptr<uint32_t[]> tapePtrs{};
+		uint32_t currentIndex{};
 	};
-
-	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
 
 	class SimdBase128 {
 	  public:
@@ -1002,6 +1000,7 @@ namespace Jsonifier {
 		}
 
 		inline ~SimdJsonValue() noexcept {
+			delete[] this->stringView;
 			delete[] this->isArray;
 		}
 
@@ -1033,7 +1032,7 @@ namespace Jsonifier {
 	}
 
 	inline uint32_t stringToUint32(const char* str) {
-		return uint32_t{};
+		return std::stoull(str);
 	}
 
 	inline uint32_t str4ncmp(const char* src, const char* atom) {
@@ -1046,42 +1045,12 @@ namespace Jsonifier {
 		return (str4ncmp(src, "true") | isNotStructuralOrWhitespace(src[4])) == 0;
 	}
 
-	inline bool isValidTrueAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 4) {
-			return isValidTrueAtom(src);
-		} else if (tapeLength == 4) {
-			return !str4ncmp(src, "true");
-		} else {
-			return false;
-		}
-	}
-
 	inline bool isValidFalseAtom(const char* src) {
 		return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhitespace(src[5])) == 0;
 	}
 
-	inline bool isValidFalseAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 5) {
-			return isValidFalseAtom(src);
-		} else if (tapeLength == 5) {
-			return !str4ncmp(src + 1, "alse");
-		} else {
-			return false;
-		}
-	}
-
 	inline bool isValidNullAtom(const char* src) {
 		return (str4ncmp(src, "null") | isNotStructuralOrWhitespace(src[4])) == 0;
-	}
-
-	inline bool isValidNullAtom(const char* src, size_t tapeLength) {
-		if (tapeLength > 4) {
-			return isValidNullAtom(src);
-		} else if (tapeLength == 4) {
-			return !str4ncmp(src, "null");
-		} else {
-			return false;
-		}
 	}
 
 	enum class ParsingState {
@@ -1400,9 +1369,8 @@ namespace Jsonifier {
 			throw DCAException{ "Failed to parse as the string size is 0." };
 		}
 		this->stringLength = length;
-		this->stringView = stringNew;
-		//new char[this->stringLength]{};
-		//std::copy(stringNew, stringNew + length, this->stringView);
+		this->stringView = new char[this->stringLength]{};
+		std::copy(stringNew, stringNew + length, this->stringView);
 	}
 
 	Jsonifier SimdJsonValue::getJsonData() {
