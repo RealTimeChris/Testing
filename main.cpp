@@ -19,8 +19,8 @@ struct ActivitiesJson {
 		this->type = value["type"].getValue<int32_t>();
 	};
 	std::string createdAt{};
-	std::string id{};
 	std::string name{};
+	std::string id{};
 	int32_t type{};
 };
 
@@ -33,9 +33,6 @@ struct TheDJson {
 		}
 	}
 	std::vector<ActivitiesJson> activities{};
-	bool status{};
-	bool guildId{};
-	std::vector<int8_t> user{};
 };
 
 namespace Jsonifier {
@@ -68,10 +65,11 @@ struct Activities {
 		this->type = DiscordCoreAPI::getInt32(value, "type");
 	};
 	std::string createdAt{};
-	std::string id{};
 	std::string name{};
+	std::string id{};
 	int32_t type{};
 };
+
 struct TheD {
 	TheD() noexcept = default;
 	TheD(simdjson::ondemand::value value) {
@@ -85,9 +83,6 @@ struct TheD {
 		}
 	}
 	std::vector<Activities> activities{};
-	bool status{};
-	bool guildId{};
-	std::vector<int8_t> user{};
 };
 
 struct TheValue {
@@ -97,6 +92,10 @@ struct TheValue {
 	TheD theD{};
 };
 
+template<typename OTy>
+void prepStringForParsing(std::basic_string<OTy>&string) {
+	string.resize(string.size() + 256 - string.size() % 256);
+}
 
 int32_t main() noexcept {
 	try {
@@ -119,7 +118,8 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		std::cout << "THE STRING: " << stringNew << std::endl;
-		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
+		//stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
+		prepStringForParsing(stringNew);
 		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
 		stopWatch.resetTimer();
 		Jsonifier::Jsonifier jsonData{}; 
