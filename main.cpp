@@ -78,7 +78,7 @@ struct TheValue {
 
 template<typename OTy>
 void prepStringForParsing(std::basic_string<OTy>&string) {
-	string.reserve(string.size() + 256 - string.size() % 256);
+	string.resize(string.size() + 256 - string.size() % 256);
 }
 
 int32_t main() noexcept {
@@ -89,6 +89,10 @@ int32_t main() noexcept {
 		//"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
 		//};
 		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
 							   "bitbot.tools\",\"type\":3}]}}" };
 		
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -126,8 +130,10 @@ int32_t main() noexcept {
 		
 		//jsonData{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
+			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
 			Jsonifier::Jsonifier jsonData = std::move(stringScanner.getJsonData());
+			jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
 		}
