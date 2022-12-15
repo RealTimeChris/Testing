@@ -88,10 +88,7 @@ int32_t main() noexcept {
 		//			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 		//"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
 		//};
-		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-							   "bitbot.tools\",\"type\":3}]}}" };
+		std::string stringNew{ "{\"d\":{\"activitiess\":[\"created_at\",\"1669495273631\",\"id\",\"ec0b28a579ecb4bd\",\"name\",\"ETH+0.58%|\"]}}" };
 		
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
@@ -130,8 +127,8 @@ int32_t main() noexcept {
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
 			Jsonifier::Jsonifier jsonData{ std::move(stringScanner.getJsonData()) };
-			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
 		}

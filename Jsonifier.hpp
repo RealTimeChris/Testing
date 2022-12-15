@@ -770,7 +770,6 @@ namespace Jsonifier {
 	  public:
 		inline SimdTape& operator=(SimdTape&& other) noexcept {
 			this->tapePtrs = std::move(other.tapePtrs);
-			this->currentIndex = other.currentIndex;
 			return *this;
 		}
 
@@ -783,12 +782,12 @@ namespace Jsonifier {
 
 		inline SimdTape() noexcept = default;
 
-		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = std::make_unique<uint32_t[]>(count / 4);
-		};
-
 		inline uint32_t* operator[](size_t index) {
 			return &this->tapePtrs[index];
+		}
+
+		void reset() noexcept {
+			this->tapePtrs.clear();
 		}
 
 		inline operator uint32_t*() {
@@ -798,17 +797,15 @@ namespace Jsonifier {
 		inline uint64_t addTapeValues(uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
 			for (int i = 0; i < value; i++) {
-				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+				this->tapePtrs.emplace_back(_tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString);
 				*theBits = _blsr_u64(*theBits);
 			}
 
-			this->currentIndex += value;
 			return value;
 		}
 
 	  protected:
-		uint32_t currentIndex{};
-		std::unique_ptr<uint32_t[]> tapePtrs{};
+		std::vector<uint32_t> tapePtrs{};
 	};
 
 	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00, SimdBase256 input01, SimdBase256 input02, SimdBase256 input03, SimdBase256 input04,
@@ -953,7 +950,7 @@ namespace Jsonifier {
 
 		inline void generateJsonEvents() {
 			int64_t stringSize = this->stringLength;
-			this->jsonRawTape = SimdTape{ stringLength };
+			this->jsonRawTape.reset();
 			this->isArray = std::make_unique<bool[]>(12);
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
@@ -1154,7 +1151,7 @@ namespace Jsonifier {
 	inline Jsonifier JsonConstructor::startDocument() {
 		Jsonifier jsonData{};
 		if (this->atEof()) {
-			return std::move(jsonData);
+			return jsonData;
 		}
 		auto value = this->advance();
 		switch (value) {
@@ -1206,7 +1203,7 @@ namespace Jsonifier {
 				}
 				std::string currentKey = std::move(this->currentKey);
 				jsonData[currentKey] = this->objectBegin(std::move(jsonDataNew));
-				return std::move( jsonData);
+				return std::move(jsonData);
 			}
 			case '[': {
 				Jsonifier jsonDataNew{};
@@ -1216,7 +1213,7 @@ namespace Jsonifier {
 				}
 				std::string currentKey = std::move(this->currentKey);
 				jsonData[currentKey] = this->arrayBegin(std::move(jsonDataNew));
-				return std::move( jsonData);
+				return std::move(jsonData);
 			}
 				
 			default:
@@ -1245,7 +1242,6 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier JsonConstructor::arrayBegin(Jsonifier jsonData) {
-		Jsonifier jsonDataNew{};
 		this->depth++;
 		this->masterParser->getIsArray()[this->depth] = true;
 		if (this->depth >= this->masterParser->getMaxDepth()) {
@@ -1279,7 +1275,7 @@ namespace Jsonifier {
 			}
 			default:
 				jsonData.emplaceBack(this->visitPrimitive(value));
-				return std::move(jsonData);
+				return this->arrayContinue(std::move(jsonData));
 		}
 	}
 
@@ -1287,8 +1283,7 @@ namespace Jsonifier {
 		
 		switch (this->advance()) {
 			case ',': {
-				Jsonifier jsonDataNew{};
-				return this->arrayValue(std::move(jsonDataNew));
+				return this->arrayValue(std::move(jsonData));
 			}
 			case ']': {
 				return this->scopeEnd(std::move(jsonData));
