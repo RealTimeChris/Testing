@@ -543,9 +543,6 @@ namespace Jsonifier {
 			*this = std::move(other);
 		}
 
-		inline SimdTape& operator=(const SimdTape&) noexcept = delete;
-		inline SimdTape(const SimdTape&) noexcept = delete;
-
 		inline SimdTape() noexcept = default;
 
 		inline SimdTape(size_t count) noexcept {
@@ -561,10 +558,10 @@ namespace Jsonifier {
 		}
 
 		inline int64_t addTapeValues(int64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
-			 int64_t value = static_cast<int64_t>(__popcnt64(*theBits));
+			int64_t value = static_cast<int64_t>(__popcnt64(*theBits));
 			for (int i = 0; i < value; i++) {
 				 this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-				 *theBits = _blsr_u64(*theBits);
+				*theBits = _blsr_u64(*theBits);
 			}
 
 			this->currentIndex += value;
@@ -589,7 +586,7 @@ namespace Jsonifier {
 			*this = other;
 		}
 
-		inline operator __m128i() {
+		inline operator __m128i&() {
 			return this->value;
 		}
 
