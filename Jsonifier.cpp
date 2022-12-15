@@ -29,17 +29,23 @@ namespace Jsonifier {
 		switch (data.type) {
 			case JsonType::Object: {
 				this->setValue(JsonType::Object);
-				*this->jsonValue.object = std::move(*data.jsonValue.object);
+				this->jsonValue.object = data.jsonValue.object;
+				data.jsonValue.object = nullptr;
+				data.type = JsonType::Null;
 				break;
 			}
 			case JsonType::Array: {
 				this->setValue(JsonType::Array);
-				*this->jsonValue.array = std::move(*data.jsonValue.array);
+				this->jsonValue.array = data.jsonValue.array;
+				data.jsonValue.array = nullptr;
+				data.type = JsonType::Null;
 				break;
 			}
 			case JsonType::String: {
 				this->setValue(JsonType::String);
-				*this->jsonValue.string = std::move(*data.jsonValue.string);
+				this->jsonValue.string = data.jsonValue.string;
+				data.jsonValue.string= nullptr;
+				data.type = JsonType::Null;
 				break;
 			}
 			case JsonType::Float: {
@@ -145,7 +151,7 @@ namespace Jsonifier {
 	}
 
 	Jsonifier::operator std::string_view() noexcept {
-		return this->string;
+		return std::string_view{ this->string.data(), this->string.size() };
 	}
 
 	JsonType Jsonifier::getType() noexcept {
@@ -650,11 +656,16 @@ namespace Jsonifier {
 	}
 
 	void Jsonifier::writeString(const char* data, std::size_t length) {
-		this->string.append(data, length);
+		if (this->currentUsedSize + length > this->string.size()) {
+			this->string.resize(this->string.size() * 2);
+		}
+		std::copy(data, data + length, this->string.data() + this->currentUsedSize);
+		this->currentUsedSize += length;
 	}
 
 	void Jsonifier::writeCharacter(const char charValue) {
 		this->string.push_back(charValue);
+		++this->currentUsedSize;
 	}
 
 	bool operator==(const Jsonifier& lhs, const Jsonifier& rhs) {

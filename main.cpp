@@ -3,14 +3,6 @@
 #include <simdjson.h>
 //#include "src/generic/stage2/tape_builder.h"
 
-struct ClientStatusJson {
-	ClientStatusJson() noexcept = default;
-	ClientStatusJson(Jsonifier::Jsonifier& value) {
-		this->web = value["web"].getValue<std::string>();
-	};
-	std::string web{};
-};
-
 struct ActivitiesJson {
 	ActivitiesJson(Jsonifier::Jsonifier& value) {
 		this->createdAt = value["created_at"].getValue<std::string>();
@@ -28,7 +20,7 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Jsonifier& value) {
 		auto theArray = value["d"]["activitiess"].getValue<std::vector<ActivitiesJson>>();
-		for (auto value: theArray) {
+		for (auto& value: theArray) {
 			activities.push_back(value);
 		}
 	}
@@ -47,14 +39,6 @@ struct TheValueJson {
 		this->theD = value.getValue<TheDJson>();
 	}
 	TheDJson theD{};
-};
-
-struct ClientStatus {
-	ClientStatus() noexcept = default; 
-	ClientStatus(simdjson::ondemand::value value) {
-		this->web= DiscordCoreAPI::getString(value, "web");
-	};
-	std::string web{};
 };
 
 struct Activities {
@@ -99,8 +83,11 @@ void prepStringForParsing(std::basic_string<OTy>&string) {
 
 int32_t main() noexcept {
 	try {  
-		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-							   "bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\"}]}}" };
+		std::string stringNew{
+			"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
+		};
 		
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
@@ -109,21 +96,7 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		std::cout << "THE STRING: " << stringNew << std::endl;
-		prepStringForParsing(stringNew);
-		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
-		stopWatch.resetTimer();
-		Jsonifier::Jsonifier jsonData{}; 
-		for (size_t x = 0; x < 2048; ++x) {			
-			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
-			jsonData = stringScanner.getJsonData();
-			TheValueJson theValue{ jsonData };
-			totalSize += oldSize;
-		}
-		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		
 		
 
 		stringNew.reserve(stringNew.size() + simdjson::SIMDJSON_PADDING);
@@ -131,7 +104,7 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		for (size_t x = 0; x < 2048; ++x) {
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNew.data(), stringNew.size(), stringNew.capacity());
 			TheValue theValue{ newDocument };
@@ -141,7 +114,25 @@ int32_t main() noexcept {
 		
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		std::cout << "THE STRING: " << stringNew << std::endl;
+		prepStringForParsing(stringNew);
+		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
 
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		
+		
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
+			Jsonifier::Jsonifier jsonData = std::move(stringScanner.getJsonData());
+			TheValueJson theValue{ jsonData };
+			totalSize += oldSize;
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		
 
 
