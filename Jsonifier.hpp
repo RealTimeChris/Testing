@@ -559,8 +559,9 @@ namespace Jsonifier {
 
 		inline int64_t addTapeValues(int64_t& theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
 			int64_t value = static_cast<int64_t>(__popcnt64(theBits));
-			for (int i = 0; i < value; i++) {
-				 this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(theBits) + (currentIndexNew * 64ull) + currentIndexIntoString;
+			for (size_t i = 0; i < value; i++) {
+				this->tapePtrs[static_cast<size_t>(this->currentIndex) + i] =
+					_tzcnt_u64(theBits) + (currentIndexNew * 64ull) + currentIndexIntoString;
 				theBits = _blsr_u64(theBits);
 			}
 
@@ -855,7 +856,7 @@ namespace Jsonifier {
 			SimdBase256 opTable{ valuesNew };
 			SimdBase256 structural[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
+				SimdBase256 valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
 				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
 			}
 
@@ -1256,8 +1257,8 @@ namespace Jsonifier {
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		jsonDataNew.emplaceBack(this->arrayValue(std::move(jsonDataNew)));
-		return jsonDataNew;
+		jsonData.emplaceBack(this->arrayValue(std::move(jsonDataNew)));
+		return jsonData;
 	}
 
 	inline Jsonifier JsonConstructor::arrayValue(Jsonifier jsonData) {
