@@ -945,44 +945,14 @@ namespace Jsonifier {
 		
 		inline SimdJsonValue() noexcept = default;
 
-		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity);
-
-		inline void generateJsonEvents() {
-			int64_t stringSize = this->stringLength;
-			this->jsonRawTape = SimdTape{ stringLength };
-			std::allocator<bool> allocatorBool{};
-			std::allocator_traits<std::allocator<bool>> allocTraitsBool{};
-			if (this->isArray) {
-				allocTraitsBool.destroy(allocatorBool, this->isArray);
-				allocTraitsBool.deallocate(allocatorBool, this->isArray, 25);
-			}
-			this->isArray = allocTraitsBool.allocate(allocatorBool, 25);
-			uint32_t collectedSize{};
-			size_t tapeSize{ 0 };
-			int64_t prevInString{};
-			while (stringSize > 0) {
-				SimdStringSection section(this->stringView + collectedSize, prevInString);
-				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
-				tapeSize += indexCount;
-				
-				stringSize -= 256;
-				collectedSize += 256;
-			}
-			this->tapeLength = tapeSize;
-			this->nextStructural = this->jsonRawTape.operator uint32_t*();
-		}
-
-		inline ~SimdJsonValue() noexcept {
-			delete[] this->stringView;
-			delete[] this->isArray;
-		}
-
-		inline char* getStringView() {
-			return this->stringView;
-		}
+		inline SimdJsonValue(char* stringNew, size_t tapeLength);
 
 		inline uint32_t* getAndIncrementNextStructural() {
 			return this->nextStructural++;
+		}
+
+		inline const char* getStringView() {
+			return this->stringView;
 		}
 
 		inline uint32_t* getNextStructural() {
@@ -990,6 +960,30 @@ namespace Jsonifier {
 		}
 
 		inline Jsonifier getJsonData();
+
+		inline void generateJsonEvents() {
+			int64_t stringSize = this->stringLength;
+			this->jsonRawTape = SimdTape{ stringLength };
+			std::allocator<bool> allocatorBool{};
+			std::allocator_traits<std::allocator<bool>> allocTraitsBool{};
+			if (this->isArray) {
+				delete[] this->isArray;
+			}
+			this->isArray = new bool[25]{};
+			uint32_t collectedSize{};
+			size_t tapeSize{ 0 };
+			int64_t prevInString{};
+			while (stringSize > 0) {
+				SimdStringSection section(this->stringView + collectedSize, prevInString);
+				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
+				tapeSize += indexCount;
+
+				stringSize -= 256;
+				collectedSize += 256;
+			}
+			this->tapeLength = tapeSize;
+			this->nextStructural = this->jsonRawTape.operator uint32_t*();
+		}
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -1001,6 +995,10 @@ namespace Jsonifier {
 
 		inline bool* getIsArray() {
 			return this->isArray;
+		}
+
+		inline ~SimdJsonValue() noexcept {
+			delete[] this->isArray;
 		}
 
 	  protected:
@@ -1393,13 +1391,14 @@ namespace Jsonifier {
 		}
 	}
 
-	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity) {
-		if (tapeLength == 0) {
+	inline SimdJsonValue::SimdJsonValue(char* stringNew, size_t length) {
+		if (length == 0) {
 			throw DCAException{ "Failed to parse as the string size is 0." };
 		}
-		this->stringLength = tapeLength;
-		this->stringView = new char[this->stringLength]{};
-		std::copy(stringNew, stringNew + tapeLength, this->stringView);
+		this->stringLength = length;
+		this->stringView = stringNew;
+		//new char[this->stringLength]{};
+		//std::copy(stringNew, stringNew + length, this->stringView);
 	}
 
 	Jsonifier SimdJsonValue::getJsonData() {

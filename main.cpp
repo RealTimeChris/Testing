@@ -124,7 +124,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		Jsonifier::Jsonifier jsonData{}; 
 		for (size_t x = 0; x < 2048; ++x) {			
-			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
+			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
 			jsonData = stringScanner.getJsonData();
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
