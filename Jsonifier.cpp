@@ -148,7 +148,7 @@ namespace Jsonifier {
 	}
 
 	Jsonifier::operator std::string_view() noexcept {
-		return static_cast<std::string_view>(this->string);
+		return this->string;
 	}
 
 	JsonType Jsonifier::getType() noexcept {

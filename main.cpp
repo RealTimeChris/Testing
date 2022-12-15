@@ -1,15 +1,19 @@
 #include "Jsonifier.hpp"
 #include "DataParsingFunctionc.hpp"
-#include <simdjson.h>
-//#include "src/generic/stage2/tape_builder.h"
+
+#ifdef SIMDJSON_THREADS_ENABLED
+	#undef SIMDJSON_THREADS_ENABLED
+#endif
+
+	#include <simdjson.h>
 
 struct ActivitiesJson {
-	//ActivitiesJson(Jsonifier::Jsonifier& value) {
-	//this->createdAt = value["created_at"].getValue<std::string>();
-	//		this->id= value["id"].getValue<std::string>();
-	//		this->name= value["name"].getValue<std::string>();
-	//		this->type = value["type"].getValue<int32_t>();
-	//};
+	ActivitiesJson(Jsonifier::Jsonifier& value) {
+	this->createdAt = value["created_at"].getValue<std::string>();
+			this->id= value["id"].getValue<std::string>();
+			this->name= value["name"].getValue<std::string>();
+			this->type = value["type"].getValue<int32_t>();
+	};
 	std::string createdAt{};
 	std::string name{};
 	std::string id{};
@@ -83,26 +87,28 @@ void prepStringForParsing(std::basic_string<OTy>&string) {
 
 int32_t main() noexcept {
 	try {  
-		std::string stringNew{
-			"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
-		};
+		//std::string stringNew{
+		//"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+		//			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+		//			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
+		//};
+
+		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\",\"type\":3},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\",\"type\":3}]}}" };
 		
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
-		std::string stringNewer = stringNew;
 		prepStringForParsing(stringNew);
 		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
 
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-
 		Jsonifier::Jsonifier jsonData{};
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+		for (size_t x = 0ull; x < 1ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
 			jsonData = std::move(stringScanner.getJsonData());
 			TheValueJson theValue{ jsonData };
@@ -110,8 +116,8 @@ int32_t main() noexcept {
 		}
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 
 		totalSize = 0;
 		totalTime = 0;
@@ -119,14 +125,14 @@ int32_t main() noexcept {
 		
 		
 
-		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
+		stringNew.reserve(stringNew.size() + simdjson::SIMDJSON_PADDING);
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			simdjson::ondemand::parser parser{};
-			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
+			auto newDocument = parser.iterate(stringNew.data(), stringNew.size(), stringNew.capacity());
 			TheValue theValue{ newDocument };
 			totalSize += oldSize;
 			

@@ -28,6 +28,10 @@
 #ifndef DATA_PARSING_FUNCTIONS
 	#define DATA_PARSING_FUNCTIONS
 
+#ifdef SIMDJSON_THREADS_ENABLED
+		#undef SIMDJSON_THREADS_ENABLED
+	#endif
+
 	#include <simdjson.h>
 	#include <map>
 
