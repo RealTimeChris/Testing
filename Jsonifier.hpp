@@ -549,7 +549,7 @@ namespace Jsonifier {
 		inline SimdTape() noexcept = default;
 
 		inline SimdTape(size_t count) noexcept {
-			this->tapePtrs = new uint32_t[count]{};
+			this->tapePtrs = std::make_unique<uint32_t[]>(count);
 		};
 
 		inline uint32_t* operator[](size_t index) {
@@ -573,7 +573,7 @@ namespace Jsonifier {
 
 	  protected:
 		uint32_t currentIndex{};
-		uint32_t* tapePtrs{};
+		std::unique_ptr<uint32_t[]> tapePtrs{};
 	};
 
 	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
@@ -703,33 +703,37 @@ namespace Jsonifier {
 			return this->value;
 		}
 
-		inline SimdBase256 operator|(SimdBase256 other) {
-			return _mm256_or_si256(this->value, other);
+		inline SimdBase256& operator|(SimdBase256 other) {
+			*this = _mm256_or_si256(this->value, other);
+			return *this;
 		}
 
-		inline SimdBase256 operator&(SimdBase256 other) {
-			return _mm256_and_si256(this->value, other);
+		inline SimdBase256& operator&(SimdBase256 other) {
+			*this = _mm256_and_si256(this->value, other);
+			return *this;
 		}
 
-		inline SimdBase256 operator^(SimdBase256 other) {
-			return _mm256_xor_si256(this->value, other);
+		inline SimdBase256& operator^(SimdBase256 other) {
+			*this = _mm256_xor_si256(this->value, other);
+			return *this;
 		}
 
-		inline SimdBase256 operator+(SimdBase256 other) {
-			return _mm256_add_epi8(this->value, other);
+		inline SimdBase256& operator+(SimdBase256 other) {
+			*this = _mm256_add_epi8(this->value, other);
+			return *this;
 		}
 
-		inline SimdBase256 operator|=(SimdBase256 other) {
+		inline SimdBase256& operator|=(SimdBase256 other) {
 			*this = *this | other;
 			return *this;
 		}
 
-		inline SimdBase256 operator&=(SimdBase256 other) {
+		inline SimdBase256& operator&=(SimdBase256 other) {
 			*this = *this & other;
 			return *this;
 		}
 
-		inline SimdBase256 operator^=(SimdBase256 other) {
+		inline SimdBase256& operator^=(SimdBase256 other) {
 			*this = *this ^ other;
 			return *this;
 		}
