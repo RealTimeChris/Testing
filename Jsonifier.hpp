@@ -739,29 +739,30 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator<<(size_t amount) {
 			int64_t values[4]{};
-			values[0] = _mm256_extract_epi64(this->value, 0);
-			values[1] = _mm256_extract_epi64(this->value, 1);
-			values[2] = _mm256_extract_epi64(this->value, 2);
-			values[3] = _mm256_extract_epi64(this->value, 3);
+			values[0] = this->getInt64(0);
+			values[1] = this->getInt64(1);
+			values[2] = this->getInt64(2);
+			values[3] = this->getInt64(3);
 			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, (values[0] << (amount % 64)), 0);
-			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount % 64)) | ((values[0] & 1ull) << 63), 1);
-			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount % 64)) | ((values[1] & 1ull) << 63), 2);
-			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount % 64)) | ((values[2] & 1ull) << 63), 3);
+			newValues.insertInt64(values[0] << (amount % 64), 0);
+			newValues.insertInt64(values[1] << (amount % 64) | ((values[0] & 1ull) << 63), 1);
+			newValues.insertInt64(values[2] << (amount % 64) | ((values[1] & 1ull) << 63), 2);
+			newValues.insertInt64(values[3] << (amount % 64) | ((values[2] & 1ull) << 63), 3);
 			return newValues;
 		}
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
+			newValues.insertInt64(~this->getInt64(0), 0);
+			newValues.insertInt64(~this->getInt64(1), 1);
+			newValues.insertInt64(~this->getInt64(2), 2);
+			newValues.insertInt64(~this->getInt64(3), 3);
 			return newValues;
 		}
 
 		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
+			SimdBase256 returnValue{};
 			auto inString00 =
 				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
@@ -812,8 +813,8 @@ namespace Jsonifier {
 	};
 
 	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB) {
-		uint32_t r_lo = _mm256_movemask_epi8(inputA);
-		uint32_t r_hi = _mm256_movemask_epi8(inputB);
+		int32_t r_lo = _mm256_movemask_epi8(inputA);
+		int32_t r_hi = _mm256_movemask_epi8(inputB);
 		return static_cast<uint64_t>(r_lo) | static_cast<uint64_t>(r_hi) << 32;
 	}
 
@@ -821,7 +822,7 @@ namespace Jsonifier {
 	  public:
 		inline SimdStringSection() noexcept = default;
 
-		inline void packStringIntoValue(SimdBase256* theValue,const char string[32]) {
+		inline void packStringIntoValue(SimdBase256* theValue, const char string[32]) {
 			for (size_t x = 0; x < 32; ++x) {
 				*theValue = string;
 			}
@@ -875,15 +876,15 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256 << 1);
+			this->S256 = B256 & ~(B256 << 1);
 			auto ES = E & this->S256;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
-			auto ECE = EC.bitAndNot(B256);
-			auto OD1 = ECE.bitAndNot(E);
+			auto ECE = EC & ~B256;
+			auto OD1 = ECE & ~E;
 			auto OS = this->S256 & O;
 			auto OC = B256 + OS;
-			auto OCE = OC.bitAndNot(B256);
+			auto OCE = OC & ~B256;
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			this->Q256 = this->Q256.bitAndNot(OD);
@@ -903,11 +904,11 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			this->S256 = this->S256.bitAndNot(this->R256);
+			this->S256 = this->S256 & ~this->R256;
 			this->S256 = this->S256 | this->Q256;
 			auto P = this->S256 | this->W256;
 			P = P << 1;
-			P &= (~W256).bitAndNot(this->R256);
+			P &= (~this->W256).bitAndNot(this->R256);
 			this->S256 = this->S256 | P;
 			return S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
 		}
