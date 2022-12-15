@@ -211,7 +211,7 @@ namespace Jsonifier {
 		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
 		using ObjectType = std::map<std::string, Jsonifier, std::less<>, MapAllocatorType>;
 		using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
-		using StringType = std::string_view;
+		using StringType = std::string;
 		using FloatType = double;
 		using UintType = uint64_t;
 		using IntType = int64_t;
@@ -419,9 +419,8 @@ namespace Jsonifier {
 
 	  protected:
 		JsonType type{ JsonType::Null };
-		std::vector<char> string{};
-		size_t currentUsedSize{};
 		JsonValue jsonValue{};
+		std::string string{};
 
 		void serializeJsonToEtfString(const Jsonifier* jsonData);
 
@@ -720,17 +719,17 @@ namespace Jsonifier {
 			return _mm256_add_epi8(this->value, other);
 		}
 
-		inline SimdBase256 operator|=(SimdBase256 other) {
+		inline SimdBase256& operator|=(SimdBase256 other) {
 			*this = *this | other;
 			return *this;
 		}
 
-		inline SimdBase256 operator&=(SimdBase256 other) {
+		inline SimdBase256& operator&=(SimdBase256 other) {
 			*this = *this & other;
 			return *this;
 		}
 
-		inline SimdBase256 operator^=(SimdBase256 other) {
+		inline SimdBase256& operator^=(SimdBase256 other) {
 			*this = *this ^ other;
 			return *this;
 		}
@@ -1102,7 +1101,7 @@ namespace Jsonifier {
 		inline std::string_view visitKey() noexcept;
 		inline Jsonifier visitEmptyObject();
 		inline Jsonifier visitEmptyArray();
-		inline Jsonifier startDocument(Jsonifier);
+		inline Jsonifier startDocument();
 		inline Jsonifier objectBegin(Jsonifier);
 		inline Jsonifier objectField(Jsonifier);
 		inline Jsonifier objectContinue(Jsonifier);
@@ -1188,9 +1187,10 @@ namespace Jsonifier {
 		return *this->masterParser->getNextStructural();
 	}
 				
-	inline Jsonifier JsonConstructor::startDocument(Jsonifier jsonData) {
+	inline Jsonifier JsonConstructor::startDocument() {
+		Jsonifier jsonData{};
 		if (this->atEof()) {
-			return std::move( jsonData);
+			return jsonData;
 		}
 		auto value = this->advance();
 		switch (value) {
@@ -1241,7 +1241,7 @@ namespace Jsonifier {
 					return this->visitEmptyObject();
 				}
 				std::string currentKey = std::move(this->currentKey);
-				jsonData[currentKey] = this->objectBegin(jsonDataNew);
+				jsonData[currentKey] = this->objectBegin(std::move(jsonDataNew));
 				return std::move( jsonData);
 			}
 			case '[': {
@@ -1251,7 +1251,7 @@ namespace Jsonifier {
 					return this->visitEmptyArray();
 				}
 				std::string currentKey = std::move(this->currentKey);
-				jsonData[currentKey] = this->arrayBegin(jsonDataNew);
+				jsonData[currentKey] = this->arrayBegin(std::move(jsonDataNew));
 				return std::move( jsonData);
 			}
 				
@@ -1287,8 +1287,7 @@ namespace Jsonifier {
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		jsonData.emplaceBack(this->arrayValue(std::move(jsonDataNew)));
-		return jsonData;
+		return this->arrayValue(std::move(jsonData));
 	}
 
 	inline Jsonifier JsonConstructor::arrayValue(Jsonifier jsonData) {
@@ -1298,20 +1297,25 @@ namespace Jsonifier {
 				Jsonifier jsonDataNew{};
 				if (this->peek() == '}') {
 					this->advance();
-					return this->visitEmptyObject();
+					jsonData.emplaceBack(this->visitEmptyObject());
+					return jsonData;
 				}
-				return this->objectBegin(std::move(jsonDataNew));
+				jsonData.emplaceBack(this->objectBegin(std::move(jsonDataNew)));
+				return jsonData;
 			}
 			case '[': {
 				Jsonifier jsonDataNew{};
 				if (this->peek() == ']') {
 					this->advance();
-					return this->visitEmptyArray();
+					jsonData.emplaceBack(this->visitEmptyArray());
+					return jsonData;
 				}
-				return this->arrayBegin(std::move(jsonDataNew));
+				jsonData.emplaceBack(this->arrayBegin(std::move(jsonDataNew)));
+				return jsonData;
 			}
 			default:
-				return this->visitPrimitive(value);
+				jsonData.emplaceBack(this->visitPrimitive(value));
+				return jsonData;
 		}
 	}
 
@@ -1320,8 +1324,7 @@ namespace Jsonifier {
 		switch (this->advance()) {
 			case ',': {
 				Jsonifier jsonDataNew{};
-				jsonData.emplaceBack(this->arrayValue(std::move(jsonDataNew)));
-				return std::move(jsonData);
+				return this->arrayValue(std::move(jsonDataNew));
 			}
 			case ']': {
 				return this->scopeEnd(std::move(jsonData));
@@ -1403,9 +1406,8 @@ namespace Jsonifier {
 	Jsonifier SimdJsonValue::getJsonData() {
 		this->generateJsonEvents();
 		JsonConstructor theBuilder{ *this };
-		Jsonifier jsonData{};
-		jsonData = theBuilder.startDocument(std::move(jsonData));
-		return std::move( jsonData);
+		return theBuilder.startDocument();
+		
 	}
 
 };

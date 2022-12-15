@@ -122,17 +122,17 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		
-		
+		Jsonifier::Jsonifier jsonData{}; 
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
-			Jsonifier::Jsonifier jsonData = std::move(stringScanner.getJsonData());
+			jsonData = std::move(stringScanner.getJsonData());
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		
 
 
