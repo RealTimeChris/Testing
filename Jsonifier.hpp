@@ -566,7 +566,7 @@ namespace Jsonifier {
 			*this = other;
 		}
 
-		inline SimdBase256& operator=(const char* values){
+		inline SimdBase256& operator=(const char* values) {
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
@@ -717,17 +717,13 @@ namespace Jsonifier {
 
 		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
-			auto inString00 =
-				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
+			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
-			auto inString01 =
-				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
+			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
 			prevInString = inString01 >> 63;
-			auto inString02 =
-				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
+			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
 			prevInString = inString02 >> 63;
-			auto inString03 =
-				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
+			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
 			prevInString = inString03 >> 63;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
@@ -943,7 +939,6 @@ namespace Jsonifier {
 
 	class SimdJsonValue {
 	  public:
-		
 		inline SimdJsonValue() noexcept = default;
 
 		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity);
@@ -959,7 +954,7 @@ namespace Jsonifier {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
 				tapeSize += indexCount;
-				
+
 				stringSize -= 256;
 				collectedSize += 256;
 			}
@@ -1066,10 +1061,10 @@ namespace Jsonifier {
 		inline Jsonifier visitEmptyObject();
 		inline Jsonifier visitEmptyArray();
 		inline Jsonifier startDocument();
-		inline Jsonifier objectBegin(Jsonifier);
-		inline Jsonifier objectField(Jsonifier);
+		inline Jsonifier objectBegin();
+		inline Jsonifier objectField(Jsonifier jsonData, const std::string& currentKey);
 		inline Jsonifier objectContinue(Jsonifier);
-		inline Jsonifier arrayBegin(Jsonifier);
+		inline Jsonifier arrayBegin();
 		inline Jsonifier arrayValue(Jsonifier);
 		inline Jsonifier arrayContinue(Jsonifier);
 		inline Jsonifier scopeEnd(Jsonifier);
@@ -1093,6 +1088,7 @@ namespace Jsonifier {
 		int32_t depth{};
 		SimdJsonValue* masterParser{};
 		std::string currentKey{};
+		Jsonifier jsonData{};
 	};
 
 	inline std::string_view JsonConstructor::visitKey() noexcept {
@@ -1147,147 +1143,311 @@ namespace Jsonifier {
 	inline uint32_t JsonConstructor::nextStringIndex() noexcept {
 		return *this->masterParser->getNextStructural();
 	}
-				
+
 	inline Jsonifier JsonConstructor::startDocument() {
 		Jsonifier jsonData{};
 		if (this->atEof()) {
 			return jsonData;
 		}
 		auto value = this->advance();
+
 		switch (value) {
 			case '{': {
 				if (this->peek() == '}') {
 					this->advance();
-					return this->visitEmptyObject();
+					this->jsonData = this->visitEmptyObject();
+					break;
 				}
-				return this->objectBegin(std::move(jsonData));
+				goto object_begin;
 			}
 			case '[': {
 				if (this->peek() == ']') {
 					this->advance();
-					return this->visitEmptyObject();
+					this->jsonData = this->visitEmptyArray();
+					break;
 				}
-				return this->arrayBegin(std::move(jsonData));
+				goto array_begin;
 			}
 			default:
-				return this->visitPrimitive(value);
+				this->jsonData = this->visitPrimitive(value);
+				break;
 		}
 
-	}
+		goto document_end;
 
-	inline Jsonifier JsonConstructor::objectBegin(Jsonifier jsonData) {
+	//
+	// Object parser states
+	//
+	object_begin:
 		this->depth++;
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		this->masterParser->getIsArray()[this->depth] = false;
-		auto key = advance();
-		if (key != '"') {
+		this->masterParser->getIsArray()[depth] = false;
+		this->jsonData = Jsonifier{ JsonType::Object };
+
+		{
+			auto key = this->advance();
+			if (key != '"') {
+				return ErrorCode::TapeError;
+			}
+			this->currentKey = this->visitKey();
+		}
+
+	object_field:
+		if (this->advance() != ':') {
 			return ErrorCode::TapeError;
 		}
-		this->currentKey = this->visitKey();
-		return this->objectField(std::move(jsonData));
-	}
+		{
+			auto value = this->advance();
+			switch (value) {
+				case '{':
+					if (this->peek() == '}') {
+						this->advance();
+						this->jsonData = JsonType::Object;
+						break;
+					}
+					goto object_begin;
+				case '[':
+					if (this->peek() == ']') {
+						this->advance();
+						this->jsonData = JsonType::Array;
+						break;
+					}
+					goto array_begin;
+				default:
+					this->jsonData[this->currentKey] = this->visitPrimitive(value);
+					break;
+			}
+		}
 
-	inline Jsonifier JsonConstructor::objectField(Jsonifier jsonData) {
-		if (this->advance() != ':') {
+	object_continue:
+		switch (this->advance()) {
+			case ',': {
+				auto key = advance();
+				if (key != '"') {
+					return ErrorCode::TapeError;
+				}
+				this->currentKey = this->visitKey();
+			}
+				goto object_field;
+			case '}':
+				this->jsonData = JsonType::Object;
+				goto scope_end;
+			default:
 				return ErrorCode::TapeError;
 		}
+
+	scope_end:
+		this->depth--;
+		if (this->depth == 0) {
+			goto document_end;
+		}
+		if (this->masterParser->getIsArray()[depth]) {
+			goto array_continue;
+		}
+		goto object_continue;
+
+		//
+		// Array parser states
+		//
+	array_begin:
+
+		this->depth++;
+		if (this->depth >= this->masterParser->getMaxDepth()) {
+			return ErrorCode::DepthError;
+		}
+		this->masterParser->getIsArray()[depth] = true;
+		this->jsonData = JsonType::Array;
+
+
+	array_value : {
 		auto value = this->advance();
 		switch (value) {
+			case '{':
+				if (this->peek() == '}') {
+					this->advance();
+					this->jsonData = JsonType::Object;
+					break;
+				}
+				goto object_begin;
+			case '[':
+				if (this->peek() == ']') {
+					this->advance();
+					this->jsonData = JsonType::Array;
+					break;
+				}
+				goto array_begin;
+			default:
+				this->jsonData.emplaceBack(this->visitPrimitive(value));
+				break;
+		}
+	}
+
+	array_continue:
+		switch (this->advance()) {
+			case ',':
+				goto array_value;
+			case ']':
+				this->jsonData = JsonType::Array;
+				goto scope_end;
+			default:
+				return ErrorCode::TapeError;
+		}
+
+	document_end:
+		return this->jsonData;
+		/*
+		switch (value) {
 			case '{': {
-				Jsonifier jsonDataNew{};
 				if (this->peek() == '}') {
 					this->advance();
 					return this->visitEmptyObject();
 				}
-				std::string currentKey = std::move(this->currentKey);
-				jsonData[currentKey] = this->objectBegin(std::move(jsonDataNew));
-				return std::move(jsonData);
+				return this->objectBegin();
 			}
 			case '[': {
-				Jsonifier jsonDataNew{};
+				if (this->peek() == ']') {
+					this->advance();
+					return this->visitEmptyObject();
+				}
+				return this->arrayBegin();
+			}
+			default:
+				return this->visitPrimitive(value);
+		}*/
+	}
+
+	inline Jsonifier JsonConstructor::objectBegin() {
+		this->depth++;
+		if (this->depth >= this->masterParser->getMaxDepth()) {
+			return ErrorCode::DepthError;
+		}
+		this->masterParser->getIsArray()[depth] = false;
+		Jsonifier jsonData{};
+		{
+			auto key = this->advance();
+			if (key != '"') {
+				return ErrorCode::TapeError;
+			}
+			auto currentKey = static_cast<std::string>(this->visitKey());
+			return this->objectField(jsonData, currentKey);
+		}
+
+		return Jsonifier{};
+	}
+
+	inline Jsonifier JsonConstructor::objectField(Jsonifier jsonData, const std::string& currentKey) {
+		if (this->advance() != ':') {
+			return ErrorCode::TapeError;
+		}
+		auto value = this->advance();
+		switch (value) {
+			case '{': {
+				if (this->peek() == '}') {
+					this->advance();
+					return this->visitEmptyObject();
+				}
+				jsonData[currentKey] = this->objectBegin();
+				return jsonData;
+			}
+
+			case '[': {
 				if (this->peek() == ']') {
 					this->advance();
 					return this->visitEmptyArray();
 				}
-				std::string currentKey = std::move(this->currentKey);
-				jsonData[currentKey] = this->arrayBegin(std::move(jsonDataNew));
-				return std::move(jsonData);
+				jsonData[currentKey] = this->arrayBegin();
+				return jsonData;
 			}
-				
-			default:
-				std::string currentKey = std::move(this->currentKey);
+			default: {
 				jsonData[currentKey] = this->visitPrimitive(value);
-				return this->objectContinue(std::move(jsonData));
+				return this->objectContinue(jsonData);
+			}
 		}
 	}
 
 	inline Jsonifier JsonConstructor::objectContinue(Jsonifier jsonData) {
-		auto newValue = this->advance();
-		switch (newValue) {
+		switch (this->advance()) {
 			case ',': {
 				auto key = this->advance();
 				if (key != '"') {
 					return ErrorCode::TapeError;
 				}
-				this->currentKey = this->visitKey();
-				return this->objectField(std::move(jsonData));
+				auto currentKey = static_cast<std::string>(this->visitKey());
+				jsonData = this->objectField(jsonData, currentKey);
+				jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "OBJECT CONTINNUE OBJECT FIELD END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
+				return jsonData;
 			}
-			case '}':
-				return this->scopeEnd(std::move(jsonData));
+			case '}': {
+				jsonData = this->scopeEnd(jsonData);
+				jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "OBJECT CONTINUE EXIT SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
+				return jsonData;
+			}
 			default:
 				return ErrorCode::TapeError;
 		}
+
+
+		return Jsonifier{};
 	}
 
-	inline Jsonifier JsonConstructor::arrayBegin(Jsonifier jsonData) {
+	inline Jsonifier JsonConstructor::arrayBegin() {
 		this->depth++;
-		this->masterParser->getIsArray()[this->depth] = true;
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		return this->arrayValue(std::move(jsonData));
+		this->masterParser->getIsArray()[depth] = true;
+		Jsonifier jsonDataNew{};
+		return this->arrayValue(jsonDataNew);
 	}
 
 	inline Jsonifier JsonConstructor::arrayValue(Jsonifier jsonData) {
 		auto value = this->advance();
 		switch (value) {
-			case '{': {
-				Jsonifier jsonDataNew{};
+			case '{':
 				if (this->peek() == '}') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyObject());
-					return std::move(jsonData);
+					return jsonData;
 				}
-				jsonData.emplaceBack(this->objectBegin(std::move(jsonDataNew)));
-				return std::move(jsonData);
-			}
-			case '[': {
-				Jsonifier jsonDataNew{};
-				if (this->peek() == ']') {
+				return jsonData.emplaceBack(this->objectBegin());
+			case '[':
+				if (this->peek() == '}') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyArray());
-					return std::move(jsonData);
+					return jsonData;
 				}
-				jsonData.emplaceBack(this->arrayBegin(std::move(jsonDataNew)));
-				return std::move(jsonData);
-			}
+				return jsonData.emplaceBack(this->arrayBegin());
 			default:
 				jsonData.emplaceBack(this->visitPrimitive(value));
-				return this->arrayContinue(std::move(jsonData));
+				jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "ARRAY VALUE EXIT ARRAY CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
+				jsonData.emplaceBack(this->arrayContinue(jsonData));
+				return jsonData;
 		}
 	}
 
 	inline Jsonifier JsonConstructor::arrayContinue(Jsonifier jsonData) {
-		
 		switch (this->advance()) {
 			case ',': {
-				return this->arrayValue(std::move(jsonData));
+				Jsonifier jsonDataNew{};
+				//jsonData.emplaceBack();
+				jsonData = this->arrayValue(jsonData);
+				jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "ARRAY CONTINUE EXIT ARRAY VALUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
+
+				return jsonData;
 			}
 			case ']': {
-				return this->scopeEnd(std::move(jsonData));
-			}				
+				return this->scopeEnd(jsonData);
+			}
 			default:
 				return ErrorCode::TapeError;
 		}
@@ -1296,26 +1456,32 @@ namespace Jsonifier {
 	inline Jsonifier JsonConstructor::scopeEnd(Jsonifier jsonData) {
 		this->depth--;
 		if (this->depth == 0) {
-			return this->endDocument(std::move(jsonData));
+			return this->endDocument(jsonData);
 		}
-		if (this->masterParser->getIsArray()[depth]) {
-			return this->arrayContinue(std::move(jsonData));
+		if (this->masterParser->getIsArray()[this->depth]) {
+			Jsonifier jsonDataNew{};
+			return jsonData.emplaceBack(this->arrayContinue(jsonDataNew));
 		}
-		return this->objectContinue(std::move(jsonData));
+		Jsonifier jsonDataNew{};
+		jsonData[this->currentKey] = this->objectContinue(jsonDataNew);
+		return jsonData;
 	}
 	inline Jsonifier JsonConstructor::endDocument(Jsonifier jsonData) {
-		return std::move( jsonData);
+		return jsonData;
 	}
-	
-	inline JsonConstructor::JsonConstructor(SimdJsonValue& _dom_parser) noexcept : masterParser{ &_dom_parser } {
-	};
+
+	inline JsonConstructor::JsonConstructor(SimdJsonValue& _dom_parser) noexcept : masterParser{ &_dom_parser } {};
 
 	inline const char JsonConstructor::peek() noexcept {
-		return this->masterParser->getStringView()[*(this->masterParser->getNextStructural())];
+		auto newChar = this->masterParser->getStringView()[*(this->masterParser->getNextStructural())];
+		//std::cout << "THE PEEKED CHAR: " << newChar << std::endl;
+		return newChar;
 	}
 
 	inline const char JsonConstructor::advance() noexcept {
-		return this->masterParser->getStringView()[*(this->masterParser->getAndIncrementNextStructural())];
+		auto newChar = this->masterParser->getStringView()[*(this->masterParser->getAndIncrementNextStructural())];
+		//std::cout << "THE NEXT CHAR: " << newChar << std::endl;
+		return newChar;
 	}
 
 	inline bool JsonConstructor::atEof() noexcept {
@@ -1365,7 +1531,6 @@ namespace Jsonifier {
 	Jsonifier SimdJsonValue::getJsonData() {
 		this->generateJsonEvents();
 		return JsonConstructor{ *this }.startDocument();
-		
 	}
 
-};
+}

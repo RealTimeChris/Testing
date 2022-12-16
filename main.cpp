@@ -6,8 +6,8 @@
 struct ActivitiesJson {
 	ActivitiesJson(Jsonifier::Jsonifier& value) {
 		this->createdAt = value["created_at"].getValue<std::string>();
-		this->id= value["id"].getValue<std::string>();
-		this->name= value["name"].getValue<std::string>();
+		this->id = value["id"].getValue<std::string>();
+		this->name = value["name"].getValue<std::string>();
 		this->type = value["type"].getValue<int32_t>();
 	};
 	std::string createdAt{};
@@ -76,20 +76,20 @@ struct TheValue {
 	TheD theD{};
 };
 
-template<typename OTy>
-void prepStringForParsing(std::basic_string<OTy>&string) {
+template<typename OTy> void prepStringForParsing(std::basic_string<OTy>& string) {
 	string.resize(string.size() + 256 - string.size() % 256);
 }
 
 int32_t main() noexcept {
-	try {  
+	try {
 		//std::string stringNew{
 		//"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
 		//			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 		//"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
 		//};
-		std::string stringNew{ "{\"d\":{\"activitiess\":[\"created_at\",\"1669495273631\",\"id\",\"ec0b28a579ecb4bd\",\"name\",\"ETH+0.58%|\"]}}" };
-		
+		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\"},{\"id\":\"ec0b28a579ecb4bd\"},{\"name\":\"ETH+0.58%|"
+							   "bitbot.tools\"},{\"type\":3}]}}" };
+
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
@@ -98,7 +98,7 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		auto stringNewer = stringNew;
-		
+
 
 		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
 		std::cout << "THE STRING: " << stringNew << std::endl;
@@ -110,9 +110,8 @@ int32_t main() noexcept {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue theValue{ newDocument };
 			totalSize += oldSize;
-			
 		}
-		
+
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
@@ -122,7 +121,7 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		
+
 		//jsonData{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
@@ -136,7 +135,7 @@ int32_t main() noexcept {
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		//		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		
+
 
 
 	} catch (std::runtime_error& e) {
