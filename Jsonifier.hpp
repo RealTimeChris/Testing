@@ -555,8 +555,10 @@ namespace Jsonifier {
 
 	class SimdBase256 {
 	  public:
-		inline SimdBase256() noexcept = default;
-
+		inline SimdBase256() noexcept {
+			this->value = _mm256_set1_epi64x(0xffffffff);
+		};
+		
 		inline SimdBase256& operator=(char other) {
 			this->value = _mm256_set1_epi8(other);
 			return *this;
@@ -653,7 +655,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline operator __m256i&() {
+		inline operator __m256i() {
 			return this->value;
 		}
 
@@ -980,6 +982,10 @@ namespace Jsonifier {
 			this->value = value;
 		}
 
+		inline void insertInt32(int32_t value, size_t index) {
+			*(reinterpret_cast<int32_t*>(&this->value) + index) = value;
+		}
+
 		explicit inline operator int64_t&() {
 			return this->value;
 		}
@@ -1067,8 +1073,8 @@ namespace Jsonifier {
 		
 	inline SimdBase64 convertSimdBytesToBits(SimdBase256 input00, SimdBase256 input01) {
 		SimdBase64 returnValue{};
-		returnValue |= _mm256_movemask_epi8(input00);
-		returnValue |= _mm256_movemask_epi8(input01);
+		returnValue.insertInt32(_mm256_movemask_epi8(input00), 0);
+		returnValue.insertInt32(_mm256_movemask_epi8(input01), 1);
 		return returnValue;
 	}
 
@@ -1076,7 +1082,7 @@ namespace Jsonifier {
 	  public:
 		inline SimdStringSection64() noexcept = default;
 
-		inline void packStringIntoValue(SimdBase256* theValue, const char string[8]) {
+		inline void packStringIntoValue(SimdBase256* theValue, const char string[32]) {
 			*theValue = string;
 		}
 
@@ -1091,30 +1097,32 @@ namespace Jsonifier {
 			char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
 				100, '\t', '\n', 112, 100, '\r', 100, 100 };
 			SimdBase256 whitespaceTable{ valuesNew };
-			SimdBase256 whiteSpaceReal{};
-			whiteSpaceReal = this->values.shuffle(whitespaceTable) == this->values;
-			return convertSimdBytesToBits(whiteSpaceReal, whiteSpaceReal);
+			SimdBase256 whiteSpaceReal[2]{};
+			whiteSpaceReal[0] = this->values[0].shuffle(whitespaceTable) == this->values[0];
+			whiteSpaceReal[1] = this->values[1].shuffle(whitespaceTable) == this->values[1];
+			return convertSimdBytesToBits(whiteSpaceReal[0], whiteSpaceReal[1]);
 		}
 
 		inline SimdBase64 collectStructuralCharacters() {
 			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ valuesNew };
-			SimdBase256 structural{};
-			auto valuesNew00 = this->values | SimdBase256{ 0x20 };
-			structural = this->values.shuffle(opTable) == valuesNew00;
+			SimdBase256 structural[2]{};
+			auto valuesNew00 = this->values[0] | SimdBase256{ 0x20 };
+			auto valuesNew01 = this->values[1] | SimdBase256{ 0x20 };
+			structural[0] = this->values[0].shuffle(opTable) == valuesNew00;
+			structural[1] = this->values[1].shuffle(opTable) == valuesNew00;
 
-			return convertSimdBytesToBits(structural, structural);
+			return convertSimdBytesToBits(structural[0], structural[1]);
 		}
 
 		inline SimdBase64 collectQuotedRange(int64_t& prevInString) {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
-			SimdBase256 backslashesReal{};
-			backslashesReal = this->values == backslashes;
+			SimdBase256 backslashesReal[2]{};
+			backslashesReal[0] = this->values[0] == backslashes;
 
-			auto B64 = convertSimdBytesToBits(backslashesReal, backslashesReal);
-			/*
-			SimdBase64 E{ 0b01010101 };
-			SimdBase64 O{ 0b10101010 };
+			auto B64 = convertSimdBytesToBits(backslashesReal[0], backslashesReal[1]);
+			SimdBase64 E{ 0b0101010101010101010101010101010101010101010101010101010101010101 };
+			SimdBase64 O{ 0b1010101010101010101010101010101010101010101010101010101010101010 };
 			this->S64 = B64 & ~(B64 << 1);
 			auto ES = E & this->S64;
 			SimdBase64 EC{};
@@ -1127,16 +1135,16 @@ namespace Jsonifier {
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			this->Q64 = this->Q64 & ~(OD);
-			*/
 			return this->Q64.carrylessMultiplication(prevInString);
 		}
 
 		inline SimdBase64 collectQuotes() {
 			SimdBase256 quotes = _mm256_set1_epi8('"');
-			SimdBase256 quotesReal{};
-			quotesReal = (this->values == quotes);
+			SimdBase256 quotesReal[2]{};
+			quotesReal[0] = (this->values[0] == quotes);
+			quotesReal[1] = (this->values[1] == quotes);
 
-			return convertSimdBytesToBits(quotesReal, quotesReal);
+			return convertSimdBytesToBits(quotesReal[0], quotesReal[1]);
 		}
 
 		inline SimdBase64 collectFinalStructurals() {
@@ -1150,7 +1158,8 @@ namespace Jsonifier {
 		}
 
 		inline SimdStringSection64(const char* valueNew, int64_t& prevInString) {
-			this->packStringIntoValue(&this->values, valueNew);
+			this->packStringIntoValue(&this->values[0], valueNew);
+			this->packStringIntoValue(&this->values[1], valueNew + 32);
 
 			this->Q64 = this->collectQuotes();
 			this->R64 = this->collectQuotedRange(prevInString);
@@ -1160,7 +1169,7 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		SimdBase256 values{};
+		SimdBase256 values[2]{};
 		SimdBase64 Q64{};
 		SimdBase64 W64{};
 		SimdBase64 R64{};
@@ -1184,19 +1193,22 @@ namespace Jsonifier {
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
 			while (stringSize > 0) {
-				SimdStringSection section(this->stringView + collectedSize, prevInString);
-				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
-				tapeSize += indexCount;
-				
-				stringSize -= 64;
-				collectedSize += 256;
+				if (stringSize >= 256) {
+					SimdStringSection section(this->stringView + collectedSize, prevInString);
+					auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
+					tapeSize += indexCount;
+					stringSize -= 256;
+					collectedSize += 256;
+				} else if (stringSize >= 64) {
+					SimdStringSection64 section(this->stringView + collectedSize, prevInString);
+					auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
+					tapeSize += indexCount;
+					stringSize -= 64;
+					collectedSize += 64;
+				}
 			}
 			this->tapeLength = tapeSize;
 			this->nextStructural = this->jsonRawTape.operator uint32_t*();
-		}
-
-		inline ~SimdJsonValue() noexcept {
-			delete[] this->stringView;
 		}
 
 		inline char* getStringView() {
@@ -1217,12 +1229,16 @@ namespace Jsonifier {
 			return this->maxDepth;
 		}
 
-		inline size_t getTapeLength() {
+		inline uint32_t getTapeLength() {
 			return this->tapeLength;
 		}
 
 		inline bool* getIsArray() {
 			return this->isArray.get();
+		}
+
+		inline ~SimdJsonValue() noexcept {
+			delete[] this->stringView;
 		}
 
 	  protected:
