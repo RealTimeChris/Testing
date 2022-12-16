@@ -566,7 +566,7 @@ namespace Jsonifier {
 			*this = other;
 		}
 
-		inline SimdBase256& operator=(const char* values) {
+		inline SimdBase256& operator=(const char* values){
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
@@ -717,13 +717,17 @@ namespace Jsonifier {
 
 		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
-			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
+			auto inString00 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
-			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
+			auto inString01 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
 			prevInString = inString01 >> 63;
-			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
+			auto inString02 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
 			prevInString = inString02 >> 63;
-			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
+			auto inString03 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
 			prevInString = inString03 >> 63;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
@@ -823,9 +827,7 @@ namespace Jsonifier {
 		inline SimdStringSection() noexcept = default;
 
 		inline void packStringIntoValue(SimdBase256* theValue, const char string[32]) {
-			for (size_t x = 0; x < 32; ++x) {
-				*theValue = string;
-			}
+			*theValue = string;
 		}
 
 		inline size_t getStructuralIndices(SimdTape& jsonRawTape, size_t currentIndex) {
@@ -935,10 +937,241 @@ namespace Jsonifier {
 		SimdBase256 S256{};
 	};
 
+	class SimdBase64 {
+	  public:
+		inline SimdBase64() noexcept = default;
+
+		inline SimdBase64& operator=(char other) {
+			char newValues[8]{ other };
+			std::copy(newValues, newValues + 8, &this->value);
+			return *this;
+		}
+
+		inline SimdBase64(char other) {
+			*this = other;
+		}
+
+		inline SimdBase64& operator=(const char* values) {
+			std::copy(values, values + 8, &this->value);
+			return *this;
+		}
+
+		inline SimdBase64(const char* values) {
+			*this = values;
+		}
+
+		inline SimdBase64(int64_t value00) {
+			this->value = value00;
+		}
+
+		inline SimdBase64(uint64_t value00) {
+			this->value = value00;
+		}
+
+		inline uint64_t getUint64() {
+			return static_cast<uint64_t>(this->value);
+		}
+
+		inline int64_t getInt64() {
+			return this->value;
+		}
+
+		inline void insertInt64(int64_t value) {
+			this->value = value;
+		}
+
+		explicit inline operator int64_t&() {
+			return this->value;
+		}
+
+		inline SimdBase64 operator|(SimdBase64 other) {
+			return this->value | other.value;
+		}
+
+		inline SimdBase64 operator&(SimdBase64 other) {
+			return this->value & other.value;
+		}
+
+		inline SimdBase64 operator^(SimdBase64 other) {
+			return this->value ^ other.value;
+		}
+
+		inline SimdBase64 operator+(SimdBase64 other) {
+			return this->value + other.value;
+		}
+
+		inline SimdBase64& operator|=(SimdBase64 other) {
+			*this = *this | other.value;
+			return *this;
+		}
+
+		inline SimdBase64& operator|=(int32_t other) {
+			*this = this->value | other;
+			return *this;
+		}
+
+		inline SimdBase64& operator&=(SimdBase64 other) {
+			*this = *this & other.value;
+			return *this;
+		}
+
+		inline SimdBase64& operator^=(SimdBase64 other) {
+			*this = *this ^ other.value;
+			return *this;
+		}
+
+		inline SimdBase64 operator==(SimdBase64 other) {
+			return int64_t{ this->value == other.value };
+		}
+
+		inline SimdBase64 operator<<(size_t amount) {
+			int64_t newValue{ this->value << amount };
+			return newValue;
+		}
+
+		inline SimdBase64 operator~() {
+			int64_t newValue{ ~this->value };
+			return newValue;
+		}
+
+		inline SimdBase64 carrylessMultiplication(int64_t& prevInString) {
+			SimdBase128 allOnes{ '\xFF' };
+			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64()), allOnes, 0)) ^ prevInString;
+			prevInString = inString00 >> 63;
+			return SimdBase64{ inString00 };
+		}
+
+		inline bool collectCarries(SimdBase64 other1, SimdBase64* result) {
+			bool returnValue{};
+			uint64_t returnValue64{};
+			if (_addcarry_u64(0, this->getUint64(), other1.getUint64(), reinterpret_cast<unsigned long long*>(&returnValue64))) {
+				returnValue = true;
+			}
+			result->insertInt64(returnValue64);
+			return returnValue;
+		}
+
+		inline void printBits(const std::string& valuesTitle) {
+			std::cout << valuesTitle;
+			for (size_t x = 0; x < 32; ++x) {
+				for (size_t y = 0; y < 8; ++y) {
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				}
+			}
+			std::cout << std::endl;
+		}
+
+	  protected:
+		int64_t value{};
+	};
+		
+	inline SimdBase64 convertSimdBytesToBits(SimdBase256 input00, SimdBase256 input01) {
+		SimdBase64 returnValue{};
+		returnValue |= _mm256_movemask_epi8(input00);
+		returnValue |= _mm256_movemask_epi8(input01);
+		return returnValue;
+	}
+
+	class SimdStringSection64 {
+	  public:
+		inline SimdStringSection64() noexcept = default;
+
+		inline void packStringIntoValue(SimdBase256* theValue, const char string[8]) {
+			*theValue = string;
+		}
+
+		inline size_t getStructuralIndices(SimdTape& jsonRawTape, size_t currentIndex) {
+			size_t returnValue{};
+			auto newValue = this->S64.getUint64();
+			returnValue += jsonRawTape.addTapeValues(&newValue, 0, currentIndex);
+			return returnValue;
+		}
+
+		inline SimdBase64 collectWhiteSpace() {
+			char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
+				100, '\t', '\n', 112, 100, '\r', 100, 100 };
+			SimdBase256 whitespaceTable{ valuesNew };
+			SimdBase256 whiteSpaceReal{};
+			whiteSpaceReal = this->values.shuffle(whitespaceTable) == this->values;
+			return convertSimdBytesToBits(whiteSpaceReal, whiteSpaceReal);
+		}
+
+		inline SimdBase64 collectStructuralCharacters() {
+			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
+			SimdBase256 opTable{ valuesNew };
+			SimdBase256 structural{};
+			auto valuesNew00 = this->values | SimdBase256{ 0x20 };
+			structural = this->values.shuffle(opTable) == valuesNew00;
+
+			return convertSimdBytesToBits(structural, structural);
+		}
+
+		inline SimdBase64 collectQuotedRange(int64_t& prevInString) {
+			SimdBase256 backslashes = _mm256_set1_epi8('\\');
+			SimdBase256 backslashesReal{};
+			backslashesReal = this->values == backslashes;
+
+			auto B64 = convertSimdBytesToBits(backslashesReal, backslashesReal);
+			/*
+			SimdBase64 E{ 0b01010101 };
+			SimdBase64 O{ 0b10101010 };
+			this->S64 = B64 & ~(B64 << 1);
+			auto ES = E & this->S64;
+			SimdBase64 EC{};
+			B64.collectCarries(ES, &EC);
+			auto ECE = EC & ~(B64);
+			auto OD1 = ECE & ~(E);
+			auto OS = this->S64 & O;
+			auto OC = B64 + OS;
+			auto OCE = OC & ~(B64);
+			auto OD2 = OCE & E;
+			auto OD = OD1 | OD2;
+			this->Q64 = this->Q64 & ~(OD);
+			*/
+			return this->Q64.carrylessMultiplication(prevInString);
+		}
+
+		inline SimdBase64 collectQuotes() {
+			SimdBase256 quotes = _mm256_set1_epi8('"');
+			SimdBase256 quotesReal{};
+			quotesReal = (this->values == quotes);
+
+			return convertSimdBytesToBits(quotesReal, quotesReal);
+		}
+
+		inline SimdBase64 collectFinalStructurals() {
+			this->S64 = this->S64 & ~this->R64;
+			this->S64 = this->S64 | this->Q64;
+			auto P = this->S64 | this->W64;
+			P = P << 1;
+			P &= (~W64) & ~(this->R64);
+			this->S64 = this->S64 | P;
+			return S64 & ~((this->Q64 & ~(this->R64)));
+		}
+
+		inline SimdStringSection64(const char* valueNew, int64_t& prevInString) {
+			this->packStringIntoValue(&this->values, valueNew);
+
+			this->Q64 = this->collectQuotes();
+			this->R64 = this->collectQuotedRange(prevInString);
+			this->W64 = this->collectWhiteSpace();
+			this->S64 = this->collectStructuralCharacters();
+			this->S64 = this->collectFinalStructurals();
+		}
+
+	  protected:
+		SimdBase256 values{};
+		SimdBase64 Q64{};
+		SimdBase64 W64{};
+		SimdBase64 R64{};
+		SimdBase64 S64{};
+	};
+
 	class JsonConstructor;
 
 	class SimdJsonValue {
 	  public:
+		
 		inline SimdJsonValue() noexcept = default;
 
 		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity);
@@ -954,8 +1187,8 @@ namespace Jsonifier {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
 				tapeSize += indexCount;
-
-				stringSize -= 256;
+				
+				stringSize -= 64;
 				collectedSize += 256;
 			}
 			this->tapeLength = tapeSize;
@@ -1061,10 +1294,10 @@ namespace Jsonifier {
 		inline Jsonifier visitEmptyObject();
 		inline Jsonifier visitEmptyArray();
 		inline Jsonifier startDocument();
-		inline Jsonifier objectBegin();
-		inline Jsonifier objectField(Jsonifier jsonData, const std::string& currentKey);
+		inline Jsonifier objectBegin(Jsonifier);
+		inline Jsonifier objectField(Jsonifier);
 		inline Jsonifier objectContinue(Jsonifier);
-		inline Jsonifier arrayBegin();
+		inline Jsonifier arrayBegin(Jsonifier);
 		inline Jsonifier arrayValue(Jsonifier);
 		inline Jsonifier arrayContinue(Jsonifier);
 		inline Jsonifier scopeEnd(Jsonifier);
@@ -1088,7 +1321,6 @@ namespace Jsonifier {
 		int32_t depth{};
 		SimdJsonValue* masterParser{};
 		std::string currentKey{};
-		Jsonifier jsonData{};
 	};
 
 	inline std::string_view JsonConstructor::visitKey() noexcept {
@@ -1143,7 +1375,7 @@ namespace Jsonifier {
 	inline uint32_t JsonConstructor::nextStringIndex() noexcept {
 		return *this->masterParser->getNextStructural();
 	}
-
+				
 	inline Jsonifier JsonConstructor::startDocument() {
 		Jsonifier jsonData{};
 		if (this->atEof()) {
@@ -1156,166 +1388,134 @@ namespace Jsonifier {
 					this->advance();
 					return this->visitEmptyObject();
 				}
-				return this->objectBegin();
+				return this->objectBegin(std::move(jsonData));
 			}
 			case '[': {
 				if (this->peek() == ']') {
 					this->advance();
 					return this->visitEmptyObject();
 				}
-				return this->arrayBegin();
+				return this->arrayBegin(std::move(jsonData));
 			}
 			default:
 				return this->visitPrimitive(value);
 		}
+
 	}
 
-	inline Jsonifier JsonConstructor::objectBegin() {
+	inline Jsonifier JsonConstructor::objectBegin(Jsonifier jsonData) {
 		this->depth++;
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		this->masterParser->getIsArray()[depth] = false;
-		Jsonifier jsonData{};
-		{
-			auto key = this->advance();
-			if (key != '"') {
-				return ErrorCode::TapeError;
-			}
-			auto currentKey = static_cast<std::string>(this->visitKey());
-			return this->objectField(jsonData, currentKey);
+		this->masterParser->getIsArray()[this->depth] = false;
+		auto key = advance();
+		if (key != '"') {
+			return ErrorCode::TapeError;
 		}
+		this->currentKey = this->visitKey();
+		return this->objectField(std::move(jsonData));
 	}
 
-	inline Jsonifier JsonConstructor::objectField(Jsonifier jsonData, const std::string& currentKey) {
+	inline Jsonifier JsonConstructor::objectField(Jsonifier jsonData) {
 		if (this->advance() != ':') {
-			return ErrorCode::TapeError;
+				return ErrorCode::TapeError;
 		}
 		auto value = this->advance();
 		switch (value) {
 			case '{': {
+				Jsonifier jsonDataNew{};
 				if (this->peek() == '}') {
 					this->advance();
-					std::cout << "OBJECT FIELD VALUE EXIT EMPTY OBJECT: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-							  << std::endl;
 					return this->visitEmptyObject();
 				}
-				std::cout << "OBJECT FIELD VALUE EXIT OBJECT BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				jsonData[currentKey] = this->objectBegin();
-				return jsonData;
+				std::string currentKey = std::move(this->currentKey);
+				jsonData[currentKey] = this->objectBegin(std::move(jsonDataNew));
+				return std::move(jsonData);
 			}
-
 			case '[': {
+				Jsonifier jsonDataNew{};
 				if (this->peek() == ']') {
 					this->advance();
-					std::cout << "OBJECT FIELD VALUE EXIT EMPTY ARRAY: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-							  << std::endl;
 					return this->visitEmptyArray();
 				}
-				std::cout << "OBJECT FIELD VALUE EXIT ARRAY BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				jsonData[currentKey] = this->arrayBegin();
-				return jsonData;
+				std::string currentKey = std::move(this->currentKey);
+				jsonData[currentKey] = this->arrayBegin(std::move(jsonDataNew));
+				return std::move(jsonData);
 			}
-			default: {
-				std::cout << "OBJECT FIELD VALUE EXIT OBEJCT CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
+				
+			default:
+				std::string currentKey = std::move(this->currentKey);
 				jsonData[currentKey] = this->visitPrimitive(value);
-				return this->objectContinue(jsonData);
-			}
+				return this->objectContinue(std::move(jsonData));
 		}
 	}
 
 	inline Jsonifier JsonConstructor::objectContinue(Jsonifier jsonData) {
-		switch (this->advance()) {
+		auto newValue = this->advance();
+		switch (newValue) {
 			case ',': {
 				auto key = this->advance();
 				if (key != '"') {
 					return ErrorCode::TapeError;
 				}
-				auto currentKey = static_cast<std::string>(this->visitKey());
-				jsonData[currentKey] = this->objectField(jsonData, currentKey);
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "OBJECT CONTINNUE EXIT OBJECT FIELD: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return jsonData;
+				this->currentKey = this->visitKey();
+				return this->objectField(std::move(jsonData));
 			}
-			case '}': {
-				std::cout << "OBJECT FIELD VALUE EXIT SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return this->scopeEnd(jsonData) ;
-			}
+			case '}':
+				return this->scopeEnd(std::move(jsonData));
 			default:
 				return ErrorCode::TapeError;
 		}
-
-
-		return Jsonifier{};
 	}
 
-	inline Jsonifier JsonConstructor::arrayBegin() {
+	inline Jsonifier JsonConstructor::arrayBegin(Jsonifier jsonData) {
 		this->depth++;
+		this->masterParser->getIsArray()[this->depth] = true;
 		if (this->depth >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		this->masterParser->getIsArray()[depth] = true;
-		Jsonifier jsonDataNew{};
-		return this->arrayValue(jsonDataNew);
+		return this->arrayValue(std::move(jsonData));
 	}
 
 	inline Jsonifier JsonConstructor::arrayValue(Jsonifier jsonData) {
 		auto value = this->advance();
 		switch (value) {
-			case '{':
+			case '{': {
+				Jsonifier jsonDataNew{};
 				if (this->peek() == '}') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyObject());
-					std::cout << "ARRAY VALUE EXIT EMPTY OBJECT: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-							  << std::endl;
-					return jsonData;
+					return std::move(jsonData);
 				}
-				std::cout << "ARRAY VALUE EXIT OBJECT BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return jsonData.emplaceBack(this->objectBegin());
-			case '[':
-				if (this->peek() == '}') {
+				jsonData.emplaceBack(this->objectBegin(std::move(jsonDataNew)));
+				return std::move(jsonData);
+			}
+			case '[': {
+				Jsonifier jsonDataNew{};
+				if (this->peek() == ']') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyArray());
-					std::cout << "ARRAY VALUE EXIT EMPTY ARRAY: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-							  << std::endl;
-					return jsonData;
+					return std::move(jsonData);
 				}
-				std::cout << "ARRAY VALUE EXIT ARRAY BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return jsonData.emplaceBack(this->arrayBegin());
+				jsonData.emplaceBack(this->arrayBegin(std::move(jsonDataNew)));
+				return std::move(jsonData);
+			}
 			default:
 				jsonData.emplaceBack(this->visitPrimitive(value));
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "ARRAY VALUE EXIT ARRAY CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				//jsonData.emplaceBack();
-				return this->arrayContinue(jsonData);
+				return this->arrayContinue(std::move(jsonData));
 		}
 	}
 
 	inline Jsonifier JsonConstructor::arrayContinue(Jsonifier jsonData) {
+		
 		switch (this->advance()) {
 			case ',': {
-				Jsonifier jsonDataNew{};
-				//jsonData.emplaceBack();
-				//jsonData=;
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "ARRAY CONTINUE EXIT ARRAY VALUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				
-				return this->arrayValue(jsonData);
+				return this->arrayValue(std::move(jsonData));
 			}
 			case ']': {
-				std::cout << "ARRAY CONTINUE EXIT SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
-				return jsonData.emplaceBack(this->scopeEnd(jsonData));
-			}
+				return this->scopeEnd(std::move(jsonData));
+			}				
 			default:
 				return ErrorCode::TapeError;
 		}
@@ -1324,34 +1524,26 @@ namespace Jsonifier {
 	inline Jsonifier JsonConstructor::scopeEnd(Jsonifier jsonData) {
 		this->depth--;
 		if (this->depth == 0) {
-			return this->endDocument(jsonData);
+			return this->endDocument(std::move(jsonData));
 		}
-		if (this->masterParser->getIsArray()[this->depth]) {
-			std::cout << "SCOPE END EXIT ARRAY CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			///Jsonifier jsonDataNew{};
-			return this->arrayContinue(jsonData);
+		if (this->masterParser->getIsArray()[depth]) {
+			return this->arrayContinue(std::move(jsonData));
 		}
-		//Jsonifier jsonDataNew{};
-		//jsonData[this->currentKey] =;
-		std::cout << "SCOPE END EXIT OBJECT CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		return this->objectContinue(jsonData);
+		return this->objectContinue(std::move(jsonData));
 	}
 	inline Jsonifier JsonConstructor::endDocument(Jsonifier jsonData) {
-		return jsonData;
+		return std::move( jsonData);
 	}
-
-	inline JsonConstructor::JsonConstructor(SimdJsonValue& _dom_parser) noexcept : masterParser{ &_dom_parser } {};
+	
+	inline JsonConstructor::JsonConstructor(SimdJsonValue& _dom_parser) noexcept : masterParser{ &_dom_parser } {
+	};
 
 	inline const char JsonConstructor::peek() noexcept {
-		auto newChar = this->masterParser->getStringView()[*(this->masterParser->getNextStructural())];
-		//std::cout << "THE PEEKED CHAR: " << newChar << std::endl;
-		return newChar;
+		return this->masterParser->getStringView()[*(this->masterParser->getNextStructural())];
 	}
 
 	inline const char JsonConstructor::advance() noexcept {
-		auto newChar = this->masterParser->getStringView()[*(this->masterParser->getAndIncrementNextStructural())];
-		//std::cout << "THE NEXT CHAR: " << newChar << std::endl;
-		return newChar;
+		return this->masterParser->getStringView()[*(this->masterParser->getAndIncrementNextStructural())];
 	}
 
 	inline bool JsonConstructor::atEof() noexcept {
@@ -1401,6 +1593,7 @@ namespace Jsonifier {
 	Jsonifier SimdJsonValue::getJsonData() {
 		this->generateJsonEvents();
 		return JsonConstructor{ *this }.startDocument();
+		
 	}
 
-}
+};

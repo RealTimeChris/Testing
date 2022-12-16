@@ -4,6 +4,7 @@
 //#include "src/generic/stage2/tape_builder.h"
 
 struct ActivitiesJson {
+	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Jsonifier& value) {
 		this->createdAt = value["created_at"].getValue<std::string>();
 		this->id = value["id"].getValue<std::string>();
@@ -14,6 +15,14 @@ struct ActivitiesJson {
 	std::string name{};
 	std::string id{};
 	int32_t type{};
+	operator Jsonifier::Jsonifier() {
+		Jsonifier::Jsonifier data{};
+		data["created_at"] = this->createdAt;
+		data["name"] = this->name;
+		data["id"] = this->id;
+		data["type"] = this->type;
+		return data;
+	}
 };
 
 struct TheDJson {
@@ -23,6 +32,13 @@ struct TheDJson {
 		for (auto& value: theArray) {
 			activities.push_back(value);
 		}
+	}
+	operator Jsonifier::Jsonifier() {
+		Jsonifier::Jsonifier serializer{};
+		for (auto& value: this->activities) {
+			serializer["d"]["activities"].emplaceBack(value);
+		}
+		return serializer;
 	}
 	std::vector<ActivitiesJson> activities{};
 };
@@ -87,8 +103,11 @@ int32_t main() noexcept {
 		//			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 		//"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
 		//};
-		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\"},{\"id\":\"ec0b28a579ecb4bd\"},{\"name\":\"ETH+0.58%|"
-							   "bitbot.tools\"},{\"type\":3}]}}" };
+		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"created_at02\":"
+							   "\"1669495273631\",\"id2\":\"ec0b28a579ecb4bd\",\"created_at03\":"
+							   "\"1669495273631\",\"id3\":\"ec0b28a579ecb4bd\",\"created_at04\":"
+							   "\"1669495273631\",\"id4\":false,\"created_at05\":"
+							   "\"1669495273631\"}]}}" };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
@@ -121,17 +140,21 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-
-		//jsonData{};
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+		TheDJson newValue{};
+		newValue.activities.push_back(ActivitiesJson{});
+		auto jsonDataNew = newValue.operator Jsonifier::Jsonifier();
+		jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		for (size_t x = 0ull; x < 2048ull*64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
-			Jsonifier::Jsonifier jsonData{ std::move(stringScanner.getJsonData()) };
-			jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			Jsonifier::Jsonifier jsonData = std::move(stringScanner.getJsonData());
+			
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
+		//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		//		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;

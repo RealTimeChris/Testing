@@ -32,7 +32,7 @@
 	#include <map>
 
 namespace DiscordCoreAPI {
-
+	
 
 	struct ObjectReturnData {
 		simdjson::ondemand::value object{};
@@ -85,6 +85,6 @@ namespace DiscordCoreAPI {
 	ArrayReturnData getArray(simdjson::ondemand::value jsonObjectData, const char* arrayName);
 
 	ArrayReturnData getArray(ObjectReturnData jsonObjectData, const char* arrayName);
-
+	
 };
 #endif

@@ -59,12 +59,12 @@ namespace Jsonifier {
 				break;
 			}
 		}
-		this->string = std::move(data.string);
+		 this->string = std::move(data.string);
 		this->type = data.type;
 		return *this;
 	}
 
-	Jsonifier& Jsonifier::operator=(ErrorCode data) {
+	Jsonifier& Jsonifier::operator=(ErrorCode data)  {
 		throw std::runtime_error{ std::string{ "Error Parsing Json Data - it is: " } + std::to_string(data) };
 		return *this;
 	}
