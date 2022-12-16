@@ -1185,8 +1185,6 @@ namespace Jsonifier {
 			auto currentKey = static_cast<std::string>(this->visitKey());
 			return this->objectField(jsonData, currentKey);
 		}
-
-		return Jsonifier{};
 	}
 
 	inline Jsonifier JsonConstructor::objectField(Jsonifier jsonData, const std::string& currentKey) {
@@ -1198,8 +1196,12 @@ namespace Jsonifier {
 			case '{': {
 				if (this->peek() == '}') {
 					this->advance();
+					std::cout << "OBJECT FIELD VALUE EXIT EMPTY OBJECT: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+							  << std::endl;
 					return this->visitEmptyObject();
 				}
+				std::cout << "OBJECT FIELD VALUE EXIT OBJECT BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 				jsonData[currentKey] = this->objectBegin();
 				return jsonData;
 			}
@@ -1207,12 +1209,18 @@ namespace Jsonifier {
 			case '[': {
 				if (this->peek() == ']') {
 					this->advance();
+					std::cout << "OBJECT FIELD VALUE EXIT EMPTY ARRAY: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+							  << std::endl;
 					return this->visitEmptyArray();
 				}
+				std::cout << "OBJECT FIELD VALUE EXIT ARRAY BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 				jsonData[currentKey] = this->arrayBegin();
 				return jsonData;
 			}
 			default: {
+				std::cout << "OBJECT FIELD VALUE EXIT OBEJCT CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 				jsonData[currentKey] = this->visitPrimitive(value);
 				return this->objectContinue(jsonData);
 			}
@@ -1227,18 +1235,16 @@ namespace Jsonifier {
 					return ErrorCode::TapeError;
 				}
 				auto currentKey = static_cast<std::string>(this->visitKey());
-				jsonData = this->objectField(jsonData, currentKey);
+				jsonData[currentKey] = this->objectField(jsonData, currentKey);
 				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "OBJECT CONTINNUE OBJECT FIELD END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+				std::cout << "OBJECT CONTINNUE EXIT OBJECT FIELD: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
 						  << std::endl;
 				return jsonData;
 			}
 			case '}': {
-				jsonData = this->scopeEnd(jsonData);
-				jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "OBJECT CONTINUE EXIT SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+				std::cout << "OBJECT FIELD VALUE EXIT SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
 						  << std::endl;
-				return jsonData;
+				return this->scopeEnd(jsonData) ;
 			}
 			default:
 				return ErrorCode::TapeError;
@@ -1265,23 +1271,31 @@ namespace Jsonifier {
 				if (this->peek() == '}') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyObject());
+					std::cout << "ARRAY VALUE EXIT EMPTY OBJECT: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+							  << std::endl;
 					return jsonData;
 				}
+				std::cout << "ARRAY VALUE EXIT OBJECT BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 				return jsonData.emplaceBack(this->objectBegin());
 			case '[':
 				if (this->peek() == '}') {
 					this->advance();
 					jsonData.emplaceBack(this->visitEmptyArray());
+					std::cout << "ARRAY VALUE EXIT EMPTY ARRAY: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+							  << std::endl;
 					return jsonData;
 				}
+				std::cout << "ARRAY VALUE EXIT ARRAY BEGIN: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 				return jsonData.emplaceBack(this->arrayBegin());
 			default:
 				jsonData.emplaceBack(this->visitPrimitive(value));
 				jsonData.refreshString(JsonifierSerializeType::Json);
 				std::cout << "ARRAY VALUE EXIT ARRAY CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
 						  << std::endl;
-				jsonData.emplaceBack(this->arrayContinue(jsonData));
-				return jsonData;
+				//jsonData.emplaceBack();
+				return this->arrayContinue(jsonData);
 		}
 	}
 
@@ -1290,15 +1304,17 @@ namespace Jsonifier {
 			case ',': {
 				Jsonifier jsonDataNew{};
 				//jsonData.emplaceBack();
-				jsonData = this->arrayValue(jsonData);
+				//jsonData=;
 				jsonData.refreshString(JsonifierSerializeType::Json);
 				std::cout << "ARRAY CONTINUE EXIT ARRAY VALUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
 						  << std::endl;
-
-				return jsonData;
+				
+				return this->arrayValue(jsonData);
 			}
 			case ']': {
-				return this->scopeEnd(jsonData);
+				std::cout << "ARRAY CONTINUE EXIT SCOPE END: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
+				return jsonData.emplaceBack(this->scopeEnd(jsonData));
 			}
 			default:
 				return ErrorCode::TapeError;
@@ -1311,12 +1327,14 @@ namespace Jsonifier {
 			return this->endDocument(jsonData);
 		}
 		if (this->masterParser->getIsArray()[this->depth]) {
-			Jsonifier jsonDataNew{};
-			return jsonData.emplaceBack(this->arrayContinue(jsonDataNew));
+			std::cout << "SCOPE END EXIT ARRAY CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			///Jsonifier jsonDataNew{};
+			return this->arrayContinue(jsonData);
 		}
-		Jsonifier jsonDataNew{};
-		jsonData[this->currentKey] = this->objectContinue(jsonDataNew);
-		return jsonData;
+		//Jsonifier jsonDataNew{};
+		//jsonData[this->currentKey] =;
+		std::cout << "SCOPE END EXIT OBJECT CONTINUE: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		return this->objectContinue(jsonData);
 	}
 	inline Jsonifier JsonConstructor::endDocument(Jsonifier jsonData) {
 		return jsonData;
