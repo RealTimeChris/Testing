@@ -800,7 +800,6 @@ namespace Jsonifier {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
 			for (int i = 0; i < value; i++) {
 				this->tapePtrs.emplace_back(_tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString);
-				//std::cout << "CURRENT INDEX: " << this->tapePtrs.back() << std::endl;
 				*theBits = _blsr_u64(*theBits);
 			}
 
@@ -943,6 +942,15 @@ namespace Jsonifier {
 	class SimdBase64 {
 	  public:
 		inline SimdBase64() noexcept = default;
+
+		inline SimdBase64& operator=(const char* values) {
+			std::copy(values, values + 8, &this->value);
+			return *this;
+		}
+
+		inline SimdBase64(const char* values) {
+			*this = values;
+		}
 
 		inline SimdBase64(int64_t value00) {
 			this->value = value00;
