@@ -200,12 +200,18 @@ namespace Jsonifier {
 	class JsonifierReal {};
 
 	class Jsonifier;
+	class JsonSerializer;
 
 	template<typename Ty>
 	concept IsConvertibleToJsonifier = std::convertible_to<Ty, Jsonifier>;
 
+	template<typename Ty>
+	concept IsConvertibleToJsonSerializer = std::convertible_to<Ty, JsonSerializer>;
+
 	class Jsonifier {
 	  public:
+		friend class JsonSerializer;
+
 		using MapAllocatorType = std::allocator<std::pair<const std::string, Jsonifier>>;
 		template<typename OTy> using AllocatorType = std::allocator<OTy>;
 		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
@@ -336,10 +342,6 @@ namespace Jsonifier {
 
 		Jsonifier(const Jsonifier& data) noexcept;
 
-		operator std::string_view() noexcept;
-
-		void refreshString(JsonifierSerializeType OpCode);
-
 		bool contains(std::string& key);
 
 		Jsonifier& operator=(EnumConverter&& data) noexcept;
@@ -420,11 +422,231 @@ namespace Jsonifier {
 	  protected:
 		JsonType type{ JsonType::Null };
 		JsonValue jsonValue{};
+
+		void setValue(JsonType TypeNew);
+
+		void destroy() noexcept;
+	};
+
+	class JsonSerializer : public Jsonifier {
+	  public:
+
+		union JsonValue {
+			JsonValue() noexcept = default;
+			JsonValue& operator=(JsonValue&&) noexcept = delete;
+			JsonValue(JsonValue&&) noexcept = delete;
+			JsonValue& operator=(const JsonValue&) noexcept = delete;
+			JsonValue(const JsonValue&) noexcept = delete;
+			ObjectType* object;
+			StringType* string;
+			ArrayType* array;
+			FloatType numberDouble;
+			UintType numberUint;
+			IntType numberInt;
+			BoolType boolean;
+		};
+
+		JsonSerializer() noexcept = default;
+
+		template<IsConvertibleToJsonSerializer OTy> JsonSerializer& operator=(std::vector<OTy>&& data) noexcept {
+			this->setValue(JsonType::Array);
+			for (auto& value: data) {
+				this->jsonValue.array->push_back(std::move(value));
+			}
+			return *this;
+		}
+
+		template<IsConvertibleToJsonSerializer OTy> JsonSerializer(std::vector<OTy>&& data) noexcept {
+			*this = std::move(data);
+		}
+
+		template<IsConvertibleToJsonSerializer OTy> JsonSerializer& operator=(std::vector<OTy>& data) noexcept {
+			this->setValue(JsonType::Array);
+			for (auto& value: data) {
+				this->jsonValue.array->push_back(value);
+			}
+			return *this;
+		}
+
+		template<IsConvertibleToJsonSerializer OTy> JsonSerializer(std::vector<OTy>& data) noexcept {
+			*this = data;
+		}
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer& operator=(std::unordered_map<KTy, OTy>&& data) noexcept {
+			this->setValue(JsonType::Object);
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = std::move(value);
+			}
+			return *this;
+		}
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer(std::unordered_map<KTy, OTy>&& data) noexcept {
+			*this = std::move(data);
+		};
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer& operator=(std::unordered_map<KTy, OTy>& data) noexcept {
+			this->setValue(JsonType::Object);
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = value;
+			}
+			return *this;
+		}
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer(std::unordered_map<KTy, OTy>& data) noexcept {
+			*this = data;
+		};
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer& operator=(std::map<KTy, OTy>&& data) noexcept {
+			this->setValue(JsonType::Object);
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = std::move(value);
+			}
+			return *this;
+		}
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer(std::map<KTy, OTy>&& data) noexcept {
+			*this = std::move(data);
+		};
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer& operator=(std::map<KTy, OTy>& data) noexcept {
+			this->setValue(JsonType::Object);
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = value;
+			}
+			return *this;
+		}
+
+		template<IsConvertibleToJsonSerializer KTy, IsConvertibleToJsonSerializer OTy> JsonSerializer(std::map<KTy, OTy>& data) noexcept {
+			*this = data;
+		};
+
+		template<IsEnum Ty> JsonSerializer& operator=(Ty data) noexcept {
+			this->jsonValue.numberUint = static_cast<uint64_t>(data);
+			this->type = JsonType::Uint64;
+			return *this;
+		}
+
+		template<IsEnum Ty> JsonSerializer(Ty data) noexcept {
+			*this = data;
+		}
+
+		JsonSerializer& operator=(ErrorCode data);
+
+		JsonSerializer(ErrorCode data);
+
+		JsonSerializer& operator=(ObjectType&& data) noexcept;
+
+		JsonSerializer(ObjectType&& data) noexcept;
+
+		JsonSerializer& operator=(const ObjectType& data) noexcept;
+
+		JsonSerializer(const ObjectType& data) noexcept;
+
+		JsonSerializer& operator=(JsonSerializer&& data) noexcept;
+
+		JsonSerializer(JsonSerializer&& data) noexcept;
+
+		JsonSerializer& operator=(const JsonSerializer& data) noexcept;
+
+		JsonSerializer(const JsonSerializer& data) noexcept;
+
+		JsonSerializer& operator=(Jsonifier&& data) noexcept;
+
+		JsonSerializer(Jsonifier&& data) noexcept;
+
+		JsonSerializer& operator=(const Jsonifier& data) noexcept;
+
+		JsonSerializer(const Jsonifier& data) noexcept;
+
+		operator std::string_view() noexcept;
+
+		void refreshString(JsonifierSerializeType OpCode);
+
+		bool contains(std::string& key);
+
+		JsonSerializer& operator=(EnumConverter&& data) noexcept;
+		JsonSerializer(EnumConverter&& data) noexcept;
+
+		JsonSerializer& operator=(const EnumConverter& data) noexcept;
+		JsonSerializer(const EnumConverter& data) noexcept;
+
+		JsonSerializer& operator=(std::string&& data) noexcept;
+		JsonSerializer(std::string&& data) noexcept;
+
+		JsonSerializer& operator=(const std::string& data) noexcept;
+		JsonSerializer(const std::string& data) noexcept;
+
+		JsonSerializer& operator=(std::string_view&& data) noexcept;
+		JsonSerializer(std::string_view&& data) noexcept;
+
+		JsonSerializer& operator=(std::string_view& data) noexcept;
+		JsonSerializer(std::string_view& data) noexcept;
+
+		JsonSerializer& operator=(const char* data) noexcept;
+		JsonSerializer(const char* data) noexcept;
+
+		JsonSerializer& operator=(double data) noexcept;
+		JsonSerializer(double data) noexcept;
+
+		JsonSerializer& operator=(float data) noexcept;
+		JsonSerializer(float data) noexcept;
+
+		JsonSerializer& operator=(uint64_t data) noexcept;
+		JsonSerializer(uint64_t data) noexcept;
+
+		JsonSerializer& operator=(uint32_t data) noexcept;
+		JsonSerializer(uint32_t data) noexcept;
+
+		JsonSerializer& operator=(uint16_t data) noexcept;
+		JsonSerializer(uint16_t data) noexcept;
+
+		JsonSerializer& operator=(uint8_t data) noexcept;
+		JsonSerializer(uint8_t data) noexcept;
+
+		JsonSerializer& operator=(int64_t data) noexcept;
+		JsonSerializer(int64_t data) noexcept;
+
+		JsonSerializer& operator=(int32_t data) noexcept;
+		JsonSerializer(int32_t data) noexcept;
+
+		JsonSerializer& operator=(int16_t data) noexcept;
+		JsonSerializer(int16_t data) noexcept;
+
+		JsonSerializer& operator=(int8_t data) noexcept;
+		JsonSerializer(int8_t data) noexcept;
+
+		JsonSerializer& operator=(bool data) noexcept;
+		JsonSerializer(bool data) noexcept;
+
+		JsonSerializer& operator=(JsonType TypeNew) noexcept;
+		JsonSerializer(JsonType type) noexcept;
+
+		JsonSerializer& operator=(std::nullptr_t) noexcept;
+		JsonSerializer(std::nullptr_t data) noexcept;
+
+		JsonSerializer& operator[](typename ObjectType::key_type key);
+
+		JsonSerializer& operator[](uint64_t index);
+
+		template<typename Ty> Ty getValue() {
+			return Ty{};
+		}
+
+		JsonType getType() noexcept;
+
+		JsonSerializer& emplaceBack(JsonSerializer&& data) noexcept;
+		JsonSerializer& emplaceBack(JsonSerializer& data) noexcept;
+
+		~JsonSerializer() noexcept;
+
+	  protected:
+		JsonType type{ JsonType::Null };
+		JsonValue jsonValue{};
 		std::string string{};
 
-		void serializeJsonToEtfString(const Jsonifier* jsonData);
+		void serializeJsonToEtfString(const Jsonifier* dataToParse);
 
-		void serializeJsonToJsonString(const Jsonifier* jsonData);
+		void serializeJsonToJsonString(const Jsonifier* dataToParse);
 
 		void writeJsonObject(const ObjectType& ObjectNew);
 
@@ -493,7 +715,7 @@ namespace Jsonifier {
 
 		void destroy() noexcept;
 
-		friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
+		friend bool operator==(const JsonSerializer& lhs, const JsonSerializer& rhs);
 	};
 
 	template<> inline Jsonifier::ObjectType Jsonifier::getValue() {
@@ -788,9 +1010,17 @@ namespace Jsonifier {
 			return &this->tapePtrs[index];
 		}
 
-		void reset() noexcept {
-			this->tapePtrs.clear();
+		void reset(size_t count) noexcept {
+			if (this->tapePtrs) {
+				delete[] this->tapePtrs;
+			}
+			this->tapePtrs = new uint32_t[count / 4]{};
 		}
+
+		~SimdTape() {
+			delete[] this->tapePtrs;
+		}
+
 
 		inline operator uint32_t*() {
 			return &this->tapePtrs[0];
@@ -799,15 +1029,16 @@ namespace Jsonifier {
 		inline uint64_t addTapeValues(uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
 			for (int i = 0; i < value; i++) {
-				this->tapePtrs.emplace_back(_tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString);
+				this->tapePtrs[this->currentIndex + i] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 				*theBits = _blsr_u64(*theBits);
 			}
-
+			this->currentIndex += value;
 			return value;
 		}
 
 	  protected:
-		std::vector<uint32_t> tapePtrs{};
+		uint32_t currentIndex{};
+		uint32_t* tapePtrs{};
 	};
 
 	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00, SimdBase256 input01, SimdBase256 input02, SimdBase256 input03, SimdBase256 input04,
@@ -1177,7 +1408,7 @@ namespace Jsonifier {
 
 		inline void generateJsonEvents() {
 			int64_t stringSize = this->stringLength;
-			this->jsonRawTape.reset();
+			this->jsonRawTape.reset(stringSize);
 			this->isArray = std::make_unique<bool[]>(12);
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };

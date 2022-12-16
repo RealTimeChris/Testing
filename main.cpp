@@ -15,8 +15,8 @@ struct ActivitiesJson {
 	std::string name{};
 	std::string id{};
 	int32_t type{};
-	operator Jsonifier::Jsonifier() {
-		Jsonifier::Jsonifier data{};
+	operator Jsonifier::JsonSerializer() {
+		Jsonifier::JsonSerializer data{};
 		data["created_at"] = this->createdAt;
 		data["name"] = this->name;
 		data["id"] = this->id;
@@ -27,14 +27,14 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Jsonifier& value) {
+	TheDJson(Jsonifier::JsonSerializer& value) {
 		auto theArray = value["d"]["activitiess"].getValue<std::vector<ActivitiesJson>>();
 		for (auto& value: theArray) {
 			activities.push_back(value);
 		}
 	}
-	operator Jsonifier::Jsonifier() {
-		Jsonifier::Jsonifier serializer{};
+	operator Jsonifier::JsonSerializer() {
+		Jsonifier::JsonSerializer serializer{};
 		for (auto& value: this->activities) {
 			serializer["d"]["activities"].emplaceBack(value);
 		}
@@ -44,14 +44,14 @@ struct TheDJson {
 };
 
 namespace Jsonifier {
-	template<> TheDJson Jsonifier::getValue() {
+	template<> TheDJson JsonSerializer::getValue() {
 		return TheDJson{ *this };
 	}
 
 }
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::Jsonifier& value) {
+	TheValueJson(Jsonifier::JsonSerializer& value) {
 		this->theD = value.getValue<TheDJson>();
 	}
 	TheDJson theD{};
@@ -93,7 +93,7 @@ struct TheValue {
 };
 
 template<typename OTy> void prepStringForParsing(std::basic_string<OTy>& string) {
-	string.resize(string.size() + 256 - string.size() % 256);
+	string.resize(string.size() + 64 - string.size() % 64);
 }
 
 int32_t main() noexcept {
@@ -103,7 +103,7 @@ int32_t main() noexcept {
 		//			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 		//"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
 		//};
-		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"created_at02\":\"1669495273631\",\"id2\":\"ec0b28a579ecb4bd\",\"created_at03\":\"1669495273631\",\"id3\":\"ec0b28a579ecb4bd\",\"created_at04\":\"1669495273631\",\"id5\":false,\"created_at06\":\"1669495273631\",\"id6\":false,\"created_at07\":\"1669495273631\"}]}}" };
+		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"created_at02\":\"1669495273631\",\"id2\":\"ec0b28a579ecb4bd\",\"created_at03\":\"1669495273631\",\"id3\":\"ec0b28a579ecb4bd\",\"created_at04\":\"1669495273631\",\"id5\":false}]}}" };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
@@ -139,9 +139,9 @@ int32_t main() noexcept {
 		
 		TheDJson newValue{};
 		newValue.activities.push_back(ActivitiesJson{});
-		auto jsonDataNew = newValue.operator Jsonifier::Jsonifier();
+		auto jsonDataNew = newValue.operator Jsonifier::JsonSerializer();
 		jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		Jsonifier::Jsonifier jsonData{};
+		Jsonifier::JsonSerializer jsonData{};
 		std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
 		stopWatch.resetTimer();
