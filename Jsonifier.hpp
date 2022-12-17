@@ -195,7 +195,8 @@ namespace Jsonifier {
 		TAtomError = 6,
 		FAtomError = 7,
 		NAtomError = 8,
-		MemAlloc = 9
+		MemAlloc = 9,
+		InvalidNumber = 10
 	};
 
 	class Jsonifier;
@@ -1159,9 +1160,9 @@ namespace Jsonifier {
 			this->nextTapeLocation = ptr;
 		}
 		uint64_t* nextTapeLocation;
-		inline void appendS64(int64_t value) noexcept;
-		inline void appendU64(uint64_t value) noexcept;
-		inline void appendDouble(double value) noexcept;
+		inline Jsonifier appendS64(int64_t value) noexcept;
+		inline Jsonifier appendU64(uint64_t value) noexcept;
+		inline Jsonifier appendDouble(double value) noexcept;
 		inline void append(uint64_t val, TapeType t) noexcept;
 		inline void skip() noexcept;
 		inline void skipLargeInteger() noexcept;
@@ -1172,18 +1173,21 @@ namespace Jsonifier {
 		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
 	};
 
-	inline  void TapeWriter::appendS64(int64_t value) noexcept {
+	inline Jsonifier TapeWriter::appendS64(int64_t value) noexcept {
 		append2(0, value, TapeType::Int64);
+		return value;
 	}
 
-	inline  void TapeWriter::appendU64(uint64_t value) noexcept {
+	inline Jsonifier TapeWriter::appendU64(uint64_t value) noexcept {
 		append(0, TapeType::Uint64);
 		*nextTapeLocation = value;
 		nextTapeLocation++;
+		return value;
 	}
 
-	inline  void TapeWriter::appendDouble(double value) noexcept {
+	inline  Jsonifier TapeWriter::appendDouble(double value) noexcept {
 		append2(0, value, TapeType::Double);
+		return value;
 	}
 
 	inline  void TapeWriter::skip() noexcept {
@@ -1229,13 +1233,13 @@ namespace Jsonifier {
 				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(JsonType::Object));
 			} else {				
 				(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Object;
-				this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
+				this->currentPlace.emplace_back(&(*this->currentPlace.back())[std::move(this->currentKey.back())]);
 			}
 		}
 
 		void startNewArray() {
 			(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Array;
-			this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
+			this->currentPlace.emplace_back(&(*this->currentPlace.back())[std::move(this->currentKey.back())]);
 			this->type = JsonType::Array;
 		}
 
@@ -1257,21 +1261,21 @@ namespace Jsonifier {
 			if (this->currentPlace.back()->getType() == JsonType::Array) {
 				this->currentPlace.back()->emplaceBack(data);
 			} else {
-				(*this->currentPlace.back())[this->currentKey.back()] = data;
+				(*this->currentPlace.back())[std::move(this->currentKey.back())] = std::move(data);
 			}
 		}
 
 		template<typename OTy> void appendPrimitiveElement(OTy& data) {
-			if (this->type == JsonType::Array) {
+			if (this->currentPlace.back()->getType() == JsonType::Array) {
 				this->currentPlace.back()->emplaceBack(data);
 			} else {
-				(*this->currentPlace.back())[this->currentKey.back()] = data;
+				(*this->currentPlace.back())[std::move(this->currentKey.back())] = data;
 			}
 		}
 
 		Jsonifier getResult() {
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "THE DATA REAL: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			//this->jsonData.refreshString(JsonifierSerializeType::Json);
+			//std::cout << "THE DATA REAL: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			return std::move(this->jsonData);
 		}
 
@@ -1309,13 +1313,13 @@ namespace Jsonifier {
 		 inline Jsonifier visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
 
 		 inline std::string_view visitString(JsonIterator& iter, const uint8_t* value) noexcept;
-		 inline ErrorCode visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline Jsonifier visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 
 		 inline std::string_view visitRootString(JsonIterator& iter, const uint8_t* value) noexcept;
-		 inline ErrorCode visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline Jsonifier visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
@@ -1506,6 +1510,13 @@ namespace Jsonifier {
 		return 0;
 	}
 
+	struct AdjustedMantissa {
+		uint64_t mantissa;
+		int power2;
+		AdjustedMantissa() : mantissa(0), power2(0) {
+		}
+	};
+
 	inline bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
 		uint32_t codePoint = hexToU32Nocheck(*srcPtr + 2);
 		*srcPtr += 6;
@@ -1617,6 +1628,503 @@ namespace Jsonifier {
 		return nullptr;
 	}
 
+	template<typename I>
+		inline bool
+		parseDigit(const uint8_t c, I& i) {
+		const uint8_t digit = static_cast<uint8_t>(c - '0');
+		if (digit > 9) {
+			return false;
+		}
+		// PERF NOTE: multiplication by 10 is cheaper than arbitrary integer multiplication
+		i = 10 * i + digit;// might overflow, we will handle the overflow later
+		return true;
+	}
+
+		inline ErrorCode parseDecimal(const uint8_t* const src, const uint8_t*& p, uint64_t& i, int64_t& exponent) {
+		// we continue with the fiction that we have an integer. If the
+		// floating point number is representable as x * 10^z for some integer
+		// z that fits in 53 bits, then we will be able to convert back the
+		// the integer into a float in a lossless manner.
+		const uint8_t* const first_after_period = p;
+
+#ifdef SIMDJSON_SWAR_NUMBER_PARSING
+	#if SIMDJSON_SWAR_NUMBER_PARSING
+		// this helps if we have lots of Decimals!
+		// this turns out to be frequent enough.
+		if (is_made_of_eight_digits_fast(p)) {
+			i = i * 100000000 + parse_eight_digits_unrolled(p);
+			p += 8;
+		}
+	#endif// SIMDJSON_SWAR_NUMBER_PARSING
+#endif// #ifdef SIMDJSON_SWAR_NUMBER_PARSING
+		// Unrolling the first digit makes a small difference on some implementations (e.g. westmere)
+		if (parseDigit(*p, i)) {
+			++p;
+		}
+		while (parseDigit(*p, i)) {
+			p++;
+		}
+		exponent = first_after_period - p;
+		// Decimal without digits (123.) is illegal
+		if (exponent == 0) {
+			return ErrorCode::InvalidNumber;
+		}
+		return ErrorCode::Success;
+	}
+
+		inline ErrorCode parseExponent(const uint8_t* const src, const uint8_t*& p, int64_t& exponent) {
+		// Exp Sign: -123.456e[-]78
+		bool neg_exp = ('-' == *p);
+		if (neg_exp || '+' == *p) {
+			p++;
+		}// Skip + as well
+
+		// Exponent: -123.456e-[78]
+		auto start_exp = p;
+		int64_t exp_number = 0;
+		while (parseDigit(*p, exp_number)) {
+			++p;
+		}
+		// It is possible for parseDigit to overflow.
+		// In particular, it could overflow to INT64_MIN, and we cannot do - INT64_MIN.
+		// Thus we *must* check for possible overflow before we negate exp_number.
+
+		// Performance notes: it may seem like combining the two "simdjson_unlikely checks" below into
+		// a single simdjson_unlikely path would be faster. The reasoning is sound, but the compiler may
+		// not oblige and may, in fact, generate two distinct paths in any case. It might be
+		// possible to do uint64_t(p - start_exp - 1) >= 18 but it could end up trading off
+		// instructions for a simdjson_likely branch, an unconclusive gain.
+
+		// If there were no digits, it's an error.
+		if (p == start_exp) {
+			return ErrorCode::InvalidNumber;
+		}
+		// We have a valid positive exponent in exp_number at this point, except that
+		// it may have overflowed.
+
+		// If there were more than 18 digits, we may have overflowed the integer. We have to do
+		// something!!!!
+		if (p > start_exp + 18) {
+			// Skip leading zeroes: 1e000000000000000000001 is technically valid and doesn't overflow
+			while (*start_exp == '0') {
+				start_exp++;
+			}
+			// 19 digits could overflow int64_t and is kind of absurd anyway. We don't
+			// support exponents smaller than -999,999,999,999,999,999 and bigger
+			// than 999,999,999,999,999,999.
+			// We can truncate.
+			// Note that 999999999999999999 is assuredly too large. The maximal ieee64 value before
+			// infinity is ~1.8e308. The smallest subnormal is ~5e-324. So, actually, we could
+			// truncate at 324.
+			// Note that there is no reason to fail per se at this point in time.
+			// E.g., 0e999999999999999999999 is a fine number.
+			if (p > start_exp + 18) {
+				exp_number = 999999999999999999;
+			}
+		}
+		// At this point, we know that exp_number is a sane, positive, signed integer.
+		// It is <= 999,999,999,999,999,999. As long as 'exponent' is in
+		// [-8223372036854775808, 8223372036854775808], we won't overflow. Because 'exponent'
+		// is bounded in magnitude by the size of the JSON input, we are fine in this universe.
+		// To sum it up: the next line should never overflow.
+		exponent += (neg_exp ? -exp_number : exp_number);
+		return ErrorCode::Success;
+	}
+
+		inline uint32_t isNotStructuralOrWhiteSpace(uint8_t c) {
+		return structuralOrWhitespaceNegated[c];
+	}
+
+	template<typename T> struct binaryFormat {
+		static constexpr int mantissa_explicit_bits();
+		static constexpr int minimum_exponent();
+		static constexpr int infinite_power();
+		static constexpr int sign_index();
+	};
+
+	template<> constexpr int binaryFormat<double>::mantissa_explicit_bits() {
+		return 52;
+	}
+
+	template<> constexpr int binaryFormat<double>::minimum_exponent() {
+		return -1023;
+	}
+	template<> constexpr int binaryFormat<double>::infinite_power() {
+		return 0x7FF;
+	}
+
+	template<> constexpr int binaryFormat<double>::sign_index() {
+		return 63;
+	}
+
+	constexpr uint32_t maxDigits = 768;
+
+	inline bool isInteger(char c) noexcept {
+		return (c >= '0' && c <= '9');
+	}
+
+	struct Decimal {
+		uint32_t num_digits;
+		int32_t decimalPoint;
+		bool negative;
+		bool truncated;
+		uint8_t digits[maxDigits];
+	};
+
+	inline Decimal parseDecimal(const char*& p) noexcept {
+		Decimal answer;
+		answer.num_digits = 0;
+		answer.decimalPoint = 0;
+		answer.truncated = false;
+		answer.negative = (*p == '-');
+		if ((*p == '-') || (*p == '+')) {
+			++p;
+		}
+
+		while (*p == '0') {
+			++p;
+		}
+		while (isInteger(*p)) {
+			if (answer.num_digits < maxDigits) {
+				answer.digits[answer.num_digits] = uint8_t(*p - '0');
+			}
+			answer.num_digits++;
+			++p;
+		}
+		if (*p == '.') {
+			++p;
+			const char* first_after_period = p;
+			// if we have not yet encountered a zero, we have to skip it as well
+			if (answer.num_digits == 0) {
+				// skip zeros
+				while (*p == '0') {
+					++p;
+				}
+			}
+			while (isInteger(*p)) {
+				if (answer.num_digits < maxDigits) {
+					answer.digits[answer.num_digits] = uint8_t(*p - '0');
+				}
+				answer.num_digits++;
+				++p;
+			}
+			answer.decimalPoint = int32_t(first_after_period - p);
+		}
+		if (answer.num_digits > 0) {
+			const char* preverse = p - 1;
+			int32_t trailing_zeros = 0;
+			while ((*preverse == '0') || (*preverse == '.')) {
+				if (*preverse == '0') {
+					trailing_zeros++;
+				};
+				--preverse;
+			}
+			answer.decimalPoint += int32_t(answer.num_digits);
+			answer.num_digits -= uint32_t(trailing_zeros);
+		}
+		if (answer.num_digits > maxDigits) {
+			answer.num_digits = maxDigits;
+			answer.truncated = true;
+		}
+		if (('e' == *p) || ('E' == *p)) {
+			++p;
+			bool neg_exp = false;
+			if ('-' == *p) {
+				neg_exp = true;
+				++p;
+			} else if ('+' == *p) {
+				++p;
+			}
+			int32_t exp_number = 0;// exponential part
+			while (isInteger(*p)) {
+				uint8_t digit = uint8_t(*p - '0');
+				if (exp_number < 0x10000) {
+					exp_number = 10 * exp_number + digit;
+				}
+				++p;
+			}
+			answer.decimalPoint += (neg_exp ? -exp_number : exp_number);
+		}
+		return answer;
+	}
+
+	template<typename binary> AdjustedMantissa computeFloat(Decimal& d) {
+		AdjustedMantissa answer;
+		if (d.num_digits == 0) {
+			// should be zero
+			answer.power2 = 0;
+			answer.mantissa = 0;
+			return answer;
+		}
+		// At this point, going further, we can assume that d.num_digits > 0.
+		// We want to guard against excessive decimal point values because
+		// they can result in long running times. Indeed, we do
+		// shifts by at most 60 bits. We have that log(10**400)/log(2**60) ~= 22
+		// which is fine, but log(10**299995)/log(2**60) ~= 16609 which is not
+		// fine (runs for a long time).
+		//
+		if (d.decimalPoint < -324) {
+			// We have something smaller than 1e-324 which is always zero
+			// in binary64 and binary32.
+			// It should be zero.
+			answer.power2 = 0;
+			answer.mantissa = 0;
+			return answer;
+		} else if (d.decimalPoint >= 310) {
+			// We have something at least as large as 0.1e310 which is
+			// always infinite.
+			answer.power2 = binary::infinite_power();
+			answer.mantissa = 0;
+			return answer;
+		}
+	}
+
+	template<typename binary> inline AdjustedMantissa parseLongMantissa(const char* first) {
+		Decimal d = parseDecimal(first);
+		return computeFloat<binary>(d);
+	}
+
+	inline double fromChars(const char* first) noexcept {
+		bool negative = first[0] == '-';
+		if (negative) {
+			first++;
+		}
+		AdjustedMantissa am = parseLongMantissa<binaryFormat<double>>(first);
+		uint64_t word = am.mantissa;
+		word |= uint64_t(am.power2) << binaryFormat<double>::mantissa_explicit_bits();
+		word = negative ? word | (uint64_t(1) << binaryFormat<double>::sign_index()) : word;
+		double value;
+		std::memcpy(&value, &word, sizeof(double));
+		return value;
+	}
+		
+	inline size_t significantDigits(const uint8_t* start_digits, size_t digit_count) {
+		// It is possible that the integer had an overflow.
+		// We have to handle the case where we have 0.0000somenumber.
+		const uint8_t* start = start_digits;
+		while ((*start == '0') || (*start == '.')) {
+			++start;
+		}
+		// we over-decrement by one when there is a '.'
+		return digit_count - size_t(start - start_digits);
+	}
+
+	inline static bool parseFloatFallback(const uint8_t* ptr, double* outDouble) {
+		*outDouble = fromChars(reinterpret_cast<const char*>(ptr));
+		// We do not accept infinite values.
+
+		// Detecting finite values in a portable manner is ridiculously hard, ideally
+		// we would want to do:
+		// return !std::isfinite(*outDouble);
+		// but that mysteriously fails under legacy/old libc++ libraries, see
+		// https://github.com/simdjson/simdjson/issues/1286
+		//
+		// Therefore, fall back to this solution (the extra parens are there
+		// to handle that max may be a macro on windows).
+		return !(*outDouble > (std::numeric_limits<double>::max)() || *outDouble < std::numeric_limits<double>::lowest());
+	}
+
+	inline Jsonifier slowFloatParsing(const uint8_t* src, TapeWriter writer) {
+		double d;
+		if (parseFloatFallback(src, &d)) {
+			return writer.appendDouble(d);
+		}
+		return ErrorCode::InvalidNumber;
+	}
+
+	constexpr int smallestPower = -342;
+	constexpr int largestPower = 308;
+
+	const double powerOfTen[] = { 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
+		1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22 };
+
+	inline bool computeFloat64(int64_t power, uint64_t i, bool negative, double& d) {
+		// we start with a fast path
+		// It was described in
+		// Clinger WD. How to read floating point numbers accurately.
+		// ACM SIGPLAN Notices. 1990
+#ifndef FLT_EVAL_METHOD
+	#error "FLT_EVAL_METHOD should be defined, please include cfloat."
+#endif
+#if (FLT_EVAL_METHOD != 1) && (FLT_EVAL_METHOD != 0)
+		// We cannot be certain that x/y is rounded to nearest.
+		if (0 <= power && power <= 22 && i <= 9007199254740991) {
+#else
+		if (-22 <= power && power <= 22 && i <= 9007199254740991) {
+#endif
+			// convert the integer into a double. This is lossless since
+			// 0 <= i <= 2^53 - 1.
+			d = double(i);
+			//
+			// The general idea is as follows.
+			// If 0 <= s < 2^53 and if 10^0 <= p <= 10^22 then
+			// 1) Both s and p can be represented exactly as 64-bit floating-point
+			// values
+			// (binary64).
+			// 2) Because s and p can be represented exactly as floating-point values,
+			// then s * p
+			// and s / p will produce correctly rounded values.
+			//
+			if (power < 0) {
+				d = d / powerOfTen[-power];
+			} else {
+				d = d * powerOfTen[power];
+			}
+			if (negative) {
+				d = -d;
+			}
+			return true;
+		}
+	}
+
+	inline Jsonifier writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits, size_t digit_count,
+		int64_t exponent, TapeWriter& writer) {
+		// If we frequently had to deal with long strings of digits,
+		// we could extend our code by using a 128-bit integer instead
+		// of a 64-bit integer. However, this is uncommon in practice.
+		//
+		// 9999999999999999999 < 2**64 so we can accommodate 19 digits.
+		// If we have a Decimal separator, then digit_count - 1 is the number of digits, but we
+		// may not have a Decimal separator!
+		if (digit_count > 19 && significantDigits(start_digits, digit_count) > 19) {
+			// Ok, chances are good that we had an overflow!
+			// this is almost never going to get called!!!
+			// we start anew, going slowly!!!
+			// This will happen in the following examples:
+			// 10000000000000000000000000000000000000000000e+308
+			// 3.1415926535897932384626433832795028841971693993751
+			//
+			// NOTE: This makes a *copy* of the writer and passes it to slowFloatParsing. This happens
+			// because slowFloatParsing is a non-inlined function. If we passed our writer reference to
+			// it, it would force it to be stored in memory, preventing the compiler from picking it apart
+			// and putting into registers. i.e. if we pass it as reference, it gets slow.
+			// This is what forces the skip_double, as well.
+			writer.skipDouble();
+			return slowFloatParsing(src, writer);
+		}
+		// NOTE: it's weird that the simdjson_unlikely() only wraps half the if, but it seems to get slower any other
+		// way we've tried: https://github.com/simdjson/simdjson/pull/990#discussion_r448497331
+		// To future reader: we'd love if someone found a better way, or at least could explain this result!
+		if ((exponent < smallestPower) || (exponent > largestPower)) {
+			//
+			// Important: smallestPower is such that it leads to a zero value.
+			// Observe that 18446744073709551615e-343 == 0, i.e. (2**64 - 1) e -343 is zero
+			// so something x 10^-343 goes to zero, but not so with  something x 10^-342.
+			static_assert(smallestPower <= -342, "smallestPower is not small enough");
+			//
+			if ((exponent < smallestPower) || (i == 0)) {
+				// E.g. Parse "-0.0e-999" into the same value as "-0.0". See https://en.wikipedia.org/wiki/Signed_zero
+				return writer.appendDouble(negative ? -0.0 : 0.0);
+			} else {// (exponent > largestPower) and (i != 0)
+				// We have, for sure, an infinite value and simdjson refuses to parse infinite values.
+				return ErrorCode::InvalidNumber;
+			}
+		}
+		double d;
+		if (!computeFloat64(exponent, i, negative, d)) {
+			// we are almost never going to get here.
+			if (!parseFloatFallback(src, &d)) {
+				return ErrorCode::InvalidNumber;
+			}
+		}
+		return writer.appendDouble(d);
+	}
+
+	inline Jsonifier parseNumber(const uint8_t* const src, TapeWriter& writer) {
+		//
+		// Check for minus sign
+		//
+		bool negative = (*src == '-');
+		const uint8_t* p = src + uint8_t(negative);
+
+		//
+		// Parse the integer part.
+		//
+		// PERF NOTE: we don't use is_made_of_eight_digits_fast because large integers like 123456789 are rare
+		const uint8_t* const startDigits = p;
+		uint64_t i = 0;
+		while (parseDigit(*p, i)) {
+			p++;
+		}
+
+		// If there were no digits, or if the integer starts with 0 and has more than one digit, it's an error.
+		// Optimization note: size_t is expected to be unsigned.
+		size_t digitCount = size_t(p - startDigits);
+		if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
+			return ErrorCode::InvalidNumber;
+		}
+
+		//
+		// Handle floats if there is a . or e (or both)
+		//
+		int64_t exponent = 0;
+		bool is_float = false;
+		if ('.' == *p) {
+			is_float = true;
+			++p;
+			parseDecimal(src, p, i, exponent);
+			digitCount = int(p - startDigits);// used later to guard against overflows
+		}
+		if (('e' == *p) || ('E' == *p)) {
+			is_float = true;
+			++p;
+			parseExponent(src, p, exponent);
+		}
+		if (is_float) {
+			const bool dirty_end = isNotStructuralOrWhiteSpace(*p);
+			writeFloat(src, negative, i, startDigits, digitCount, exponent, writer);
+			if (dirty_end) {
+				return ErrorCode::InvalidNumber;
+			}
+			return ErrorCode::Success;
+		}
+
+		// The longest negative 64-bit number is 19 digits.
+		// The longest positive 64-bit number is 20 digits.
+		// We do it this way so we don't trigger this branch unless we must.
+		size_t longest_digitCount = negative ? 19 : 20;
+		if (digitCount > longest_digitCount) {
+			return ErrorCode::InvalidNumber;
+		}
+		if (digitCount == longest_digitCount) {
+			if (negative) {
+				// Anything negative above INT64_MAX+1 is invalid
+				if (i > uint64_t(INT64_MAX) + 1) {
+					return ErrorCode::InvalidNumber;
+				}
+				if (isNotStructuralOrWhiteSpace(*p)) {
+					return ErrorCode::InvalidNumber;
+				}
+				return writer.appendS64(~i);
+				// Positive overflow check:
+				// - A 20 digit number starting with 2-9 is overflow, because 18,446,744,073,709,551,615 is the
+				//   biggest uint64_t.
+				// - A 20 digit number starting with 1 is overflow if it is less than INT64_MAX.
+				//   If we got here, it's a 20 digit number starting with the digit "1".
+				// - If a 20 digit number starting with 1 overflowed (i*10+digit), the result will be smaller
+				//   than 1,553,255,926,290,448,384.
+				// - That is smaller than the smallest possible 20-digit number the user could write:
+				//   10,000,000,000,000,000,000.
+				// - Therefore, if the number is positive and lower than that, it's overflow.
+				// - The value we are looking at is less than or equal to INT64_MAX.
+				//
+			} else if (src[0] != uint8_t('1') || i <= uint64_t(INT64_MAX)) {
+				return ErrorCode::InvalidNumber;
+			}
+		}
+		Jsonifier returnValue{};
+		// Write unsigned if it doesn't fit in a signed integer.
+		if (i > uint64_t(INT64_MAX)) {
+			returnValue = writer.appendS64(i);
+		} else {
+			returnValue = writer.appendS64(negative ? (~i + 1) : i);
+		}
+		if (isNotStructuralOrWhiteSpace(*p)) {
+			return ErrorCode::InvalidNumber;
+		}
+		return returnValue;
+	}
+
 	inline std::string_view TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
 		uint8_t* dst01 = onStartString(iter);
 		auto dst02 = parseString(value + 1, dst01);
@@ -1631,18 +2139,18 @@ namespace Jsonifier {
 		return visitString(iter, value);
 	}
 
-	inline ErrorCode TapeBuilder::visitNumber(JsonIterator& iter, const uint8_t* value) noexcept {
-		return ErrorCode::Success;
+	inline Jsonifier TapeBuilder::visitNumber(JsonIterator& iter, const uint8_t* value) noexcept {
+		return parseNumber(value, this->tape);
 	}
 
-	inline ErrorCode TapeBuilder::visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline Jsonifier TapeBuilder::visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept {
 		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remainingLen() + 256]);
 		if (copy.get() == nullptr) {
 			return ErrorCode::MemAlloc;
 		}
 		std::memcpy(copy.get(), value, iter.remainingLen());
 		std::memset(copy.get() + iter.remainingLen(), ' ', 256);
-		ErrorCode error = visitNumber(iter, copy.get());
+		Jsonifier error = visitNumber(iter, copy.get());
 		return error;
 	}
 
@@ -1899,9 +2407,9 @@ namespace Jsonifier {
 
 		*masterParser.getStructuralIndexes() = nextStructural - masterParser.getStructuralIndexes();
 
-		if (*masterParser.getNextStructural() != masterParser.getTapeLength() - 1) {
-			return ErrorCode::TapeError;
-		}
+		//if (*masterParser.getNextStructural() != masterParser.getTapeLength() - 1) {
+		//return ErrorCode::TapeError;
+		//}
 
 		return constructor.getResult();
 	}
