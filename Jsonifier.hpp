@@ -1379,8 +1379,8 @@ namespace Jsonifier {
 
 		inline uint8_t lastStructural() const noexcept;
 
-		template<typename V>  inline ErrorCode visitRootPrimitive(V& visitor, const uint8_t* value) noexcept;
-		template<typename V>  inline ErrorCode visitPrimitive(V& visitor, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
+		inline ErrorCode visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
 	};
 
 	inline JsonIterator::JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
@@ -1415,60 +1415,6 @@ namespace Jsonifier {
 
 	inline uint8_t JsonIterator::lastStructural() const noexcept {
 		return buf[masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1]];
-	}
-
-	template<typename V>
-	 inline ErrorCode JsonIterator::visitRootPrimitive(V& visitor, const uint8_t* value) noexcept {
-		switch (*value) {
-			case '"':
-				return visitor.visit_root_string(*this, value);
-			case 't':
-				return visitor.visitRootTrueAtom(*this, value);
-			case 'f':
-				return visitor.visitRootFalseAtom(*this, value);
-			case 'n':
-				return visitor.visitRootNullAtom(*this, value);
-			case '-':
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-				return visitor.visitRootNumber(*this, value);
-			default:
-				return ErrorCode::TapeError;
-		}
-	}
-	template<typename V>  inline ErrorCode JsonIterator::visitPrimitive(V& visitor, const uint8_t* value) noexcept {
-		switch (*value) {
-			case '"':
-				return visitor.visitString(*this, value);
-			case 't':
-				return visitor.visitTrueAtom(*this, value);
-			case 'f':
-				return visitor.visitFalseAtom(*this, value);
-			case 'n':
-				return visitor.visitNullAtom(*this, value);
-			case '-':
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-				return visitor.visitNumber(*this, value);
-			default:
-				return ErrorCode::TapeError;
-		}
 	}
 
 	const bool structuralOrWhitespaceNegated[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -2203,7 +2149,61 @@ namespace Jsonifier {
 
 		return ErrorCode::Success;
 
-	}// walkDocument()
+	}
+
+	inline ErrorCode JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+		switch (*value) {
+			case '"':
+				return visitor.visit_root_string(*this, value);
+			case 't':
+				return visitor.visitRootTrueAtom(*this, value);
+			case 'f':
+				return visitor.visitRootFalseAtom(*this, value);
+			case 'n':
+				return visitor.visitRootNullAtom(*this, value);
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return visitor.visitRootNumber(*this, value);
+			default:
+				return ErrorCode::TapeError;
+		}
+	}
+
+	inline ErrorCode JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+		switch (*value) {
+			case '"':
+				return visitor.visitString(*this, value);
+			case 't':
+				return visitor.visitTrueAtom(*this, value);
+			case 'f':
+				return visitor.visitFalseAtom(*this, value);
+			case 'n':
+				return visitor.visitNullAtom(*this, value);
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return visitor.visitNumber(*this, value);
+			default:
+				return ErrorCode::TapeError;
+		}
+	}
 
 	/*
 	struct JsonConstructor {
