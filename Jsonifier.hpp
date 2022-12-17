@@ -1200,13 +1200,10 @@ namespace Jsonifier {
 
 	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*nextTapeLocation = val | ((uint64_t(char(t))) << 56);
-		std::cout << "WERE APPENGINT THIS VALUE: " << (*nextTapeLocation & 0x00ffffffu) << std::endl;
-		std::cout << "WERE APPENGINT THIS VALUE (TYPE): " << (*nextTapeLocation >> 56) << std::endl;
 		nextTapeLocation++;
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*nextTapeLocation), "Type is not 64 bits!");
 		memcpy(nextTapeLocation, &val2, sizeof(val2));
@@ -1215,70 +1212,39 @@ namespace Jsonifier {
 
 	inline  void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
-		std::cout << "WERE WRITING THIS VALUE: " << (tape_loc & 0x00ffffffu) << std::endl;
-		std::cout << "WERE WRITING THIS VALUE (TYPE): " << (tape_loc>> 56) << std::endl;
 	}
 
 	class JsonConstructor {
 	  public:
 		JsonConstructor() noexcept {
 			this->currentPlace.emplace_back(&this->jsonData.operator=(JsonType::Object));
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		};
 
 		void setCurrentKey(std::string&& key) {
 			this->currentKey.emplace_back(std::move(key));
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			std::cout << "CURRENT KEY: " << this->currentKey.back() << std::endl;
 		}
 
 		void startNewObject() {
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: (NEW OBJECT FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			this->currentPlace.back()->refreshString(JsonifierSerializeType::Json);
 			if (this->currentPlace.back()->getType() == JsonType::Array) {
 				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(JsonType::Object));
-				this->jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "CURRENT DATA: (NEW OBJECT FOR ARRAY) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
 			} else {				
 				(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Object;
 				this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
-				std::cout << "CURRENT DATA: (NEW OBJECT FOR OBJECT) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
 			}
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: (NEW OBJECT) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		}
 
 		void startNewArray() {
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: (NEW ARRAY FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Array;
 			this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
 			this->type = JsonType::Array;
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: (NEW ARRAY ) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		}
 
 		void endArray() {
-			if (this->type == JsonType::Array) {
-				//this->currentPlace.back().emplaceBack(this->currentPlace.back());
-			} else {
-				//this->currentPlace.back()[*(this->currentKey.end() - 1)] = this->currentPlace.back();
-			}
 			this->currentKey.erase(this->currentKey.end() - 1);
 			this->currentPlace.erase(this->currentPlace.end() - 1);
 		}
 
 		void endObject() {
-			if (this->type == JsonType::Array) {
-				//this->currentPlace.back().emplaceBack(this->currentPlace.back());
-			} else {
-				///this->currentPlace.back()[*(this->currentKey.end() - 1)] = this->currentPlace.back();
-			}
 			this->currentKey.erase(this->currentKey.end() - 1);
 			this->currentPlace.erase(this->currentPlace.end() - 1);
 		}
@@ -1288,24 +1254,11 @@ namespace Jsonifier {
 		}
 
 		template<typename OTy> void appendPrimitiveElement(OTy&& data) {
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: (NEW PRIMITIVE FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			if (this->currentPlace.back()->getType() == JsonType::Array) {
 				this->currentPlace.back()->emplaceBack(data);
-				//this->currentPlace.emplace_back(&);
-				this->jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "CURRENT DATA: (NEW PRIMITIVE FOR ARRAY) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-						  << std::endl;
 			} else {
 				(*this->currentPlace.back())[this->currentKey.back()] = data;
-				//this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
-				this->jsonData.refreshString(JsonifierSerializeType::Json);
-				std::cout << "CURRENT DATA: (NEW PRIMITIVE FOR OBJECT) "
-						  << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			}
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			std::cout << "CURRENT DATA: (NEW PRIMITIVE ) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
-					  << std::endl;
 		}
 
 		template<typename OTy> void appendPrimitiveElement(OTy& data) {
@@ -1388,10 +1341,6 @@ namespace Jsonifier {
 		JsonIterator iter(masterParser, 0);
 		TapeBuilder builder(masterParser);
 		auto result = iter.walkDocument(builder);
-		for (size_t x = 0; x < iter.masterParser.getTapeLength(); ++x) {
-			std::cout << "CURRENT INDEX: " << x << ", CURRENT VALUE: " << (iter.masterParser.getStructuralIndexes()[x] & 0x0fffffffu) << std::endl;
-			std::cout << "CURRENT INDEX: " << x << ", CURRENT VALUE: " << ( char )(iter.masterParser.getStructuralIndexes()[x] >> 56) << std::endl;
-		}
 		return result;
 	}
 
@@ -1747,7 +1696,6 @@ namespace Jsonifier {
 
 	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) const noexcept {
 		auto startTapeIndex = uint32_t(*tape.nextTapeLocation - *iter.masterParser.getStructuralIndexes());
-		std::cout << "THE NEXT TAPE INDEX: " << startTapeIndex << std::endl;
 		return startTapeIndex;
 	}
 
@@ -1768,11 +1716,9 @@ namespace Jsonifier {
 	inline ErrorCode TapeBuilder::endContainer(JsonIterator& iter, TapeType start,
 		TapeType end) noexcept {
 		const uint32_t startTapeIndex = iter.masterParser.openContainers[iter.depth].tapeIndex;
-		std::cout << "THE START TAPE INDEX: " << startTapeIndex << std::endl;
 		tape.append(startTapeIndex, end);
 		const uint32_t count = iter.masterParser.openContainers[iter.depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
-		std::cout << "THE COUNT: " << count << std::endl;
 		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
 		return ErrorCode::Success;
 	}
@@ -1957,10 +1903,7 @@ namespace Jsonifier {
 			return ErrorCode::TapeError;
 		}
 
-		auto result = constructor.getResult();
-		result.refreshString(JsonifierSerializeType::Json);
-		//std::cout << "THE DATA FINAL: " << result.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		return result;
+		return constructor.getResult();
 	}
 
 	inline Jsonifier JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
@@ -2018,25 +1961,7 @@ namespace Jsonifier {
 	}
 
 	Jsonifier SimdJsonValue::getJsonData() {
-		//auto jsonData = JsonConstructor{ *this }.startDocument();
-		//std::cout << "THE VALUE (REAL): " << this->stringView << std::endl;
-		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parseDocument<false>(*this, jsonData) << std::endl;
-		;
-		for (size_t x = 0; x < this->tapeLength; ++x) {
-			//std::cout << "THE CURRENT VALUE: " << *this->jsonRawTape[x] << std::endl;
-				
-				//std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
-				//std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
-		}
-			
-		//}
-		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
-		//jsonData.refreshString(JsonifierSerializeType::Json);
-		//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		auto result = TapeBuilder::parseDocument(*this);
-		result.refreshString(JsonifierSerializeType::Json);
-		//std::cout << "THE DATA: " << result.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		return result;
+		return TapeBuilder::parseDocument(*this) ;
 	}
 
 };

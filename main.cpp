@@ -8,19 +8,17 @@ struct ActivitiesJson {
 	ActivitiesJson(Jsonifier::Jsonifier& value) {
 		this->createdAt = value["created_at"].getValue<std::string>();
 		this->id = value["id"].getValue<std::string>();
-		this->name = value["name"].getValue<std::string>();
-		this->type = value["type"].getValue<int32_t>();
+		this->createdAt02 = value["created_at02"].getValue<std::string>();
+		this->id02 = value["id02"].getValue<std::string>();
 	};
 	std::string createdAt{};
-	std::string name{};
+	std::string createdAt02{};
+	std::string id02{};
 	std::string id{};
-	int32_t type{};
 	operator Jsonifier::Jsonifier() {
 		Jsonifier::Jsonifier data{};
-		data["created_at"] = this->createdAt;
-		data["name"] = this->name;
-		data["id"] = this->id;
-		data["type"] = this->type;
+		data["created_at02"] = this->createdAt;
+		data["id02"] = this->id;
 		return data;
 	}
 };
@@ -59,15 +57,15 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->createdAt = DiscordCoreAPI::getString(value, "created_at");
-		this->id = DiscordCoreAPI::getString(value, "id");
-		this->name = DiscordCoreAPI::getString(value, "name");
-		this->type = DiscordCoreAPI::getInt32(value, "type");
+		this->createdAt = DiscordCoreAPI::getString(value, "created_at02");
+		this->id = DiscordCoreAPI::getString(value, "id02");
+		this->createdAt02 = DiscordCoreAPI::getString(value, "created_at02");
+		this->id02 = DiscordCoreAPI::getString(value, "id02");
 	};
+	std::string createdAt02{};
+	std::string id02{};
 	std::string createdAt{};
-	std::string name{};
 	std::string id{};
-	int32_t type{};
 };
 
 struct TheD {
