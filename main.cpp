@@ -118,10 +118,13 @@ int32_t main() noexcept {
 		//newValue.activities.push_back(ActivitiesJson{});
 		//auto jsonDataNew = newValue.operator Jsonifier::JsonSerializer();
 		//jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
+
+		std::cout << "THE STRING: " << stringNew << std::endl;
+		prepStringForParsing(stringNew);
 		Jsonifier::Jsonifier jsonData{};
 		//std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		stopWatch.resetTimer();
-		for (size_t x = 0ull; x <1; ++x) {
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
 			jsonData = std::move(stringScanner.getJsonData());
 			
@@ -141,7 +144,6 @@ int32_t main() noexcept {
 
 
 		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
-		std::cout << "THE STRING: " << stringNew << std::endl;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -156,7 +158,6 @@ int32_t main() noexcept {
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		std::cout << "THE STRING: " << stringNew << std::endl;
-		prepStringForParsing(stringNew);
 		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
 
 

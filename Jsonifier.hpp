@@ -2460,8 +2460,8 @@ namespace Jsonifier {
 		for (size_t x = 0; x < this->tapeLength; ++x) {
 			if (( char )this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))] == ( char )TapeType::STRING) {
 				//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*this->jsonRawTape[x]] << std::endl;
-				std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0fffffff)) << std::endl;
-				std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0fffffff))])) << std::endl;
+				std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
+				std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
 			}
 			
 		}
