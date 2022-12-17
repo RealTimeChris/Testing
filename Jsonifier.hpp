@@ -1441,7 +1441,7 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitRootNumber(*this, value);
 			default:
-				return TapeError;
+				return ErrorCode::TapeError;
 		}
 	}
 	template<typename V>  inline ErrorCode JsonIterator::visitPrimitive(V& visitor, const uint8_t* value) noexcept {
@@ -1467,7 +1467,7 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitNumber(*this, value);
 			default:
-				return TapeError;
+				return ErrorCode::TapeError;
 		}
 	}
 
