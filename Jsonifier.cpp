@@ -59,7 +59,7 @@ namespace Jsonifier {
 				break;
 			}
 		}
-		//this->string = std::move(data.string);
+		this->string = std::move(data.string);
 		this->type = data.type;
 		return *this;
 	}
@@ -135,7 +135,7 @@ namespace Jsonifier {
 				break;
 			}
 		}
-		//this->string = data.string;
+		this->string = data.string;
 		this->type = data.type;
 		return *this;
 	}
@@ -145,7 +145,7 @@ namespace Jsonifier {
 	}
 
 	Jsonifier::operator std::string_view() noexcept {
-		return std::string_view{};
+		return this->string;
 	}
 
 	JsonType Jsonifier::getType() noexcept {
@@ -153,7 +153,7 @@ namespace Jsonifier {
 	}
 
 	void Jsonifier::refreshString(JsonifierSerializeType opCode) {
-		//this->string.clear();
+		this->string.clear();
 		if (opCode == JsonifierSerializeType::Etf) {
 			this->appendVersion();
 			this->serializeJsonToEtfString(this);
@@ -650,11 +650,11 @@ namespace Jsonifier {
 	}
 
 	void Jsonifier::writeString(const char* data, std::size_t length) {
-		//this->string.append(data, length);
+		this->string.append(data, length);
 	}
 
 	void Jsonifier::writeCharacter(const char charValue) {
-		//this->string.push_back(charValue);
+		this->string.push_back(charValue);
 	}
 
 	void Jsonifier::appendBinaryExt(std::string_view bytes, uint32_t sizeNew) {
@@ -827,14 +827,14 @@ namespace Jsonifier {
 			case JsonType::Object: {
 				this->setValue(JsonType::Object);
 				*this->jsonValue.object = std::move(*data.jsonValue.object);
-				std::cout << "THE OBJECT DATA: ";
+				//std::cout << "THE OBJECT DATA: ";
 				for (auto& [key, value]: *this->jsonValue.object) {
-					std::cout << "THE KEY: " << key << std::endl;
+					//std::cout << "THE KEY: " << key << std::endl;
 					if (value.type == JsonType::Object) {
 						for (auto& [key01, value01]: *value.jsonValue.object) {
-							std::cout << "THE KEY 01: " << key << std::endl;
+							//std::cout << "THE KEY 01: " << key << std::endl;
 							for (auto& [key02, value02]: *value01.jsonValue.object) {
-								std::cout << "THE KEY 02: " << key << std::endl;
+								//std::cout << "THE KEY 02: " << key << std::endl;
 							}
 						}
 					}
@@ -881,9 +881,9 @@ namespace Jsonifier {
 			case JsonType::Object: {
 				this->setValue(JsonType::Object);
 				*this->jsonValue.object = *data.jsonValue.object;
-				std::cout << "THE OBJECT DATA: ";
+				//std::cout << "THE OBJECT DATA: ";
 				for (auto& [key, value]: *this->jsonValue.object) {
-					std::cout << "THE KEY: " << key << std::endl;
+					//std::cout << "THE KEY: " << key << std::endl;
 				}
 				break;
 			}
@@ -927,9 +927,9 @@ namespace Jsonifier {
 			case JsonType::Object: {
 				this->setValue(JsonType::Object);
 				*this->jsonValue.object = *data.jsonValue.object;
-				std::cout << "THE OBJECT DATA: ";
+				//std::cout << "THE OBJECT DATA: ";
 				for (auto& [key, value]: *this->jsonValue.object) {
-					std::cout << "THE KEY: " << key << std::endl;
+					//std::cout << "THE KEY: " << key << std::endl;
 				}
 				break;
 			}

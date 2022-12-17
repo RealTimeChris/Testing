@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <immintrin.h>
 #include <string_view>
+#include <functional>
 #include <concepts>
 #include <iostream>
 #include <vector>
@@ -424,6 +425,7 @@ namespace Jsonifier {
 	  protected:
 		JsonType type{ JsonType::Null };
 		JsonValue jsonValue{};
+		std::string string{};
 
 		void serializeJsonToEtfString(const Jsonifier* jsonData);
 
@@ -1041,13 +1043,13 @@ namespace Jsonifier {
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
-			std::cout << valuesTitle;
+			//std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+					//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
-			std::cout << std::endl;
+			//std::cout << std::endl;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1250,7 +1252,7 @@ namespace Jsonifier {
 	class SimdJsonValue {
 	  public:
 
-		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity)
+		inline SimdJsonValue(char* stringNew, size_t tapeLength)
 			: stringView(stringNew){
 			if (tapeLength == 0) {
 				throw DCAException{ "Failed to parse as the string size is 0." };
@@ -1333,18 +1335,18 @@ namespace Jsonifier {
 	};
 
 	enum class TapeType : int8_t {
-		ROOT = 'r',
-		START_ARRAY = '[',
-		START_OBJECT = '{',
-		END_ARRAY = ']',
-		END_OBJECT = '}',
+		Root = 'r',
+		Start_Array = '[',
+		Start_Object = '{',
+		End_Array = ']',
+		End_Object = '}',
 		STRING = '"',
-		INT64 = 'l',
-		UINT64 = 'u',
-		DOUBLE = 'd',
-		TRUE_VALUE = 't',
-		FALSE_VALUE = 'f',
-		NULL_VALUE = 'n'
+		Int64 = 'l',
+		Uint64 = 'u',
+		Double = 'd',
+		True_Value = 't',
+		False_Value = 'f',
+		Null_Value = 'n'
 	};
 
 	class TapeBuilder;
@@ -1356,7 +1358,7 @@ namespace Jsonifier {
 		SimdJsonValue& masterParser;
 		uint32_t depth{ 0 };
 
-		inline ErrorCode walkDocument(TapeBuilder& visitor) noexcept;
+		inline Jsonifier walkDocument(TapeBuilder& visitor) noexcept;
 
 		inline JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index);
 
@@ -1372,8 +1374,8 @@ namespace Jsonifier {
 
 		inline uint8_t lastStructural() const noexcept;
 
-		inline ErrorCode visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
-		inline ErrorCode visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
+		inline Jsonifier visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
+		inline Jsonifier visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
 	};
 
 	inline JsonIterator::JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
@@ -1461,17 +1463,17 @@ namespace Jsonifier {
 	};
 
 	inline  void TapeWriter::appendS64(int64_t value) noexcept {
-		append2(0, value, TapeType::INT64);
+		append2(0, value, TapeType::Int64);
 	}
 
 	inline  void TapeWriter::appendU64(uint64_t value) noexcept {
-		append(0, TapeType::UINT64);
+		append(0, TapeType::Uint64);
 		*nextTapeLocation = value;
 		nextTapeLocation++;
 	}
 
 	inline  void TapeWriter::appendDouble(double value) noexcept {
-		append2(0, value, TapeType::DOUBLE);
+		append2(0, value, TapeType::Double);
 	}
 
 	inline  void TapeWriter::skip() noexcept {
@@ -1488,12 +1490,12 @@ namespace Jsonifier {
 
 	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*nextTapeLocation = val | ((uint64_t(char(t))) << 56);
-		std::cout << "WERE APPENGINT THIS VALUE: " << (*nextTapeLocation & 0x0fffffff) << std::endl;
+		//std::cout << "WERE APPENGINT THIS VALUE: " << (*nextTapeLocation & 0x0fffffff) << std::endl;
 		nextTapeLocation++;
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*nextTapeLocation), "Type is not 64 bits!");
 		memcpy(nextTapeLocation, &val2, sizeof(val2));
@@ -1501,13 +1503,57 @@ namespace Jsonifier {
 	}
 
 	inline  void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
-		std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
+		//std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
 		tape_loc = val | ((uint64_t(char(t))) << 56);
 	}
 
+	class JsonConstructor {
+	  public:
+		JsonConstructor() noexcept {
+			this->currentPlace.push_back(this->jsonData.operator=(JsonType::Object));
+		};
+
+		void startNewObject(const std::string& key) {
+			this->currentPlace.back().get()[key] = JsonType::Object;
+			this->currentPlace.push_back(this->currentPlace.back().get()[key]);
+		}
+
+		void startNewArray(const std::string& key) {
+			this->currentPlace.back().get()[key] = JsonType::Array;
+			this->currentPlace.push_back(this->currentPlace.back().get()[key]);
+		}
+
+		void endArray() {
+			this->currentPlace.erase(this->currentPlace.end() - 1);
+		}
+
+		void endObject() {
+			this->currentPlace.erase(this->currentPlace.end() - 1);
+		}
+
+		template<typename OTy> void appendArrayElement(OTy& data) {
+			this->currentPlace.back().emplaceBack(data);
+		}
+
+		template<typename OTy> 
+		void addNewObjectElement(const std::string& key,OTy& data) {
+			this->currentPlace.back().get()[key] = data;
+		}
+
+		Jsonifier getResult() {
+			this->jsonData.refreshString(JsonifierSerializeType::Json);
+			//std::cout << "THE DATA REAL: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			return std::move(this->jsonData);
+		}
+
+	  protected:
+		std::vector<std::reference_wrapper<Jsonifier>> currentPlace{};
+		Jsonifier jsonData{};
+	};
+
 
 	struct TapeBuilder {
-		static inline ErrorCode parseDocument(SimdJsonValue& masterParser, Jsonifier& doc) noexcept;
+		static inline Jsonifier parseDocument(SimdJsonValue& masterParser) noexcept;
 
 		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
 
@@ -1521,23 +1567,23 @@ namespace Jsonifier {
 
 		inline ErrorCode visitObjectStart(JsonIterator& iter) noexcept;
 
-		inline ErrorCode visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
+		inline std::string_view visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
 
 		 inline ErrorCode visitObjectEnd(JsonIterator& iter) noexcept;
 
 		 inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
 
-		 inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline Jsonifier visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
 
-		 inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline Jsonifier visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
 
-		 inline ErrorCode visitString(JsonIterator& iter, const uint8_t* value, bool key = false) noexcept;
+		 inline std::string_view visitString(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 
-		 inline ErrorCode visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline std::string_view visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
@@ -1560,24 +1606,23 @@ namespace Jsonifier {
 		inline void onEndString(uint8_t* dst) noexcept;
 	};
 
-	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser, Jsonifier& doc) noexcept {
-		masterParser.doc = &doc;
+	inline Jsonifier TapeBuilder::parseDocument(SimdJsonValue& masterParser) noexcept {
 		JsonIterator iter(masterParser, 0);
 		TapeBuilder builder(masterParser);
 		return iter.walkDocument(builder);
 	}
 
-	inline ErrorCode TapeBuilder::visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline Jsonifier TapeBuilder::visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept {
 		return iter.visitRootPrimitive(*this, value);
 	}
-	inline ErrorCode TapeBuilder::visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline Jsonifier TapeBuilder::visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept {
 		return iter.visitPrimitive(*this, value);
 	}
 	inline ErrorCode TapeBuilder::visitEmptyObject(JsonIterator& iter) noexcept {
-		return emptyContainer(iter, TapeType::START_OBJECT, TapeType::END_OBJECT);
+		return emptyContainer(iter, TapeType::Start_Object, TapeType::End_Object);
 	}
 	inline ErrorCode TapeBuilder::visitEmptyArray(JsonIterator& iter) noexcept {
-		return emptyContainer(iter, TapeType::START_ARRAY, TapeType::END_ARRAY);
+		return emptyContainer(iter, TapeType::Start_Array, TapeType::End_Array);
 	}
 
 	inline ErrorCode TapeBuilder::visitDocumentStart(JsonIterator& iter) noexcept {
@@ -1594,19 +1639,19 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitObjectEnd(JsonIterator& iter) noexcept {
-		return endContainer(iter, TapeType::START_OBJECT, TapeType::END_OBJECT);
+		return endContainer(iter, TapeType::Start_Object, TapeType::End_Object);
 	}
 	inline ErrorCode TapeBuilder::visitArrayEnd(JsonIterator& iter) noexcept {
-		return endContainer(iter, TapeType::START_ARRAY, TapeType::END_ARRAY);
+		return endContainer(iter, TapeType::Start_Array, TapeType::End_Array);
 	}
 	inline ErrorCode TapeBuilder::visitDocumentEnd(JsonIterator& iter) noexcept {
 		constexpr uint32_t startTapeIndex = 0;
-		tape.append(startTapeIndex, TapeType::ROOT);
-		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter), TapeType::ROOT);
+		tape.append(startTapeIndex, TapeType::Root);
+		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter), TapeType::Root);
 		return ErrorCode::Success;
 	}
-	inline ErrorCode TapeBuilder::visitKey(JsonIterator& iter, const uint8_t* key) noexcept {
-		return visitString(iter, key, true);
+	inline std::string_view TapeBuilder::visitKey(JsonIterator& iter, const uint8_t* key) noexcept {
+		return visitString(iter, key);
 	}
 
 	inline ErrorCode TapeBuilder::incrementCount(JsonIterator& iter) noexcept {
@@ -1840,17 +1885,17 @@ namespace Jsonifier {
 		return nullptr;
 	}
 
-	inline ErrorCode TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
-		uint8_t* dst = onStartString(iter);
-		dst = parseString(value + 1, dst);
-		if (dst == nullptr) {
-			return ErrorCode::StringError;
+	inline std::string_view TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
+		uint8_t* dst01 = onStartString(iter);
+		auto dst02 = parseString(value + 1, dst01);
+		if (dst02 == nullptr) {
+			return std::string_view{};
 		}
-		onEndString(dst);
-		return ErrorCode::Success;
+		onEndString(dst02);
+		return std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) };
 	}
 
-	inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline std::string_view TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
 		return visitString(iter, value);
 	}
 
@@ -1873,7 +1918,7 @@ namespace Jsonifier {
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return ErrorCode::TAtomError;
 		}
-		tape.append(0, TapeType::TRUE_VALUE);
+		tape.append(0, TapeType::True_Value);
 		return ErrorCode::Success;
 	}
 
@@ -1881,7 +1926,7 @@ namespace Jsonifier {
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return ErrorCode::TAtomError;
 		}
-		tape.append(0, TapeType::TRUE_VALUE);
+		tape.append(0, TapeType::True_Value);
 		return ErrorCode::Success;
 	}
 
@@ -1889,7 +1934,7 @@ namespace Jsonifier {
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return ErrorCode::FAtomError;
 		}
-		tape.append(0, TapeType::FALSE_VALUE);
+		tape.append(0, TapeType::False_Value);
 		return ErrorCode::Success;
 	}
 
@@ -1897,7 +1942,7 @@ namespace Jsonifier {
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return ErrorCode::FAtomError;
 		}
-		tape.append(0, TapeType::FALSE_VALUE);
+		tape.append(0, TapeType::False_Value);
 		return ErrorCode::Success;
 	}
 
@@ -1905,7 +1950,7 @@ namespace Jsonifier {
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return ErrorCode::NAtomError;
 		}
-		tape.append(0, TapeType::NULL_VALUE);
+		tape.append(0, TapeType::Null_Value);
 		return ErrorCode::Success;
 	}
 
@@ -1913,7 +1958,7 @@ namespace Jsonifier {
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return ErrorCode::NAtomError;
 		}
-		tape.append(0, TapeType::NULL_VALUE);
+		tape.append(0, TapeType::Null_Value);
 		return ErrorCode::Success;
 	}
 
@@ -1947,20 +1992,21 @@ namespace Jsonifier {
 
 	inline  uint8_t* TapeBuilder::onStartString(JsonIterator& iter) noexcept {
 		tape.append(currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()), TapeType::STRING);
-		std::cout << "WERE APPENDING THIS VALUE: STRING START "
-				  << currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()) << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: STRING START "
+				  //<< currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()) << std::endl;
 		return currentStringBufferLocation + sizeof(uint32_t);
 	}
 
 	inline void TapeBuilder::onEndString(uint8_t* dst) noexcept {
 		uint32_t stringLength = uint32_t(dst - (currentStringBufferLocation + sizeof(uint32_t)));
 		memcpy(currentStringBufferLocation, &stringLength, sizeof(uint32_t));
-		std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH " << stringLength << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH " << stringLength << std::endl;
 		*dst = 0;
 		currentStringBufferLocation = dst + 1;
 	}
 
-	inline ErrorCode JsonIterator::walkDocument(TapeBuilder& visitor) noexcept {
+	inline Jsonifier JsonIterator::walkDocument(TapeBuilder& visitor) noexcept {
+		JsonConstructor constructor{};
 		if (atEof()) {
 			return ErrorCode::Empty;
 		}
@@ -2004,7 +2050,9 @@ namespace Jsonifier {
 				return ErrorCode::TapeError;
 			}
 			visitor.incrementCount(*this);
-			visitor.visitKey(*this, key);
+			std::string newKey = static_cast<std::string>(visitor.visitKey(*this, key));
+
+			constructor.startNewObject(newKey);
 		}
 
 	object_field:
@@ -2056,6 +2104,7 @@ namespace Jsonifier {
 	scope_end:
 		depth--;
 		if (depth == 0) {
+			constructor.endObject();
 			goto document_end;
 		}
 		if (masterParser.getIsArray()[depth]) {
@@ -2112,15 +2161,18 @@ namespace Jsonifier {
 
 		*masterParser.getNextStructural() = uint32_t(nextStructural - &masterParser.getStructuralIndexes()[0]);
 
-		if ( *masterParser.getNextStructural() != masterParser.getTapeLength()) {
+		if ( *masterParser.getNextStructural() != masterParser.getTapeLength()-1) {
 			return ErrorCode::TapeError;
 		}
 
-		return ErrorCode::Success;
+		auto result = constructor.getResult();
+		result.refreshString(JsonifierSerializeType::Json);
+		//std::cout << "THE DATA FINAL: " << result.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		return result;
 
 	}
 
-	inline ErrorCode JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+	inline Jsonifier JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
 				return visitor.visit_root_string(*this, value);
@@ -2147,7 +2199,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline ErrorCode JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+	inline Jsonifier JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
 				return visitor.visitString(*this, value);
@@ -2176,12 +2228,11 @@ namespace Jsonifier {
 
 	Jsonifier SimdJsonValue::getJsonData() {
 		//auto jsonData = JsonConstructor{ *this }.startDocument();
-		Jsonifier jsonData{};
 		//std::cout << "THE VALUE (REAL): " << this->stringView << std::endl;
 		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parseDocument<false>(*this, jsonData) << std::endl;
-		TapeBuilder::parseDocument(*this, jsonData);
+		;
 		for (size_t x = 0; x < this->tapeLength; ++x) {
-			std::cout << "THE CURRENT VALUE: " << *this->jsonRawTape[x] << std::endl;
+			//std::cout << "THE CURRENT VALUE: " << *this->jsonRawTape[x] << std::endl;
 				
 				//std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
 				//std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
@@ -2191,7 +2242,10 @@ namespace Jsonifier {
 		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
 		//jsonData.refreshString(JsonifierSerializeType::Json);
 		//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		return jsonData;
+		auto result = TapeBuilder::parseDocument(*this);
+		result.refreshString(JsonifierSerializeType::Json);
+		//std::cout << "THE DATA: " << result.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		return result;
 	}
 
 };
