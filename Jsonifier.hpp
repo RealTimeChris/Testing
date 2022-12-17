@@ -1796,52 +1796,50 @@ namespace Jsonifier {
 		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
 	};
 
-	inline void TapeWriter::append_s64(int64_t value) noexcept {
+	inline  void TapeWriter::append_s64(int64_t value) noexcept {
 		append2(0, value, TapeType::INT64);
 	}
 
-	inline void TapeWriter::append_u64(uint64_t value) noexcept {
+	inline  void TapeWriter::append_u64(uint64_t value) noexcept {
 		append(0, TapeType::UINT64);
 		*next_tape_loc = value;
 		next_tape_loc++;
 	}
 
-	inline void TapeWriter::append_double(double value) noexcept {
+	/** Write a double value to tape. */
+	inline  void TapeWriter::append_double(double value) noexcept {
 		append2(0, value, TapeType::DOUBLE);
 	}
 
-	inline void TapeWriter::skip() noexcept {
+	inline  void TapeWriter::skip() noexcept {
 		next_tape_loc++;
 	}
 
-	inline void TapeWriter::skip_large_integer() noexcept {
+	inline  void TapeWriter::skip_large_integer() noexcept {
 		next_tape_loc += 2;
 	}
 
-	inline void TapeWriter::skip_double() noexcept {
+	inline  void TapeWriter::skip_double() noexcept {
 		next_tape_loc += 2;
 	}
 
-	inline void TapeWriter::append(uint64_t val, TapeType t) noexcept{
-		std::cout << "VALUE 01: " << (val) << std::endl;
-		std::cout << "VALUE 02: " << (val << 56) << std::endl;
-		std::cout << "VALUE 03: " << (val | (uint64_t(char(t) & 0xffffffff) << 56)) << std::endl;
+	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*next_tape_loc = val | ((uint64_t(char(t))) << 56);
-		std::cout << "CURRENT TAPE LOC: " << *next_tape_loc << std::endl;
-		std::cout << "CURRENT TAPE LOC: " << ((*next_tape_loc) & 0x00ffffff) << std::endl;
 		next_tape_loc++;
 	}
 
-	template<typename T> inline void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
+	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
+		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*next_tape_loc), "Type is not 64 bits!");
 		memcpy(next_tape_loc, &val2, sizeof(val2));
 		next_tape_loc++;
 	}
 
-	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
+	inline  void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
 	}
+
 
 	struct TapeBuilder {
 		template<bool STREAMING> static inline ErrorCode parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept;
@@ -1959,6 +1957,7 @@ namespace Jsonifier {
 	}
 	inline ErrorCode TapeBuilder::visit_document_end(JsonIterator& iter) noexcept {
 		constexpr uint32_t start_tape_index = 0;
+		std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END " << start_tape_index << std::endl;
 		tape.append(start_tape_index, TapeType::ROOT);
 		TapeWriter::write(iter.dom_parser.getStructuralIndexes()[start_tape_index], next_tape_index(iter), TapeType::ROOT);
 		return Success;
@@ -1978,10 +1977,11 @@ namespace Jsonifier {
 	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
 		uint32_t index{};
 		while (index <= 65536) {
+			std::cout << "CURRENT VALUE: " << src[index] << std::endl;
 			if (src[index] == '"') {
-				memcpy(dst, src, index);
-				return dst;
+				return ( uint8_t* )(src + index);
 			}
+
 			index++;
 		}
 		return nullptr;
@@ -2096,6 +2096,7 @@ namespace Jsonifier {
 		TapeType end) noexcept {
 		auto start_index = next_tape_index(iter);
 		tape.append(start_index + 2, start);
+		std::cout << "WERE APPENDING THIS VALUE EMPTY CONTAINER: " << start_index<< std::endl;
 		tape.append(start_index, end);
 		return ErrorCode::Success;
 	}
@@ -2111,6 +2112,7 @@ namespace Jsonifier {
 		std::cout << "ENDING CONTAINER 01: " << std::endl;
 		// Write the ending tape element, pointing at the start location
 		const uint32_t start_tape_index = iter.dom_parser.openContainers[iter.depth].tape_index;
+		std::cout << "WERE APPENDING THIS VALUE END CONTAINER: " << start_tape_index << std::endl;
 		tape.append(start_tape_index, end);
 		// Write the start tape element, pointing at the end location (and including count)
 		// count can overflow if it exceeds 24 bits... so we saturate
@@ -2123,19 +2125,23 @@ namespace Jsonifier {
 
 	inline const uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
 		// we advance the point, accounting for the fact that we have a NULL termination
+		std::cout << "WERE APPENDING THIS VALUE START STRING: " << current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringView())
+				  << std::endl;
 		tape.append(current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringView()), TapeType::STRING);
 		return current_string_buf_loc + sizeof(uint32_t);
 	}
 
 	inline void TapeBuilder::on_end_string(uint8_t* dst) noexcept {
-		uint32_t str_length = uint32_t(dst - (current_string_buf_loc + sizeof(uint32_t)));
+		uint32_t str_length = uint32_t(dst - (current_string_buf_loc));
+		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING BUF LOC: " << *current_string_buf_loc << std::endl;
 		// TODO check for overflow in case someone has a crazy string (>=4GB?)
 		// But only add the overflow check when the document itself exceeds 4GB
 		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
-		memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
+		//memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
+		std::cout << "WERE APPENDING THIS VALUE END STRING STR LENGTH: " << str_length << std::endl;
 		// NULL termination is still handy if you expect all your strings to
 		// be NULL terminated? It comes at a small cost
-		*dst = 0;
+		//*dst = 0;
 		current_string_buf_loc = dst + 1;
 	}
 
@@ -2452,9 +2458,12 @@ namespace Jsonifier {
 		std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(*this, jsonData) << std::endl;
 		//TapeBuilder::parse_document<false>(value, jsonData);
 		for (size_t x = 0; x < this->tapeLength; ++x) {
-			//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*value.jsonRawTape[x]] << std::endl;
-			//std::cout << "THE CURRENT VALUE 01: " << ((*this->jsonRawTape[x]) & 0x00ffffff) << std::endl;
-			//std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[((*this->jsonRawTape[x]) & 0x00ffffff)])) << std::endl;
+			if (( char )this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))] == ( char )TapeType::STRING) {
+				//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*this->jsonRawTape[x]] << std::endl;
+				std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0fffffff)) << std::endl;
+				std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0fffffff))])) << std::endl;
+			}
+			
 		}
 		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
 		//jsonData.refreshString(JsonifierSerializeType::Json);

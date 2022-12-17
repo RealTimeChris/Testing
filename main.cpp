@@ -109,30 +109,7 @@ int32_t main() noexcept {
 		size_t totalTime{};
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
-		totalSize = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
-		auto stringNewer = stringNew;
-
-
-		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
-		std::cout << "THE STRING: " << stringNew << std::endl;
-		totalSize = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
-		simdjson::ondemand::parser parser{};
-		parser.allocate(1024 * 1024);
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue theValue{ newDocument };
-			totalSize += oldSize;
-		}
-
-		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		std::cout << "THE STRING: " << stringNew << std::endl;
-		prepStringForParsing(stringNew);
-		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
+		
 
 		totalSize = 0;
 		totalTime = 0;
@@ -157,7 +134,30 @@ int32_t main() noexcept {
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		//		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		auto stringNewer = stringNew;
 
+
+		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
+		std::cout << "THE STRING: " << stringNew << std::endl;
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		simdjson::ondemand::parser parser{};
+		parser.allocate(1024 * 1024);
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
+			TheValue theValue{ newDocument };
+			totalSize += oldSize;
+		}
+
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		std::cout << "THE STRING: " << stringNew << std::endl;
+		prepStringForParsing(stringNew);
+		std::cout << "THE STRING SIZE: " << stringNew.size() << std::endl;
 
 
 	} catch (std::runtime_error& e) {
