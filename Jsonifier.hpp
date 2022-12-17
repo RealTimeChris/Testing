@@ -1511,62 +1511,61 @@ namespace Jsonifier {
 
 	struct TapeWriter {
 		TapeWriter(uint64_t* ptr) {
-			this->next_tape_loc = ptr;
+			this->nextTapeLocation = ptr;
 		}
-		/** The next place to write to tape */
-		uint64_t* next_tape_loc;
-		inline void append_s64(int64_t value) noexcept;
-		inline void append_u64(uint64_t value) noexcept;
-		inline void append_double(double value) noexcept;
+		uint64_t* nextTapeLocation;
+		inline void appendS64(int64_t value) noexcept;
+		inline void appendU64(uint64_t value) noexcept;
+		inline void appendDouble(double value) noexcept;
 		inline void append(uint64_t val, TapeType t) noexcept;
 		inline void skip() noexcept;
-		inline void skip_large_integer() noexcept;
-		inline void skip_double() noexcept;
+		inline void skipLargeInteger() noexcept;
+		inline void skipDouble() noexcept;
 		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
 
 	  private:
 		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
 	};
 
-	inline  void TapeWriter::append_s64(int64_t value) noexcept {
+	inline  void TapeWriter::appendS64(int64_t value) noexcept {
 		append2(0, value, TapeType::INT64);
 	}
 
-	inline  void TapeWriter::append_u64(uint64_t value) noexcept {
+	inline  void TapeWriter::appendU64(uint64_t value) noexcept {
 		append(0, TapeType::UINT64);
-		*next_tape_loc = value;
-		next_tape_loc++;
+		*nextTapeLocation = value;
+		nextTapeLocation++;
 	}
 
 	/** Write a double value to tape. */
-	inline  void TapeWriter::append_double(double value) noexcept {
+	inline  void TapeWriter::appendDouble(double value) noexcept {
 		append2(0, value, TapeType::DOUBLE);
 	}
 
 	inline  void TapeWriter::skip() noexcept {
-		next_tape_loc++;
+		nextTapeLocation++;
 	}
 
-	inline  void TapeWriter::skip_large_integer() noexcept {
-		next_tape_loc += 2;
+	inline  void TapeWriter::skipLargeInteger() noexcept {
+		nextTapeLocation += 2;
 	}
 
-	inline  void TapeWriter::skip_double() noexcept {
-		next_tape_loc += 2;
+	inline  void TapeWriter::skipDouble() noexcept {
+		nextTapeLocation += 2;
 	}
 
 	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
-		*next_tape_loc = val | ((uint64_t(char(t))) << 56);
+		*nextTapeLocation = val | ((uint64_t(char(t))) << 56);
 		//std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
-		next_tape_loc++;
+		nextTapeLocation++;
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
 		//std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
-		static_assert(sizeof(val2) == sizeof(*next_tape_loc), "Type is not 64 bits!");
-		memcpy(next_tape_loc, &val2, sizeof(val2));
-		next_tape_loc++;
+		static_assert(sizeof(val2) == sizeof(*nextTapeLocation), "Type is not 64 bits!");
+		memcpy(nextTapeLocation, &val2, sizeof(val2));
+		nextTapeLocation++;
 	}
 
 	inline  void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
@@ -1578,7 +1577,7 @@ namespace Jsonifier {
 		static inline ErrorCode parse_document(SimdJsonValue& masterParser, Jsonifier& doc) noexcept;
 
 		/** Called when a non-empty document starts. */
-		inline ErrorCode visit_document_start(JsonIterator& iter) noexcept;
+		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
 		/** Called when a non-empty document ends without error. */
 		inline ErrorCode visitDocumentEnd(JsonIterator& iter) noexcept;
 
@@ -1669,7 +1668,7 @@ namespace Jsonifier {
 		return emptyContainer(iter, TapeType::START_ARRAY, TapeType::END_ARRAY);
 	}
 
-	inline ErrorCode TapeBuilder::visit_document_start(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visitDocumentStart(JsonIterator& iter) noexcept {
 		startContainer(iter);
 		return Success;
 	}
@@ -1708,7 +1707,7 @@ namespace Jsonifier {
 		: tape{ doc.getStructuralIndexes() }, currentStringBufferLocation{ reinterpret_cast<uint8_t*>(doc.getStringViewNew()) } {
 	}
 
-	const uint32_t digit_to_val32[886] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+	const uint32_t digitToVal32[886] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -1786,15 +1785,15 @@ namespace Jsonifier {
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 	
-	static inline uint32_t hex_to_u32_nocheck(const uint8_t* src) {// strictly speaking, static inline is a C-ism
-		uint32_t v1 = digit_to_val32[630 + src[0]];
-		uint32_t v2 = digit_to_val32[420 + src[1]];
-		uint32_t v3 = digit_to_val32[210 + src[2]];
-		uint32_t v4 = digit_to_val32[0 + src[3]];
+	static inline uint32_t hexToU32Nocheck(const uint8_t* src) {// strictly speaking, static inline is a C-ism
+		uint32_t v1 = digitToVal32[630 + src[0]];
+		uint32_t v2 = digitToVal32[420 + src[1]];
+		uint32_t v3 = digitToVal32[210 + src[2]];
+		uint32_t v4 = digitToVal32[0 + src[3]];
 		return v1 | v2 | v3 | v4;
 	}
 
-	inline size_t codepoint_to_utf8(uint32_t cp, uint8_t* c) {
+	inline size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
 		if (cp <= 0x7F) {
 			c[0] = uint8_t(cp);
 			return 1;// ascii
@@ -1823,11 +1822,11 @@ namespace Jsonifier {
 		return 0;// bad r
 	}
 
-	inline bool handle_unicode_codepoint(const uint8_t** src_ptr, uint8_t** dst_ptr) {
-		// jsoncharutils::hex_to_u32_nocheck fills high 16 bits of the return value with 1s if the
+	inline bool handleUnicodeCodepoint(const uint8_t** src_ptr, uint8_t** dst_ptr) {
+		// jsoncharutils::hexToU32Nocheck fills high 16 bits of the return value with 1s if the
 		// conversion isn't valid; we defer the check for this to inside the
 		// multilingual plane check
-		uint32_t code_point = hex_to_u32_nocheck(*src_ptr + 2);
+		uint32_t code_point = hexToU32Nocheck(*src_ptr + 2);
 		*src_ptr += 6;
 
 		// If we found a high surrogate, we must
@@ -1840,7 +1839,7 @@ namespace Jsonifier {
 			if (((src_data[0] << 8) | src_data[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
 				return false;
 			}
-			uint32_t code_point_2 = hex_to_u32_nocheck(src_data + 2);
+			uint32_t code_point_2 = hexToU32Nocheck(src_data + 2);
 
 			// We have already checked that the high surrogate is valid and
 			// (code_point - 0xd800) < 1024.
@@ -1859,7 +1858,7 @@ namespace Jsonifier {
 			// then we have an error.
 			return false;
 		}
-		size_t offset = codepoint_to_utf8(code_point, *dst_ptr);
+		size_t offset = codepointToUtf8(code_point, *dst_ptr);
 		*dst_ptr += offset;
 		return offset > 0;
 	}
@@ -1931,7 +1930,7 @@ namespace Jsonifier {
 				if (escape_char == 'u') {
 					src += bs_dist;
 					dst += bs_dist;
-					if (!handle_unicode_codepoint(&src, &dst)) {
+					if (!handleUnicodeCodepoint(&src, &dst)) {
 						return nullptr;
 					}
 				} else {
@@ -2044,7 +2043,7 @@ namespace Jsonifier {
 	// private:
 
 	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) const noexcept {
-		return uint32_t(tape.next_tape_loc - iter.masterParser.getStructuralIndexes());
+		return uint32_t(tape.nextTapeLocation - iter.masterParser.getStructuralIndexes());
 	}
 
 	inline ErrorCode TapeBuilder::emptyContainer(JsonIterator& iter, TapeType start,
