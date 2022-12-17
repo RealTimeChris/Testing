@@ -1236,7 +1236,7 @@ namespace Jsonifier {
 
 		void startNewObject() {
 			this->currentPlace.back()->refreshString(JsonifierSerializeType::Json);
-			if (this->type == JsonType::Array) {
+			if (this->currentPlace.back()->getType() == JsonType::Array) {
 				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(JsonType::Null));
 			} else {				
 				(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Null;
@@ -1244,8 +1244,6 @@ namespace Jsonifier {
 			}
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
 			std::cout << "CURRENT DATA: (NEW OBJECT) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			
-			this->type = JsonType::Object;
 		}
 
 		void startNewArray() {
