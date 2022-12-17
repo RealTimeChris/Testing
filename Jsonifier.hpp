@@ -1139,7 +1139,6 @@ namespace Jsonifier {
 				auto newValue = this->S256.getUint64(x);
 				returnValue += jsonRawTape.addTapeValues(&newValue, x, currentIndex);
 			}
-			//std::cout << "STRUCTURAL INDEX COUNT: " << returnValue << std::endl;
 			return returnValue;
 		}
 
