@@ -15,8 +15,8 @@ struct ActivitiesJson {
 	std::string name{};
 	std::string id{};
 	int32_t type{};
-	operator Jsonifier::JsonSerializer() {
-		Jsonifier::JsonSerializer data{};
+	operator Jsonifier::Jsonifier() {
+		Jsonifier::Jsonifier data{};
 		data["created_at"] = this->createdAt;
 		data["name"] = this->name;
 		data["id"] = this->id;
@@ -27,14 +27,14 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::JsonSerializer& value) {
+	TheDJson(Jsonifier::Jsonifier& value) {
 		auto theArray = value["d"]["activitiess"].getValue<std::vector<ActivitiesJson>>();
 		for (auto& value: theArray) {
 			activities.push_back(value);
 		}
 	}
-	operator Jsonifier::JsonSerializer() {
-		Jsonifier::JsonSerializer serializer{};
+	operator Jsonifier::Jsonifier() {
+		Jsonifier::Jsonifier serializer{};
 		for (auto& value: this->activities) {
 			serializer["d"]["activitiess"].emplaceBack(value);
 		}
@@ -44,7 +44,7 @@ struct TheDJson {
 };
 
 namespace Jsonifier {
-	template<> TheDJson JsonSerializer::getValue() {
+	template<> TheDJson Jsonifier::getValue() {
 		return TheDJson{ *this };
 	}
 
@@ -127,7 +127,7 @@ int32_t main() noexcept {
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
 			jsonData = std::move(stringScanner.getJsonData());
-					//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;	
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
