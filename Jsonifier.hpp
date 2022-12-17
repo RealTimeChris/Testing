@@ -2430,7 +2430,8 @@ namespace Jsonifier {
 		TapeBuilder::parse_document<false>(value, jsonData);
 		for (size_t x = 0; x < value.tapeLength; ++x) {
 			//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*value.jsonRawTape[x]] << std::endl;
-			//std::cout << "THE CURRENT VALUE: " << *value.jsonRawTape[x] << std::endl;
+			std::cout << "THE CURRENT VALUE 01: " << ((*value.jsonRawTape[x]) & 0x00ffffff) << std::endl;
+			std::cout << "THE CURRENT VALUE 02: " << (( char )(value.stringView[((*value.jsonRawTape[x]) & 0x00ffffff)])) << std::endl;
 		}
 		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
 		//jsonData.refreshString(JsonifierSerializeType::Json);
