@@ -1276,9 +1276,9 @@ namespace Jsonifier {
 			}
 			this->tapeLength = tapeSize;
 			this->nextStructural = this->jsonRawTape.operator uint64_t*();
-			for (size_t x = 0; x < tapeSize; ++x) {
-				std::cout << "CURRENT INDEX: " << this->jsonRawTape.operator uint64_t*()[x] << std::endl;
-			}
+			//for (size_t x = 0; x < tapeSize; ++x) {
+				//std::cout << "CURRENT INDEX: " << this->jsonRawTape.operator uint64_t*()[x] << std::endl;
+			//}
 		}
 
 		inline ~SimdJsonValue() noexcept {
