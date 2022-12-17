@@ -1237,7 +1237,7 @@ namespace Jsonifier {
 	class SimdJsonValue {
 	  public:
 
-		inline SimdJsonValue(char* stringNew, size_t tapeLength, size_t capacity)
+		inline SimdJsonValue(const char* stringNew, size_t tapeLength, size_t capacity)
 			: stringView(stringNew){
 			if (tapeLength == 0) {
 				throw DCAException{ "Failed to parse as the string size is 0." };
@@ -1270,7 +1270,7 @@ namespace Jsonifier {
 
 		inline ~SimdJsonValue() noexcept {}
 
-		inline char* getStringView() {
+		inline const char* getStringView() {
 			//std::cout << "CURRENT STRING VIEW: " << this->stringView << std::endl;
 			return this->stringView;
 		}
@@ -1312,7 +1312,7 @@ namespace Jsonifier {
 		SimdTape jsonRawTape{};
 		size_t stringLength{};
 		uint32_t depth{ 0 };
-		char* stringView{};
+		const char* stringView{};
 	};
 
 	enum class TapeType : int8_t {
@@ -1332,7 +1332,7 @@ namespace Jsonifier {
 
 	class JsonIterator {
 	  public:
-		uint8_t* buf;
+		const uint8_t* buf;
 		uint64_t* next_structural;
 		SimdJsonValue& dom_parser;
 		uint32_t depth{ 0 };
@@ -1376,7 +1376,7 @@ namespace Jsonifier {
    *
    * They may include invalid JSON as well (such as `1.2.3` or `ture`).
    */
-		inline uint8_t* peek() const noexcept;
+		inline const uint8_t* peek() const noexcept;
 		/**
    * Advance to the next token.
    *
@@ -1384,7 +1384,7 @@ namespace Jsonifier {
    *
    * They may include invalid JSON as well (such as `1.2.3` or `ture`).
    */
-		inline uint8_t* advance() noexcept;
+		inline const uint8_t* advance() noexcept;
 		/**
    * Get the remaining length of the document, from the start of the current token.
    */
@@ -1426,8 +1426,8 @@ namespace Jsonifier {
    */
 		inline void log_error(const char* error) const noexcept;
 
-		template<typename V>  inline ErrorCode visit_root_primitive(V& visitor, uint8_t* value) noexcept;
-		template<typename V>  inline ErrorCode visit_primitive(V& visitor, uint8_t* value) noexcept;
+		template<typename V>  inline ErrorCode visit_root_primitive(V& visitor, const uint8_t* value) noexcept;
+		template<typename V>  inline ErrorCode visit_primitive(V& visitor, const uint8_t* value) noexcept;
 	};
 
 	template<bool STREAMING, typename V>  inline ErrorCode JsonIterator::walk_document(V& visitor) noexcept {
@@ -1620,15 +1620,15 @@ namespace Jsonifier {
 	}// walk_document()
 
 	inline JsonIterator::JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
-		: buf{ reinterpret_cast<uint8_t*>(_dom_parser.getStringView()) }, next_structural{ &_dom_parser.getStructuralIndexes()[start_structural_index] }, dom_parser{ _dom_parser } {
+		: buf{ reinterpret_cast<const uint8_t*>(_dom_parser.getStringView()) }, next_structural{ &_dom_parser.getStructuralIndexes()[start_structural_index] }, dom_parser{ _dom_parser } {
 	}
 
-	inline uint8_t* JsonIterator::peek() const noexcept {
+	inline const uint8_t* JsonIterator::peek() const noexcept {
 		//std::cout << "CURRENT PEEKED VALUE: " << buf[*(next_structural)] << std::endl;
 		return &buf[*(next_structural)];
 	}
 
-	inline uint8_t* JsonIterator::advance() noexcept {
+	inline const uint8_t* JsonIterator::advance() noexcept {
 		auto returnValue = &buf[*(next_structural++)];
 		//std::cout << "CURRENT ADVANCED VALUE: " << *returnValue << std::endl;
 		return returnValue;
@@ -1675,7 +1675,7 @@ namespace Jsonifier {
 	}
 
 	template<typename V>
-	 inline ErrorCode JsonIterator::visit_root_primitive(V& visitor, uint8_t* value) noexcept {
+	 inline ErrorCode JsonIterator::visit_root_primitive(V& visitor, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
 				return visitor.visit_root_string(*this, value);
@@ -1702,7 +1702,7 @@ namespace Jsonifier {
 				return TapeError;
 		}
 	}
-	template<typename V>  inline ErrorCode JsonIterator::visit_primitive(V& visitor, uint8_t* value) noexcept {
+	template<typename V>  inline ErrorCode JsonIterator::visit_primitive(V& visitor, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
 				return visitor.visit_string(*this, value);
@@ -1854,7 +1854,7 @@ namespace Jsonifier {
    * primitive, visit_object_start, visit_empty_object, visit_array_start, or visit_empty_array
    * will be called after this with the field value.
    */
-		inline ErrorCode visit_key(JsonIterator& iter, uint8_t* key) noexcept;
+		inline ErrorCode visit_key(JsonIterator& iter, const uint8_t* key) noexcept;
 		/** Called when a non-empty object ends. */
 		 inline ErrorCode visit_object_end(JsonIterator& iter) noexcept;
 		/** Called when an empty object is found. */
@@ -1863,7 +1863,7 @@ namespace Jsonifier {
 		/**
    * Called when a string, number, boolean or null is found.
    */
-		 inline ErrorCode visit_primitive(JsonIterator& iter, uint8_t* value) noexcept;
+		 inline ErrorCode visit_primitive(JsonIterator& iter, const uint8_t* value) noexcept;
 		/**
    * Called when a string, number, boolean or null is found at the top level of a document (i.e.
    * when there is no array or object and the entire document is a single string, number, boolean or
@@ -1872,19 +1872,19 @@ namespace Jsonifier {
    * This is separate from primitive() because simdjson's normal primitive parsing routines assume
    * there is at least one more token after the value, which is only true in an array or object.
    */
-		 inline ErrorCode visit_root_primitive(JsonIterator& iter, uint8_t* value) noexcept;
+		 inline ErrorCode visit_root_primitive(JsonIterator& iter, const uint8_t* value) noexcept;
 
-		 inline ErrorCode visit_string(JsonIterator& iter, uint8_t* value, bool key = false) noexcept;
-		 inline ErrorCode visit_number(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_true_atom(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_false_atom(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_null_atom(JsonIterator& iter, uint8_t* value) noexcept;
+		 inline ErrorCode visit_string(JsonIterator& iter, const uint8_t* value, bool key = false) noexcept;
+		 inline ErrorCode visit_number(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_true_atom(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_false_atom(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_null_atom(JsonIterator& iter, const uint8_t* value) noexcept;
 
-		 inline ErrorCode visit_root_string(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_root_number(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_root_true_atom(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_root_false_atom(JsonIterator& iter, uint8_t* value) noexcept;
-		 inline ErrorCode visit_root_null_atom(JsonIterator& iter, uint8_t* value) noexcept;
+		 inline ErrorCode visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_root_number(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_root_true_atom(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_root_false_atom(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visit_root_null_atom(JsonIterator& iter, const uint8_t* value) noexcept;
 
 		/** Called each time a new field or element in an array or object is found. */
 		 inline ErrorCode increment_count(JsonIterator& iter) noexcept;
@@ -1894,7 +1894,7 @@ namespace Jsonifier {
 
 	  private:
 		/** Next write location in the string buf for stage 2 parsing */
-		uint8_t* current_string_buf_loc;
+		const uint8_t* current_string_buf_loc;
 
 		inline TapeBuilder(SimdJsonValue& doc) noexcept;
 
@@ -1902,8 +1902,8 @@ namespace Jsonifier {
 		inline void start_container(JsonIterator& iter) noexcept;
 		inline ErrorCode end_container(JsonIterator& iter, TapeType start, TapeType end) noexcept;
 		inline ErrorCode empty_container(JsonIterator& iter, TapeType start, TapeType end) noexcept;
-		inline uint8_t* on_start_string(JsonIterator& iter) noexcept;
-		inline void on_end_string(uint8_t* dst) noexcept;
+		inline const uint8_t* on_start_string(JsonIterator& iter) noexcept;
+		inline void on_end_string(const uint8_t* dst) noexcept;
 	};// class TapeBuilder
 
 	template<bool STREAMING>
@@ -1914,10 +1914,10 @@ namespace Jsonifier {
 		return iter.walk_document<STREAMING>(builder);
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_primitive(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_root_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
 		return iter.visit_root_primitive(*this, value);
 	}
-	 inline ErrorCode TapeBuilder::visit_primitive(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
 		return iter.visit_primitive(*this, value);
 	}
 	 inline ErrorCode TapeBuilder::visit_empty_object(JsonIterator& iter) noexcept {
@@ -1952,7 +1952,7 @@ namespace Jsonifier {
 		TapeWriter::write(iter.dom_parser.getStructuralIndexes()[start_tape_index], next_tape_index(iter), TapeType::ROOT);
 		return ErrorCode::Success;
 	}
-	 inline ErrorCode TapeBuilder::visit_key(JsonIterator& iter, uint8_t* key) noexcept {
+	 inline ErrorCode TapeBuilder::visit_key(JsonIterator& iter, const uint8_t* key) noexcept {
 		return visit_string(iter, key, true);
 	}
 
@@ -1962,12 +1962,12 @@ namespace Jsonifier {
 	}
 
 	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept
-		: tape{ doc.getStructuralIndexes() }, current_string_buf_loc{ reinterpret_cast<uint8_t*>(doc.getStringView()) } {
+		: tape{ doc.getStructuralIndexes() }, current_string_buf_loc{ reinterpret_cast<const uint8_t*>(doc.getStringView()) } {
 	}
 
-	 inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, uint8_t* value, bool key) noexcept {
+	 inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
 		iter.log_value(key ? "key" : "string");
-		 uint8_t* dst = on_start_string(iter);
+		 const uint8_t* dst = on_start_string(iter);
 		dst = value + 1;
 		if (dst == nullptr) {
 			iter.log_error("Invalid escape in string");
@@ -1977,16 +1977,16 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
 		return visit_string(iter, value);
 	}
 
-	 inline ErrorCode TapeBuilder::visit_number(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_number(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("number");
 		 return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_number(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_root_number(JsonIterator& iter, const uint8_t* value) noexcept {
 		//
 		// We need to make a copy to make sure that the string is space terminated.
 		// This is not about padding the input, which should already padded up
@@ -2010,7 +2010,7 @@ namespace Jsonifier {
 		return error;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_true_atom(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("true");
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return TAtomError;
@@ -2019,7 +2019,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_true_atom(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_root_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("true");
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return TAtomError;
@@ -2028,7 +2028,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_false_atom(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("false");
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return FAtomError;
@@ -2037,7 +2037,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_false_atom(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_root_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("false");
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return FAtomError;
@@ -2046,7 +2046,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_null_atom(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("null");
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return NAtomError;
@@ -2055,7 +2055,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_null_atom(JsonIterator& iter, uint8_t* value) noexcept {
+	 inline ErrorCode TapeBuilder::visit_root_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		iter.log_value("null");
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return NAtomError;
@@ -2098,21 +2098,21 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
+	inline const uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
 		// we advance the point, accounting for the fact that we have a NULL termination
-		tape.append(current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringView()), TapeType::STRING);
+		tape.append(current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringView()), TapeType::STRING);
 		return current_string_buf_loc + sizeof(uint32_t);
 	}
 
-	inline void TapeBuilder::on_end_string(uint8_t* dst) noexcept {
+	inline void TapeBuilder::on_end_string(const uint8_t* dst) noexcept {
 		uint32_t str_length = uint32_t(dst - (current_string_buf_loc + sizeof(uint32_t)));
 		// TODO check for overflow in case someone has a crazy string (>=4GB?)
 		// But only add the overflow check when the document itself exceeds 4GB
 		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
-		memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
+		//memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
 		// NULL termination is still handy if you expect all your strings to
 		// be NULL terminated? It comes at a small cost
-		*dst = 0;
+		//*dst = 0;
 		current_string_buf_loc = dst + 1;
 	}
 
@@ -2428,13 +2428,11 @@ namespace Jsonifier {
 		SimdJsonValue value{ this->stringView, this->tapeLength, 0 };
 		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(value, jsonData) << std::endl;
 		TapeBuilder::parse_document<false>(value, jsonData);
-		std::cout << "THE NEW VALUES: ";
 		for (size_t x = 0; x < value.tapeLength; ++x) {
 			//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*value.jsonRawTape[x]] << std::endl;
 			std::cout << "THE CURRENT VALUE 01: " << ((*value.jsonRawTape[x]) & 0x00ffffff) << std::endl;
 			std::cout << "THE CURRENT VALUE 02: " << (( char )(value.stringView[((*value.jsonRawTape[x]) & 0x00ffffff)])) << std::endl;
 		}
-		std::cout << std::endl;
 		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
 		//jsonData.refreshString(JsonifierSerializeType::Json);
 		//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
