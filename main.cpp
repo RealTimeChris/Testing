@@ -112,14 +112,11 @@ int32_t main() noexcept {
 		totalTime += stopWatch.totalTimePassed().count();
 		
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		totalSize = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
 		std::string stringNewer = stringNew;
-		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
+		stringNewer.reserve(stringNewer.size() + simdjson::SIMDJSON_PADDING);
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
