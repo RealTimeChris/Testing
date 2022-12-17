@@ -65,7 +65,7 @@ namespace Jsonifier {
 	}
 
 	Jsonifier& Jsonifier::operator=(ErrorCode data) {
-		throw std::runtime_error{ std::string{ "Error Parsing Json Data - it is: " } + std::to_string(data) };
+		throw std::runtime_error{ std::string{ "Error Parsing Json Data - it is: " } + std::to_string(( int32_t )data) };
 		return *this;
 	}
 
@@ -974,7 +974,7 @@ namespace Jsonifier {
 	}
 
 	JsonSerializer& JsonSerializer::operator=(ErrorCode data) {
-		throw std::runtime_error{ std::string{ "Error Parsing Json Data - it is: " } + std::to_string(data) };
+		throw std::runtime_error{ std::string{ "Error Parsing Json Data - it is: " } + std::to_string(static_cast<int32_t>(data)) };
 		return *this;
 	}
 
