@@ -123,20 +123,20 @@ int32_t main() noexcept {
 		jsonDataNew["testing"] = Jsonifier::JsonType::Array;
 		jsonDataNew["testing"].emplaceBack("TESTING");
 		jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		Jsonifier::Jsonifier jsonData{};
+		
 		std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
-			jsonData = std::move(stringScanner.getJsonData());
+			Jsonifier::Jsonifier jsonData = std::move(stringScanner.getJsonData());
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			TheValueJson theValue{ jsonData };
+			//TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
-		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		//		jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
@@ -154,7 +154,7 @@ int32_t main() noexcept {
 		parser.allocate(1024 * 1024);
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue theValue{ newDocument };
+			//TheValue theValue{ newDocument };
 			totalSize += oldSize;
 		}
 
