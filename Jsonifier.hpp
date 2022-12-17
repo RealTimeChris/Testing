@@ -1270,7 +1270,6 @@ namespace Jsonifier {
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
-			//std::cout << "CURRENT STRING VIEW (SECTION): " << this->stringView << std::endl;
 			while (stringSize > 0) {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize);
@@ -1281,9 +1280,6 @@ namespace Jsonifier {
 			}
 			this->tapeLength = tapeSize;
 			this->nextStructural = this->jsonRawTape.operator uint64_t*();
-			//for (size_t x = 0; x < tapeSize; ++x) {
-				//std::cout << "CURRENT INDEX: " << this->jsonRawTape.operator uint64_t*()[x] << std::endl;
-			//}
 		}
 
 		inline ~SimdJsonValue() noexcept {
@@ -1291,12 +1287,10 @@ namespace Jsonifier {
 		}
 
 		inline char* getStringView() {
-			//std::cout << "CURRENT STRING VIEW: " << this->stringView << std::endl;
 			return this->stringView;
 		}
 
 		inline char* getStringViewNew() {
-			//std::cout << "CURRENT STRING VIEW: " << this->stringView << std::endl;
 			return this->stringViewNew;
 		}
 
@@ -1502,7 +1496,7 @@ namespace Jsonifier {
 
 	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*nextTapeLocation = val | ((uint64_t(char(t))) << 56);
-		//std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
+		std::cout << "WERE APPENGINT THIS VALUE: " << (*nextTapeLocation & 0x0fffffff) << std::endl;
 		nextTapeLocation++;
 	}
 
@@ -1515,6 +1509,7 @@ namespace Jsonifier {
 	}
 
 	inline  void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
+		std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
 		tape_loc = val | ((uint64_t(char(t))) << 56);
 	}
 
