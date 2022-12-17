@@ -392,6 +392,8 @@ namespace Jsonifier {
 			this->setValue(JsonType::Object);
 			this->type = JsonType::Object;
 		}
+		std::cout << "THE NEW KEY: " << key << std::endl;
+		std::cout << "THE NEW KEY TYPE: " << ( int32_t )this->type << std::endl;
 		if (this->type == JsonType::Object) {
 			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
 			return result.first->second;
@@ -404,7 +406,7 @@ namespace Jsonifier {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
 		}
-
+		std::cout << "THE NEW INDEX: " << index << std::endl;
 		if (this->type == JsonType::Array) {
 			if (index >= this->jsonValue.array->size()) {
 				this->jsonValue.array->resize(index + 1);
@@ -420,7 +422,9 @@ namespace Jsonifier {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
 		}
-
+		other.refreshString(JsonifierSerializeType::Json);
+		std::cout << "THE NEW ELEMENT && EMPLACE BACK: " << other.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		std::cout << "THE NEW ELEMENT TYPE: " << ( int32_t )this->type << std::endl;
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(std::move(other));
 		}
@@ -432,7 +436,9 @@ namespace Jsonifier {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
 		}
-
+		other.refreshString(JsonifierSerializeType::Json);
+		std::cout << "THE NEW ELEMENT & EMPLACE BACK: " << other.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		std::cout << "THE NEW ELEMENT TYPE: " << ( int32_t )this->type << std::endl;
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(std::move(other));
 		}

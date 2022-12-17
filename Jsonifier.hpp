@@ -1278,10 +1278,14 @@ namespace Jsonifier {
 			this->currentPlace.erase(this->currentPlace.end() - 1);
 		}
 
+		void setAppendType(JsonType typeNew) {
+			this->type = typeNew;
+		}
+
 		template<typename OTy> void appendPrimitiveElement(OTy&& data) {
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
 			std::cout << "CURRENT DATA: (NEW PRIMITIVE FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			if (this->type == JsonType::Array) {
+			if (this->currentPlace.back()->getType() == JsonType::Array) {
 				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(data));
 			} else {
 				(*this->currentPlace.back())[this->currentKey.back()] = data;
@@ -1865,6 +1869,7 @@ namespace Jsonifier {
 					auto newKey = static_cast<std::string>(visitor.visitKey(*this, key));
 					constructor.setCurrentKey(std::move(newKey));
 				}
+				constructor.setAppendType(JsonType::Object);
 				goto object_field;
 			case '}':
 				constructor.endObject();
