@@ -1507,7 +1507,7 @@ namespace Jsonifier {
 
 
 	struct TapeBuilder {
-		static inline ErrorCode parse_document(SimdJsonValue& masterParser, Jsonifier& doc) noexcept;
+		static inline ErrorCode parseDocument(SimdJsonValue& masterParser, Jsonifier& doc) noexcept;
 
 		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
 
@@ -1560,7 +1560,7 @@ namespace Jsonifier {
 		inline void onEndString(uint8_t* dst) noexcept;
 	};
 
-	inline ErrorCode TapeBuilder::parse_document(SimdJsonValue& masterParser, Jsonifier& doc) noexcept {
+	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser, Jsonifier& doc) noexcept {
 		masterParser.doc = &doc;
 		JsonIterator iter(masterParser, 0);
 		TapeBuilder builder(masterParser);
@@ -2178,8 +2178,8 @@ namespace Jsonifier {
 		//auto jsonData = JsonConstructor{ *this }.startDocument();
 		Jsonifier jsonData{};
 		//std::cout << "THE VALUE (REAL): " << this->stringView << std::endl;
-		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(*this, jsonData) << std::endl;
-		TapeBuilder::parse_document(*this, jsonData);
+		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parseDocument<false>(*this, jsonData) << std::endl;
+		TapeBuilder::parseDocument(*this, jsonData);
 		for (size_t x = 0; x < this->tapeLength; ++x) {
 			std::cout << "THE CURRENT VALUE: " << *this->jsonRawTape[x] << std::endl;
 				
