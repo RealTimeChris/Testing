@@ -1833,7 +1833,7 @@ namespace Jsonifier {
 		return answer;
 	}
 
-	inline uint32_t numberOfDigitsDecimalLeftShift(Decimal &h, uint32_t shift) {
+	inline uint32_t numberOfDigitsDecimalLeftShift(Decimal& h, uint32_t shift) {
 		shift &= 63;
 		const static uint16_t numberOfDigitsDecimalLeftShift_table[65]{
 			0x0000, 0x0800, 0x0801, 0x0803, 0x1006, 0x1009, 0x100D, 0x1812, 0x1817,
