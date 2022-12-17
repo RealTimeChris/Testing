@@ -1118,6 +1118,11 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
+	inline uint32_t convertSimdBytesToBits(SimdBase256 input00) {
+		auto returnValue = _mm256_movemask_epi8(input00);
+		return static_cast<uint32_t>(returnValue);
+	}
+
 	class SimdStringSection {
 	  public:
 		inline SimdStringSection() noexcept = default;
@@ -1552,12 +1557,12 @@ namespace Jsonifier {
 
 	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*next_tape_loc = val | ((uint64_t(char(t))) << 56);
-		std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
+		//std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
 		next_tape_loc++;
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*next_tape_loc), "Type is not 64 bits!");
 		memcpy(next_tape_loc, &val2, sizeof(val2));
@@ -1911,18 +1916,20 @@ namespace Jsonifier {
 		// this can read up to 15 bytes beyond the buffer size, but we require
 		// SIMDJSON_PADDING of padding
 		static_assert(32 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
-		SimdBase256 v{};
+		SimdBase256 v{ reinterpret_cast<const char*>(src) };
 		v.store(reinterpret_cast<char*>(dst));
+		auto result01 = convertSimdBytesToBits((v == '\\'));
+		auto result02 = convertSimdBytesToBits((v == '"'));
 		// store to dest unconditionally - we can overwrite the bits we don't like later
+		//std::cout << std::bitset<64>{ static_cast<uint64_t>(result01) } << std::bitset<64>{ static_cast<uint64_t>(result02) } << std::endl;
 		return {
-			static_cast<uint32_t>((v == '\\').getInt64(0)),// bs_bits
-			static_cast<uint32_t>((v == '"').getInt64(0)),// quote_bits
+			result01, result02// quote_bits
 		};
 	}
 	
 	inline uint8_t* parse_string(const uint8_t* src, uint8_t* dst) {
 		int32_t index{};
-		while (index <= 256) {
+		while (1) {
 			index += 32;
 			// Copy the next n bytes, and find the backslash and quote in them.
 			auto bs_quote = backslash_and_quote::copy_and_find(src, dst);
@@ -1969,7 +1976,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
-		std::cout << "WERE APPENDING THIS VALUE: VISIT STRING: " << *value << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: VISIT STRING: " << *value << std::endl;
 		uint8_t* dst = on_start_string(iter);
 		dst = parse_string(value + 1, dst);
 		if (dst == nullptr) {
@@ -2096,8 +2103,12 @@ namespace Jsonifier {
 	inline  uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
 		// we this->advance the point, accounting for the fact that we have a NULL termination
 		tape.append(current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringViewNew()), TapeType::STRING);
-		std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END "
+		std::cout << "WERE APPENDING THIS VALUE: STRING START "
 				  << current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringViewNew()) << std::endl;
+		std::cout << "THE VALUE: "
+				  << std::string{ iter.dom_parser.getStringViewNew(),
+						 static_cast<size_t>(current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringViewNew())) }
+				  << std::endl;
 		return current_string_buf_loc + sizeof(uint32_t);
 	}
 
@@ -2107,7 +2118,7 @@ namespace Jsonifier {
 		// But only add the overflow check when the document itself exceeds 4GB
 		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
 		memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
-		std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH: " << str_length << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH: " << str_length << std::endl;
 		// NULL termination is still handy if you expect all your strings to
 		// be NULL terminated? It comes at a small cost
 		*dst = 0;
@@ -2292,7 +2303,7 @@ namespace Jsonifier {
 		ScopeEnd = 7,
 		EndDocument = 8
 	};
-
+	/*
 	struct JsonConstructor {
 		inline uint32_t nextStringIndex() noexcept;
 		inline uint32_t getCurrentElementSize() noexcept;
@@ -2586,7 +2597,7 @@ namespace Jsonifier {
 				return ErrorCode::TapeError;
 		}
 	}
-
+	*/
 	Jsonifier SimdJsonValue::getJsonData() {
 		//auto jsonData = JsonConstructor{ *this }.startDocument();
 		Jsonifier jsonData{};
@@ -2594,7 +2605,7 @@ namespace Jsonifier {
 		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(*this, jsonData) << std::endl;
 		TapeBuilder::parse_document(*this, jsonData);
 		for (size_t x = 0; x < this->tapeLength; ++x) {
-			std::cout << "THE CURRENT VALUE: " << (((*this->jsonRawTape[x]) & 0x0fffffff)) << std::endl;
+			//std::cout << "THE CURRENT VALUE: " << (((*this->jsonRawTape[x]) & 0x0fffffff)) << std::endl;
 				
 				//std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
 				//std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
