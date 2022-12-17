@@ -1126,7 +1126,7 @@ namespace Jsonifier {
 		SimdJsonValue& masterParser;
 		uint32_t depth{ 0 };
 
-		inline Jsonifier walkDocument(TapeBuilder& visitor) noexcept;
+		inline Jsonifier walkDocument(TapeBuilder& builder) noexcept;
 
 		inline JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index);
 
@@ -1142,8 +1142,8 @@ namespace Jsonifier {
 
 		inline uint8_t lastStructural() const noexcept;
 
-		inline Jsonifier visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
-		inline Jsonifier visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
+		inline Jsonifier visitRootPrimitive(TapeBuilder& builder, const uint8_t* value) noexcept;
+		inline Jsonifier visitPrimitive(TapeBuilder& builder, const uint8_t* value) noexcept;
 	};
 
 	inline JsonIterator::JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
@@ -1986,7 +1986,7 @@ namespace Jsonifier {
 		if ((h.numDigits == 0) || (h.decimalPoint < 0)) {
 			return 0;
 		} else if (h.decimalPoint > 18) {
-			return UINT64_MAX;
+			return std::numeric_limits<uint64_t>::max();
 		}
 		uint32_t dp = uint32_t(h.decimalPoint);
 		uint64_t n = 0;
@@ -2257,19 +2257,19 @@ namespace Jsonifier {
 		}
 		if (digitCount == longestDigitCount) {
 			if (negative) {
-				if (i > uint64_t(INT64_MAX) + 1ull) {
+				if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1ull) {
 					return ErrorCode::InvalidNumber;
 				}
 				if (isNotStructuralOrWhiteSpace(*p)) {
 					return ErrorCode::InvalidNumber;
 				}
 				return writer.appendS64(~i);
-			} else if (source[0] != uint8_t('1') || i <= uint64_t(INT64_MAX)) {
+			} else if (source[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
 				return ErrorCode::InvalidNumber;
 			}
 		}
 		Jsonifier returnValue{};
-		if (i > uint64_t(INT64_MAX)) {
+		if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
 			returnValue = writer.appendS64(i);
 		} else {
 			returnValue = writer.appendS64(negative ? (~i + 1) : i);
@@ -2396,7 +2396,7 @@ namespace Jsonifier {
 		currentStringBufferLocation = destination + 1;
 	}
 
-	inline Jsonifier JsonIterator::walkDocument(TapeBuilder& visitor) noexcept {
+	inline Jsonifier JsonIterator::walkDocument(TapeBuilder& builder) noexcept {
 		JsonConstructor constructor{};
 		if (atEof()) {
 			return ErrorCode::Empty;
@@ -2409,44 +2409,44 @@ namespace Jsonifier {
 				case '{':
 					if (*peek() == '}') {
 						advance();
-						visitor.visitEmptyObject(*this);
+						builder.visitEmptyObject(*this);
 						break;
 					}
-					goto object_begin;
+					goto Object_Begin;
 				case '[':
 					if (*peek() == ']') {
 						advance();
-						visitor.visitEmptyArray(*this);
+						builder.visitEmptyArray(*this);
 						break;
 					}
-					goto array_begin;
+					goto Array_Begin;
 				default:
-					visitor.visitRootPrimitive(*this, value);
+					builder.visitRootPrimitive(*this, value);
 					break;
 			}
 		}
-		goto document_end;
+		goto Document_End;
 
-	object_begin:
+	Object_Begin:
 		depth++;
 		if (depth >= masterParser.getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
 		masterParser.getIsArray()[depth] = false;
-		visitor.visitObjectStart(*this);
+		builder.visitObjectStart(*this);
 
 		{
 			auto key = this->advance();
 			if (*key != '"') {
 				return ErrorCode::TapeError;
 			}
-			visitor.incrementCount(*this);
-			std::string newKey = static_cast<std::string>(visitor.visitKey(*this, key));
+			builder.incrementCount(*this);
+			std::string newKey = static_cast<std::string>(builder.visitKey(*this, key));
 
 			constructor.setCurrentKey(std::move(newKey));
 		}
 
-	object_field:
+	Object_Field:
 		if (*advance() != ':') {
 			return ErrorCode::TapeError;
 		}
@@ -2456,107 +2456,107 @@ namespace Jsonifier {
 				case '{':
 					if (*peek() == '}') {
 						advance();
-						visitor.visitEmptyObject(*this);
+						builder.visitEmptyObject(*this);
 						break;
 					}
 
 					constructor.startNewObject();
-					goto object_begin;
+					goto Object_Begin;
 				case '[':
 					if (*peek() == ']') {
 						advance();
-						visitor.visitEmptyArray(*this);
+						builder.visitEmptyArray(*this);
 						break;
 					}
 					constructor.startNewArray();
-					goto array_begin;
+					goto Array_Begin;
 				default:
-					constructor.appendPrimitiveElement(visitor.visitPrimitive(*this, value));
+					constructor.appendPrimitiveElement(builder.visitPrimitive(*this, value));
 					break;
 			}
 		}
 
-	object_continue:
+	Object_Continue:
 		switch (*advance()) {
 			case ',':
-				visitor.incrementCount(*this);
+				builder.incrementCount(*this);
 				{
 					auto key = this->advance();
 					if (*key != '"') {
 						return ErrorCode::TapeError;
 					}
-					auto newKey = static_cast<std::string>(visitor.visitKey(*this, key));
+					auto newKey = static_cast<std::string>(builder.visitKey(*this, key));
 					constructor.setCurrentKey(std::move(newKey));
 				}
 				constructor.setAppendType(JsonType::Object);
-				goto object_field;
+				goto Object_Field;
 			case '}':
 				constructor.endObject();
-				visitor.visitObjectEnd(*this);
-				goto scope_end;
+				builder.visitObjectEnd(*this);
+				goto Scope_End;
 			default:
 				return ErrorCode::TapeError;
 		}
 
-	scope_end:
+	Scope_End:
 		depth--;
 		if (depth == 0) {
-			goto document_end;
+			goto Document_End;
 		}
 		if (masterParser.getIsArray()[depth]) {
-			goto array_continue;
+			goto Array_Continue;
 		}
-		goto object_continue;
+		goto Object_Continue;
 
-	array_begin:
+	Array_Begin:
 		depth++;
 		if (depth >= masterParser.getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
 		masterParser.getIsArray()[depth] = true;
-		visitor.visitArrayStart(*this);
-		visitor.incrementCount(*this);
+		builder.visitArrayStart(*this);
+		builder.incrementCount(*this);
 
-	array_value : {
+	Array_Value : {
 		auto value = this->advance();
 		switch (*value) {
 			case '{':
 				if (*peek() == '}') {
 					advance();
-					visitor.visitEmptyObject(*this);
+					builder.visitEmptyObject(*this);
 					break;
 				}
 				constructor.startNewObject();
-				goto object_begin;
+				goto Object_Begin;
 			case '[':
 				if (*peek() == ']') {
 					advance();
-					visitor.visitEmptyArray(*this);
+					builder.visitEmptyArray(*this);
 					break;
 				}
 				constructor.startNewArray();
-				goto array_begin;
+				goto Array_Begin;
 			default:
-				constructor.appendPrimitiveElement(visitor.visitPrimitive(*this, value));
+				constructor.appendPrimitiveElement(builder.visitPrimitive(*this, value));
 				break;
 		}
 	}
 
-	array_continue:
+	Array_Continue:
 		switch (*advance()) {
 			case ',':
-				visitor.incrementCount(*this);
-				goto array_value;
+				builder.incrementCount(*this);
+				goto Array_Value;
 			case ']':
 				constructor.endArray();
-				visitor.visitArrayEnd(*this);
-				goto scope_end;
+				builder.visitArrayEnd(*this);
+				goto Scope_End;
 			default:
 				return ErrorCode::TapeError;
 		}
 
-	document_end:
-		visitor.visitDocumentEnd(*this);
+	Document_End:
+		builder.visitDocumentEnd(*this);
 
 		*masterParser.getStructuralIndexes() = nextStructural - masterParser.getStructuralIndexes();
 
@@ -2567,16 +2567,16 @@ namespace Jsonifier {
 		return constructor.getResult();
 	}
 
-	inline Jsonifier JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+	inline Jsonifier JsonIterator::visitRootPrimitive(TapeBuilder& builder, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
-				return visitor.visitRootString(*this, value);
+				return builder.visitRootString(*this, value);
 			case 't':
-				return visitor.visitRootTrueAtom(*this, value);
+				return builder.visitRootTrueAtom(*this, value);
 			case 'f':
-				return visitor.visitRootFalseAtom(*this, value);
+				return builder.visitRootFalseAtom(*this, value);
 			case 'n':
-				return visitor.visitRootNullAtom(*this, value);
+				return builder.visitRootNullAtom(*this, value);
 			case '-':
 			case '0':
 			case '1':
@@ -2588,22 +2588,22 @@ namespace Jsonifier {
 			case '7':
 			case '8':
 			case '9':
-				return visitor.visitRootNumber(*this, value);
+				return builder.visitRootNumber(*this, value);
 			default:
 				return ErrorCode::TapeError;
 		}
 	}
 
-	inline Jsonifier JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+	inline Jsonifier JsonIterator::visitPrimitive(TapeBuilder& builder, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
-				return visitor.visitString(*this, value);
+				return builder.visitString(*this, value);
 			case 't':
-				return visitor.visitTrueAtom(*this, value);
+				return builder.visitTrueAtom(*this, value);
 			case 'f':
-				return visitor.visitFalseAtom(*this, value);
+				return builder.visitFalseAtom(*this, value);
 			case 'n':
-				return visitor.visitNullAtom(*this, value);
+				return builder.visitNullAtom(*this, value);
 			case '-':
 			case '0':
 			case '1':
@@ -2615,7 +2615,7 @@ namespace Jsonifier {
 			case '7':
 			case '8':
 			case '9':
-				return visitor.visitNumber(*this, value);
+				return builder.visitNumber(*this, value);
 			default:
 				return ErrorCode::TapeError;
 		}
