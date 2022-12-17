@@ -143,9 +143,9 @@ int32_t main() noexcept {
 		//jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		Jsonifier::Jsonifier jsonData{};
 		//std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-		Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
 		stopWatch.resetTimer();
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+		for (size_t x = 0ull; x <1; ++x) {
+			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size(), stringNew.capacity() };
 			jsonData = std::move(stringScanner.getJsonData());
 			
 			TheValueJson theValue{ jsonData };

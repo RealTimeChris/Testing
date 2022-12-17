@@ -1906,75 +1906,85 @@ namespace Jsonifier {
 		inline void on_end_string(const uint8_t* dst) noexcept;
 	};// class TapeBuilder
 
-	template<bool STREAMING>
-	 inline ErrorCode TapeBuilder::parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept {
+	template<bool STREAMING> inline ErrorCode TapeBuilder::parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept {
 		dom_parser.doc = &doc;
-		JsonIterator iter(dom_parser, STREAMING ? *dom_parser.getNextStructural() : 0);
+		JsonIterator iter(dom_parser, 0);
 		TapeBuilder builder(dom_parser);
 		return iter.walk_document<STREAMING>(builder);
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_root_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
 		return iter.visit_root_primitive(*this, value);
 	}
-	 inline ErrorCode TapeBuilder::visit_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
 		return iter.visit_primitive(*this, value);
 	}
-	 inline ErrorCode TapeBuilder::visit_empty_object(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_empty_object(JsonIterator& iter) noexcept {
 		return empty_container(iter, TapeType::START_OBJECT, TapeType::END_OBJECT);
 	}
-	 inline ErrorCode TapeBuilder::visit_empty_array(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_empty_array(JsonIterator& iter) noexcept {
 		return empty_container(iter, TapeType::START_ARRAY, TapeType::END_ARRAY);
 	}
 
-	 inline ErrorCode TapeBuilder::visit_document_start(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_document_start(JsonIterator& iter) noexcept {
 		start_container(iter);
-		return ErrorCode::Success;
+		return Success;
 	}
-	 inline ErrorCode TapeBuilder::visit_object_start(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_object_start(JsonIterator& iter) noexcept {
 		start_container(iter);
-		return ErrorCode::Success;
+		return Success;
 	}
-	 inline ErrorCode TapeBuilder::visit_array_start(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_array_start(JsonIterator& iter) noexcept {
 		start_container(iter);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_object_end(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_object_end(JsonIterator& iter) noexcept {
 		return end_container(iter, TapeType::START_OBJECT, TapeType::END_OBJECT);
 	}
-	 inline ErrorCode TapeBuilder::visit_array_end(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_array_end(JsonIterator& iter) noexcept {
 		return end_container(iter, TapeType::START_ARRAY, TapeType::END_ARRAY);
 	}
-	 inline ErrorCode TapeBuilder::visit_document_end(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visit_document_end(JsonIterator& iter) noexcept {
 		constexpr uint32_t start_tape_index = 0;
 		tape.append(start_tape_index, TapeType::ROOT);
 		TapeWriter::write(iter.dom_parser.getStructuralIndexes()[start_tape_index], next_tape_index(iter), TapeType::ROOT);
-		return ErrorCode::Success;
+		return Success;
 	}
-	 inline ErrorCode TapeBuilder::visit_key(JsonIterator& iter, const uint8_t* key) noexcept {
+	inline ErrorCode TapeBuilder::visit_key(JsonIterator& iter, const uint8_t* key) noexcept {
 		return visit_string(iter, key, true);
 	}
 
-	 inline ErrorCode TapeBuilder::increment_count(JsonIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::increment_count(JsonIterator& iter) noexcept {
 		iter.dom_parser.openContainers[iter.depth].count++;// we have a key value pair in the object at parser.dom_parser.depth - 1
-		 return ErrorCode::Success;
+		return Success;
 	}
 
-	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept
-		: tape{ doc.getStructuralIndexes() }, current_string_buf_loc{ reinterpret_cast<const uint8_t*>(doc.getStringView()) } {
+	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept : tape{ doc.getStructuralIndexes() }, current_string_buf_loc{ reinterpret_cast<const uint8_t*>(doc.getStringView()) } {
 	}
 
-	 inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
+	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
+		uint32_t index{};
+		while (index <= 65536) {
+			if (src[index] == '"') {
+				memcpy(dst, src, index);
+				return dst;
+			}
+			index++;
+		}
+		return nullptr;
+	}
+
+	inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
 		iter.log_value(key ? "key" : "string");
-		 const uint8_t* dst = on_start_string(iter);
-		dst = value + 1;
+		uint8_t* dst = ( uint8_t* )on_start_string(iter);
+		dst = parseString(value + 1, dst);
 		if (dst == nullptr) {
 			iter.log_error("Invalid escape in string");
-			return ErrorCode::StringError;
+			return StringError;
 		}
 		on_end_string(dst);
-		return ErrorCode::Success;
+		return Success;
 	}
 
 	 inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
