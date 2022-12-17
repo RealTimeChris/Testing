@@ -1177,8 +1177,8 @@ namespace Jsonifier {
 		return buf[masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1]];
 	}
 
-	const bool structuralOrWhitespaceNegated[256]{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
+	const bool structuralOrWhitespaceNegated[256]{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
 
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1,
@@ -1322,14 +1322,6 @@ namespace Jsonifier {
 				this->currentPlace.back()->emplaceBack(data);
 			} else {
 				(*this->currentPlace.back())[std::move(this->currentKey.back())] = std::move(data);
-			}
-		}
-
-		template<typename OTy> void appendPrimitiveElement(OTy& data) {
-			if (this->currentPlace.back()->getType() == JsonType::Array) {
-				this->currentPlace.back()->emplaceBack(data);
-			} else {
-				(*this->currentPlace.back())[std::move(this->currentKey.back())] = data;
 			}
 		}
 
@@ -1599,8 +1591,8 @@ namespace Jsonifier {
 		return offset > 0;
 	}
 
-	static const uint8_t escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	static const uint8_t escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x22,
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0x08, 0, 0, 0, 0x0c, 0, 0, 0, 0, 0,
 		0, 0, 0x0a, 0, 0, 0, 0x0d, 0, 0x09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -1937,60 +1929,60 @@ namespace Jsonifier {
 }
 
 	inline void trim(Decimal& h) {
-	while ((h.numDigits > 0) && (h.digits[h.numDigits- 1] == 0)) {
-		h.numDigits--;
+		while ((h.numDigits > 0) && (h.digits[h.numDigits - 1] == 0)) {
+			h.numDigits--;
+		}
 	}
-}
 
 	constexpr int32_t decimalPointRange = 2047;
 
 	inline void decimalRightShift(Decimal& h, uint32_t shift) {
-	uint32_t read_index = 0;
-	uint32_t write_index = 0;
+		uint32_t read_index = 0;
+		uint32_t write_index = 0;
 
-	uint64_t n = 0;
+		uint64_t n = 0;
 
-	while ((n >> shift) == 0) {
-		if (read_index < h.numDigits) {
-			n = (10 * n) + h.digits[read_index++];
-		} else if (n == 0) {
-			return;
-		} else {
-			while ((n >> shift) == 0) {
-				n = 10 * n;
-				read_index++;
+		while ((n >> shift) == 0) {
+			if (read_index < h.numDigits) {
+				n = (10 * n) + h.digits[read_index++];
+			} else if (n == 0) {
+				return;
+			} else {
+				while ((n >> shift) == 0) {
+					n = 10 * n;
+					read_index++;
+				}
+				break;
 			}
-			break;
 		}
-	}
-	h.decimalPoint-= int32_t(read_index - 1);
-	if (h.decimalPoint< -decimalPointRange) {
-		h.numDigits = 0;
-		h.decimalPoint = 0;
-		h.negative = false;
-		h.truncated = false;
-		return;
-	}
-	uint64_t mask = (uint64_t(1) << shift) - 1;
-	while (read_index < h.numDigits) {
-		uint8_t new_digit = uint8_t(n >> shift);
-		n = (10 * (n & mask)) + h.digits[read_index++];
-		h.digits[write_index++] = new_digit;
-	}
-	while (n > 0) {
-		uint8_t new_digit = uint8_t(n >> shift);
-		n = 10 * (n & mask);
-		if (write_index < maxDigits) {
+		h.decimalPoint -= int32_t(read_index - 1);
+		if (h.decimalPoint < -decimalPointRange) {
+			h.numDigits = 0;
+			h.decimalPoint = 0;
+			h.negative = false;
+			h.truncated = false;
+			return;
+		}
+		uint64_t mask = (uint64_t(1) << shift) - 1;
+		while (read_index < h.numDigits) {
+			uint8_t new_digit = uint8_t(n >> shift);
+			n = (10 * (n & mask)) + h.digits[read_index++];
 			h.digits[write_index++] = new_digit;
-		} else if (new_digit > 0) {
-			h.truncated = true;
 		}
+		while (n > 0) {
+			uint8_t new_digit = uint8_t(n >> shift);
+			n = 10 * (n & mask);
+			if (write_index < maxDigits) {
+				h.digits[write_index++] = new_digit;
+			} else if (new_digit > 0) {
+				h.truncated = true;
+			}
+		}
+		h.numDigits = write_index;
+		trim(h);
 	}
-	h.numDigits = write_index;
-	trim(h);
-}
 	inline uint64_t round(Decimal& h) {
-		if ((h.numDigits== 0) || (h.decimalPoint < 0)) {
+		if ((h.numDigits == 0) || (h.decimalPoint < 0)) {
 			return 0;
 		} else if (h.decimalPoint > 18) {
 			return UINT64_MAX;
@@ -2197,7 +2189,6 @@ namespace Jsonifier {
 
 	inline bool computeFloat64(int64_t power, uint64_t i, bool negative, double& d) {
 		if (0 <= power && power <= 22 && i <= 9007199254740991) {
-
 			if (power < 0) {
 				d = d / powerOfTen[-power];
 			} else {
