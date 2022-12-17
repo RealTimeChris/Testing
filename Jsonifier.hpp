@@ -1429,7 +1429,6 @@ namespace Jsonifier {
 		if (at_eof()) {
 			return Empty;
 		}
-		log_start_value("document");
 
 		//
 		// Read first value
@@ -1441,7 +1440,6 @@ namespace Jsonifier {
 				case '{':
 					if (*peek() == '}') {
 						advance();
-						log_value("empty object");
 						visitor.visit_empty_object(*this);
 						break;
 					}
@@ -1449,7 +1447,6 @@ namespace Jsonifier {
 				case '[':
 					if (*peek() == ']') {
 						advance();
-						log_value("empty array");
 						visitor.visit_empty_array(*this);
 						break;
 					}
@@ -1475,7 +1472,6 @@ namespace Jsonifier {
 		{
 			auto key = advance();
 			if (*key != '"') {
-				log_error("Object does not start with a key");
 				return TapeError;
 			}
 			visitor.increment_count(*this);
@@ -1516,18 +1512,15 @@ namespace Jsonifier {
 				{
 					auto key = advance();
 					if (*key != '"') {
-						log_error("Key string missing at beginning of field in object");
 						return TapeError;
 					}
 					visitor.visit_key(*this, key);
 				}
 				goto object_field;
 			case '}':
-				log_end_value("object");
 				visitor.visit_object_end(*this);
 				goto scope_end;
 			default:
-				log_error("No comma between object fields");
 				return TapeError;
 		}
 
@@ -1545,10 +1538,8 @@ namespace Jsonifier {
 	// Array parser states
 	//
 	array_begin:
-		log_start_value("array");
 		depth++;
 		if (depth >= dom_parser.getMaxDepth()) {
-			log_error("Exceeded max depth!");
 			return DepthError;
 		}
 		dom_parser.getIsArray()[depth] = true;
@@ -1584,23 +1575,19 @@ namespace Jsonifier {
 				visitor.increment_count(*this);
 				goto array_value;
 			case ']':
-				log_end_value("array");
 				visitor.visit_array_end(*this);
 				goto scope_end;
 			default:
-				log_error("Missing comma between array values");
 				return TapeError;
 		}
 
 	document_end:
-		log_end_value("document");
 		visitor.visit_document_end(*this);
 
 		*dom_parser.getNextStructural() = uint32_t(next_structural - &dom_parser.getStructuralIndexes()[0]);
 
 		// If we didn't make it to the end, it's an error
 		if (!STREAMING && *dom_parser.getNextStructural() != dom_parser.getTapeLength()) {
-			log_error("More than one JSON value at the root of the document, or extra characters at the end of the JSON!");
 			return TapeError;
 		}
 
@@ -1666,7 +1653,6 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visit_root_number(*this, value);
 			default:
-				log_error("Document starts with a non-value character");
 				return TapeError;
 		}
 	}
@@ -1693,7 +1679,6 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visit_number(*this, value);
 			default:
-				log_error("Non-value found when value was expected!");
 				return TapeError;
 		}
 	}
