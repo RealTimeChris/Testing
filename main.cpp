@@ -86,10 +86,6 @@ struct TheValue {
 	TheD theD{};
 };
 
-template<typename OTy> void prepStringForParsing(std::basic_string<OTy>& string) {
-	string.resize(string.size() + 256 - string.size() % 256);
-}
-
 int32_t main() noexcept {
 	try {
 		std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
@@ -102,7 +98,7 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
 		stopWatch.resetTimer();
-		prepStringForParsing(stringNew);
+		Jsonifier::prepStringForParsing(stringNew);
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::Jsonifier jsonData{};
 			jsonData.parseString(stringNew);

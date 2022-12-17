@@ -47,6 +47,10 @@ namespace Jsonifier {
 		*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
 	}
 
+	template<typename OTy> void prepStringForParsing(std::basic_string<OTy>& string) {
+		string.resize(string.size() + 256 - string.size() % 256);
+	}
+
 	template<typename RTy> void reverseByteOrder(RTy& net) {
 		if constexpr (std::endian::native == std::endian::little) {
 			switch (sizeof(RTy)) {
