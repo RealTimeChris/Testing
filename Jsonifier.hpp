@@ -844,7 +844,10 @@ namespace Jsonifier {
 
 	class SimdBase256 {
 	  public:
-		inline SimdBase256() noexcept = default;
+		inline SimdBase256() noexcept {
+			this->value = _mm256_set1_epi8(0x00);
+		};
+		
 
 		inline SimdBase256& operator=(char other) {
 			this->value = _mm256_set1_epi8(other);
@@ -1600,14 +1603,14 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::peek() const noexcept {
-		std::cout << "CURRENT INDEX: " << *(next_structural) << std::endl;
-		std::cout << "CURRENT PEEKED VALUE: " << buf[*(next_structural)] << std::endl;
+		//std::cout << "CURRENT INDEX: " << *(next_structural) << std::endl;
+		//std::cout << "CURRENT PEEKED VALUE: " << buf[*(next_structural)] << std::endl;
 		return &buf[*(next_structural)];
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
-		std::cout << "CURRENT INDEX: " << *(next_structural) << std::endl;
-		std::cout << "CURRENT ADVANCED VALUE: " << buf[*(next_structural)] << std::endl;
+		//std::cout << "CURRENT INDEX: " << *(next_structural) << std::endl;
+		//std::cout << "CURRENT ADVANCED VALUE: " << buf[*(next_structural)] << std::endl;
 		return &buf[*(next_structural++)];
 	}
 
@@ -1773,7 +1776,7 @@ namespace Jsonifier {
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*next_tape_loc), "Type is not 64 bits!");
 		memcpy(next_tape_loc, &val2, sizeof(val2));
@@ -1856,7 +1859,7 @@ namespace Jsonifier {
 		inline void start_container(JsonIterator& iter) noexcept;
 		inline ErrorCode end_container(JsonIterator& iter, TapeType start, TapeType end) noexcept;
 		inline ErrorCode empty_container(JsonIterator& iter, TapeType start, TapeType end) noexcept;
-		inline const uint8_t* on_start_string(JsonIterator& iter) noexcept;
+		inline uint8_t* on_start_string(JsonIterator& iter) noexcept;
 		inline void on_end_string(uint8_t* dst) noexcept;
 	};// class TapeBuilder
 
@@ -1901,7 +1904,7 @@ namespace Jsonifier {
 	}
 	inline ErrorCode TapeBuilder::visit_document_end(JsonIterator& iter) noexcept {
 		constexpr uint32_t start_tape_index = 0;
-		std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END " << start_tape_index << std::endl;
+		//std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END " << start_tape_index << std::endl;
 		tape.append(start_tape_index, TapeType::ROOT);
 		TapeWriter::write(iter.dom_parser.getStructuralIndexes()[start_tape_index], next_tape_index(iter), TapeType::ROOT);
 		return Success;
@@ -2127,7 +2130,7 @@ namespace Jsonifier {
 		// this can read up to 15 bytes beyond the buffer size, but we require
 		// SIMDJSON_PADDING of padding
 		static_assert(32 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
-		SimdBase256 v(reinterpret_cast<const char*>(src));
+		SimdBase256 v{};
 		v.store(reinterpret_cast<char*>(dst));
 		// store to dest unconditionally - we can overwrite the bits we don't like later
 		return {
@@ -2137,7 +2140,9 @@ namespace Jsonifier {
 	}
 	
 	inline uint8_t* parse_string(const uint8_t* src, uint8_t* dst) {
-		while (1) {
+		int32_t index{};
+		while (index <= 32) {
+			index += 32;
 			// Copy the next n bytes, and find the backslash and quote in them.
 			auto bs_quote = backslash_and_quote::copy_and_find(src, dst);
 			// If the next thing is the end quote, copy and return
@@ -2183,7 +2188,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
-		uint8_t* dst = ( uint8_t* )on_start_string(iter);
+		uint8_t* dst = on_start_string(iter);
 		dst = parse_string(value + 1, dst);
 		if (dst == nullptr) {
 			return StringError;
@@ -2192,19 +2197,19 @@ namespace Jsonifier {
 		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
 		return visit_string(iter, value);
 	}
 
-	 inline ErrorCode TapeBuilder::visit_number(JsonIterator& iter, const uint8_t* value) noexcept {
-		 return ErrorCode::Success;
+	inline ErrorCode TapeBuilder::visit_number(JsonIterator& iter, const uint8_t* value) noexcept {
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_number(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_root_number(JsonIterator& iter, const uint8_t* value) noexcept {
 		//
 		// We need to make a copy to make sure that the string is space terminated.
 		// This is not about padding the input, which should already padded up
-		// to tapeLength + SIMDJSON_PADDING. However, we have no control at this stage
+		// to len + SIMDJSON_PADDING. However, we have no control at this stage
 		// on how the padding was done. What if the input string was padded with nulls?
 		// It is quite common for an input string to have an extra null character (C string).
 		// We do not want to allow 9\0 (where \0 is the null character) inside a JSON
@@ -2224,52 +2229,52 @@ namespace Jsonifier {
 		return error;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return TAtomError;
 		}
 		tape.append(0, TapeType::TRUE_VALUE);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_root_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return TAtomError;
 		}
 		tape.append(0, TapeType::TRUE_VALUE);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return FAtomError;
 		}
 		tape.append(0, TapeType::FALSE_VALUE);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_root_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return FAtomError;
 		}
 		tape.append(0, TapeType::FALSE_VALUE);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return NAtomError;
 		}
 		tape.append(0, TapeType::NULL_VALUE);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	 inline ErrorCode TapeBuilder::visit_root_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
+	inline ErrorCode TapeBuilder::visit_root_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return NAtomError;
 		}
 		tape.append(0, TapeType::NULL_VALUE);
-		return ErrorCode::Success;
+		return Success;
 	}
 
 	// private:
@@ -2278,13 +2283,12 @@ namespace Jsonifier {
 		return uint32_t(tape.next_tape_loc - iter.dom_parser.getStructuralIndexes());
 	}
 
-	 inline ErrorCode TapeBuilder::empty_container(JsonIterator& iter, TapeType start,
+	inline ErrorCode TapeBuilder::empty_container(JsonIterator& iter, TapeType start,
 		TapeType end) noexcept {
 		auto start_index = next_tape_index(iter);
-		tape.append(start_index + 2ull, start);
-		std::cout << "WERE APPENDING THIS VALUE EMPTY CONTAINER: " << start_index<< std::endl;
+		tape.append(start_index + 2, start);
 		tape.append(start_index, end);
-		return ErrorCode::Success;
+		return Success;
 	}
 
 	inline void TapeBuilder::start_container(JsonIterator& iter) noexcept {
@@ -2293,12 +2297,10 @@ namespace Jsonifier {
 		tape.skip();// We don't actually *write* the start element until the end.
 	}
 
-	 inline ErrorCode TapeBuilder::end_container(JsonIterator& iter, TapeType start,
+	inline ErrorCode TapeBuilder::end_container(JsonIterator& iter, TapeType start,
 		TapeType end) noexcept {
-		std::cout << "ENDING CONTAINER 01: " << std::endl;
 		// Write the ending tape element, pointing at the start location
 		const uint32_t start_tape_index = iter.dom_parser.openContainers[iter.depth].tape_index;
-		std::cout << "WERE APPENDING THIS VALUE END CONTAINER: " << start_tape_index << std::endl;
 		tape.append(start_tape_index, end);
 		// Write the start tape element, pointing at the end location (and including count)
 		// count can overflow if it exceeds 24 bits... so we saturate
@@ -2306,15 +2308,12 @@ namespace Jsonifier {
 		const uint32_t count = iter.dom_parser.openContainers[iter.depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
 		TapeWriter::write(iter.dom_parser.getStructuralIndexes()[start_tape_index], next_tape_index(iter) | (uint64_t(cntsat) << 32), start);
-		return ErrorCode::Success;
+		return Success;
 	}
 
-	inline const uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
+	inline  uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
 		// we advance the point, accounting for the fact that we have a NULL termination
-		
-		tape.append(current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringViewNew()), TapeType::STRING);
-		std::cout << "WERE APPENDING ON START STRING: "
-				  << current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringViewNew()) << std::endl;
+		tape.append(current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringViewNew()), TapeType::STRING);
 		return current_string_buf_loc + sizeof(uint32_t);
 	}
 
@@ -2328,10 +2327,6 @@ namespace Jsonifier {
 		// be NULL terminated? It comes at a small cost
 		*dst = 0;
 		current_string_buf_loc = dst + 1;
-		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING STR LENGTH 0101: " << +*dst<< std::endl;
-		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING STR LENGTH 0202: " << ( char )*current_string_buf_loc << std::endl;
-		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING STR LENGTH: " << str_length << std::endl;
-		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING BUF LOC: " << *current_string_buf_loc << std::endl;
 	}
 
 	enum class ParsingState {
@@ -2644,16 +2639,16 @@ namespace Jsonifier {
 		//auto jsonData = JsonConstructor{ *this }.startDocument();
 		Jsonifier jsonData{};
 		//std::cout << "THE VALUE (REAL): " << this->stringView << std::endl;
-		std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(*this, jsonData) << std::endl;
-		//TapeBuilder::parse_document<false>(value, jsonData);
-		for (size_t x = 0; x < this->tapeLength; ++x) {
-			if (( char )this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))] == ( char )TapeType::STRING) {
+		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(*this, jsonData) << std::endl;
+		TapeBuilder::parse_document<false>(*this, jsonData);
+		//for (size_t x = 0; x < this->tapeLength; ++x) {
+		//			if (( char )this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))] == ( char )TapeType::STRING) {
 				//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*this->jsonRawTape[x]] << std::endl;
-				std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
-				std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
-			}
+				//std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
+				//std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
+		//}
 			
-		}
+		//}
 		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
 		//jsonData.refreshString(JsonifierSerializeType::Json);
 		//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
