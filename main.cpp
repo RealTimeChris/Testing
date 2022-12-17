@@ -103,7 +103,7 @@ int32_t main() noexcept {
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::Jsonifier jsonData{};
 			jsonData.parseString(stringNew);
-			TheValueJson theValue{ jsonData };
+			TheValueJson value{ jsonData };
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
@@ -117,7 +117,7 @@ int32_t main() noexcept {
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue theValue{ newDocument };
+			TheValue value{ newDocument };
 			totalSize += oldSize;
 		}
 
