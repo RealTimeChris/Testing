@@ -184,7 +184,7 @@ namespace Jsonifier {
 
 	enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
-	enum ErrorCode : int8_t {
+	enum class ErrorCode : int8_t {
 		Empty = 0,
 		TapeError = 1,
 		DepthError = 2,
@@ -1576,44 +1576,26 @@ namespace Jsonifier {
 	struct TapeBuilder {
 		static inline ErrorCode parse_document(SimdJsonValue& masterParser, Jsonifier& doc) noexcept;
 
-		/** Called when a non-empty document starts. */
 		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
-		/** Called when a non-empty document ends without error. */
+
 		inline ErrorCode visitDocumentEnd(JsonIterator& iter) noexcept;
 
-		/** Called when a non-empty array starts. */
 		inline ErrorCode visitArrayStart(JsonIterator& iter) noexcept;
-		/** Called when a non-empty array ends. */
+
 		inline ErrorCode visitArrayEnd(JsonIterator& iter) noexcept;
-		/** Called when an empty array is found. */
+
 		inline ErrorCode visitEmptyArray(JsonIterator& iter) noexcept;
 
-		/** Called when a non-empty object starts. */
 		inline ErrorCode visitObjectStart(JsonIterator& iter) noexcept;
-		/**
-   * Called when a key in a field is encountered.
-   *
-   * primitive, visitObjectStart, visitEmptyObject, visitArrayStart, or visitEmptyArray
-   * will be called after this with the field value.
-   */
+
 		inline ErrorCode visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
-		/** Called when a non-empty object ends. */
+
 		 inline ErrorCode visitObjectEnd(JsonIterator& iter) noexcept;
-		/** Called when an empty object is found. */
+
 		 inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
 
-		/**
-   * Called when a string, number, boolean or null is found.
-   */
 		 inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
-		/**
-   * Called when a string, number, boolean or null is found at the top level of a document (i.e.
-   * when there is no array or object and the entire document is a single string, number, boolean or
-   * null.
-   *
-   * This is separate from primitive() because simdjson's normal primitive parsing routines assume
-   * there is at least one more token after the value, which is only true in an array or object.
-   */
+
 		 inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
 
 		 inline ErrorCode visitString(JsonIterator& iter, const uint8_t* value, bool key = false) noexcept;
@@ -1628,14 +1610,11 @@ namespace Jsonifier {
 		 inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 		 inline ErrorCode visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
 
-		/** Called each time a new field or element in an array or object is found. */
 		 inline ErrorCode incrementCount(JsonIterator& iter) noexcept;
 
-		/** Next location to write to tape */
 		 TapeWriter tape;
 
 	  private:
-		/** Next write location in the string buf for stage 2 parsing */
 		uint8_t* currentStringBufferLocation;
 
 		inline TapeBuilder(SimdJsonValue& doc) noexcept;
@@ -1646,7 +1625,7 @@ namespace Jsonifier {
 		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
 		inline uint8_t* onStartString(JsonIterator& iter) noexcept;
 		inline void onEndString(uint8_t* dst) noexcept;
-	};// class TapeBuilder
+	};
 
 	inline ErrorCode TapeBuilder::parse_document(SimdJsonValue& masterParser, Jsonifier& doc) noexcept {
 		masterParser.doc = &doc;
@@ -1670,15 +1649,15 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitDocumentStart(JsonIterator& iter) noexcept {
 		startContainer(iter);
-		return Success;
+		return ErrorCode::Success;
 	}
 	inline ErrorCode TapeBuilder::visitObjectStart(JsonIterator& iter) noexcept {
 		startContainer(iter);
-		return Success;
+		return ErrorCode::Success;
 	}
 	inline ErrorCode TapeBuilder::visitArrayStart(JsonIterator& iter) noexcept {
 		startContainer(iter);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitObjectEnd(JsonIterator& iter) noexcept {
@@ -1689,18 +1668,17 @@ namespace Jsonifier {
 	}
 	inline ErrorCode TapeBuilder::visitDocumentEnd(JsonIterator& iter) noexcept {
 		constexpr uint32_t startTapeIndex = 0;
-		//std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END " << startTapeIndex << std::endl;
 		tape.append(startTapeIndex, TapeType::ROOT);
 		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter), TapeType::ROOT);
-		return Success;
+		return ErrorCode::Success;
 	}
 	inline ErrorCode TapeBuilder::visitKey(JsonIterator& iter, const uint8_t* key) noexcept {
 		return visitString(iter, key, true);
 	}
 
 	inline ErrorCode TapeBuilder::incrementCount(JsonIterator& iter) noexcept {
-		iter.masterParser.openContainers[iter.depth].count++;// we have a key value pair in the object at parser.masterParser.depth - 1
-		return Success;
+		iter.masterParser.openContainers[iter.depth].count++;
+		return ErrorCode::Success;
 	}
 
 	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept
@@ -1785,7 +1763,7 @@ namespace Jsonifier {
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 	
-	static inline uint32_t hexToU32Nocheck(const uint8_t* src) {// strictly speaking, static inline is a C-ism
+	static inline uint32_t hexToU32Nocheck(const uint8_t* src) {
 		uint32_t v1 = digitToVal32[630 + src[0]];
 		uint32_t v2 = digitToVal32[420 + src[1]];
 		uint32_t v3 = digitToVal32[210 + src[2]];
@@ -1796,83 +1774,62 @@ namespace Jsonifier {
 	inline size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
 		if (cp <= 0x7F) {
 			c[0] = uint8_t(cp);
-			return 1;// ascii
+			return 1;
 		}
 		if (cp <= 0x7FF) {
 			c[0] = uint8_t((cp >> 6) + 192);
 			c[1] = uint8_t((cp & 63) + 128);
-			return 2;// universal plane
-			//  Surrogates are treated elsewhere...
-			//} //else if (0xd800 <= cp && cp <= 0xdfff) {
-			//  return 0; // surrogates // could put assert here
+			return 2;
 		} else if (cp <= 0xFFFF) {
 			c[0] = uint8_t((cp >> 12) + 224);
 			c[1] = uint8_t(((cp >> 6) & 63) + 128);
 			c[2] = uint8_t((cp & 63) + 128);
 			return 3;
-		} else if (cp <= 0x10FFFF) {// if you know you have a valid code point, this
-			// is not needed
+		} else if (cp <= 0x10FFFF) {
 			c[0] = uint8_t((cp >> 18) + 240);
 			c[1] = uint8_t(((cp >> 12) & 63) + 128);
 			c[2] = uint8_t(((cp >> 6) & 63) + 128);
 			c[3] = uint8_t((cp & 63) + 128);
 			return 4;
 		}
-		// will return 0 when the code point was too large.
-		return 0;// bad r
+		
+		return 0;
 	}
 
-	inline bool handleUnicodeCodepoint(const uint8_t** src_ptr, uint8_t** dst_ptr) {
-		// jsoncharutils::hexToU32Nocheck fills high 16 bits of the return value with 1s if the
-		// conversion isn't valid; we defer the check for this to inside the
-		// multilingual plane check
-		uint32_t code_point = hexToU32Nocheck(*src_ptr + 2);
-		*src_ptr += 6;
-
-		// If we found a high surrogate, we must
-		// check for low surrogate for characters
-		// outside the Basic
-		// Multilingual Plane.
-		if (code_point >= 0xd800 && code_point < 0xdc00) {
-			const uint8_t* src_data = *src_ptr;
-			/* Compiler optimizations convert this to a single 16-bit load and compare on most platforms */
-			if (((src_data[0] << 8) | src_data[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
+	inline bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
+		uint32_t codePoint = hexToU32Nocheck(*srcPtr + 2);
+		*srcPtr += 6;
+		if (codePoint >= 0xd800 && codePoint < 0xdc00) {
+			const uint8_t* srcData = *srcPtr;
+			if (((srcData[0] << 8) | srcData[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
 				return false;
 			}
-			uint32_t code_point_2 = hexToU32Nocheck(src_data + 2);
-
-			// We have already checked that the high surrogate is valid and
-			// (code_point - 0xd800) < 1024.
-			//
-			// Check that code_point_2 is in the range 0xdc00..0xdfff
-			// and that code_point_2 was parsed from valid hex.
-			uint32_t low_bit = code_point_2 - 0xdc00;
-			if (low_bit >> 10) {
+			uint32_t codePoint2 = hexToU32Nocheck(srcData + 2);
+			uint32_t lowBit = codePoint2 - 0xdc00;
+			if (lowBit >> 10) {
 				return false;
 			}
 
-			code_point = (((code_point - 0xd800) << 10) | low_bit) + 0x10000;
-			*src_ptr += 6;
-		} else if (code_point >= 0xdc00 && code_point <= 0xdfff) {
-			// If we encounter a low surrogate (not preceded by a high surrogate)
-			// then we have an error.
+			codePoint = (((codePoint - 0xd800) << 10) | lowBit) + 0x10000;
+			*srcPtr += 6;
+		} else if (codePoint >= 0xdc00 && codePoint <= 0xdfff) {
 			return false;
 		}
-		size_t offset = codepointToUtf8(code_point, *dst_ptr);
-		*dst_ptr += offset;
+		size_t offset = codepointToUtf8(codePoint, *dstPtr);
+		*dstPtr += offset;
 		return offset > 0;
 	}
 
 	static const uint8_t escapeMap[256] = {
-    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, // 0x0.
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, 
     0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
     0, 0, 0x22, 0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0x2f,
     0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
 
-    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, // 0x4.
-    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0x5c, 0, 0,    0, // 0x5.
-    0, 0, 0x08, 0, 0,    0, 0x0c, 0, 0, 0, 0, 0, 0,    0, 0x0a, 0, // 0x6.
-    0, 0, 0x0d, 0, 0x09, 0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, // 0x7.
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0x5c, 0, 0,    0,
+    0, 0, 0x08, 0, 0,    0, 0x0c, 0, 0, 0, 0, 0, 0,    0, 0x0a, 0,
+    0, 0, 0x0d, 0, 0x09, 0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
 
     0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
     0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
@@ -1954,10 +1911,10 @@ namespace Jsonifier {
 		uint8_t* dst = onStartString(iter);
 		dst = parseString(value + 1, dst);
 		if (dst == nullptr) {
-			return StringError;
+			return ErrorCode::StringError;
 		}
 		onEndString(dst);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visit_root_string(JsonIterator& iter, const uint8_t* value) noexcept {
@@ -1965,26 +1922,13 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitNumber(JsonIterator& iter, const uint8_t* value) noexcept {
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept {
-		//
-		// We need to make a copy to make sure that the string is space terminated.
-		// This is not about padding the input, which should already padded up
-		// to len + SIMDJSON_PADDING. However, we have no control at this stage
-		// on how the padding was done. What if the input string was padded with nulls?
-		// It is quite common for an input string to have an extra null character (C string).
-		// We do not want to allow 9\0 (where \0 is the null character) inside a JSON
-		// document, but the string "9\0" by itself is fine. So we make a copy and
-		// pad the input with spaces when we know that there is just one input element.
-		// This copy is relatively expensive, but it will almost never be called in
-		// practice unless you are in the strange scenario where you have many JSON
-		// documents made of single atoms.
-		//
 		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remainingLen() + 256]);
 		if (copy.get() == nullptr) {
-			return MemAlloc;
+			return ErrorCode::MemAlloc;
 		}
 		std::memcpy(copy.get(), value, iter.remainingLen());
 		std::memset(copy.get() + iter.remainingLen(), ' ', 256);
@@ -1994,50 +1938,50 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
-			return TAtomError;
+			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::TRUE_VALUE);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
-			return TAtomError;
+			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::TRUE_VALUE);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
-			return FAtomError;
+			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::FALSE_VALUE);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
-			return FAtomError;
+			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::FALSE_VALUE);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
-			return NAtomError;
+			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::NULL_VALUE);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
-			return NAtomError;
+			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::NULL_VALUE);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) const noexcept {
@@ -2049,7 +1993,7 @@ namespace Jsonifier {
 		auto startIndex = nextTapeIndex(iter);
 		tape.append(startIndex + 2, start);
 		tape.append(startIndex, end);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline void TapeBuilder::startContainer(JsonIterator& iter) noexcept {
@@ -2069,7 +2013,7 @@ namespace Jsonifier {
 		const uint32_t count = iter.masterParser.openContainers[iter.depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
 		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
-		return Success;
+		return ErrorCode::Success;
 	}
 
 	inline  uint8_t* TapeBuilder::onStartString(JsonIterator& iter) noexcept {
@@ -2096,7 +2040,7 @@ namespace Jsonifier {
 
 	inline ErrorCode JsonIterator::walkDocument(TapeBuilder& visitor) noexcept {
 		if (atEof()) {
-			return Empty;
+			return ErrorCode::Empty;
 		}
 
 		{
@@ -2130,7 +2074,7 @@ namespace Jsonifier {
 	object_begin:
 		depth++;
 		if (depth >= masterParser.getMaxDepth()) {
-			return DepthError;
+			return ErrorCode::DepthError;
 		}
 		masterParser.getIsArray()[depth] = false;
 		visitor.visitObjectStart(*this);
@@ -2138,7 +2082,7 @@ namespace Jsonifier {
 		{
 			auto key = this->advance();
 			if (*key != '"') {
-				return TapeError;
+				return ErrorCode::TapeError;
 			}
 			visitor.incrementCount(*this);
 			visitor.visitKey(*this, key);
@@ -2146,7 +2090,7 @@ namespace Jsonifier {
 
 	object_field:
 		if (*advance() != ':') {
-			return TapeError;
+			return ErrorCode::TapeError;
 		}
 		{
 			auto value = this->advance();
@@ -2178,7 +2122,7 @@ namespace Jsonifier {
 				{
 					auto key = this->advance();
 					if (*key != '"') {
-						return TapeError;
+						return ErrorCode::TapeError;
 					}
 					visitor.visitKey(*this, key);
 				}
@@ -2187,7 +2131,7 @@ namespace Jsonifier {
 				visitor.visitObjectEnd(*this);
 				goto scope_end;
 			default:
-				return TapeError;
+				return ErrorCode::TapeError;
 		}
 
 	scope_end:
@@ -2206,7 +2150,7 @@ namespace Jsonifier {
 	array_begin:
 		depth++;
 		if (depth >= masterParser.getMaxDepth()) {
-			return DepthError;
+			return ErrorCode::DepthError;
 		}
 		masterParser.getIsArray()[depth] = true;
 		visitor.visitArrayStart(*this);
@@ -2244,7 +2188,7 @@ namespace Jsonifier {
 				visitor.visitArrayEnd(*this);
 				goto scope_end;
 			default:
-				return TapeError;
+				return ErrorCode::TapeError;
 		}
 
 	document_end:
@@ -2254,10 +2198,10 @@ namespace Jsonifier {
 
 		// If we didn't make it to the end, it's an error
 		if ( *masterParser.getNextStructural() != masterParser.getTapeLength()) {
-			return TapeError;
+			return ErrorCode::TapeError;
 		}
 
-		return Success;
+		return ErrorCode::Success;
 
 	}// walkDocument()
 
