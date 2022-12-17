@@ -821,8 +821,6 @@ namespace Jsonifier {
 
 	class SimdBase256;
 
-	inline uint64_t convertSimd256To64BitUint(SimdBase256 inputA, SimdBase256 inputB);
-
 	class SimdBase128 {
 	  public:
 		inline SimdBase128() noexcept = default;
@@ -882,6 +880,10 @@ namespace Jsonifier {
 
 		inline SimdBase256(__m256i other) {
 			*this = other;
+		}
+
+		inline void store(char dst[32]) const {
+			return _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), this->value);
 		}
 
 		inline uint64_t getUint64(size_t index) {
@@ -981,6 +983,10 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator==(SimdBase256 other) {
 			return _mm256_cmpeq_epi8(this->value, other);
+		}
+
+		inline SimdBase256 operator==(char other) {
+			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
 		}
 
 		inline SimdBase256 operator<<(size_t amount) {
@@ -1311,13 +1317,15 @@ namespace Jsonifier {
 		std::unique_ptr<OpenContainer[]> openContainers{};
 		Jsonifier* doc{};
 
+		
+		size_t stringLength{};
+
 	  protected:
 		std::unique_ptr<bool[]> isArray{};
 		uint64_t* nextStructural{};
 		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
 		SimdTape jsonRawTape{};
-		size_t stringLength{};
 		char* stringViewNew{};
 		uint32_t depth{ 0 };
 		char* stringView{};
@@ -1408,31 +1416,6 @@ namespace Jsonifier {
    */
 		inline bool at_beginning() const noexcept;
 		inline uint8_t last_structural() const noexcept;
-
-		/**
-   * Log that a value has been found.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-		inline void log_value(const char* type) const noexcept;
-		/**
-   * Log the start of a multipart value.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-		inline void log_start_value(const char* type) const noexcept;
-		/**
-   * Log the end of a multipart value.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-		inline void log_end_value(const char* type) const noexcept;
-		/**
-   * Log an error.
-   *
-   * Set LOG_ENABLED=true in logger.h to see logging.
-   */
-		inline void log_error(const char* error) const noexcept;
 
 		template<typename V>  inline ErrorCode visit_root_primitive(V& visitor, const uint8_t* value) noexcept;
 		template<typename V>  inline ErrorCode visit_primitive(V& visitor, const uint8_t* value) noexcept;
@@ -1578,7 +1561,6 @@ namespace Jsonifier {
 			case '{':
 				if (*peek() == '}') {
 					advance();
-					log_value("empty object");
 					visitor.visit_empty_object(*this);
 					break;
 				}
@@ -1586,7 +1568,6 @@ namespace Jsonifier {
 			case '[':
 				if (*peek() == ']') {
 					advance();
-					log_value("empty array");
 					visitor.visit_empty_array(*this);
 					break;
 				}
@@ -1639,7 +1620,7 @@ namespace Jsonifier {
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
 		std::cout << "CURRENT INDEX: " << *(next_structural) << std::endl;
-		std::cout << "CURRENT PEEKED VALUE: " << buf[*(next_structural)] << std::endl;
+		std::cout << "CURRENT ADVANCED VALUE: " << buf[*(next_structural)] << std::endl;
 		return &buf[*(next_structural++)];
 	}
 
@@ -1659,28 +1640,6 @@ namespace Jsonifier {
 
 	inline uint8_t JsonIterator::last_structural() const noexcept {
 		return buf[dom_parser.getStructuralIndexes()[dom_parser.getTapeLength() - 1]];
-	}
-
-	inline void JsonIterator::log_value(const char* type) const noexcept {
-		//logger::log_line(*this, "", type, "");
-	}
-
-	inline void JsonIterator::log_start_value(const char* type) const noexcept {
-		//logger::log_line(*this, "+", type, "");
-		//if (logger::LOG_ENABLED) {
-				//logger::log_depth++;
-		//}
-	}
-
-	inline void JsonIterator::log_end_value(const char* type) const noexcept {
-		//if (logger::LOG_ENABLED) {
-		//			logger::log_depth--;
-		//}
-		//logger::log_line(*this, "-", type, "");
-	}
-
-	inline void JsonIterator::log_error(const char* error) const noexcept {
-		//logger::log_line(*this, "", "ERROR", error);
 	}
 
 	template<typename V>
@@ -1971,28 +1930,277 @@ namespace Jsonifier {
 		return Success;
 	}
 
-	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept : tape{ doc.getStructuralIndexes() }, current_string_buf_loc{ reinterpret_cast<uint8_t*>(doc.getStringViewNew()) } {
+	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept
+		: tape{ doc.getStructuralIndexes() }, current_string_buf_loc{ reinterpret_cast<uint8_t*>(doc.getStringViewNew()) } {
 	}
 
-	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
-		uint32_t index{};
-		while (index <= 65536) {
-			std::cout << "CURRENT VALUE: " << src[index] << std::endl;
-			if (src[index] == '"') {
-				return ( uint8_t* )(src + index);
+	const uint32_t digit_to_val32[886] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6,
+		0x7, 0x8, 0x9, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xa0, 0xb0, 0xc0, 0xd0, 0xe0, 0xf0, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x100, 0x200, 0x300, 0x400, 0x500, 0x600, 0x700, 0x800, 0x900,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa00, 0xb00, 0xc00, 0xd00, 0xe00, 0xf00, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa00, 0xb00, 0xc00, 0xd00, 0xe00, 0xf00, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x0, 0x1000, 0x2000, 0x3000, 0x4000, 0x5000, 0x6000,
+		0x7000, 0x8000, 0x9000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa000, 0xb000, 0xc000, 0xd000,
+		0xe000, 0xf000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xa000, 0xb000, 0xc000, 0xd000, 0xe000, 0xf000, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
+	
+	static inline uint32_t hex_to_u32_nocheck(const uint8_t* src) {// strictly speaking, static inline is a C-ism
+		uint32_t v1 = digit_to_val32[630 + src[0]];
+		uint32_t v2 = digit_to_val32[420 + src[1]];
+		uint32_t v3 = digit_to_val32[210 + src[2]];
+		uint32_t v4 = digit_to_val32[0 + src[3]];
+		return v1 | v2 | v3 | v4;
+	}
+
+	inline size_t codepoint_to_utf8(uint32_t cp, uint8_t* c) {
+		if (cp <= 0x7F) {
+			c[0] = uint8_t(cp);
+			return 1;// ascii
+		}
+		if (cp <= 0x7FF) {
+			c[0] = uint8_t((cp >> 6) + 192);
+			c[1] = uint8_t((cp & 63) + 128);
+			return 2;// universal plane
+			//  Surrogates are treated elsewhere...
+			//} //else if (0xd800 <= cp && cp <= 0xdfff) {
+			//  return 0; // surrogates // could put assert here
+		} else if (cp <= 0xFFFF) {
+			c[0] = uint8_t((cp >> 12) + 224);
+			c[1] = uint8_t(((cp >> 6) & 63) + 128);
+			c[2] = uint8_t((cp & 63) + 128);
+			return 3;
+		} else if (cp <= 0x10FFFF) {// if you know you have a valid code point, this
+			// is not needed
+			c[0] = uint8_t((cp >> 18) + 240);
+			c[1] = uint8_t(((cp >> 12) & 63) + 128);
+			c[2] = uint8_t(((cp >> 6) & 63) + 128);
+			c[3] = uint8_t((cp & 63) + 128);
+			return 4;
+		}
+		// will return 0 when the code point was too large.
+		return 0;// bad r
+	}
+
+	inline bool handle_unicode_codepoint(const uint8_t** src_ptr, uint8_t** dst_ptr) {
+		// jsoncharutils::hex_to_u32_nocheck fills high 16 bits of the return value with 1s if the
+		// conversion isn't valid; we defer the check for this to inside the
+		// multilingual plane check
+		uint32_t code_point = hex_to_u32_nocheck(*src_ptr + 2);
+		*src_ptr += 6;
+
+		// If we found a high surrogate, we must
+		// check for low surrogate for characters
+		// outside the Basic
+		// Multilingual Plane.
+		if (code_point >= 0xd800 && code_point < 0xdc00) {
+			const uint8_t* src_data = *src_ptr;
+			/* Compiler optimizations convert this to a single 16-bit load and compare on most platforms */
+			if (((src_data[0] << 8) | src_data[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
+				return false;
+			}
+			uint32_t code_point_2 = hex_to_u32_nocheck(src_data + 2);
+
+			// We have already checked that the high surrogate is valid and
+			// (code_point - 0xd800) < 1024.
+			//
+			// Check that code_point_2 is in the range 0xdc00..0xdfff
+			// and that code_point_2 was parsed from valid hex.
+			uint32_t low_bit = code_point_2 - 0xdc00;
+			if (low_bit >> 10) {
+				return false;
 			}
 
-			index++;
+			code_point = (((code_point - 0xd800) << 10) | low_bit) + 0x10000;
+			*src_ptr += 6;
+		} else if (code_point >= 0xdc00 && code_point <= 0xdfff) {
+			// If we encounter a low surrogate (not preceded by a high surrogate)
+			// then we have an error.
+			return false;
 		}
+		size_t offset = codepoint_to_utf8(code_point, *dst_ptr);
+		*dst_ptr += offset;
+		return offset > 0;
+	}
+
+	static const uint8_t escape_map[256] = {
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, // 0x0.
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0x22, 0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0x2f,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, // 0x4.
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0x5c, 0, 0,    0, // 0x5.
+    0, 0, 0x08, 0, 0,    0, 0x0c, 0, 0, 0, 0, 0, 0,    0, 0x0a, 0, // 0x6.
+    0, 0, 0x0d, 0, 0x09, 0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0, // 0x7.
+
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+    0, 0, 0,    0, 0,    0, 0,    0, 0, 0, 0, 0, 0,    0, 0,    0,
+	};
+
+	inline int trailing_zeroes(uint64_t input_num) {
+		return ( int )_tzcnt_u64(input_num);
+	}
+
+	struct backslash_and_quote {
+	  public:
+		static constexpr uint32_t BYTES_PROCESSED = 32;
+		inline static backslash_and_quote copy_and_find(const uint8_t* src, uint8_t* dst);
+
+		inline bool has_quote_first() {
+			return ((bs_bits - 1) & quote_bits) != 0;
+		}
+		inline bool has_backslash() {
+			return ((quote_bits - 1) & bs_bits) != 0;
+		}
+		inline int quote_index() {
+			return trailing_zeroes(quote_bits);
+		}
+		inline int backslash_index() {
+			return trailing_zeroes(bs_bits);
+		}
+
+		uint32_t bs_bits{};
+		uint32_t quote_bits{};
+	};// struct backslash_and_quote
+
+	inline backslash_and_quote backslash_and_quote::copy_and_find(const uint8_t* src, uint8_t* dst) {
+		// this can read up to 15 bytes beyond the buffer size, but we require
+		// SIMDJSON_PADDING of padding
+		static_assert(32 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
+		SimdBase256 v(reinterpret_cast<const char*>(src));
+		v.store(reinterpret_cast<char*>(dst));
+		// store to dest unconditionally - we can overwrite the bits we don't like later
+		return {
+			static_cast<uint32_t>((v == '\\').getInt64(0)),// bs_bits
+			static_cast<uint32_t>((v == '"').getInt64(0)),// quote_bits
+		};
+	}
+	
+	inline uint8_t* parse_string(const uint8_t* src, uint8_t* dst) {
+		while (1) {
+			// Copy the next n bytes, and find the backslash and quote in them.
+			auto bs_quote = backslash_and_quote::copy_and_find(src, dst);
+			// If the next thing is the end quote, copy and return
+			if (bs_quote.has_quote_first()) {
+				// we encountered quotes first. Move dst to point to quotes and exit
+				return dst + bs_quote.quote_index();
+			}
+			if (bs_quote.has_backslash()) {
+				/* find out where the backspace is */
+				auto bs_dist = bs_quote.backslash_index();
+				uint8_t escape_char = src[bs_dist + 1];
+				/* we encountered backslash first. Handle backslash */
+				if (escape_char == 'u') {
+					/* move src/dst up to the start; they will be further adjusted
+           within the unicode codepoint handling code. */
+					src += bs_dist;
+					dst += bs_dist;
+					if (!handle_unicode_codepoint(&src, &dst)) {
+						return nullptr;
+					}
+				} else {
+					/* simple 1:1 conversion. Will eat bs_dist+2 characters in input and
+         * write bs_dist+1 characters to output
+         * note this may reach beyond the part of the buffer we've actually
+         * seen. I think this is ok */
+					uint8_t escape_result = escape_map[escape_char];
+					if (escape_result == 0u) {
+						return nullptr; /* bogus escape value is an error */
+					}
+					dst[bs_dist] = escape_result;
+					src += bs_dist + 2;
+					dst += bs_dist + 1;
+				}
+			} else {
+				/* they are the same. Since they can't co-occur, it means we
+       * encountered neither. */
+				src += backslash_and_quote::BYTES_PROCESSED;
+				dst += backslash_and_quote::BYTES_PROCESSED;
+			}
+		}
+		/* can't be reached */
 		return nullptr;
 	}
 
 	inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
-		iter.log_value(key ? "key" : "string");
 		uint8_t* dst = ( uint8_t* )on_start_string(iter);
-		dst = parseString(value + 1, dst);
+		dst = parse_string(value + 1, dst);
 		if (dst == nullptr) {
-			iter.log_error("Invalid escape in string");
 			return StringError;
 		}
 		on_end_string(dst);
@@ -2004,7 +2212,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_number(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("number");
 		 return ErrorCode::Success;
 	}
 
@@ -2033,7 +2240,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("true");
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return TAtomError;
 		}
@@ -2042,7 +2248,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_root_true_atom(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("true");
 		if (!isValidTrueAtom(reinterpret_cast<const char*>(value))) {
 			return TAtomError;
 		}
@@ -2051,7 +2256,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("false");
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return FAtomError;
 		}
@@ -2060,7 +2264,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_root_false_atom(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("false");
 		if (!isValidFalseAtom(reinterpret_cast<const char*>(value))) {
 			return FAtomError;
 		}
@@ -2069,7 +2272,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("null");
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return NAtomError;
 		}
@@ -2078,7 +2280,6 @@ namespace Jsonifier {
 	}
 
 	 inline ErrorCode TapeBuilder::visit_root_null_atom(JsonIterator& iter, const uint8_t* value) noexcept {
-		iter.log_value("null");
 		if (!isValidNullAtom(reinterpret_cast<const char*>(value))) {
 			return NAtomError;
 		}
@@ -2095,7 +2296,7 @@ namespace Jsonifier {
 	 inline ErrorCode TapeBuilder::empty_container(JsonIterator& iter, TapeType start,
 		TapeType end) noexcept {
 		auto start_index = next_tape_index(iter);
-		tape.append(start_index + 2, start);
+		tape.append(start_index + 2ull, start);
 		std::cout << "WERE APPENDING THIS VALUE EMPTY CONTAINER: " << start_index<< std::endl;
 		tape.append(start_index, end);
 		return ErrorCode::Success;
@@ -2125,24 +2326,27 @@ namespace Jsonifier {
 
 	inline const uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
 		// we advance the point, accounting for the fact that we have a NULL termination
-		std::cout << "WERE APPENDING THIS VALUE START STRING: " << current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringView())
-				  << std::endl;
-		tape.append(current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringView()), TapeType::STRING);
+		
+		tape.append(current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringViewNew()), TapeType::STRING);
+		std::cout << "WERE APPENDING ON START STRING: "
+				  << current_string_buf_loc - reinterpret_cast<const uint8_t*>(iter.dom_parser.getStringViewNew()) << std::endl;
 		return current_string_buf_loc + sizeof(uint32_t);
 	}
 
 	inline void TapeBuilder::on_end_string(uint8_t* dst) noexcept {
-		uint32_t str_length = uint32_t(dst - (current_string_buf_loc));
-		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING BUF LOC: " << *current_string_buf_loc << std::endl;
+		uint32_t str_length = uint32_t(dst - (current_string_buf_loc + sizeof(uint32_t)));
 		// TODO check for overflow in case someone has a crazy string (>=4GB?)
 		// But only add the overflow check when the document itself exceeds 4GB
 		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
-		//memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
-		std::cout << "WERE APPENDING THIS VALUE END STRING STR LENGTH: " << str_length << std::endl;
+		memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
 		// NULL termination is still handy if you expect all your strings to
 		// be NULL terminated? It comes at a small cost
-		//*dst = 0;
+		*dst = 0;
 		current_string_buf_loc = dst + 1;
+		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING STR LENGTH 0101: " << +*dst<< std::endl;
+		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING STR LENGTH 0202: " << ( char )*current_string_buf_loc << std::endl;
+		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING STR LENGTH: " << str_length << std::endl;
+		std::cout << "WERE APPENDING THIS VALUE CURRENT STRING BUF LOC: " << *current_string_buf_loc << std::endl;
 	}
 
 	enum class ParsingState {

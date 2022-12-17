@@ -1546,7 +1546,7 @@ namespace Jsonifier {
 		}
 		newBuffer[1] = encodedBytes;
 		newBuffer[2] = 0;
-		this->writeString(newBuffer, 1 + 2 + static_cast<size_t>(encodedBytes));
+		this->writeString(newBuffer, 1ull + 2ull + static_cast<size_t>(encodedBytes));
 	}
 
 	void JsonSerializer::appendNewFloatExt(const double FloatValue) {
