@@ -97,9 +97,9 @@ template<typename OTy> void prepStringForParsing(std::basic_string<OTy>& string)
 int32_t main() noexcept {
 	try {
 		std::string stringNew{
-		"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
-					"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-		"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
+			"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|"
+			"bitbot.tools\",\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
 		};
 		//std::string stringNew{ "{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"created_at02\":\"1669495273631\",\"id2\":\"ec0b28a579ecb4bd\"}]}}" };
 
@@ -107,11 +107,11 @@ int32_t main() noexcept {
 		size_t totalTime{};
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
-		
+
 
 		totalSize = 0;
 		totalTime = 0;
-		
+
 		//TheDJson newValue{};
 		//newValue.activities.push_back(ActivitiesJson{});
 		//auto jsonDataNew = newValue.operator Jsonifier::JsonSerializer();
@@ -130,7 +130,7 @@ int32_t main() noexcept {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
 			jsonData = std::move(stringScanner.getJsonData());
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;	
+			//std::cout << "THE DATA" << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			TheValueJson theValue{ jsonData };
 			totalSize += oldSize;
 		}
