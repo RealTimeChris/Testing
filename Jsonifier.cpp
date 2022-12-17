@@ -428,7 +428,7 @@ namespace Jsonifier {
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(std::move(other));
 		}
-		return *this;
+		return this->jsonValue.array->back();
 	}
 
 	Jsonifier& Jsonifier::emplaceBack(Jsonifier& other) noexcept {
@@ -442,7 +442,7 @@ namespace Jsonifier {
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(std::move(other));
 		}
-		return *this;
+		return this->jsonValue.array->back();
 	}
 
 	void Jsonifier::serializeJsonToEtfString(const Jsonifier* jsonDataNew) {

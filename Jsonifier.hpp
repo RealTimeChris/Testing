@@ -1235,12 +1235,19 @@ namespace Jsonifier {
 		}
 
 		void startNewObject() {
+			this->jsonData.refreshString(JsonifierSerializeType::Json);
+			std::cout << "CURRENT DATA: (NEW OBJECT FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			this->currentPlace.back()->refreshString(JsonifierSerializeType::Json);
 			if (this->currentPlace.back()->getType() == JsonType::Array) {
-				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(JsonType::Null));
+				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(JsonType::Object));
+				this->jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "CURRENT DATA: (NEW OBJECT FOR ARRAY) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 			} else {				
-				(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Null;
+				(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Object;
 				this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
+				std::cout << "CURRENT DATA: (NEW OBJECT FOR OBJECT) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 			}
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
 			std::cout << "CURRENT DATA: (NEW OBJECT) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
@@ -1249,7 +1256,7 @@ namespace Jsonifier {
 		void startNewArray() {
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
 			std::cout << "CURRENT DATA: (NEW ARRAY FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Null;
+			(*this->currentPlace.back())[this->currentKey.back()] = JsonType::Array;
 			this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
 			this->type = JsonType::Array;
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
@@ -1284,10 +1291,17 @@ namespace Jsonifier {
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
 			std::cout << "CURRENT DATA: (NEW PRIMITIVE FIRST) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			if (this->currentPlace.back()->getType() == JsonType::Array) {
-				this->currentPlace.emplace_back(&this->currentPlace.back()->emplaceBack(data));
+				this->currentPlace.back()->emplaceBack(data);
+				//this->currentPlace.emplace_back(&);
+				this->jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "CURRENT DATA: (NEW PRIMITIVE FOR ARRAY) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
+						  << std::endl;
 			} else {
 				(*this->currentPlace.back())[this->currentKey.back()] = data;
-				this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
+				//this->currentPlace.emplace_back(&(*this->currentPlace.back())[this->currentKey.back()]);
+				this->jsonData.refreshString(JsonifierSerializeType::Json);
+				std::cout << "CURRENT DATA: (NEW PRIMITIVE FOR OBJECT) "
+						  << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			}
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
 			std::cout << "CURRENT DATA: (NEW PRIMITIVE ) " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>()
