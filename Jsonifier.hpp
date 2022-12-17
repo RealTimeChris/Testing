@@ -1041,13 +1041,13 @@ namespace Jsonifier {
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
-			//std::cout << valuesTitle;
+			std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
-			//std::cout << std::endl;
+			std::cout << std::endl;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1346,7 +1346,7 @@ namespace Jsonifier {
 		TRUE_VALUE = 't',
 		FALSE_VALUE = 'f',
 		NULL_VALUE = 'n'
-	};// enum class TapeType
+	};
 
 	class TapeBuilder;
 
@@ -1382,14 +1382,10 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::peek() const noexcept {
-		//std::cout << "CURRENT INDEX: " << *(nextStructural) << std::endl;
-		//std::cout << "CURRENT PEEKED VALUE: " << buf[*(nextStructural)] << std::endl;
 		return &buf[*(nextStructural)];
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
-		//std::cout << "CURRENT INDEX: " << *(nextStructural) << std::endl;
-		//std::cout << "CURRENT ADVANCED VALUE: " << buf[*(nextStructural)] << std::endl;
 		return &buf[*(nextStructural++)];
 	}
 
@@ -1398,8 +1394,6 @@ namespace Jsonifier {
 	}
 
 	inline bool JsonIterator::atEof() const noexcept {
-		//std::cout << "THE TAPE LENGTH: " << masterParser.getTapeLength() << std::endl;
-		//std::cout << "THE TAPE LENGTH: " << +masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1] << std::endl;
 		return nextStructural == &masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1];
 	}
 
@@ -1477,7 +1471,6 @@ namespace Jsonifier {
 		nextTapeLocation++;
 	}
 
-	/** Write a double value to tape. */
 	inline  void TapeWriter::appendDouble(double value) noexcept {
 		append2(0, value, TapeType::DOUBLE);
 	}
@@ -1501,7 +1494,7 @@ namespace Jsonifier {
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		//std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
+		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*nextTapeLocation), "Type is not 64 bits!");
 		memcpy(nextTapeLocation, &val2, sizeof(val2));
@@ -1940,17 +1933,13 @@ namespace Jsonifier {
 	inline void TapeBuilder::startContainer(JsonIterator& iter) noexcept {
 		iter.masterParser.openContainers[iter.depth].tapeIndex = nextTapeIndex(iter);
 		iter.masterParser.openContainers[iter.depth].count = 0;
-		tape.skip();// We don't actually *write* the start element until the end.
+		tape.skip();
 	}
 
 	inline ErrorCode TapeBuilder::endContainer(JsonIterator& iter, TapeType start,
 		TapeType end) noexcept {
-		// Write the ending tape element, pointing at the start location
 		const uint32_t startTapeIndex = iter.masterParser.openContainers[iter.depth].tapeIndex;
 		tape.append(startTapeIndex, end);
-		// Write the start tape element, pointing at the end location (and including count)
-		// count can overflow if it exceeds 24 bits... so we saturate
-		// the convention being that a cnt of 0xffffff or more is undetermined in value (>=  0xffffff).
 		const uint32_t count = iter.masterParser.openContainers[iter.depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
 		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
@@ -1958,7 +1947,6 @@ namespace Jsonifier {
 	}
 
 	inline  uint8_t* TapeBuilder::onStartString(JsonIterator& iter) noexcept {
-		// we this->advance the point, accounting for the fact that we have a NULL termination
 		tape.append(currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()), TapeType::STRING);
 		std::cout << "WERE APPENDING THIS VALUE: STRING START "
 				  << currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()) << std::endl;
@@ -1967,14 +1955,8 @@ namespace Jsonifier {
 
 	inline void TapeBuilder::onEndString(uint8_t* dst) noexcept {
 		uint32_t stringLength = uint32_t(dst - (currentStringBufferLocation + sizeof(uint32_t)));
-		// TODO check for overflow in case someone has a crazy string (>=4GB?)
-		// But only add the overflow check when the document itself exceeds 4GB
-		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
 		memcpy(currentStringBufferLocation, &stringLength, sizeof(uint32_t));
 		std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH " << stringLength << std::endl;
-		//std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH: " << stringLength << std::endl;
-		// NULL termination is still handy if you expect all your strings to
-		// be NULL terminated? It comes at a small cost
 		*dst = 0;
 		currentStringBufferLocation = dst + 1;
 	}
@@ -2009,9 +1991,6 @@ namespace Jsonifier {
 		}
 		goto document_end;
 
-	//
-	// Object parser states
-	//
 	object_begin:
 		depth++;
 		if (depth >= masterParser.getMaxDepth()) {
@@ -2085,9 +2064,6 @@ namespace Jsonifier {
 		}
 		goto object_continue;
 
-	//
-	// Array parser states
-	//
 	array_begin:
 		depth++;
 		if (depth >= masterParser.getMaxDepth()) {
@@ -2137,7 +2113,6 @@ namespace Jsonifier {
 
 		*masterParser.getNextStructural() = uint32_t(nextStructural - &masterParser.getStructuralIndexes()[0]);
 
-		// If we didn't make it to the end, it's an error
 		if ( *masterParser.getNextStructural() != masterParser.getTapeLength()) {
 			return ErrorCode::TapeError;
 		}
