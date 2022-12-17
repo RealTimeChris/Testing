@@ -121,8 +121,12 @@ int32_t main() noexcept {
 
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		prepStringForParsing(stringNew);
+		Jsonifier::Jsonifier jsonDataNew{};
+		jsonDataNew["testing"] = Jsonifier::JsonType::Array;
+		jsonDataNew["testing"].emplaceBack("TESTING");
+		jsonDataNew.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		Jsonifier::Jsonifier jsonData{};
-		//std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+		std::cout << "THE NEWER JSON DATA: " << jsonDataNew.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue stringScanner{ stringNew.data(), stringNew.size() };
