@@ -209,6 +209,8 @@ namespace Jsonifier {
 	template<typename Ty>
 	concept IsConvertibleToJsonSerializer = std::convertible_to<Ty, JsonSerializer>;
 
+	class SimdJsonValue;
+
 	class Jsonifier {
 	  public:
 		friend class JsonSerializer;
@@ -468,6 +470,8 @@ namespace Jsonifier {
 
 		JsonType getType() noexcept;
 
+		bool parseString(const std::string&) noexcept;
+
 		size_t size() noexcept;
 
 		Jsonifier& emplaceBack(Jsonifier&& data) noexcept;
@@ -476,6 +480,7 @@ namespace Jsonifier {
 		~Jsonifier() noexcept;
 
 	  protected:
+		std::unique_ptr<SimdJsonValue> parser{};
 		JsonType type{ JsonType::Null };
 		JsonValue jsonValue{};
 		std::string string{};
@@ -1014,7 +1019,7 @@ namespace Jsonifier {
 
 	class SimdJsonValue {
 	  public:
-		inline SimdJsonValue(char* stringNew, size_t tapeLength) : stringView(stringNew) {
+		inline SimdJsonValue(const char* stringNew, size_t tapeLength) : stringView(stringNew) {
 			if (tapeLength == 0) {
 				throw DCAException{ "Failed to parse as the string size is 0." };
 			}
@@ -1048,7 +1053,7 @@ namespace Jsonifier {
 			delete[] this->stringViewNew;
 		}
 
-		inline char* getStringView() {
+		inline const char* getStringView() {
 			return this->stringView;
 		}
 
@@ -1087,12 +1092,12 @@ namespace Jsonifier {
 	  protected:
 		std::unique_ptr<bool[]> isArray{};
 		uint64_t* nextStructural{};
+		const char* stringView{};
 		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
 		SimdTape jsonRawTape{};
 		char* stringViewNew{};
 		uint32_t depth{ 0 };
-		char* stringView{};
 	};
 
 	enum class TapeType : uint8_t {
@@ -1168,7 +1173,7 @@ namespace Jsonifier {
 		return buf[masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1]];
 	}
 
-	const bool structuralOrWhitespaceNegated[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+	const bool structuralOrWhitespaceNegated[256]{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 		0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
 
 		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -1448,7 +1453,7 @@ namespace Jsonifier {
 		: tape{ doc.getStructuralIndexes() }, currentStringBufferLocation{ reinterpret_cast<uint8_t*>(doc.getStringViewNew()) } {
 	}
 
-	const uint32_t digitToVal32[886] = { 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+	const uint32_t digitToVal32[886]{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -1590,7 +1595,7 @@ namespace Jsonifier {
 		return offset > 0;
 	}
 
-	static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	static const uint8_t escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0x08, 0, 0, 0, 0x0c, 0, 0, 0, 0, 0,
@@ -1834,7 +1839,7 @@ namespace Jsonifier {
 
 	inline uint32_t numberOfDigitsDecimalLeftShift(Decimal &h, uint32_t shift) {
   shift &= 63;
-  const static uint16_t numberOfDigitsDecimalLeftShift_table[65] = {
+  const static uint16_t numberOfDigitsDecimalLeftShift_table[65]{
       0x0000, 0x0800, 0x0801, 0x0803, 0x1006, 0x1009, 0x100D, 0x1812, 0x1817,
       0x181D, 0x2024, 0x202B, 0x2033, 0x203C, 0x2846, 0x2850, 0x285B, 0x3067,
       0x3073, 0x3080, 0x388E, 0x389C, 0x38AB, 0x38BB, 0x40CC, 0x40DD, 0x40EF,
@@ -1850,7 +1855,7 @@ namespace Jsonifier {
   uint32_t pow5_a = 0x7FF & x_a;
   uint32_t pow5_b = 0x7FF & x_b;
   const static uint8_t
-      numberOfDigitsDecimalLeftShift_table_powers_of_5[0x051C] = {
+      numberOfDigitsDecimalLeftShift_table_powers_of_5[0x051C]{
           5, 2, 5, 1, 2, 5, 6, 2, 5, 3, 1, 2, 5, 1, 5, 6, 2, 5, 7, 8, 1, 2, 5,
           3, 9, 0, 6, 2, 5, 1, 9, 5, 3, 1, 2, 5, 9, 7, 6, 5, 6, 2, 5, 4, 8, 8,
           2, 8, 1, 2, 5, 2, 4, 4, 1, 4, 0, 6, 2, 5, 1, 2, 2, 0, 7, 0, 3, 1, 2,
@@ -2067,7 +2072,7 @@ namespace Jsonifier {
 
 		static const uint32_t max_shift = 60;
 		static const uint32_t num_powers = 19;
-		static const uint8_t powers[19] = {
+		static const uint8_t powers[19]{
 			0, 3, 6, 9, 13, 16, 19, 23, 26, 29,
 			33, 36, 39, 43, 46, 49, 53, 56, 59,
 		};
@@ -2183,7 +2188,7 @@ namespace Jsonifier {
 	constexpr int smallestPower = -342;
 	constexpr int largestPower = 308;
 
-	const double powerOfTen[] = { 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20,
+	const double powerOfTen[]{ 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20,
 		1e21, 1e22 };
 
 	inline bool computeFloat64(int64_t power, uint64_t i, bool negative, double& d) {

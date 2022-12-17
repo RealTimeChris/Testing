@@ -408,6 +408,16 @@ namespace Jsonifier {
 		*this = type;
 	}
 
+	bool Jsonifier::parseString(const std::string& string) noexcept {
+		this->parser = std::make_unique<SimdJsonValue>(string.data(), string.size());
+		*this = this->parser->getJsonData();
+		if (this->type != JsonType::Null) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
 	bool Jsonifier::contains(std::string& key) {
 		if (this->type == JsonType::Object) {
 			return this->jsonValue.object->contains(key);
@@ -462,7 +472,7 @@ namespace Jsonifier {
 		}
 		other.refreshString(JsonifierSerializeType::Json);
 		if (this->type == JsonType::Array) {
-			this->jsonValue.array->emplace_back(std::move(other));
+			this->jsonValue.array->emplace_back(other);
 		}
 		return this->jsonValue.array->back();
 	}
