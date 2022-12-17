@@ -886,7 +886,7 @@ namespace Jsonifier {
 		}
 
 		inline void store(char dst[32]) const {
-			return _mm256_storeu_si256(reinterpret_cast<__m256i*>(dst), this->value);
+			return _mm256_storeu_epi8(dst, this->value);
 		}
 
 		inline uint64_t getUint64(size_t index) {
@@ -1030,8 +1030,8 @@ namespace Jsonifier {
 
 		inline bool collectCarries(SimdBase256 other1, SimdBase256* result) {
 			bool returnValue{};
+			uint64_t returnValue64{};
 			for (size_t x = 0; x < 4; ++x) {
-				uint64_t returnValue64{};
 				if (_addcarry_u64(0, this->getUint64(x), other1.getUint64(x), reinterpret_cast<unsigned long long*>(&returnValue64))) {
 					returnValue = true;
 				}
@@ -1349,6 +1349,8 @@ namespace Jsonifier {
 		NULL_VALUE = 'n'
 	};// enum class TapeType
 
+	class TapeBuilder;
+
 	class JsonIterator {
 	  public:
 		const uint8_t* buf;
@@ -1356,247 +1358,25 @@ namespace Jsonifier {
 		SimdJsonValue& dom_parser;
 		uint32_t depth{ 0 };
 
-		/**
-   * Walk the JSON document.
-   *
-   * The visitor receives callbacks when values are encountered. All callbacks pass the iterator as
-   * the first parameter; some callbacks have other parameters as well:
-   *
-   * - visit_document_start() - at the beginning.
-   * - visit_document_end() - at the end (if things were successful).
-   *
-   * - visit_array_start() - at the start `[` of a non-empty array.
-   * - visit_array_end() - at the end `]` of a non-empty array.
-   * - visit_empty_array() - when an empty array is encountered.
-   *
-   * - visit_object_end() - at the start `]` of a non-empty object.
-   * - visit_object_start() - at the end `]` of a non-empty object.
-   * - visit_empty_object() - when an empty object is encountered.
-   * - visit_key(uint8_t *key) - when a key in an object field is encountered. key is
-   *                                   guaranteed to point at the first quote of the string (`"key"`).
-   * - visit_primitive(uint8_t *value) - when a value is a string, number, boolean or null.
-   * - visit_root_primitive(iter, uint8_t *value) - when the top-level value is a string, number, boolean or null.
-   *
-   * - increment_count(iter) - each time a value is found in an array or object.
-   */
-		template<bool STREAMING, typename V>  inline ErrorCode walk_document(V& visitor) noexcept;
+		inline ErrorCode walkDocument(TapeBuilder& visitor) noexcept;
 
-		/**
-   * Create an iterator capable of walking a JSON document.
-   *
-   * The document must have already passed through stage 1.
-   */
 		inline JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index);
 
-		/**
-   * Look at the next token.
-   *
-   * Tokens can be strings, numbers, booleans, null, or operators (`[{]},:`)).
-   *
-   * They may include invalid JSON as well (such as `1.2.3` or `ture`).
-   */
 		inline const uint8_t* peek() const noexcept;
-		/**
-   * Advance to the next token.
-   *
-   * Tokens can be strings, numbers, booleans, null, or operators (`[{]},:`)).
-   *
-   * They may include invalid JSON as well (such as `1.2.3` or `ture`).
-   */
+
 		inline const uint8_t* advance() noexcept;
-		/**
-   * Get the remaining length of the document, from the start of the current token.
-   */
-		inline size_t remaining_len() const noexcept;
-		/**
-   * Check if we are at the end of the document.
-   *
-   * If this is true, there are no more tokens.
-   */
-		inline bool at_eof() const noexcept;
-		/**
-   * Check if we are at the beginning of the document.
-   */
-		inline bool at_beginning() const noexcept;
-		inline uint8_t last_structural() const noexcept;
 
-		template<typename V>  inline ErrorCode visit_root_primitive(V& visitor, const uint8_t* value) noexcept;
-		template<typename V>  inline ErrorCode visit_primitive(V& visitor, const uint8_t* value) noexcept;
+		inline size_t remainingLen() const noexcept;
+
+		inline bool atEof() const noexcept;
+
+		inline bool atBeginning() const noexcept;
+
+		inline uint8_t lastStructural() const noexcept;
+
+		template<typename V>  inline ErrorCode visitRootPrimitive(V& visitor, const uint8_t* value) noexcept;
+		template<typename V>  inline ErrorCode visitPrimitive(V& visitor, const uint8_t* value) noexcept;
 	};
-
-	template<bool STREAMING, typename V>  inline ErrorCode JsonIterator::walk_document(V& visitor) noexcept {
-		
-		//
-		// Start the document
-		//
-		if (at_eof()) {
-			return Empty;
-		}
-
-		//
-		// Read first value
-		//
-		{
-			auto value = advance();
-
-			switch (*value) {
-				case '{':
-					if (*peek() == '}') {
-						advance();
-						visitor.visit_empty_object(*this);
-						break;
-					}
-					goto object_begin;
-				case '[':
-					if (*peek() == ']') {
-						advance();
-						visitor.visit_empty_array(*this);
-						break;
-					}
-					goto array_begin;
-				default:
-					visitor.visit_root_primitive(*this, value);
-					break;
-			}
-		}
-		goto document_end;
-
-	//
-	// Object parser states
-	//
-	object_begin:
-		depth++;
-		if (depth >= dom_parser.getMaxDepth()) {
-			return DepthError;
-		}
-		dom_parser.getIsArray()[depth] = false;
-		visitor.visit_object_start(*this);
-
-		{
-			auto key = advance();
-			if (*key != '"') {
-				return TapeError;
-			}
-			visitor.increment_count(*this);
-			visitor.visit_key(*this, key);
-		}
-
-	object_field:
-		if (*advance() != ':') {
-			return TapeError;
-		}
-		{
-			auto value = advance();
-			switch (*value) {
-				case '{':
-					if (*peek() == '}') {
-						advance();
-						visitor.visit_empty_object(*this);
-						break;
-					}
-					goto object_begin;
-				case '[':
-					if (*peek() == ']') {
-						advance();
-						visitor.visit_empty_array(*this);
-						break;
-					}
-					goto array_begin;
-				default:
-					visitor.visit_primitive(*this, value);
-					break;
-			}
-		}
-
-	object_continue:
-		switch (*advance()) {
-			case ',':
-				visitor.increment_count(*this);
-				{
-					auto key = advance();
-					if (*key != '"') {
-						return TapeError;
-					}
-					visitor.visit_key(*this, key);
-				}
-				goto object_field;
-			case '}':
-				visitor.visit_object_end(*this);
-				goto scope_end;
-			default:
-				return TapeError;
-		}
-
-	scope_end:
-		depth--;
-		if (depth == 0) {
-			goto document_end;
-		}
-		if (dom_parser.getIsArray()[depth]) {
-			goto array_continue;
-		}
-		goto object_continue;
-
-	//
-	// Array parser states
-	//
-	array_begin:
-		depth++;
-		if (depth >= dom_parser.getMaxDepth()) {
-			return DepthError;
-		}
-		dom_parser.getIsArray()[depth] = true;
-		visitor.visit_array_start(*this);
-		visitor.increment_count(*this);
-
-	array_value : {
-		auto value = advance();
-		switch (*value) {
-			case '{':
-				if (*peek() == '}') {
-					advance();
-					visitor.visit_empty_object(*this);
-					break;
-				}
-				goto object_begin;
-			case '[':
-				if (*peek() == ']') {
-					advance();
-					visitor.visit_empty_array(*this);
-					break;
-				}
-				goto array_begin;
-			default:
-				visitor.visit_primitive(*this, value);
-				break;
-		}
-	}
-
-	array_continue:
-		switch (*advance()) {
-			case ',':
-				visitor.increment_count(*this);
-				goto array_value;
-			case ']':
-				visitor.visit_array_end(*this);
-				goto scope_end;
-			default:
-				return TapeError;
-		}
-
-	document_end:
-		visitor.visit_document_end(*this);
-
-		*dom_parser.getNextStructural() = uint32_t(next_structural - &dom_parser.getStructuralIndexes()[0]);
-
-		// If we didn't make it to the end, it's an error
-		if (!STREAMING && *dom_parser.getNextStructural() != dom_parser.getTapeLength()) {
-			return TapeError;
-		}
-
-		return Success;
-
-	}// walk_document()
 
 	inline JsonIterator::JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
 		: buf{ reinterpret_cast<const uint8_t*>(_dom_parser.getStringView()) }, next_structural{ &_dom_parser.getStructuralIndexes()[start_structural_index] }, dom_parser{ _dom_parser } {
@@ -1614,26 +1394,26 @@ namespace Jsonifier {
 		return &buf[*(next_structural++)];
 	}
 
-	inline size_t JsonIterator::remaining_len() const noexcept {
+	inline size_t JsonIterator::remainingLen() const noexcept {
 		return dom_parser.getTapeLength() - *(next_structural - 1);
 	}
 
-	inline bool JsonIterator::at_eof() const noexcept {
+	inline bool JsonIterator::atEof() const noexcept {
 		//std::cout << "THE TAPE LENGTH: " << dom_parser.getTapeLength() << std::endl;
 		//std::cout << "THE TAPE LENGTH: " << +dom_parser.getStructuralIndexes()[dom_parser.getTapeLength() - 1] << std::endl;
 		return next_structural == &dom_parser.getStructuralIndexes()[dom_parser.getTapeLength() - 1];
 	}
 
-	inline bool JsonIterator::at_beginning() const noexcept {
+	inline bool JsonIterator::atBeginning() const noexcept {
 		return next_structural == dom_parser.getStructuralIndexes();
 	}
 
-	inline uint8_t JsonIterator::last_structural() const noexcept {
+	inline uint8_t JsonIterator::lastStructural() const noexcept {
 		return buf[dom_parser.getStructuralIndexes()[dom_parser.getTapeLength() - 1]];
 	}
 
 	template<typename V>
-	 inline ErrorCode JsonIterator::visit_root_primitive(V& visitor, const uint8_t* value) noexcept {
+	 inline ErrorCode JsonIterator::visitRootPrimitive(V& visitor, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
 				return visitor.visit_root_string(*this, value);
@@ -1659,7 +1439,7 @@ namespace Jsonifier {
 				return TapeError;
 		}
 	}
-	template<typename V>  inline ErrorCode JsonIterator::visit_primitive(V& visitor, const uint8_t* value) noexcept {
+	template<typename V>  inline ErrorCode JsonIterator::visitPrimitive(V& visitor, const uint8_t* value) noexcept {
 		switch (*value) {
 			case '"':
 				return visitor.visit_string(*this, value);
@@ -1772,11 +1552,12 @@ namespace Jsonifier {
 
 	inline  void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*next_tape_loc = val | ((uint64_t(char(t))) << 56);
+		std::cout << "WERE APPENGINT THIS VALUE: " << (val) << std::endl;
 		next_tape_loc++;
 	}
 
 	template<typename T> inline  void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		//std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
+		std::cout << "WERE APPENDING THIS VALUE: APPEND2 " << val << std::endl;
 		append(val, t);
 		static_assert(sizeof(val2) == sizeof(*next_tape_loc), "Type is not 64 bits!");
 		memcpy(next_tape_loc, &val2, sizeof(val2));
@@ -1789,7 +1570,7 @@ namespace Jsonifier {
 
 
 	struct TapeBuilder {
-		template<bool STREAMING> static inline ErrorCode parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept;
+		static inline ErrorCode parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept;
 
 		/** Called when a non-empty document starts. */
 		inline ErrorCode visit_document_start(JsonIterator& iter) noexcept;
@@ -1820,7 +1601,7 @@ namespace Jsonifier {
 		/**
    * Called when a string, number, boolean or null is found.
    */
-		 inline ErrorCode visit_primitive(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
 		/**
    * Called when a string, number, boolean or null is found at the top level of a document (i.e.
    * when there is no array or object and the entire document is a single string, number, boolean or
@@ -1829,7 +1610,7 @@ namespace Jsonifier {
    * This is separate from primitive() because simdjson's normal primitive parsing routines assume
    * there is at least one more token after the value, which is only true in an array or object.
    */
-		 inline ErrorCode visit_root_primitive(JsonIterator& iter, const uint8_t* value) noexcept;
+		 inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
 
 		 inline ErrorCode visit_string(JsonIterator& iter, const uint8_t* value, bool key = false) noexcept;
 		 inline ErrorCode visit_number(JsonIterator& iter, const uint8_t* value) noexcept;
@@ -1863,18 +1644,18 @@ namespace Jsonifier {
 		inline void on_end_string(uint8_t* dst) noexcept;
 	};// class TapeBuilder
 
-	template<bool STREAMING> inline ErrorCode TapeBuilder::parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept {
+	inline ErrorCode TapeBuilder::parse_document(SimdJsonValue& dom_parser, Jsonifier& doc) noexcept {
 		dom_parser.doc = &doc;
 		JsonIterator iter(dom_parser, 0);
 		TapeBuilder builder(dom_parser);
-		return iter.walk_document<STREAMING>(builder);
+		return iter.walkDocument(builder);
 	}
 
-	inline ErrorCode TapeBuilder::visit_root_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
-		return iter.visit_root_primitive(*this, value);
+	inline ErrorCode TapeBuilder::visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept {
+		return iter.visitRootPrimitive(*this, value);
 	}
-	inline ErrorCode TapeBuilder::visit_primitive(JsonIterator& iter, const uint8_t* value) noexcept {
-		return iter.visit_primitive(*this, value);
+	inline ErrorCode TapeBuilder::visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept {
+		return iter.visitPrimitive(*this, value);
 	}
 	inline ErrorCode TapeBuilder::visit_empty_object(JsonIterator& iter) noexcept {
 		return empty_container(iter, TapeType::START_OBJECT, TapeType::END_OBJECT);
@@ -2141,7 +1922,7 @@ namespace Jsonifier {
 	
 	inline uint8_t* parse_string(const uint8_t* src, uint8_t* dst) {
 		int32_t index{};
-		while (index <= 32) {
+		while (index <= 256) {
 			index += 32;
 			// Copy the next n bytes, and find the backslash and quote in them.
 			auto bs_quote = backslash_and_quote::copy_and_find(src, dst);
@@ -2188,6 +1969,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visit_string(JsonIterator& iter, const uint8_t* value, bool key) noexcept {
+		std::cout << "WERE APPENDING THIS VALUE: VISIT STRING: " << *value << std::endl;
 		uint8_t* dst = on_start_string(iter);
 		dst = parse_string(value + 1, dst);
 		if (dst == nullptr) {
@@ -2219,12 +2001,12 @@ namespace Jsonifier {
 		// practice unless you are in the strange scenario where you have many JSON
 		// documents made of single atoms.
 		//
-		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remaining_len() + 256]);
+		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remainingLen() + 256]);
 		if (copy.get() == nullptr) {
 			return MemAlloc;
 		}
-		std::memcpy(copy.get(), value, iter.remaining_len());
-		std::memset(copy.get() + iter.remaining_len(), ' ', 256);
+		std::memcpy(copy.get(), value, iter.remainingLen());
+		std::memset(copy.get() + iter.remainingLen(), ' ', 256);
 		ErrorCode error = visit_number(iter, copy.get());
 		return error;
 	}
@@ -2312,8 +2094,10 @@ namespace Jsonifier {
 	}
 
 	inline  uint8_t* TapeBuilder::on_start_string(JsonIterator& iter) noexcept {
-		// we advance the point, accounting for the fact that we have a NULL termination
+		// we this->advance the point, accounting for the fact that we have a NULL termination
 		tape.append(current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringViewNew()), TapeType::STRING);
+		std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END "
+				  << current_string_buf_loc - reinterpret_cast<uint8_t*>(iter.dom_parser.getStringViewNew()) << std::endl;
 		return current_string_buf_loc + sizeof(uint32_t);
 	}
 
@@ -2323,11 +2107,179 @@ namespace Jsonifier {
 		// But only add the overflow check when the document itself exceeds 4GB
 		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
 		memcpy(current_string_buf_loc, &str_length, sizeof(uint32_t));
+		std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH: " << str_length << std::endl;
 		// NULL termination is still handy if you expect all your strings to
 		// be NULL terminated? It comes at a small cost
 		*dst = 0;
 		current_string_buf_loc = dst + 1;
 	}
+
+	inline ErrorCode JsonIterator::walkDocument(TapeBuilder& visitor) noexcept {
+		if (atEof()) {
+			return Empty;
+		}
+
+		{
+			auto value = this->advance();
+
+			switch (*value) {
+				case '{':
+					if (*peek() == '}') {
+						advance();
+						visitor.visit_empty_object(*this);
+						break;
+					}
+					goto object_begin;
+				case '[':
+					if (*peek() == ']') {
+						advance();
+						visitor.visit_empty_array(*this);
+						break;
+					}
+					goto array_begin;
+				default:
+					visitor.visitRootPrimitive(*this, value);
+					break;
+			}
+		}
+		goto document_end;
+
+	//
+	// Object parser states
+	//
+	object_begin:
+		depth++;
+		if (depth >= dom_parser.getMaxDepth()) {
+			return DepthError;
+		}
+		dom_parser.getIsArray()[depth] = false;
+		visitor.visit_object_start(*this);
+
+		{
+			auto key = this->advance();
+			if (*key != '"') {
+				return TapeError;
+			}
+			visitor.increment_count(*this);
+			visitor.visit_key(*this, key);
+		}
+
+	object_field:
+		if (*advance() != ':') {
+			return TapeError;
+		}
+		{
+			auto value = this->advance();
+			switch (*value) {
+				case '{':
+					if (*peek() == '}') {
+						advance();
+						visitor.visit_empty_object(*this);
+						break;
+					}
+					goto object_begin;
+				case '[':
+					if (*peek() == ']') {
+						advance();
+						visitor.visit_empty_array(*this);
+						break;
+					}
+					goto array_begin;
+				default:
+					visitor.visitPrimitive(*this, value);
+					break;
+			}
+		}
+
+	object_continue:
+		switch (*advance()) {
+			case ',':
+				visitor.increment_count(*this);
+				{
+					auto key = this->advance();
+					if (*key != '"') {
+						return TapeError;
+					}
+					visitor.visit_key(*this, key);
+				}
+				goto object_field;
+			case '}':
+				visitor.visit_object_end(*this);
+				goto scope_end;
+			default:
+				return TapeError;
+		}
+
+	scope_end:
+		depth--;
+		if (depth == 0) {
+			goto document_end;
+		}
+		if (dom_parser.getIsArray()[depth]) {
+			goto array_continue;
+		}
+		goto object_continue;
+
+	//
+	// Array parser states
+	//
+	array_begin:
+		depth++;
+		if (depth >= dom_parser.getMaxDepth()) {
+			return DepthError;
+		}
+		dom_parser.getIsArray()[depth] = true;
+		visitor.visit_array_start(*this);
+		visitor.increment_count(*this);
+
+	array_value : {
+		auto value = this->advance();
+		switch (*value) {
+			case '{':
+				if (*peek() == '}') {
+					advance();
+					visitor.visit_empty_object(*this);
+					break;
+				}
+				goto object_begin;
+			case '[':
+				if (*peek() == ']') {
+					advance();
+					visitor.visit_empty_array(*this);
+					break;
+				}
+				goto array_begin;
+			default:
+				visitor.visitPrimitive(*this, value);
+				break;
+		}
+	}
+
+	array_continue:
+		switch (*advance()) {
+			case ',':
+				visitor.increment_count(*this);
+				goto array_value;
+			case ']':
+				visitor.visit_array_end(*this);
+				goto scope_end;
+			default:
+				return TapeError;
+		}
+
+	document_end:
+		visitor.visit_document_end(*this);
+
+		*dom_parser.getNextStructural() = uint32_t(next_structural - &dom_parser.getStructuralIndexes()[0]);
+
+		// If we didn't make it to the end, it's an error
+		if ( *dom_parser.getNextStructural() != dom_parser.getTapeLength()) {
+			return TapeError;
+		}
+
+		return Success;
+
+	}// walkDocument()
 
 	enum class ParsingState {
 		StartDocument = 0,
@@ -2464,7 +2416,7 @@ namespace Jsonifier {
 			return ErrorCode::DepthError;
 		}
 		this->masterParser->getIsArray()[this->depth] = false;
-		auto key = advance();
+		auto key = this->advance();
 		if (key != '"') {
 			return ErrorCode::TapeError;
 		}
@@ -2640,13 +2592,13 @@ namespace Jsonifier {
 		Jsonifier jsonData{};
 		//std::cout << "THE VALUE (REAL): " << this->stringView << std::endl;
 		//std::cout << "THE VALUE: " << ( int32_t )TapeBuilder::parse_document<false>(*this, jsonData) << std::endl;
-		TapeBuilder::parse_document<false>(*this, jsonData);
-		//for (size_t x = 0; x < this->tapeLength; ++x) {
-		//			if (( char )this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))] == ( char )TapeType::STRING) {
-				//std::cout << "THE CURRENT VALUE: " << ( char )this->stringView[*this->jsonRawTape[x]] << std::endl;
+		TapeBuilder::parse_document(*this, jsonData);
+		for (size_t x = 0; x < this->tapeLength; ++x) {
+			std::cout << "THE CURRENT VALUE: " << (((*this->jsonRawTape[x]) & 0x0fffffff)) << std::endl;
+				
 				//std::cout << "THE CURRENT VALUE 01: " << (((*this->jsonRawTape[x]) & 0x0000000f)) << std::endl;
 				//std::cout << "THE CURRENT VALUE 02: " << (( char )(this->stringView[(((*this->jsonRawTape[x]) & 0x0000000f))])) << std::endl;
-		//}
+		}
 			
 		//}
 		//std::cout << "THE VALUE (FINAL): " << this->stringView << std::endl;
