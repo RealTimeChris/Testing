@@ -1513,14 +1513,19 @@ namespace Jsonifier {
 			this->currentPlace.push_back(this->jsonData.operator=(JsonType::Object));
 		};
 
-		void startNewObject(const std::string& key) {
-			this->currentPlace.back().get()[key] = JsonType::Object;
-			this->currentPlace.push_back(this->currentPlace.back().get()[key]);
+		void setCurrentKey(std::string&& key) {
+			this->currentKey = std::move(key);
 		}
 
-		void startNewArray(const std::string& key) {
-			this->currentPlace.back().get()[key] = JsonType::Array;
-			this->currentPlace.push_back(this->currentPlace.back().get()[key]);
+		void startNewObject(std::string&& key) {
+			this->currentKey = std::move(key);
+			this->currentPlace.back().get()[key] = Jsonifier{};
+			//this->currentPlace.push_back(this->currentPlace.back().get()[std::move(key)]);
+		}
+
+		void startNewArray() {
+			this->currentPlace.back().get()[this->currentKey] = JsonType::Array;
+			//this->currentPlace.push_back(this->currentPlace.back().get()[std::move(this->currentKey)]);
 		}
 
 		void endArray() {
@@ -1535,19 +1540,24 @@ namespace Jsonifier {
 			this->currentPlace.back().emplaceBack(data);
 		}
 
+		template<typename OTy> void addNewObjectElement(OTy&& data) {
+			this->currentPlace.back().get()[this->currentKey] =  data;
+		}
+
 		template<typename OTy> 
-		void addNewObjectElement(const std::string& key,OTy& data) {
-			this->currentPlace.back().get()[key] = data;
+		void addNewObjectElement(OTy& data) {
+			this->currentPlace.back().get()[this->currentKey] =data;
 		}
 
 		Jsonifier getResult() {
 			this->jsonData.refreshString(JsonifierSerializeType::Json);
-			//std::cout << "THE DATA REAL: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			std::cout << "THE DATA REAL: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			return std::move(this->jsonData);
 		}
 
 	  protected:
 		std::vector<std::reference_wrapper<Jsonifier>> currentPlace{};
+		std::string currentKey{};
 		Jsonifier jsonData{};
 	};
 
@@ -1992,15 +2002,12 @@ namespace Jsonifier {
 
 	inline  uint8_t* TapeBuilder::onStartString(JsonIterator& iter) noexcept {
 		tape.append(currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()), TapeType::STRING);
-		//std::cout << "WERE APPENDING THIS VALUE: STRING START "
-				  //<< currentStringBufferLocation - reinterpret_cast<uint8_t*>(iter.masterParser.getStringViewNew()) << std::endl;
 		return currentStringBufferLocation + sizeof(uint32_t);
 	}
 
 	inline void TapeBuilder::onEndString(uint8_t* dst) noexcept {
 		uint32_t stringLength = uint32_t(dst - (currentStringBufferLocation + sizeof(uint32_t)));
 		memcpy(currentStringBufferLocation, &stringLength, sizeof(uint32_t));
-		//std::cout << "WERE APPENDING THIS VALUE: STRING LENGTH " << stringLength << std::endl;
 		*dst = 0;
 		currentStringBufferLocation = dst + 1;
 	}
@@ -2052,7 +2059,7 @@ namespace Jsonifier {
 			visitor.incrementCount(*this);
 			std::string newKey = static_cast<std::string>(visitor.visitKey(*this, key));
 
-			constructor.startNewObject(newKey);
+			constructor.setCurrentKey(std::move(newKey));
 		}
 
 	object_field:
@@ -2077,7 +2084,7 @@ namespace Jsonifier {
 					}
 					goto array_begin;
 				default:
-					visitor.visitPrimitive(*this, value);
+					constructor.addNewObjectElement(visitor.visitPrimitive(*this, value));
 					break;
 			}
 		}
@@ -2091,7 +2098,8 @@ namespace Jsonifier {
 					if (*key != '"') {
 						return ErrorCode::TapeError;
 					}
-					visitor.visitKey(*this, key);
+					auto newKey = static_cast<std::string>(visitor.visitKey(*this, key));
+					constructor.setCurrentKey(std::move(newKey));
 				}
 				goto object_field;
 			case '}':
@@ -2117,6 +2125,7 @@ namespace Jsonifier {
 		if (depth >= masterParser.getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
+		constructor.startNewArray();
 		masterParser.getIsArray()[depth] = true;
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
@@ -2139,7 +2148,7 @@ namespace Jsonifier {
 				}
 				goto array_begin;
 			default:
-				visitor.visitPrimitive(*this, value);
+				constructor.addNewObjectElement(visitor.visitPrimitive(*this, value));
 				break;
 		}
 	}
