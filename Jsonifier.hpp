@@ -1688,10 +1688,10 @@ namespace Jsonifier {
 		return endContainer(iter, TapeType::START_ARRAY, TapeType::END_ARRAY);
 	}
 	inline ErrorCode TapeBuilder::visitDocumentEnd(JsonIterator& iter) noexcept {
-		constexpr uint32_t start_tape_index = 0;
-		//std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END " << start_tape_index << std::endl;
-		tape.append(start_tape_index, TapeType::ROOT);
-		TapeWriter::write(iter.masterParser.getStructuralIndexes()[start_tape_index], nextTapeIndex(iter), TapeType::ROOT);
+		constexpr uint32_t startTapeIndex = 0;
+		//std::cout << "WERE APPENDING THIS VALUE: DOCUMENT END " << startTapeIndex << std::endl;
+		tape.append(startTapeIndex, TapeType::ROOT);
+		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter), TapeType::ROOT);
 		return Success;
 	}
 	inline ErrorCode TapeBuilder::visitKey(JsonIterator& iter, const uint8_t* key) noexcept {
@@ -1920,27 +1920,27 @@ namespace Jsonifier {
 		int32_t index{};
 		while (1) {
 			index += 32;
-			auto bs_quote = BackslashAndQuote::copyAndFind(src, dst);
-			if (bs_quote.hasQuoteFirst()) {
-				return dst + bs_quote.quoteIndex();
+			auto bsQuote = BackslashAndQuote::copyAndFind(src, dst);
+			if (bsQuote.hasQuoteFirst()) {
+				return dst + bsQuote.quoteIndex();
 			}
-			if (bs_quote.hasBackslash()) {
-				auto bs_dist = bs_quote.backslashIndex();
-				uint8_t escape_char = src[bs_dist + 1];
-				if (escape_char == 'u') {
-					src += bs_dist;
-					dst += bs_dist;
+			if (bsQuote.hasBackslash()) {
+				auto bsDist = bsQuote.backslashIndex();
+				uint8_t escapeChar = src[bsDist + 1];
+				if (escapeChar == 'u') {
+					src += bsDist;
+					dst += bsDist;
 					if (!handleUnicodeCodepoint(&src, &dst)) {
 						return nullptr;
 					}
 				} else {
-					uint8_t escape_result = escapeMap[escape_char];
-					if (escape_result == 0u) {
+					uint8_t escapeResult = escapeMap[escapeChar];
+					if (escapeResult == 0u) {
 						return nullptr;
 					}
-					dst[bs_dist] = escape_result;
-					src += bs_dist + 2;
-					dst += bs_dist + 1;
+					dst[bsDist] = escapeResult;
+					src += bsDist + 2;
+					dst += bsDist + 1;
 				}
 			} else {
 				src += BackslashAndQuote::BYTES_PROCESSED;
@@ -2040,8 +2040,6 @@ namespace Jsonifier {
 		return Success;
 	}
 
-	// private:
-
 	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) const noexcept {
 		return uint32_t(tape.nextTapeLocation - iter.masterParser.getStructuralIndexes());
 	}
@@ -2063,14 +2061,14 @@ namespace Jsonifier {
 	inline ErrorCode TapeBuilder::endContainer(JsonIterator& iter, TapeType start,
 		TapeType end) noexcept {
 		// Write the ending tape element, pointing at the start location
-		const uint32_t start_tape_index = iter.masterParser.openContainers[iter.depth].tapeIndex;
-		tape.append(start_tape_index, end);
+		const uint32_t startTapeIndex = iter.masterParser.openContainers[iter.depth].tapeIndex;
+		tape.append(startTapeIndex, end);
 		// Write the start tape element, pointing at the end location (and including count)
 		// count can overflow if it exceeds 24 bits... so we saturate
 		// the convention being that a cnt of 0xffffff or more is undetermined in value (>=  0xffffff).
 		const uint32_t count = iter.masterParser.openContainers[iter.depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
-		TapeWriter::write(iter.masterParser.getStructuralIndexes()[start_tape_index], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
+		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
 		return Success;
 	}
 
