@@ -33,11 +33,11 @@
 
 namespace Jsonifier {
 
-	struct DCAException : public std::runtime_error, std::string {
-		inline DCAException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+	struct JsonifierException : public std::runtime_error, std::string {
+		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
 
-	DCAException::DCAException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
+	JsonifierException::JsonifierException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
 		std::stringstream stream{};
 		stream << "Error Report: \n"
 			   << "Thrown From: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
@@ -433,49 +433,49 @@ namespace Jsonifier {
 			switch (this->type) {
 				case JsonType::Object: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return *this->jsonValue.object;
 					}
 				}
 				case JsonType::Array: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return *this->jsonValue.array;
 					}
 				}
 				case JsonType::String: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return *this->jsonValue.string;
 					}
 				}
 				case JsonType::Float: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return this->jsonValue.numberDouble;
 					}
 				}
 				case JsonType::Uint64: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return this->jsonValue.numberUint;
 					}
 				}
 				case JsonType::Int64: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return this->jsonValue.numberInt;
 					}
 				}
 				case JsonType::Bool: {
 					if (!std::is_same<decltype(this), Ty>) {
-						throw DCAException{ "Sorry, but this is not that type!" };
+						throw JsonifierException{ "Sorry, but this is not that type!" };
 					} else {
 						return this->jsonValue.boolean;
 					}
@@ -1039,7 +1039,7 @@ namespace Jsonifier {
 	  public:
 		inline SimdJsonValue(StringPackage package) {
 			if (package.originalSize == 0) {
-				throw DCAException{ "Failed to parse as the string size is 0." };
+				throw JsonifierException{ "Failed to parse as the string size is 0." };
 			}
 			this->stringLengthRaw = package.originalSize;
 			this->sourceStringView = package.string->data();
