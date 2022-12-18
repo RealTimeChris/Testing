@@ -1058,23 +1058,10 @@ namespace Jsonifier {
 			int64_t prevInString{};
 			while (stringSize > 0) {
 				SimdStringSection section(this->sourceStringView + collectedSize, prevInString);
-				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize, this->stringLength);
-				tapeSize += indexCount;
+				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize, this->stringLengthRaw);
+				tapeSize += indexCount - 1;
 				stringSize -= 256;
 				collectedSize += 256;
-				bool doWeBreak{};
-				for (size_t x = 0; x < tapeSize; ++x) {
-					if (jsonRawTape.operator uint64_t*()[x] >= this->stringLengthRaw) {
-						tapeSize = x;
-						doWeBreak = true;
-						break;
-						
-					}
-					
-				}
-				if (doWeBreak) {
-					break;
-				}
 			}
 			
 			this->tapeLength = tapeSize;
