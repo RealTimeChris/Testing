@@ -1,13 +1,11 @@
-﻿#file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp")
+﻿file(GLOB SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/*.cpp")
 
 add_executable(
 	"${PROJECT_NAME}"
-	#"${SOURCES}"
+	"${SOURCES}"
 	"../main.cpp"
-	
-	
  )
-
+ 
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
 		target_compile_options("${PROJECT_NAME}" PUBLIC "/fsanitize=address" "/Zi" "/Debug")
@@ -21,7 +19,7 @@ endif()
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	simdjson::simdjson
-	Jsonifier::Jsonifier
+	#Jsonifier::Jsonifier
 )
 
 #target_include_directories("${PROJECT_NAME}" PUBLIC "../src/generic/" "../src/" "../include/simdjson")
@@ -43,7 +41,7 @@ target_compile_options(
 
 target_compile_features(
 	"${PROJECT_NAME}" PUBLIC
-	"cxx_std_20"
+	"cxx_std_23"
 )
 
 if (WIN32)

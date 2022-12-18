@@ -1,4 +1,4 @@
-#include "jsonifier/Jsonifier.hpp"
+#include "Jsonifier.hpp"
 #include <simdjson.h>
 
 struct ObjectReturnData {
@@ -242,6 +242,7 @@ struct ActivitiesJson {
 		this->anotherValue = value["ANOTHER_VALUE"].getValue<int32_t>();
 		this->anotherTestValue = value["ANOTHER_TEST_VALUE"].getValue<std::string>();
 		this->anotherValue02 = value["ANOTHER_VALUE_02"].getValue<int32_t>();
+		this->anotherValue02w = value["ANOTHER_VALUE_02w"].getValue<int32_t>();
 		this->id = value["id"].getValue<std::string>();
 		this->type = value["type"].getValue<int8_t>();
 		this->testDouble = value["test_double"].getValue<double>();
@@ -261,6 +262,7 @@ struct ActivitiesJson {
 		Jsonifier::Jsonifier data{};
 		data["test_double"] = this->testDouble;
 		data["created_at"] = this->createdAt;
+		data["ANOTHER_VALUE_02w"] = this->anotherValue02w;
 		data["id"] = this->id;
 		return data;
 	}
@@ -381,7 +383,8 @@ int32_t main() noexcept {
 			jsonData.parseString(stringPackage);
 			TheValueJson value{ jsonData };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().testDouble << std::endl;
-			//std::cout << "THE VALUE: " << value.theD.activities.back().anotherTestValue << std::endl;
+			jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
