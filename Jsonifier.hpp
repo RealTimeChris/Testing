@@ -2034,7 +2034,7 @@ namespace Jsonifier {
 	};
 
 	inline Decimal parseDecimal(const char*& p) noexcept {
-		Decimal answer;
+		Decimal answer{};
 		answer.numDigits = 0;
 		answer.decimalPoint = 0;
 		answer.truncated = false;
@@ -2635,7 +2635,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::emptyContainer(JsonIterator& iterator, TapeType start, TapeType end) noexcept {
-		auto startIndex = nextTapeIndex(iterator);
+		auto startIndex = static_cast<uint64_t>(nextTapeIndex(iterator));
 		tape.append(startIndex + 2, start);
 		tape.append(startIndex, end);
 		return ErrorCode::Success;
