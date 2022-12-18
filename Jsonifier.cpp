@@ -408,8 +408,8 @@ namespace Jsonifier {
 		*this = type;
 	}
 
-	bool Jsonifier::parseString(const std::string& string) noexcept {
-		this->parser = std::make_unique<SimdJsonValue>(string.data(), string.size());
+	bool Jsonifier::parseString(std::string& string) noexcept {
+		this->parser = std::make_unique<SimdJsonValue>(string);
 		*this = this->parser->getJsonData();
 		if (this->type != JsonType::Null) {
 			return true;
