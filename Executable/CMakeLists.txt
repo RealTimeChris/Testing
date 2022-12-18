@@ -5,7 +5,7 @@ add_executable(
 	#"${SOURCES}"
 	"../main.cpp"
 	
-	"../DataParsingFunctionc.cpp"
+	
  )
 
 if (DEFINED ENV{EnableASAN})
