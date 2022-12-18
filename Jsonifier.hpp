@@ -46,13 +46,6 @@
 #include <deque>
 #include <map>
 
-#ifdef max
-#undef max
-#endif
-#ifdef min
-#undef min
-#endif
-
 namespace Jsonifier {
 
 	struct JsonifierException : public std::runtime_error, std::string {
