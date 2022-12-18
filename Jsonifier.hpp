@@ -37,16 +37,6 @@ namespace Jsonifier {
 		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
 
-	JsonifierException::JsonifierException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
-		std::stringstream stream{};
-		stream << "Error Report: \n"
-			   << "Thrown From: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
-			   << ")"
-			   << "\nThe Error: " << error << std::endl
-			   << std::endl;
-		*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
-	}
-
 	struct StringPackage {
 		std::string* string{};
 		size_t originalSize{};
@@ -599,10 +589,6 @@ namespace Jsonifier {
 	template<> inline Jsonifier::BoolType Jsonifier::getValue() {
 		return this->jsonValue.boolean;
 	}
-
-	struct JsonifierException : public std::runtime_error, std::string {
-		JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
-	};
 
 	class SimdBase256;
 
