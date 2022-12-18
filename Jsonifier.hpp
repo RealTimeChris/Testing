@@ -47,10 +47,19 @@ namespace Jsonifier {
 		*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
 	}
 
-	template<typename OTy> void prepStringForParsing(std::basic_string<OTy>& string) {
-		if (string.capacity() % 256 != 0) {
+	struct StringPackage {
+		std::string* string{};
+		size_t originalSize{};
+	};
+
+	inline StringPackage prepStringForParsing(std::string& string) {
+		StringPackage returnValue{};
+		returnValue.originalSize = string.size();
+		if (string.size() % 256 != 0) {
 			string.resize(string.size() + 256 - string.size() % 256);
 		}
+		returnValue.string = &string;
+		return returnValue;
 	}
 
 	template<typename RTy> void reverseByteOrder(RTy& net) {
@@ -476,7 +485,7 @@ namespace Jsonifier {
 
 		JsonType getType() noexcept;
 
-		bool parseString(std::string&) noexcept;
+		bool parseString(StringPackage) noexcept;
 
 		size_t size() noexcept;
 
@@ -1028,17 +1037,13 @@ namespace Jsonifier {
 
 	class SimdJsonValue {
 	  public:
-		inline SimdJsonValue(std::string& stringNew)  {
-			if (stringNew.size() == 0) {
+		inline SimdJsonValue(StringPackage package) {
+			if (package.originalSize == 0) {
 				throw DCAException{ "Failed to parse as the string size is 0." };
 			}
-			this->stringLengthRaw = stringNew.size();
-			if (this->sourceStringView.size() < stringNew.size()) {
-				this->sourceStringView.resize(stringNew.size());
-			}
-			std::copy(stringNew.data(), stringNew.data() + stringNew.size(), this->sourceStringView.data());
-			prepStringForParsing(this->sourceStringView);
-			this->stringLength = this->sourceStringView.size();
+			this->stringLengthRaw = package.originalSize;
+			this->sourceStringView = package.string->data();
+			this->stringLength = package.string->size();
 			this->destinationStringView = new char[this->stringLength];
 			this->generateJsonEvents();
 		}
@@ -1051,10 +1056,8 @@ namespace Jsonifier {
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
-			int32_t index{ 1 };
 			while (stringSize > 0) {
-				index++;
-				SimdStringSection section(this->sourceStringView.data() + collectedSize, prevInString);
+				SimdStringSection section(this->sourceStringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->jsonRawTape, collectedSize, this->stringLength);
 				tapeSize += indexCount;
 				stringSize -= 256;
@@ -1083,7 +1086,7 @@ namespace Jsonifier {
 		}
 
 		inline const char* getStringView() {
-			return this->sourceStringView.data();
+			return this->sourceStringView;
 		}
 
 		inline char* getStringViewNew() {
@@ -1122,13 +1125,13 @@ namespace Jsonifier {
 	  protected:
 		std::unique_ptr<OpenContainer[]> openContainers{};
 		std::unique_ptr<bool[]> isArray{};
-		std::string sourceStringView{};
 		uint32_t nextStructuralIndex{};
+		const char* sourceStringView{};
 		char* destinationStringView{};
-		uint32_t maxDepth{ 500 };
 		size_t stringLengthRaw{};
-		uint32_t tapeLength{};
+		uint32_t maxDepth{ 500 };
 		SimdTape jsonRawTape{};
+		uint32_t tapeLength{};
 		size_t stringLength{};
 	};
 

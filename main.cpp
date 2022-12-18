@@ -99,9 +99,10 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
 		stopWatch.resetTimer();
+		Jsonifier::StringPackage stringPackage{ Jsonifier::prepStringForParsing(stringNew) };
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::Jsonifier jsonData{};
-			jsonData.parseString(stringNew);
+			jsonData.parseString(stringPackage);
 			TheValueJson value{ jsonData };
 			totalSize += oldSize;
 		}
