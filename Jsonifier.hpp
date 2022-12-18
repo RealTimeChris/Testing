@@ -351,8 +351,6 @@ namespace Jsonifier {
 
 		operator std::string_view() noexcept;
 
-		void refreshString(JsonifierSerializeType OpCode);
-
 		bool contains(std::string& key);
 
 		Jsonifier& operator=(EnumConverter&& data) noexcept;
@@ -752,8 +750,6 @@ namespace Jsonifier {
 		}
 
 		JsonType getType() noexcept;
-
-		bool parseString(StringPackage) noexcept;
 
 		size_t size() noexcept;
 
@@ -1422,8 +1418,6 @@ namespace Jsonifier {
 		inline bool atEof() const noexcept;
 
 		inline bool atBeginning() const noexcept;
-
-		inline uint8_t lastStructural() const noexcept;
 
 		inline Jsonifier visitRootPrimitive(TapeBuilder& builder, const uint8_t* value) noexcept;
 		inline Jsonifier visitPrimitive(TapeBuilder& builder, const uint8_t* value) noexcept;

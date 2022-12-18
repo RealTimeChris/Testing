@@ -104,7 +104,6 @@ int32_t main() noexcept {
 			Jsonifier::Jsonifier jsonData{};
 			jsonData.parseString(stringPackage);
 			TheValueJson value{ jsonData };
-			std::cout << "THE VALUEL " << value.theD.activities.back().testDouble << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
