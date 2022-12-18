@@ -1927,8 +1927,8 @@ namespace Jsonifier {
 						return nullptr;
 					}
 					destination[bsDist] = escapeResult;
-					source += bsDist + 2;
-					destination += bsDist + 1;
+					source += bsDist + 2ull;
+					destination += bsDist + 1ull;
 				}
 			} else {
 				source += BackslashAndQuote::BYTES_PROCESSED;
