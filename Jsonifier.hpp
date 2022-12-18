@@ -876,7 +876,7 @@ namespace Jsonifier {
 			for (int i = 0; i < value; i++) {
 				auto value = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 				if (value < currentStringLength) {
-					std::cout << "THE STRING VALUE: " << value << ", THE STRING LENGTH: " << currentStringLength << std::endl;
+					//std::cout << "THE STRING VALUE: " << value << ", THE STRING LENGTH: " << currentStringLength << std::endl;
 					theTapePtr[theTapePtrIndex++] = value;
 					*theBits = _blsr_u64(*theBits);
 				} else {
@@ -1058,104 +1058,103 @@ namespace Jsonifier {
 		return out;
 	}
 
+	const uint64_t JSON_VALUE_MASK = 0x00FFFFFFFFFFFFFF;
+	const uint32_t JSON_COUNT_MASK = 0xFFFFFF;
+
+	inline bool dumpRawTape(SimdTape& tape, const char* srcData) noexcept {
+		uint32_t string_length;
+		size_t tape_idx = 0;
+		uint64_t tape_val = tape.operator uint64_t*()[tape_idx];
+		uint8_t type = uint8_t(tape_val >> 56);
+		std::cout << tape_idx << " : " << type;
+		tape_idx++;
+		size_t how_many = 0;
+		if (type == 'r') {
+			how_many = size_t(tape_val & JSON_VALUE_MASK);
+		} else {
+			// Error: no starting root node?
+			return false;
+		}
+		std::cout << "\t// pointing to " << how_many << " (right after last node)\n";
+		uint64_t payload;
+		for (; tape_idx < how_many; tape_idx++) {
+			std::cout << tape_idx << " : ";
+			tape_val = tape.operator uint64_t*()[tape_idx];
+			payload = tape_val & JSON_VALUE_MASK;
+			type = uint8_t(tape_val >> 56);
+			switch (type) {
+				case '"':// we have a string
+					std::cout << "string \"";
+					std::memcpy(&string_length, srcData + payload, sizeof(uint32_t));
+					std::cout << EscapeJsonString(std::string_view(reinterpret_cast<const char*>(srcData + payload + sizeof(uint32_t)), string_length));
+					std::cout << '"';
+					std::cout << '\n';
+					break;
+				case 'l':// we have a long int
+					if (tape_idx + 1 >= how_many) {
+						return false;
+					}
+					std::cout << "integer " << static_cast<int64_t>(tape.operator uint64_t*()[++tape_idx]) << "\n";
+					break;
+				case 'u':// we have a long uint
+					if (tape_idx + 1 >= how_many) {
+						return false;
+					}
+					std::cout << "unsigned integer " << tape.operator uint64_t*()[++tape_idx] << "\n";
+					break;
+				case 'd':// we have a double
+					std::cout << "float ";
+					if (tape_idx + 1 >= how_many) {
+						return false;
+					}
+					double answer;
+					std::memcpy(&answer, &tape.operator uint64_t*()[++tape_idx], sizeof(answer));
+					std::cout << answer << '\n';
+					break;
+				case 'n':// we have a null
+					std::cout << "null\n";
+					break;
+				case 't':// we have a true
+					std::cout << "true\n";
+					break;
+				case 'f':// we have a false
+					std::cout << "false\n";
+					break;
+				case '{':// we have an object
+					std::cout << "{\t// pointing to next this->simdTape.operator uint64_t*() location " << uint32_t(payload)
+					   << " (first node after the scope), "
+					   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
+					break;
+				case '}':// we end an object
+					std::cout << "}\t// pointing to previous this->simdTape.operator uint64_t*() location " << uint32_t(payload)
+					   << " (start of the scope)\n";
+					break;
+				case '[':// we start an array
+					std::cout << "[\t// pointing to next this->simdTape.operator uint64_t*() location " << uint32_t(payload)
+					   << " (first node after the scope), "
+					   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
+					break;
+				case ']':// we end an array
+					std::cout << "]\t// pointing to previous this->simdTape.operator uint64_t*() location " << uint32_t(payload)
+					   << " (start of the scope)\n";
+					break;
+				case 'r':// we start and end with the root node
+					// should we be hitting the root node?
+					return false;
+				default:
+					return false;
+			}
+		}
+		tape_val = tape.operator uint64_t*()[tape_idx];
+		payload = tape_val & JSON_VALUE_MASK;
+		type = uint8_t(tape_val >> 56);
+		std::cout << tape_idx << " : " << type << "\t// pointing to " << payload << " (start root)\n";
+		return true;
+	}
+
 	class SimdJsonValue {
 	  public:
 		inline SimdJsonValue() {
-		}
-
-		const uint64_t JSON_VALUE_MASK = 0x00FFFFFFFFFFFFFF;
-		const uint32_t JSON_COUNT_MASK = 0xFFFFFF;
-
-		inline bool dumpRawTape(std::ostream& os) noexcept {
-			uint32_t string_length;
-			size_t tape_idx = 0;
-			uint64_t tape_val = this->simdTape.operator uint64_t*()[tape_idx];
-			uint8_t type = uint8_t(tape_val >> 56);
-			os << tape_idx << " : " << type;
-			tape_idx++;
-			size_t how_many = 0;
-			if (type == 'r') {
-				how_many = size_t(tape_val & JSON_VALUE_MASK);
-			} else {
-				// Error: no starting root node?
-				return false;
-			}
-			os << "\t// pointing to " << how_many << " (right after last node)\n";
-			uint64_t payload;
-			for (; tape_idx < how_many; tape_idx++) {
-				os << tape_idx << " : ";
-				tape_val = this->simdTape.operator uint64_t*()[tape_idx];
-				payload = tape_val & JSON_VALUE_MASK;
-				type = uint8_t(tape_val >> 56);
-				switch (type) {
-					case '"':// we have a string
-						os << "string \"";
-						std::memcpy(&string_length, this->sourceStringView + payload, sizeof(uint32_t));
-						os << EscapeJsonString(
-							std::string_view(reinterpret_cast<const char*>(this->sourceStringView + payload + sizeof(uint32_t)), string_length));
-						os << '"';
-						os << '\n';
-						break;
-					case 'l':// we have a long int
-						if (tape_idx + 1 >= how_many) {
-							return false;
-						}
-						os << "integer " << static_cast<int64_t>(this->simdTape.operator uint64_t*()[++tape_idx]) << "\n";
-						break;
-					case 'u':// we have a long uint
-						if (tape_idx + 1 >= how_many) {
-							return false;
-						}
-						os << "unsigned integer " << this->simdTape.operator uint64_t*()[++tape_idx] << "\n";
-						break;
-					case 'd':// we have a double
-						os << "float ";
-						if (tape_idx + 1 >= how_many) {
-							return false;
-						}
-						double answer;
-						std::memcpy(&answer, &this->simdTape.operator uint64_t*()[++tape_idx], sizeof(answer));
-						os << answer << '\n';
-						break;
-					case 'n':// we have a null
-						os << "null\n";
-						break;
-					case 't':// we have a true
-						os << "true\n";
-						break;
-					case 'f':// we have a false
-						os << "false\n";
-						break;
-					case '{':// we have an object
-						os << "{\t// pointing to next this->simdTape.operator uint64_t*() location " << uint32_t(payload)
-						   << " (first node after the scope), "
-						   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
-						break;
-					case '}':// we end an object
-						os << "}\t// pointing to previous this->simdTape.operator uint64_t*() location " << uint32_t(payload)
-						   << " (start of the scope)\n";
-						break;
-					case '[':// we start an array
-						os << "[\t// pointing to next this->simdTape.operator uint64_t*() location " << uint32_t(payload)
-						   << " (first node after the scope), "
-						   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
-						break;
-					case ']':// we end an array
-						os << "]\t// pointing to previous this->simdTape.operator uint64_t*() location " << uint32_t(payload)
-						   << " (start of the scope)\n";
-						break;
-					case 'r':// we start and end with the root node
-						// should we be hitting the root node?
-						return false;
-					default:
-						return false;
-				}
-			}
-			tape_val = this->simdTape.operator uint64_t*()[tape_idx];
-			payload = tape_val & JSON_VALUE_MASK;
-			type = uint8_t(tape_val >> 56);
-			os << tape_idx << " : " << type << "\t// pointing to " << payload << " (start root)\n";
-			return true;
 		}
 
 		void parseData(StringPackage package) {
@@ -1168,12 +1167,12 @@ namespace Jsonifier {
 				}
 			}
 			this->sourceStringView = package.string->data();
-			std::cout << "SOURCE STRING VIEW: " << this->sourceStringView << std::endl;
+			//std::cout << "SOURCE STRING VIEW: " << this->sourceStringView << std::endl;
 			this->stringLengthRaw = package.originalSize;
 			this->stringLength = package.string->size();
 			this->generateJsonEvents();
-			std::cout << "THE TAPE'S LENGTH: " << this->simdTape.size() << std::endl;
-			this->dumpRawTape(std::cout);
+			//std::cout << "THE TAPE'S LENGTH: " << this->simdTape.size() << std::endl;
+			dumpRawTape(this->simdTape, this->sourceStringView);
 		}
 
 		inline ErrorCode allocate(size_t capacity) noexcept {
@@ -1223,9 +1222,9 @@ namespace Jsonifier {
 				collectedSize += 256;
 			}
 			for (size_t x = 0; x < tapeSize; ++x) {
-				std::cout << "CURRENT TAPE INDEX: " << x << std::endl;
-				std::cout << "CURRENT TAPE INDEX VALUE: " << this->simdTape.operator uint64_t*()[x] << std::endl;
-				std::cout << "CURRENT TAPE INDEX VALUE IN STRING: " << this->sourceStringView[this->simdTape.operator uint64_t*()[x]] << std::endl;
+				//std::cout << "CURRENT TAPE INDEX: " << x << std::endl;
+				//std::cout << "CURRENT TAPE INDEX VALUE: " << this->simdTape.operator uint64_t*()[x] << std::endl;
+				//std::cout << "CURRENT TAPE INDEX VALUE IN STRING: " << this->sourceStringView[this->simdTape.operator uint64_t*()[x]] << std::endl;
 			}
 			this->tapeLength = tapeSize;
 			this->nextStructural = this->simdTape.operator uint64_t*();
@@ -1233,7 +1232,7 @@ namespace Jsonifier {
 		}
 
 		inline ~SimdJsonValue() noexcept {
-			std::cout << "WERE BEING DESTROYED DESTRPYED DESTRPYED!" << std::endl;
+			//std::cout << "WERE BEING DESTROYED DESTRPYED DESTRPYED!" << std::endl;
 		}
 
 		inline char* getStringView() noexcept {
@@ -1252,12 +1251,12 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* getStructuralIndexes(std::source_location location = std::source_location::current()) noexcept {
-			std::cout << "Error Report: \n"
-					  << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":"
-					  << std::to_string(location.column()) << ")"
-					  << "\nThe Error: \n"
-					  << std::endl;
-			std::cout << "STRUCTURAL INDICES SIZE: " << this->simdTape.size() << std::endl;
+			//std::cout << "Error Report: \n"
+			//<< "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":"
+			//<< std::to_string(location.column()) << ")"
+			//<< "\nThe Error: \n"
+			//<< std::endl;
+			//std::std::cout << "STRUCTURAL INDICES SIZE: " << this->simdTape.size() << std::endl;
 			return this->simdTape.operator uint64_t*();
 		}
 
@@ -3877,8 +3876,8 @@ namespace Jsonifier {
 
 	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iterator) const noexcept {
 		auto startTapeIndex = uint32_t(tape.nextTapeLocation - iterator.masterParser->getStructuralIndexes());
-		std::cout << "NEXT TAPE INDEX: " << startTapeIndex << std::endl;
-		std::cout << "NEXT TAPE INDEX VALUE: " << *tape.nextTapeLocation << std::endl;
+		//std::cout << "NEXT TAPE INDEX: " << startTapeIndex << std::endl;
+		//std::cout << "NEXT TAPE INDEX VALUE: " << *tape.nextTapeLocation << std::endl;
 		return startTapeIndex;
 	}
 
@@ -4169,7 +4168,7 @@ namespace Jsonifier {
 	inline Jsonifier SimdJsonValue::getJsonData(StringPackage package) {
 		this->parseData(package);
 		auto returnValue = TapeBuilder::parseDocument(*this);
-		//this->dumpRawTape(std::cout);
+		//this->dumpRawTape(//std::cout);
 		return returnValue;
 	}
 

@@ -307,15 +307,16 @@ struct Activities {
 		this->anotherValue = getInt32(value, "ANOTHER_VALUE");
 		this->anotherTestValue = getString(value, "ANOTHER_TEST_VALUE");
 		this->anotherValue02 = getInt32(value, "ANOTHER_VALUE_02");
+		this->anotherValue02w = getInt32(value, "ANOTHER_VALUE_02w");
 		this->id = getString(value, "id");
-		this->type = getUint8(value, "type");
+		this->type = getInt8(value, "type");
 		this->testDouble = getFloat(value, "test_double");
 	};
 	std::string createdAt{};
 	double testDouble{};
 	int8_t type{};
 	std::string name{};
-	std::string anotherValue{};
+	int32_t anotherValue{};
 	std::string anotherTestValue{};
 	int32_t anotherValue02{};
 	std::string anotherTestValue03{};
@@ -351,7 +352,7 @@ int32_t main() noexcept {
 		std::string stringNew{
 			"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
 			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\"}]}}"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":\"false\"}]}}"
 		};
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -383,8 +384,8 @@ int32_t main() noexcept {
 			jsonData.parseString(stringPackage);
 			TheValueJson value{ jsonData };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().testDouble << std::endl;
-			jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
+			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
