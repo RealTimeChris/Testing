@@ -12,8 +12,8 @@ struct ActivitiesJson {
 	std::string createdAt{};
 	double testDouble{};
 	std::string id{};
-	operator Jsonifier::Jsonifier() {
-		Jsonifier::Jsonifier data{};
+	operator Jsonifier::JsonSerializer() {
+		Jsonifier::JsonSerializer data{};
 		data["test_double"] = this->testDouble;
 		data["created_at"] = this->createdAt;
 		data["id"] = this->id;
@@ -29,8 +29,8 @@ struct TheDJson {
 			activities.emplace_back(std::move(value));
 		}
 	}
-	operator Jsonifier::Jsonifier() {
-		Jsonifier::Jsonifier serializer{};
+	operator Jsonifier::JsonSerializer() {
+		Jsonifier::JsonSerializer serializer{};
 		for (auto& value: this->activities) {
 			serializer["d"]["activitiess"].emplaceBack(value);
 		}
@@ -104,6 +104,7 @@ int32_t main() noexcept {
 			Jsonifier::Jsonifier jsonData{};
 			jsonData.parseString(stringPackage);
 			TheValueJson value{ jsonData };
+			std::cout << "THE VALUEL " << value.theD.activities.back().testDouble << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
