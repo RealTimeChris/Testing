@@ -1,3 +1,8 @@
+
+#ifndef _TESTING 
+#define _TESTING 
+#endif
+
 #include "Jsonifier.hpp"
 #include <simdjson.h>
 
