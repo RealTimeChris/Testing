@@ -1,7 +1,7 @@
 
-#ifndef _TESTING 
-#define _TESTING 
-#endif
+//#ifndef _TESTING
+//#define _TESTING
+//#endif
 
 #include "Jsonifier.hpp"
 #include <simdjson.h>
@@ -368,8 +368,8 @@ int32_t main() noexcept {
 		
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
+		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew.data(), stringNew.size());
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;

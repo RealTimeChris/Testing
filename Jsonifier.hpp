@@ -788,14 +788,9 @@ namespace Jsonifier {
 		inline uint64_t addTapeValues(std::unique_ptr < uint64_t[] >& tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString,
 			size_t& currentIndexIntoTape) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
-
-			//std::cout << "THE CURRENT INDEX COUNT: " << value << std::endl;
 			for (int i = 0; i < value; i++) {
 				tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 				*theBits = _blsr_u64(*theBits);
-				//std::cout << "THE CURRENT VALUE String: " << tapePtrs[currentIndexIntoTape - 1] << std::endl;
-				//std::cout << "THE CURRENT INTO String: " << currentIndexIntoString << std::endl;
-				//std::cout << "THE CURRENT INDEX INTO TAPE: " << currentIndexIntoTape << std::endl;
 			}
 			
 			return value;
@@ -951,6 +946,7 @@ namespace Jsonifier {
 			if (stringLength == 0) {
 				throw JsonifierException{ "Failed to parse as the string size is 0." };
 			}
+			this->tapeLength = 0;
 			this->stringView = stringNew;
 			this->stringLengthRaw = stringLength;
 			if (this->allocatedCapacity < this->stringLengthRaw) {
@@ -969,9 +965,11 @@ namespace Jsonifier {
 				stringSize -= 256;
 				collectedSize += 256;
 			}
-			for (size_t x = 0; x < this->tapeLength; ++x) {
+			for (size_t x = this->tapeLength-1; x >0; --x) {
 				if (this->tape[x] > this->stringLengthRaw - 1) {
-					this->tapeLength = x;
+					continue;
+				} else {
+					this->tapeLength = x + 1;
 					break;
 				}
 				//std::cout << "THE CURRENT VALUE: " << this->getStructuralIndexes()[x] << std::endl;
@@ -1089,11 +1087,11 @@ namespace Jsonifier {
 	}
 
 	inline bool JsonIterator::atEof() const noexcept {
-		return *this->nextStructural == masterParser->getStructuralIndexes()[masterParser->getTapeLength() - 1];
+		return this->nextStructural == &masterParser->getStructuralIndexes()[masterParser->getTapeLength() - 1];
 	}
 
 	inline bool JsonIterator::atBeginning() const noexcept {
-		return *this->nextStructural == *masterParser->getStructuralIndexes();
+		return this->nextStructural == masterParser->getStructuralIndexes();
 	}
 
 	inline uint8_t JsonIterator::lastStructural() const noexcept {
