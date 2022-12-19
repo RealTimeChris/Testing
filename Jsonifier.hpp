@@ -1234,7 +1234,7 @@ namespace Jsonifier {
 
 	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
-		std::cout << "WRUTTEN POSITION: " << val << std::endl;
+		//std::cout << "WRUTTEN POSITION: " << val << std::endl;
 	}
 
 	class JsonConstructor : public Jsonifier {
@@ -1677,7 +1677,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier JsonIterator::walkDocument(TapeBuilder&& visitor) noexcept {
-#ifndef _TESTING2
+#ifndef _TESTING
 		JsonConstructor constructor{};
 #endif
 		if (atEof()) {
@@ -1723,7 +1723,7 @@ namespace Jsonifier {
 				return ErrorCode::TapeError;
 			}
 			visitor.incrementCount(*this);
-#ifndef _TESTING2
+#ifndef _TESTING
 			constructor.setCurrentKey(visitor.visitKey(*this, key));
 #endif
 		}
@@ -1741,7 +1741,7 @@ namespace Jsonifier {
 						visitor.visitEmptyObject(*this);
 						break;
 					}
-#ifndef _TESTING2
+#ifndef _TESTING
 					constructor.startNewObject();
 #endif
 					goto Object_Begin;
@@ -1751,12 +1751,12 @@ namespace Jsonifier {
 						visitor.visitEmptyArray(*this);
 						break;
 					}
-#ifndef _TESTING2
+#ifndef _TESTING
 					constructor.startNewArray();
 #endif
 					goto Array_Begin;
 				default:
-#ifndef _TESTING2
+#ifndef _TESTING
 					constructor.appendPrimitiveElement(visitor.visitPrimitive(*this, value));
 #endif
 					break;
@@ -1772,13 +1772,13 @@ namespace Jsonifier {
 					if (*key != '"') {
 						return ErrorCode::TapeError;
 					}
-#ifndef _TESTING2
+#ifndef _TESTING
 					constructor.setCurrentKey(visitor.visitKey(*this, key));
 #endif
 				}
 				goto Object_Field;
 			case '}':
-#ifndef _TESTING2
+#ifndef _TESTING
 				constructor.endObject();
 #endif
 				visitor.visitObjectEnd(*this);
@@ -1815,7 +1815,7 @@ namespace Jsonifier {
 					visitor.visitEmptyObject(*this);
 					break;
 				}
-#ifndef _TESTING2
+#ifndef _TESTING
 				constructor.startNewObject();
 #endif
 				goto Object_Begin;
@@ -1825,12 +1825,12 @@ namespace Jsonifier {
 					visitor.visitEmptyArray(*this);
 					break;
 				}
-#ifndef _TESTING2
+#ifndef _TESTING
 				constructor.startNewArray();
 #endif
 				goto Array_Begin;
 			default:
-#ifndef _TESTING2
+#ifndef _TESTING
 				constructor.appendPrimitiveElement(visitor.visitPrimitive(*this, value));
 #endif
 				break;
@@ -1843,7 +1843,7 @@ namespace Jsonifier {
 				visitor.incrementCount(*this);
 				goto Array_Value;
 			case ']':
-#ifndef _TESTING2
+#ifndef _TESTING
 				constructor.endArray();
 #endif
 				visitor.visitArrayEnd(*this);
@@ -1861,7 +1861,7 @@ namespace Jsonifier {
 			return ErrorCode::TapeError;
 		}
 
-#ifndef _TESTING2
+#ifndef _TESTING
 		return constructor.getResult();
 #else
 		return Jsonifier{};
