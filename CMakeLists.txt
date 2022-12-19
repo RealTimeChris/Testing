@@ -1,6 +1,5 @@
 if (WIN32)
 	set(simdjson_DIR "C:/Program Files (x86)/simdjson/lib/cmake/simdjson")
-	#set(Jsonifier_DIR "C:/users/chris/cmake/jsonifier/share/jsonifier")
 endif()
 
 set(DOWNLOAD_EXTRACT_TIMESTAMP true)
