@@ -33,19 +33,9 @@
 
 namespace Jsonifier {
 
-	struct DCAException : public std::runtime_error, std::string {
-		inline DCAException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+	struct JsonifierException : public std::runtime_error, std::string {
+		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
-
-	DCAException::DCAException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
-		std::stringstream stream{};
-		stream << "Error Report: \n"
-			   << "Thrown From: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
-			   << ")"
-			   << "\nThe Error: " << error << std::endl
-			   << std::endl;
-		*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
-	}
 
 	template<typename RTy> void reverseByteOrder(RTy& net) {
 		if constexpr (std::endian::native == std::endian::little) {
@@ -508,15 +498,24 @@ namespace Jsonifier {
 	};
 
 	template<> inline Jsonifier::ObjectType Jsonifier::getValue() {
-		return *this->jsonValue.object;
+		if (this->type != JsonType::Object) {
+			throw JsonifierException{ "Sorry, but this object's type is not Object!" };
+		}
+		return std::move(*this->jsonValue.object);
 	}
 
 	template<> inline Jsonifier::ArrayType Jsonifier::getValue() {
-		return *this->jsonValue.array;
+		if (this->type != JsonType::Array) {
+			throw JsonifierException{ "Sorry, but this object's type is not Array!" };
+		}
+		return std::move(*this->jsonValue.array);
 	}
 
 	template<> inline Jsonifier::StringType Jsonifier::getValue() {
-		return *this->jsonValue.string;
+		if (this->type != JsonType::String) {
+			throw JsonifierException{ "Sorry, but this object's type is not String!" };
+		}
+		return std::move(*this->jsonValue.string);
 	}
 
 	template<> inline Jsonifier::FloatType Jsonifier::getValue() {
@@ -534,10 +533,6 @@ namespace Jsonifier {
 	template<> inline Jsonifier::BoolType Jsonifier::getValue() {
 		return this->jsonValue.boolean;
 	}
-
-	struct JsonifierException : public std::runtime_error, std::string {
-		JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
-	};
 
 	class SimdBase256;
 
@@ -1128,54 +1123,45 @@ namespace Jsonifier {
 			return this->jsonRawTape;
 		}
 
-		int32_t rount(int32_t a, int32_t n) {
+		int32_t round(int32_t a, int32_t n) {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
 		inline ErrorCode allocate(size_t capacity) noexcept {
 			if (capacity == 0) {
-				stringBuffer.reset(nullptr);
-				tape.reset();
-				allocatedCapacity = 0;
+				this->stringBuffer.reset(nullptr);
+				this->tape.reset();
+				this->allocatedCapacity = 0;
 				return ErrorCode::Success;
 			}
 
-			// a pathological input like "[[[[..." would generate capacity tape elements, so
-			// need a capacity of at least capacity + 1, but it is also possible to do
-			// worse with "[7,7,7,7,6,7,7,7,6,7,7,6,[7,7,7,7,6,7,7,7,6,7,7,6,7,7,7,7,7,7,6"
-			//where capacity + 1 tape elements are
-			// generated, see issue https://github.com/simdjson/simdjson/issues/345
-			size_t tape_capacity = rount(capacity + 3, 64);
-			// a document with only zero-length strings... could have capacity/3 string
-			// and we would need capacity/3 * 5 bytes on the string buffer
-			size_t string_capacity = rount(5 * capacity / 3 + 256, 256);
-			stringBuffer = std::make_unique<uint8_t[]>(string_capacity);
-			tape = std::make_unique<uint64_t[]>(tape_capacity);
-			if (!(stringBuffer&& tape)) {
-				allocatedCapacity = 0;
-				stringBuffer.reset();
-				tape.reset();
+			size_t tape_capacity = round(capacity + 3, 64);
+			size_t string_capacity = round(5 * capacity / 3 + 256, 256);
+			this->stringBuffer = std::make_unique<uint8_t[]>(string_capacity);
+			this->tape = std::make_unique<uint64_t[]>(tape_capacity);
+			if (!(this->stringBuffer && this->tape)) {
+				this->allocatedCapacity = 0;
+				this->stringBuffer.reset();
+				this->tape.reset();
 				return ErrorCode::MemAlloc;
 			}
-			// Technically the allocated_capacity might be larger than capacity
-			// so the next line is pessimistic.
-			allocatedCapacity = capacity;
+			this->isArray = std::make_unique<bool[]>(12);
+			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
+			this->allocatedCapacity = capacity;
 			return ErrorCode::Success;
 		}
 
 		inline void generateJsonEvents(const char* stringNew, size_t stringLength) {
 			if (stringLength == 0) {
-				throw DCAException{ "Failed to parse as the string size is 0." };
+				throw JsonifierException{ "Failed to parse as the string size is 0." };
 			}
 			this->stringView = stringNew;
 			this->stringLengthRaw = stringLength;
-			if (allocatedCapacity < this->stringLengthRaw) {
+			if (this->allocatedCapacity < this->stringLengthRaw) {
 				this->allocate(this->stringLengthRaw);
 			}
 			int64_t stringSize = this->allocatedCapacity;
 			this->jsonRawTape.reset();
-			this->isArray = std::make_unique<bool[]>(12);
-			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
 			uint32_t collectedSize{};
 			size_t tapeSize{ 0 };
 			int64_t prevInString{};
@@ -1205,6 +1191,10 @@ namespace Jsonifier {
 			return this->nextStructural;
 		}
 
+		OpenContainer* getOpenContainers() {
+			return this->openContainers.get();
+		}
+
 		inline uint32_t& getCurrentDepth() {
 			return this->depth;
 		}
@@ -1227,14 +1217,14 @@ namespace Jsonifier {
 			return this->isArray.get();
 		}
 
-		std::unique_ptr<OpenContainer[]> openContainers{};
-
-		size_t stringLengthRaw{};
+		
 
 	  protected:
 		std::unique_ptr<uint8_t[]> stringBuffer{};
 		std::unique_ptr<uint64_t[]> tape{};
 		std::unique_ptr<bool[]> isArray{};
+		std::unique_ptr<OpenContainer[]> openContainers{};
+		size_t stringLengthRaw{};
 		size_t allocatedCapacity{};
 		uint64_t* nextStructural{};
 		const char* stringView{};
@@ -1616,7 +1606,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::incrementCount(JsonIterator& iter) noexcept {
-		iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].count++;
+		iter.masterParser.getOpenContainers()[iter.masterParser.getCurrentDepth()].count++;
 		return ErrorCode::Success;
 	}
 
@@ -2494,7 +2484,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidTrueAtom(value)) {
+		if (!isValidTrueAtom(value, static_cast<size_t>(*iter.nextStructural - *(iter.nextStructural - 1)))) {
 			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::True_Value);
@@ -2502,7 +2492,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidTrueAtom(value)) {
+		if (!isValidTrueAtom(value, static_cast<size_t>(*iter.nextStructural - *(iter.nextStructural - 1)))) {
 			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::True_Value);
@@ -2519,7 +2509,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidFalseAtom(value)) {
+		if (!isValidFalseAtom(value, static_cast<size_t>(*iter.nextStructural - *(iter.nextStructural - 1)))) {
 			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::False_Value);
@@ -2527,7 +2517,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidNullAtom(value)) {
+		if (!isValidNullAtom(value, static_cast<size_t>(*iter.nextStructural - *(iter.nextStructural - 1)))) {
 			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::Null_Value);
@@ -2535,7 +2525,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidNullAtom(value)) {
+		if (!isValidNullAtom(value, static_cast<size_t>(*iter.nextStructural - *(iter.nextStructural - 1)))) {
 			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::Null_Value);
@@ -2555,15 +2545,15 @@ namespace Jsonifier {
 	}
 
 	inline void TapeBuilder::startContainer(JsonIterator& iter) noexcept {
-		iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].tapeIndex = nextTapeIndex(iter);
-		iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].count = 0;
+		iter.masterParser.getOpenContainers()[iter.masterParser.getCurrentDepth()].tapeIndex = nextTapeIndex(iter);
+		iter.masterParser.getOpenContainers()[iter.masterParser.getCurrentDepth()].count = 0;
 		tape.skip();
 	}
 
 	inline ErrorCode TapeBuilder::endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept {
-		const uint32_t startTapeIndex = iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].tapeIndex;
+		const uint32_t startTapeIndex = iter.masterParser.getOpenContainers()[iter.masterParser.getCurrentDepth()].tapeIndex;
 		tape.append(startTapeIndex, end);
-		const uint32_t count = iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].count;
+		const uint32_t count = iter.masterParser.getOpenContainers()[iter.masterParser.getCurrentDepth()].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
 		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
 		return ErrorCode::Success;
