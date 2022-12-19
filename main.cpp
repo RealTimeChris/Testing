@@ -353,23 +353,8 @@ int32_t main() noexcept {
 
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
-		stopWatch.resetTimer();
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			Jsonifier::SimdJsonValue theParser{};
-			auto jsonData = theParser.getJsonData(stringNew.data(), stringNew.size());
-			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			TheValueJson value{ std::move(jsonData) };
-			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
-			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
-			totalSize += oldSize;
-		}
-		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		
-		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
-		totalSize = 0;
-		totalTime = 0;
+		
 		stopWatch.resetTimer();
 		
 
@@ -378,14 +363,31 @@ int32_t main() noexcept {
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
+			//TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		
+		
+		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
 
+		Jsonifier::SimdJsonValue theParser{};
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			auto jsonData = theParser.getJsonData(stringNew.data(), stringNew.size());
+			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			//TheValueJson value{ std::move(jsonData) };
+			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
+			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
+			totalSize += oldSize;
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
 	} catch (std::runtime_error& e) {
 		std::cout << e.what() << std::endl;

@@ -1867,11 +1867,11 @@ namespace Jsonifier {
 		*outDouble = fromChars(reinterpret_cast<const char*>(ptr));
 		return !(*outDouble > (std::numeric_limits<double>::max)() || *outDouble < std::numeric_limits<double>::lowest());
 	}
-	template<typename Jsonifier, typename TapeWriter>
-	inline Jsonifier slowFloatParsing(const uint8_t* src, TapeWriter writer) {
+	template<typename Jsonifier, typename TapeWriter> inline ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
 		double d;
 		if (parseFloatFallback(src, &d)) {
-			return writer.appendDouble(d);
+			writer.appendDouble(d);
+			return ErrorCode::Success;
 		}
 		return ErrorCode::InvalidNumber;
 	}
@@ -1983,7 +1983,7 @@ namespace Jsonifier {
 		return false;
 	}
 	template<typename Jsonifier, typename TapeWriter>
-	inline Jsonifier writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits, size_t digit_count,
+	inline ErrorCode writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits, size_t digit_count,
 		int64_t exponent, TapeWriter& writer) {
 		if (digit_count > 19 && significantDigits(start_digits, digit_count) > 19) {
 			writer.skipDouble();
@@ -1992,7 +1992,8 @@ namespace Jsonifier {
 		if ((exponent < smallestPower) || (exponent > largestPower)) {
 			static_assert(smallestPower <= -342, "smallestPower is not small enough");
 			if ((exponent < smallestPower) || (i == 0)) {
-				return writer.appendDouble(negative ? -0.0 : 0.0);
+				writer.appendDouble(negative ? -0.0 : 0.0);
+				return ErrorCode::Success;
 			} else {
 				return ErrorCode::InvalidNumber;
 			}
@@ -2003,11 +2004,11 @@ namespace Jsonifier {
 				return ErrorCode::InvalidNumber;
 			}
 		}
-		return writer.appendDouble(d);
+		writer.appendDouble(d);
+		return ErrorCode::Success;
 	}
 
-	template<typename Jsonifier, typename TapeWriter>
-	inline Jsonifier parseNumber(const uint8_t* const src, TapeWriter& writer) {
+	template<typename Jsonifier, typename TapeWriter> inline ErrorCode parseNumber(const uint8_t* const src, TapeWriter& writer) {
 		bool negative = (*src == '-');
 		const uint8_t* p = src + uint8_t(negative);
 		const uint8_t* const startDigits = p;
@@ -2053,16 +2054,17 @@ namespace Jsonifier {
 				if (isNotStructuralOrWhiteSpace(*p)) {
 					return ErrorCode::InvalidNumber;
 				}
-				return writer.appendS64(~i);
+				writer.appendS64(~i);
+				return ErrorCode::Success;
 			} else if (src[0] != uint8_t('1') || i <= uint64_t(std::numeric_limits<int64_t>::max())) {
 				return ErrorCode::InvalidNumber;
 			}
 		}
-		Jsonifier returnValue{};
+		ErrorCode returnValue{ ErrorCode::Success };
 		if (i > uint64_t(std::numeric_limits<int64_t>::max())) {
-			returnValue = writer.appendS64(i);
+			writer.appendS64(i);
 		} else {
-			returnValue = writer.appendS64(negative ? (~i + 1) : i);
+			writer.appendS64(negative ? (~i + 1) : i);
 		}
 		if (isNotStructuralOrWhiteSpace(*p)) {
 			return ErrorCode::InvalidNumber;
