@@ -965,12 +965,16 @@ namespace Jsonifier {
 		inline uint64_t addTapeValues(std::unique_ptr < uint64_t[] >& tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString,
 			size_t& currentIndexIntoTape) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
+
+			std::cout << "THE CURRENT INDEX COUNT: " << value << std::endl;
 			for (int i = 0; i < value; i++) {
 				tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 				*theBits = _blsr_u64(*theBits);
+				std::cout << "THE CURRENT VALUE STRING: " << tapePtrs[currentIndexIntoTape - 1] << std::endl;
+				std::cout << "THE CURRENT INTO STRING: " << currentIndexIntoString << std::endl;
+				std::cout << "THE CURRENT INDEX INTO TAPE: " << currentIndexIntoTape << std::endl;
 			}
-			std::cout << "THE CURRENT INDEX COUNT: " << value << std::endl;
-			std::cout << "THE CURRENT INTO STRING : " << currentIndexIntoString << std::endl;
+			
 			return value;
 		}
 
@@ -1140,7 +1144,6 @@ namespace Jsonifier {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->tape, collectedSize, tapeCurrentIndex);
 				tapeSize += indexCount;
-				std::cout << "THE CURRENT VALUE: REAL " << tapeSize << std::endl;
 				stringSize -= 256;
 				collectedSize += 256;
 			}
@@ -1149,7 +1152,7 @@ namespace Jsonifier {
 					tapeSize = x;
 					break;
 				}
-				std::cout << "THE CURRENT VALUE: " << this->tape[x] << std::endl;
+				std::cout << "THE CURRENT VALUE: " << this->getStructuralIndexes()[x] << std::endl;
 			}
 			this->tapeLength = tapeSize;
 		}
@@ -1227,9 +1230,10 @@ namespace Jsonifier {
 
 	class JsonIterator {
 	  public:
+		uint64_t* nextStructural{ nullptr };
 		const uint8_t* buf{ nullptr };
 		SimdJsonValue& masterParser;
-
+		
 		inline Jsonifier walkDocument(TapeBuilder& visitor) noexcept;
 
 		inline JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index);
@@ -1251,30 +1255,31 @@ namespace Jsonifier {
 	};
 
 	inline JsonIterator::JsonIterator(SimdJsonValue& _dom_parser, size_t start_structural_index)
-		: buf{ reinterpret_cast<const uint8_t*>(_dom_parser.getStringView()) }, masterParser{ _dom_parser } {
-	}
+		: nextStructural(_dom_parser.getStructuralIndexes()), buf{ reinterpret_cast<const uint8_t*>(_dom_parser.getStringView()) }, masterParser{
+			  _dom_parser
+		  } {};
 
 	inline const uint8_t* JsonIterator::peek() const noexcept {
-		return &buf[masterParser.getStructuralIndexes()[masterParser.getNextStructuralIndex()]];
+		return &buf[masterParser.getStructuralIndexes()[*this->nextStructural]];
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
-		auto returnValue = this->masterParser.getNextStructuralIndex()++;
-		std::cout << "THE CURRENT INDEX: " << returnValue<< std::endl;
-		std::cout << "THE CURRENT INDEX's VALUE: " << buf[returnValue] << std::endl;
-		return &buf[masterParser.getStructuralIndexes()[returnValue]];
+		auto returnValue = this->nextStructural++;
+		std::cout << "THE CURRENT INDEX: " << ((*returnValue) & 0x0fffffff) << std::endl;
+		std::cout << "THE CURRENT INDEX's VALUE: " << buf[((*returnValue) & 0x0fffffff)] << std::endl;
+		return &buf[((*returnValue) & 0x0fffffff)];
 	}
 
 	inline size_t JsonIterator::remainingLen() const noexcept {
-		return masterParser.getTapeLength() - this->masterParser.getNextStructuralIndex();
+		return masterParser.getTapeLength() - *this->nextStructural;
 	}
 
 	inline bool JsonIterator::atEof() const noexcept {
-		return this->masterParser.getNextStructuralIndex() == masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1];
+		return *this->nextStructural == masterParser.getStructuralIndexes()[masterParser.getTapeLength() - 1];
 	}
 
 	inline bool JsonIterator::atBeginning() const noexcept {
-		return this->masterParser.getNextStructuralIndex() == *masterParser.getStructuralIndexes();
+		return *this->nextStructural == *masterParser.getStructuralIndexes();
 	}
 
 	inline uint8_t JsonIterator::lastStructural() const noexcept {
@@ -1747,7 +1752,7 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidTrueAtom(value, static_cast<size_t>(iter.masterParser.getStringView()[iter.masterParser.getStructuralIndexes()[iter.masterParser.getNextStructuralIndex()]- (iter.masterParser.getStringView()[iter.masterParser.getStructuralIndexes()[iter.masterParser.getNextStructuralIndex() - 1]])]))) {
+		if (!isValidTrueAtom(value, static_cast<size_t>(iter.masterParser.getStringView()[*iter.nextStructural]- (iter.masterParser.getStringView()[*(iter.nextStructural - 1)])))) {
 			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::True_Value);
@@ -1755,7 +1760,9 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidTrueAtom(value, static_cast<size_t>(iter.masterParser.getNextStructuralIndex() - (iter.masterParser.getNextStructuralIndex() - 1)))) {
+		if (!isValidTrueAtom(value,
+				static_cast<size_t>(
+					iter.masterParser.getStringView()[*iter.nextStructural] - (iter.masterParser.getStringView()[*(iter.nextStructural - 1)])))) {
 			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::True_Value);
@@ -1765,9 +1772,7 @@ namespace Jsonifier {
 	inline Jsonifier TapeBuilder::visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
 		if (!isValidFalseAtom(value,
 				static_cast<size_t>(
-					iter.masterParser.getStringView()[iter.masterParser.getStructuralIndexes()[iter.masterParser.getNextStructuralIndex()] -
-						(iter.masterParser
-								.getStringView()[iter.masterParser.getStructuralIndexes()[iter.masterParser.getNextStructuralIndex() - 1]])]))) {
+					iter.masterParser.getStringView()[*iter.nextStructural] - (iter.masterParser.getStringView()[*(iter.nextStructural - 1)])))) {
 			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::False_Value);
@@ -1775,7 +1780,9 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidFalseAtom(value, static_cast<size_t>(iter.masterParser.getNextStructuralIndex() - (iter.masterParser.getNextStructuralIndex() - 1)))) {
+		if (!isValidFalseAtom(value,
+				static_cast<size_t>(
+					iter.masterParser.getStringView()[*iter.nextStructural] - (iter.masterParser.getStringView()[*(iter.nextStructural - 1)])))) {
 			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::False_Value);
@@ -1783,7 +1790,9 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidNullAtom(value, static_cast<size_t>(iter.masterParser.getNextStructuralIndex() - (iter.masterParser.getNextStructuralIndex() - 1)))) {
+		if (!isValidNullAtom(value,
+				static_cast<size_t>(
+					iter.masterParser.getStringView()[*iter.nextStructural] - (iter.masterParser.getStringView()[*(iter.nextStructural - 1)])))) {
 			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::Null_Value);
@@ -1791,7 +1800,9 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidNullAtom(value, static_cast<size_t>(iter.masterParser.getNextStructuralIndex() - (iter.masterParser.getNextStructuralIndex() - 1)))) {
+		if (!isValidNullAtom(value,
+				static_cast<size_t>(
+					iter.masterParser.getStringView()[*iter.nextStructural] - (iter.masterParser.getStringView()[*(iter.nextStructural - 1)])))) {
 			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::Null_Value);
@@ -1996,7 +2007,7 @@ namespace Jsonifier {
 	document_end:
 		visitor.visitDocumentEnd(*this);
 
-		 masterParser.getNextStructuralIndex() = uint32_t(masterParser.getNextStructuralIndex() - masterParser.getStructuralIndexes()[0]);
+		 masterParser.getNextStructuralIndex() = uint32_t(nextStructural - &masterParser.getStructuralIndexes()[0]);
 
 		if (masterParser.getNextStructuralIndex() != masterParser.getTapeLength()) {
 			 return ErrorCode::TapeError;
