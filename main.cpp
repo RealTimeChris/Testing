@@ -373,8 +373,8 @@ int32_t main() noexcept {
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew.data(), stringNew.size());
-			jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
+			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
+			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			TheValueJson value{ jsonData };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().testDouble << std::endl;
 			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;

@@ -966,13 +966,13 @@ namespace Jsonifier {
 			size_t& currentIndexIntoTape) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
 
-			std::cout << "THE CURRENT INDEX COUNT: " << value << std::endl;
+			//std::cout << "THE CURRENT INDEX COUNT: " << value << std::endl;
 			for (int i = 0; i < value; i++) {
 				tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 				*theBits = _blsr_u64(*theBits);
-				std::cout << "THE CURRENT VALUE STRING: " << tapePtrs[currentIndexIntoTape - 1] << std::endl;
-				std::cout << "THE CURRENT INTO STRING: " << currentIndexIntoString << std::endl;
-				std::cout << "THE CURRENT INDEX INTO TAPE: " << currentIndexIntoTape << std::endl;
+				//std::cout << "THE CURRENT VALUE STRING: " << tapePtrs[currentIndexIntoTape - 1] << std::endl;
+				//std::cout << "THE CURRENT INTO STRING: " << currentIndexIntoString << std::endl;
+				//std::cout << "THE CURRENT INDEX INTO TAPE: " << currentIndexIntoTape << std::endl;
 			}
 			
 			return value;
@@ -1152,7 +1152,7 @@ namespace Jsonifier {
 					tapeSize = x;
 					break;
 				}
-				std::cout << "THE CURRENT VALUE: " << this->getStructuralIndexes()[x] << std::endl;
+				//std::cout << "THE CURRENT VALUE: " << this->getStructuralIndexes()[x] << std::endl;
 			}
 			this->tapeLength = tapeSize;
 		}
@@ -1265,8 +1265,8 @@ namespace Jsonifier {
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
 		auto returnValue = this->nextStructural++;
-		std::cout << "THE CURRENT INDEX: " << ((*returnValue) & 0x0fffffff) << std::endl;
-		std::cout << "THE CURRENT INDEX's VALUE: " << buf[((*returnValue) & 0x0fffffff)] << std::endl;
+		//std::cout << "THE CURRENT INDEX: " << ((*returnValue) & 0x0fffffff) << std::endl;
+		//std::cout << "THE CURRENT INDEX's VALUE: " << buf[((*returnValue) & 0x0fffffff)] << std::endl;
 		return &buf[((*returnValue) & 0x0fffffff)];
 	}
 
