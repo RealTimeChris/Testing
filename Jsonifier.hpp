@@ -1128,7 +1128,9 @@ namespace Jsonifier {
 			return this->jsonRawTape;
 		}
 
-		#define SIMDJSON_ROUNDUP_N(a, n) (((a) + (( n )-1)) & ~(( n )-1))
+		int32_t rount(int32_t a, int32_t n) {
+			return (((a) + (( n )-1)) & ~(( n )-1));
+		}
 
 		inline ErrorCode allocate(size_t capacity) noexcept {
 			if (capacity == 0) {
@@ -1143,10 +1145,10 @@ namespace Jsonifier {
 			// worse with "[7,7,7,7,6,7,7,7,6,7,7,6,[7,7,7,7,6,7,7,7,6,7,7,6,7,7,7,7,7,7,6"
 			//where capacity + 1 tape elements are
 			// generated, see issue https://github.com/simdjson/simdjson/issues/345
-			size_t tape_capacity = SIMDJSON_ROUNDUP_N(capacity + 3, 64);
+			size_t tape_capacity = rount(capacity + 3, 64);
 			// a document with only zero-length strings... could have capacity/3 string
 			// and we would need capacity/3 * 5 bytes on the string buffer
-			size_t string_capacity = SIMDJSON_ROUNDUP_N(5 * capacity / 3 + 256, 256);
+			size_t string_capacity = rount(5 * capacity / 3 + 256, 256);
 			stringBuffer = std::make_unique<uint8_t[]>(string_capacity);
 			tape = std::make_unique<uint64_t[]>(tape_capacity);
 			if (!(stringBuffer&& tape)) {
@@ -1201,6 +1203,10 @@ namespace Jsonifier {
 
 		inline uint64_t* getNextStructural() {
 			return this->nextStructural;
+		}
+
+		inline uint32_t& getCurrentDepth() {
+			return this->depth;
 		}
 
 		inline uint64_t* getStructuralIndexes() {
@@ -1260,7 +1266,6 @@ namespace Jsonifier {
 		const uint8_t* buf;
 		uint64_t* nextStructural;
 		SimdJsonValue& masterParser;
-		uint32_t depth{ 0 };
 
 		inline Jsonifier walkDocument(TapeBuilder& visitor) noexcept;
 
@@ -1489,17 +1494,9 @@ namespace Jsonifier {
 
 		template<typename OTy> void appendPrimitiveElement(OTy&& data) {
 			if (this->currentPlace.back()->getType() == JsonType::Array) {
-				this->currentPlace.back()->emplaceBack(data);
+				this->currentPlace.back()->emplaceBack(std::move(data));
 			} else {
 				(*this->currentPlace.back())[std::move(this->currentKey.back())] = std::move(data);
-			}
-		}
-
-		template<typename OTy> void appendPrimitiveElement(OTy& data) {
-			if (this->currentPlace.back()->getType() == JsonType::Array) {
-				this->currentPlace.back()->emplaceBack(data);
-			} else {
-				(*this->currentPlace.back())[std::move(this->currentKey.back())] = data;
 			}
 		}
 
@@ -1619,7 +1616,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::incrementCount(JsonIterator& iter) noexcept {
-		iter.masterParser.openContainers[iter.depth].count++;
+		iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].count++;
 		return ErrorCode::Success;
 	}
 
@@ -1835,8 +1832,8 @@ namespace Jsonifier {
 						return nullptr;
 					}
 					dst[bsDist] = escapeResult;
-					src += bsDist + 2;
-					dst += bsDist + 1;
+					src += bsDist + 2ull;
+					dst += bsDist + 1ull;
 				}
 			} else {
 				src += BackslashAndQuote::BYTES_PROCESSED;
@@ -2444,19 +2441,19 @@ namespace Jsonifier {
 		}
 		if (digitCount == longestDigitCount) {
 			if (negative) {
-				if (i > uint64_t(INT64_MAX) + 1) {
+				if (i > std::numeric_limits<int64_t>::max()+ 1ull) {
 					return ErrorCode::InvalidNumber;
 				}
 				if (isNotStructuralOrWhiteSpace(*p)) {
 					return ErrorCode::InvalidNumber;
 				}
 				return writer.appendS64(~i);
-			} else if (src[0] != uint8_t('1') || i <= uint64_t(INT64_MAX)) {
+			} else if (src[0] != uint8_t('1') || i <= uint64_t(std::numeric_limits<int64_t>::max())) {
 				return ErrorCode::InvalidNumber;
 			}
 		}
 		Jsonifier returnValue{};
-		if (i > uint64_t(INT64_MAX)) {
+		if (i > uint64_t(std::numeric_limits<int64_t>::max())) {
 			returnValue = writer.appendS64(i);
 		} else {
 			returnValue = writer.appendS64(negative ? (~i + 1) : i);
@@ -2513,9 +2510,6 @@ namespace Jsonifier {
 	}
 
 	inline Jsonifier TapeBuilder::visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		std::cout << "THE ATOM: " << value << std::endl;
-		std::cout << "LAST STRUCTURAL: " << iter.lastStructural() << std::endl;
-		std::cout << "NEXT STRUCTURAL: " << (*iter.nextStructural) << std::endl;
 		if (!isValidFalseAtom(value,
 				static_cast<size_t>(*iter.nextStructural  - *(iter.nextStructural-1)))) {
 			return ErrorCode::FAtomError;
@@ -2555,21 +2549,21 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept {
 		auto startIndex = nextTapeIndex(iter);
-		tape.append(startIndex + 2, start);
+		tape.append(startIndex + 2ull, start);
 		tape.append(startIndex, end);
 		return ErrorCode::Success;
 	}
 
 	inline void TapeBuilder::startContainer(JsonIterator& iter) noexcept {
-		iter.masterParser.openContainers[iter.depth].tapeIndex = nextTapeIndex(iter);
-		iter.masterParser.openContainers[iter.depth].count = 0;
+		iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].tapeIndex = nextTapeIndex(iter);
+		iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].count = 0;
 		tape.skip();
 	}
 
 	inline ErrorCode TapeBuilder::endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept {
-		const uint32_t startTapeIndex = iter.masterParser.openContainers[iter.depth].tapeIndex;
+		const uint32_t startTapeIndex = iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].tapeIndex;
 		tape.append(startTapeIndex, end);
-		const uint32_t count = iter.masterParser.openContainers[iter.depth].count;
+		const uint32_t count = iter.masterParser.openContainers[iter.masterParser.getCurrentDepth()].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
 		TapeWriter::write(iter.masterParser.getStructuralIndexes()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
 		return ErrorCode::Success;
@@ -2619,11 +2613,11 @@ namespace Jsonifier {
 		goto document_end;
 
 	object_begin:
-		depth++;
-		if (depth >= masterParser.getMaxDepth()) {
+		masterParser.getCurrentDepth()++;
+		if (masterParser.getCurrentDepth() >= masterParser.getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		masterParser.getIsArray()[depth] = false;
+		masterParser.getIsArray()[masterParser.getCurrentDepth()] = false;
 		visitor.visitObjectStart(*this);
 
 		{
@@ -2690,21 +2684,21 @@ namespace Jsonifier {
 		}
 
 	scope_end:
-		depth--;
-		if (depth == 0) {
+		masterParser.getCurrentDepth()--;
+		if (masterParser.getCurrentDepth() == 0) {
 			goto document_end;
 		}
-		if (masterParser.getIsArray()[depth]) {
+		if (masterParser.getIsArray()[masterParser.getCurrentDepth()]) {
 			goto array_continue;
 		}
 		goto object_continue;
 
 	array_begin:
-		depth++;
-		if (depth >= masterParser.getMaxDepth()) {
+		masterParser.getCurrentDepth()++;
+		if (masterParser.getCurrentDepth() >= masterParser.getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		masterParser.getIsArray()[depth] = true;
+		masterParser.getIsArray()[masterParser.getCurrentDepth()] = true;
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
 
