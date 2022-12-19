@@ -2294,7 +2294,7 @@ namespace Jsonifier {
 			return answer;
 		}
 
-		const int mantissa_size_in_bits = binary::mantissaExplicitBits() + 1;
+		constexpr int mantissa_size_in_bits = binary::mantissaExplicitBits() + 1;
 		decimalLeftShift(d, mantissa_size_in_bits);
 
 		uint64_t mantissa = round(d);
