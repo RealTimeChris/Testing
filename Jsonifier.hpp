@@ -926,19 +926,19 @@ namespace Jsonifier {
 		inline ErrorCode allocate(size_t capacity) noexcept {
 			if (capacity == 0) {
 				this->stringBuffer.reset(nullptr);
-				this->tape.reset();
+				this->tape.reset(nullptr);
 				this->allocatedCapacity = 0;
 				return ErrorCode::Success;
 			}
 
-			size_t tape_capacity = round(capacity + 3, 256);
-			size_t string_capacity = round(5 * capacity / 3 + 256, 256);
-			this->stringBuffer = std::make_unique<uint8_t[]>(string_capacity);
-			this->tape.reset(std::make_unique<uint64_t[]>(tape_capacity).release());
+			size_t tapeCapacity = round(capacity + 3, 256);
+			size_t stringCapacity = round(5 * capacity / 3 + 256, 256);
+			this->stringBuffer = std::make_unique<uint8_t[]>(stringCapacity);
+			this->tape = std::make_unique<uint64_t[]>(tapeCapacity);
 			if (!(this->stringBuffer && this->tape)) {
 				this->allocatedCapacity = 0;
-				this->stringBuffer.reset();
-				this->tape.reset();
+				this->stringBuffer.reset(nullptr);
+				this->tape.reset(nullptr);
 				return ErrorCode::MemAlloc;
 			}
 			this->isArray = std::make_unique<bool[]>(12);
@@ -960,24 +960,22 @@ namespace Jsonifier {
 			}
 			int64_t stringSize = this->allocatedCapacity;
 			uint32_t collectedSize{};
-			size_t tapeSize{ 0 };
 			size_t tapeCurrentIndex{ 0 };
 			int64_t prevInString{};
 			while (stringSize > 0) {
 				SimdStringSection section(this->stringView + collectedSize, prevInString);
 				auto indexCount = section.getStructuralIndices(this->tape, collectedSize, tapeCurrentIndex);
-				tapeSize += indexCount;
+				this->tapeLength+= indexCount;
 				stringSize -= 256;
 				collectedSize += 256;
 			}
-			for (size_t x = 0; x < tapeSize; ++x) {
+			for (size_t x = 0; x < this->tapeLength; ++x) {
 				if (this->tape[x] > this->stringLengthRaw - 1) {
-					tapeSize = x;
+					this->tapeLength = x;
 					break;
 				}
 				//std::cout << "THE CURRENT VALUE: " << this->getStructuralIndexes()[x] << std::endl;
 			}
-			this->tapeLength = tapeSize;
 		}
 
 		inline ~SimdJsonValue() noexcept {}
@@ -1008,10 +1006,6 @@ namespace Jsonifier {
 			return this->maxDepth;
 		}
 
-		inline uint32_t& getNextStructuralIndex() {
-			return this->nextStructuralIndex;
-		}
-
 		inline size_t getTapeLength() {
 			return this->tapeLength;
 		}
@@ -1025,7 +1019,6 @@ namespace Jsonifier {
 		std::unique_ptr<uint8_t[]> stringBuffer{};
 		std::unique_ptr<uint64_t[]> tape{};
 		std::unique_ptr<bool[]> isArray{};
-		uint32_t nextStructuralIndex{};
 		size_t allocatedCapacity{};
 		size_t stringLengthRaw{};
 		const char* stringView{};
@@ -1054,6 +1047,7 @@ namespace Jsonifier {
 	class JsonIterator {
 	  public:
 		uint64_t* nextStructural{ nullptr };
+		uint32_t nextStructuralIndex{};
 		const uint8_t* buf{ nullptr };
 		SimdJsonValue& masterParser;
 		
@@ -1830,10 +1824,10 @@ namespace Jsonifier {
 	document_end:
 		visitor.visitDocumentEnd(*this);
 
-		 masterParser.getNextStructuralIndex() = uint32_t(nextStructural - &masterParser.getStructuralIndexes()[0]);
+		this->nextStructuralIndex = uint32_t(nextStructural - &masterParser.getStructuralIndexes()[0]);
 
-		if (masterParser.getNextStructuralIndex() != masterParser.getTapeLength()) {
-			 return ErrorCode::TapeError;
+		if (this->nextStructuralIndex != masterParser.getTapeLength()) {
+			return ErrorCode::TapeError;
 		}
 
 		return constructor.getResult();

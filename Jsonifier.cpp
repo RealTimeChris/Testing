@@ -458,7 +458,6 @@ namespace Jsonifier {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
 		}
-		other.refreshString(JsonifierSerializeType::Json);
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(std::move(other));
 		}
@@ -470,7 +469,6 @@ namespace Jsonifier {
 			this->setValue(JsonType::Array);
 			this->type = JsonType::Array;
 		}
-		other.refreshString(JsonifierSerializeType::Json);
 		if (this->type == JsonType::Array) {
 			this->jsonValue.array->emplace_back(other);
 		}
