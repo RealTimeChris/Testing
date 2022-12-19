@@ -1,5 +1,5 @@
 if (WIN32)
-	set(simdjson_DIR "C:/Program Files (x86)/simdjson/lib/cmake/simdjson")
+	set(simdjson_DIR "C:/Program Files (x86)/simdjson/lib/cmake/simdjson/")
 endif()
 
 set(DOWNLOAD_EXTRACT_TIMESTAMP true)

@@ -29,17 +29,23 @@ namespace Jsonifier {
 		switch (data.type) {
 			case JsonType::Object: {
 				this->setValue(JsonType::Object);
-				*this->jsonValue.object = std::move(*data.jsonValue.object);
+				this->jsonValue.object = data.jsonValue.object;
+				data.jsonValue.object = nullptr;
+				data.type = JsonType::Null;
 				break;
 			}
 			case JsonType::Array: {
 				this->setValue(JsonType::Array);
-				*this->jsonValue.array = std::move(*data.jsonValue.array);
+				this->jsonValue.array = data.jsonValue.array;
+				data.jsonValue.array = nullptr;
+				data.type = JsonType::Null;
 				break;
 			}
 			case JsonType::String: {
 				this->setValue(JsonType::String);
-				*this->jsonValue.string = std::move(*data.jsonValue.string);
+				this->jsonValue.string = data.jsonValue.string;
+				data.jsonValue.string = nullptr;
+				data.type = JsonType::Null;
 				break;
 			}
 			case JsonType::Float: {
@@ -425,6 +431,31 @@ namespace Jsonifier {
 			return false;
 		}
 	}
+
+	Jsonifier& Jsonifier::operator[](const char* key) {
+		if (this->type == JsonType::Null) {
+			this->setValue(JsonType::Object);
+			this->type = JsonType::Object;
+		}
+		if (this->type == JsonType::Object) {
+			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
+			return result.first->second;
+		}
+		throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+	}
+
+	Jsonifier& Jsonifier::operator[](std::string_view key) {
+		if (this->type == JsonType::Null) {
+			this->setValue(JsonType::Object);
+			this->type = JsonType::Object;
+		}
+		if (this->type == JsonType::Object) {
+			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
+			return result.first->second;
+		}
+		throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
+	}
+	
 
 	Jsonifier& Jsonifier::operator[](typename ObjectType::key_type key) {
 		if (this->type == JsonType::Null) {
