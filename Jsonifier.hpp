@@ -1234,6 +1234,7 @@ namespace Jsonifier {
 
 	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
+		std::cout << "WRUTTEN POSITION: " << val << std::endl;
 	}
 
 	class JsonConstructor : public Jsonifier {
@@ -1552,13 +1553,13 @@ namespace Jsonifier {
 	}
 
 	inline std::string_view TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
-		uint8_t* dst01 = onStartString(iter);
-		auto dst02 = parseString(value + 1, dst01);
+		const char* dst01 = &iter.masterParser->getStringView()[(*(iter.nextStructural - 1) & 0x00FFFFFFFFFFFFFF)];
+		auto dst02 = &iter.masterParser->getStringView()[(*(iter.nextStructural) & 0x00FFFFFFFFFFFFFF)];
 		if (dst02 == nullptr) {
 			return std::string_view{};
 		}
-		onEndString(dst02);
-		return std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) };
+		return std::string_view{ reinterpret_cast<const char*>(dst01 + 1),
+			static_cast<size_t>((dst02 - 1) - reinterpret_cast<const char*>(dst01 + 1)) };
 	}
 
 	inline std::string_view TapeBuilder::visitRootString(JsonIterator& iter, const uint8_t* value) noexcept {
@@ -1638,8 +1639,7 @@ namespace Jsonifier {
 	}
 
 	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) const noexcept {
-		auto startTapeIndex = uint32_t(*tape.nextTapeLocation - *iter.masterParser->getStructuralIndexes());
-		return startTapeIndex;
+		return uint32_t(tape.nextTapeLocation - iter.masterParser->getStructuralIndexes());
 	}
 
 	inline ErrorCode TapeBuilder::emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept {

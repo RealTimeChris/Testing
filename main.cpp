@@ -365,7 +365,7 @@ int32_t main() noexcept {
 		size_t oldSize = stringNew.size();
 		
 
-		
+		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
