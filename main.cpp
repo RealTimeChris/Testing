@@ -323,7 +323,7 @@ struct TheD {
 		auto theArray = getArray(value["d"], "activitiess");
 		if (theArray.didItSucceed) {
 			for (auto value: theArray.arrayValue) {
-				activities.push_back(value.value());
+				activities.emplace_back(value.value());
 			}
 		}
 	}

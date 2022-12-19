@@ -206,7 +206,7 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>&& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& value: data) {
-				this->jsonValue.array->push_back(std::move(value));
+				this->jsonValue.array->emplace_back(std::move(value));
 			}
 			return *this;
 		}
@@ -218,7 +218,7 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& value: data) {
-				this->jsonValue.array->push_back(value);
+				this->jsonValue.array->emplace_back(value);
 			}
 			return *this;
 		}
@@ -1236,10 +1236,10 @@ namespace Jsonifier {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
 	}
 
-	class JsonConstructor {
+	class JsonConstructor : public Jsonifier {
 	  public:
 		JsonConstructor() noexcept {
-			this->currentPlace.emplace_back(&this->jsonData.operator=(JsonType::Object));
+			this->currentPlace.emplace_back(&Jsonifier::operator=(JsonType::Object));
 		};
 
 		void setCurrentKey(std::string_view key) {
@@ -1280,15 +1280,14 @@ namespace Jsonifier {
 		}
 
 		Jsonifier getResult() {
-			this->jsonData.refreshString(JsonifierSerializeType::Json);
+			//this->jsonData.refreshString(JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << this->jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			return std::move(this->jsonData);
+			return std::move(*this);
 		}
 
 	  protected:
 		std::vector<Jsonifier*> currentPlace{};
 		std::vector<std::string> currentKey{};
-		Jsonifier jsonData{};
 	};
 
 
