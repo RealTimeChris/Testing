@@ -258,43 +258,28 @@ struct ActivitiesJson {
 	std::string anotherTestValue03d{};
 	int32_t anotherValue02w{};
 	std::string id{};
-	operator Jsonifier::Jsonifier() {
-		Jsonifier::Jsonifier data{};
-		data["test_double"] = this->testDouble;
-		data["created_at"] = this->createdAt;
-		data["ANOTHER_VALUE_02w"] = this->anotherValue02w;
-		data["id"] = this->id;
-		return data;
-	}
 };
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Jsonifier& value) {
+	TheDJson(Jsonifier::Jsonifier&& value) {
 		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::Jsonifier>>();
 		for (auto& value: theArray) {
 			activities.emplace_back(std::move(value));
 		}
-	}
-	operator Jsonifier::Jsonifier() {
-		Jsonifier::Jsonifier serializer{};
-		for (auto& value: this->activities) {
-			serializer["d"]["activitiess"].emplaceBack(value);
-		}
-		return serializer;
 	}
 	std::vector<ActivitiesJson> activities{};
 };
 
 namespace Jsonifier {
 	template<> TheDJson Jsonifier::getValue() {
-		return TheDJson{ *this };
+		return TheDJson{ std::move(*this) };
 	}
 
 }
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::Jsonifier& value) {
+	TheValueJson(Jsonifier::Jsonifier&& value) {
 		this->theD = value.getValue<TheDJson>();
 	}
 	TheDJson theD{};
@@ -358,6 +343,14 @@ int32_t main() noexcept {
 			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
 			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
+			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
+			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
+			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
+			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
+			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":false}]}}"
 		};
 
@@ -375,7 +368,7 @@ int32_t main() noexcept {
 			auto jsonData = theParser.getJsonData(stringNew.data(), stringNew.size());
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			TheValueJson value{ jsonData };
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().testDouble << std::endl;
 			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
