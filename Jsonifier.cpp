@@ -455,7 +455,7 @@ namespace Jsonifier {
 		}
 		throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
 	}
-	
+
 
 	Jsonifier& Jsonifier::operator[](typename ObjectType::key_type key) {
 		if (this->type == JsonType::Null) {
