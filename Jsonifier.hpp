@@ -716,7 +716,7 @@ namespace Jsonifier {
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			//dumpRawTape(//std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -1024,13 +1024,13 @@ namespace Jsonifier {
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
-			std::cout << valuesTitle;
+			//std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+					//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
-			std::cout << std::endl;
+			//std::cout << std::endl;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1221,8 +1221,8 @@ namespace Jsonifier {
 					throw JsonifierException{ "Failed to parse as the string size is 0." };
 				}
 				this->stringLengthRaw = stringLength;
-				size_t tapeCapacity = round(stringLength + 3, 64);
-				size_t stringCapacity = round(5 * stringLength / 3 + 64, 64);
+				size_t tapeCapacity = round(stringLength + 3, 256);
+				size_t stringCapacity = round(5 * stringLength / 3 + 256, 256);
 				this->tape.reset(tapeCapacity, stringCapacity, stringNew);
 				this->tapeLength = 0;
 				if (this->allocatedCapacity < this->stringLengthRaw) {
@@ -1241,7 +1241,6 @@ namespace Jsonifier {
 					stringSize -= 256;
 					collectedSize += 256;
 				}
-				//this->tapeLength -= 2;
 				this->tape.setTapeCount(this->tapeLength);
 			}
 		}
@@ -1692,7 +1691,7 @@ namespace Jsonifier {
 	struct BackslashAndQuote {
 	  public:
 		static constexpr uint32_t BYTES_PROCESSED = 256;
-		inline static void copyAndFind(const uint8_t* src, uint8_t* dst);
+		inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst);
 
 		inline bool hasQuoteFirst() {
 			return bool{ ((bsBits - 1) & quoteBits) == 0 };
@@ -1711,7 +1710,7 @@ namespace Jsonifier {
 		SimdBase256 quoteBits{};
 	};
 
-	inline void BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
+	inline uint32_t BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
 		static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
 		SimdBase256 values{ reinterpret_cast<const char*>(src) };
 		
@@ -1719,56 +1718,32 @@ namespace Jsonifier {
 		for (size_t x = 0; x < 32; ++x) {
 			if (src[x] == '\"') {
 				dst[x] = '\0';
-				break;
+				return x;
 			}
 		}
 
-		//std::cout << "STRING: " << dst << std::endl;
-		//auto result01 = convertSimdBytesToBits(returnValues01);
-		//auto result02 = convertSimdBytesToBits(returnValues02);
-		return;
-		//{ Sresult01, result02 };
+		return 0;
 	}
 
-	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
+	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
 		int32_t index{};
-		while (1) {
-			index += 32;
-			BackslashAndQuote::copyAndFind(src, dst);
-			return dst;
-			 /*
-			if (bsQuote.hasBackslash()) {
-				auto bsDist = bsQuote.backslashIndex();
-				uint8_t escapeChar = src[bsDist + 1];
-				if (escapeChar == 'u') {
-					src += bsDist;
-					dst += bsDist;
-					if (!handleUnicodeCodepoint(&src, &dst)) {
-						return nullptr;
-					}
-				} else {
-					uint8_t escapeResult = escapeMap[escapeChar];
-					if (escapeResult == 0u) {
-						return nullptr;
-					}
-					dst[bsDist] = escapeResult;
-					src += bsDist + 2ull;
-					dst += bsDist + 1ull;
-				}
-			} else {
-				src += BackslashAndQuote::BYTES_PROCESSED;
-				dst += BackslashAndQuote::BYTES_PROCESSED;
+		while (length > 0) {
+			if (auto result = BackslashAndQuote::copyAndFind(src + index, dst + index); result != 0) {
+				return dst + result;
 			}
-		}*/}
+			length -= 32;
+			index += 32;
+		}
 		return nullptr;
 	}
 
 	inline ErrorCode TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
 		uint8_t* dst01 = onStartString(iter);
-		auto dst02 = parseString(value + 1, dst01);
+		auto dst02 = parseString(value + 1, dst01, (*iter.nextStructural + 1) - (*iter.nextStructural));
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
+		//std::cout << "THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
 		return ErrorCode::Success;
 	}
