@@ -1,5 +1,9 @@
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#pragma warning(disable : 4251)
+
 #include <source_location>
 #include <unordered_map>
 #include <immintrin.h>
