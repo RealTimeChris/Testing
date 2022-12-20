@@ -371,8 +371,6 @@ int32_t main() noexcept {
 			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
 			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true}]}}"
 		};
 
@@ -388,6 +386,7 @@ int32_t main() noexcept {
 		std::cout << "THE STRING SIZE BEFORE: " << stringNew.size() << std::endl;
 		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
 		std::cout << "THE STRING SIZE AFTER: " << stringNew.size() << std::endl;
+
 		
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue theParser{};
@@ -410,6 +409,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 
 		
+			
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 			simdjson::ondemand::parser parser{};
