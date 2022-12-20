@@ -16,7 +16,7 @@ namespace Jsonifier {
 		return _blsr_u64(input_num);
 	}
 
-	inline int leadingZeroes(uint64_t input_num) {
+	inline int leadingZeroes(uint64_t  input_num) {
 		return int(_lzcnt_u64(input_num));
 	}
 
@@ -25,7 +25,317 @@ namespace Jsonifier {
 	}
 
 	class SimdJsonValue;
+
+	class SimdBase128 {
+	  public:
+		inline SimdBase128() noexcept = default;
+
+		inline SimdBase128& operator=(char other) {
+			this->value = _mm_set1_epi8(other);
+			return *this;
+		}
+
+		inline SimdBase128(char other) {
+			*this = other;
+		}
+
+		inline operator __m128i() {
+			return this->value;
+		}
+
+	  protected:
+		__m128i value{};
+	};
+
+	class SimdBase256 {
+	  public:
+		inline SimdBase256() noexcept {
+			this->value = _mm256_set1_epi8(0x00);
+		};
+
+		explicit operator bool() {
+			for (size_t x = 0; x < 4; ++x) {
+				if (this->getUint64(x) != 0) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		inline static SimdBase256 repeat_16(int8_t v0, int8_t v1, int8_t v2, int8_t v3, int8_t v4, int8_t v5, int8_t v6, int8_t v7, int8_t v8,
+			int8_t v9, int8_t v10, int8_t v11, int8_t v12, int8_t v13, int8_t v14, int8_t v15) {
+			int8_t returnValue[32]{ v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10,
+				v11, v12, v13, v14, v15 };
+			return returnValue;
+		}
+
+		inline SimdBase256& operator=(char other) {
+			this->value = _mm256_set1_epi8(other);
+			return *this;
+		}
+
+		inline SimdBase256(char other) {
+			*this = other;
+		}
+
+		inline SimdBase256& operator=(int8_t values[32]) {
+			*this = _mm256_loadu_epi8(values);
+			return *this;
+		}
+
+		inline SimdBase256(int8_t values[32]) {
+			*this = values;
+		}
+
+		inline SimdBase256& operator=(const char* values) {
+			*this = _mm256_loadu_epi8(values);
+			return *this;
+		}
+
+		inline SimdBase256(const char* values) {
+			*this = values;
+		}
+
+		inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
+			this->value = _mm256_set_epi64x(value03, value02, value01, value00);
+		}
+
+		inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
+			this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
+				static_cast<int64_t>(value00));
+		}
+
+		inline SimdBase256& operator=(__m256i other) {
+			this->value = other;
+			return *this;
+		}
+
+		inline SimdBase256(__m256i other) {
+			*this = other;
+		}
+
+		inline void store(char dst[32]) const {
+			return _mm256_storeu_epi8(dst, this->value);
+		}
+
+		inline uint64_t getUint64(size_t index) {
+			switch (index) {
+				case 0: {
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 0));
+				}
+				case 1: {
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 1));
+				}
+				case 2: {
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 2));
+				}
+				case 3: {
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 3));
+				}
+				default: {
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 0));
+				}
+			}
+		}
+
+		inline int64_t getInt64(size_t index) {
+			switch (index) {
+				case 0: {
+					return _mm256_extract_epi64(this->value, 0);
+				}
+				case 1: {
+					return _mm256_extract_epi64(this->value, 1);
+				}
+				case 2: {
+					return _mm256_extract_epi64(this->value, 2);
+				}
+				case 3: {
+					return _mm256_extract_epi64(this->value, 3);
+				}
+				default: {
+					return _mm256_extract_epi64(this->value, 0);
+				}
+			}
+		}
+
+		inline void insertInt64(int64_t value, size_t index) {
+			switch (index) {
+				case 0: {
+					*this = _mm256_insert_epi64(this->value, value, 0);
+					break;
+				}
+				case 1: {
+					*this = _mm256_insert_epi64(this->value, value, 1);
+					break;
+				}
+				case 2: {
+					*this = _mm256_insert_epi64(this->value, value, 2);
+					break;
+				}
+				case 3: {
+					*this = _mm256_insert_epi64(this->value, value, 3);
+					break;
+				}
+				default: {
+					*this = _mm256_insert_epi64(this->value, value, 0);
+					break;
+				}
+			}
+		}
+
+		inline operator __m256i&() {
+			return this->value;
+		}
+
+		inline SimdBase256 operator|(SimdBase256 other) {
+			return _mm256_or_si256(this->value, other);
+		}
+
+		inline SimdBase256 operator&(SimdBase256 other) {
+			return _mm256_and_si256(this->value, other);
+		}
+
+		inline SimdBase256 operator^(SimdBase256 other) {
+			return _mm256_xor_si256(this->value, other);
+		}
+
+		inline SimdBase256 operator<=(SimdBase256 other) {
+			return _mm256_cmple_epi8_mask(this->value, other);
+		}
+
+		inline SimdBase256 operator+(SimdBase256 other) {
+			return _mm256_add_epi8(this->value, other);
+		}
+
+		inline SimdBase256& operator|=(SimdBase256 other) {
+			*this = *this | other;
+			return *this;
+		}
+
+		inline SimdBase256& operator&=(SimdBase256 other) {
+			*this = *this & other;
+			return *this;
+		}
+
+		inline SimdBase256& operator^=(SimdBase256 other) {
+			*this = *this ^ other;
+			return *this;
+		}
+
+		SimdBase256 operator-(int32_t other) {
+			auto currentValue = *this;
+			if (other == 1) {
+				currentValue = ~currentValue & 1;
+			}
+			return currentValue;
+		}
+
+		inline SimdBase256 operator==(SimdBase256 other) {
+			return _mm256_cmpeq_epi8(this->value, other);
+		}
+
+		inline SimdBase256 operator==(char other) {
+			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
+		}
+
+		inline SimdBase256 operator<<(size_t amount) {
+			int64_t values[4]{};
+			values[0] = _mm256_extract_epi64(this->value, 0);
+			values[1] = _mm256_extract_epi64(this->value, 1);
+			values[2] = _mm256_extract_epi64(this->value, 2);
+			values[3] = _mm256_extract_epi64(this->value, 3);
+			SimdBase256 newValues{};
+			newValues = _mm256_insert_epi64(newValues, (values[0] << (amount % 64)), 0);
+			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount % 64)) | ((values[0] & 1ull) << 63), 1);
+			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount % 64)) | ((values[1] & 1ull) << 63), 2);
+			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount % 64)) | ((values[2] & 1ull) << 63), 3);
+			return newValues;
+		}
+
+		inline SimdBase256 operator>>(size_t amount) {
+			int64_t values[4]{};
+			values[0] = _mm256_extract_epi64(this->value, 0);
+			values[1] = _mm256_extract_epi64(this->value, 1);
+			values[2] = _mm256_extract_epi64(this->value, 2);
+			values[3] = _mm256_extract_epi64(this->value, 3);
+			SimdBase256 newValues{};
+			newValues = _mm256_insert_epi64(newValues, (values[0] >> (amount % 64)) | ((values[1] & 1ull) >> 63), 0);
+			newValues = _mm256_insert_epi64(newValues, (values[1] >> (amount % 64)) | ((values[2] & 1ull) >> 63), 1);
+			newValues = _mm256_insert_epi64(newValues, (values[2] >> (amount % 64)) | ((values[3] & 1ull) >> 63), 2);
+			newValues = _mm256_insert_epi64(newValues, (values[3] >> (amount % 64)), 3);
+			return newValues;
+		}
+
+		inline SimdBase256 operator~() {
+			SimdBase256 newValues{};
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
+			return newValues;
+		}
+
+		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
+			SimdBase128 allOnes{ '\xFF' };
+			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
+			prevInString = inString00 >> 63;
+			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
+			prevInString = inString01 >> 63;
+			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
+			prevInString = inString02 >> 63;
+			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
+			prevInString = inString03 >> 63;
+			return SimdBase256{ inString00, inString01, inString02, inString03 };
+		}
+
+		inline bool collectCarries(SimdBase256 other1, SimdBase256* result) {
+			bool returnValue{};
+			uint64_t returnValue64{};
+			for (size_t x = 0; x < 4; ++x) {
+				if (_addcarry_u64(0, this->getUint64(x), other1.getUint64(x), reinterpret_cast<unsigned long long*>(&returnValue64))) {
+					returnValue = true;
+				}
+				result->insertInt64(returnValue64, x);
+			}
+			return returnValue;
+		}
+
+		inline void printBits(const std::string& valuesTitle) {
+			std::cout << valuesTitle;
+			for (size_t x = 0; x < 32; ++x) {
+				for (size_t y = 0; y < 8; ++y) {
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				}
+			}
+			std::cout << std::endl;
+		}
+
+		inline SimdBase256 bitAndNot(SimdBase256 other) {
+			return _mm256_andnot_si256(other, this->value);
+		}
+
+		inline SimdBase256 shuffle(SimdBase256 other) {
+			return _mm256_shuffle_epi8(other, this->value);
+		}
+
+	  protected:
+		__m256i value{};
+	};
+
 	class SimdBase256;
+
+	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00[8]) {
+		SimdBase256 returnValue{};
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[0]), 0);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[1]), 1);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[2]), 2);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[3]), 3);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[4]), 4);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[5]), 5);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[6]), 6);
+		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[7]), 7);
+		return returnValue;
+	}
 
 	struct JsonCharacterBlock {
 		static inline JsonCharacterBlock classify(SimdBase256 in[8]);
@@ -55,8 +365,8 @@ namespace Jsonifier {
 	inline JsonCharacterBlock JsonCharacterBlock::classify(SimdBase256 in[8]) {
 		// These lookups rely on the fact that anything < 127 will match the lower 4 bits, which is why
 		// we can't use the generic lookup_16.
-		char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
-		SimdBase256 opTable{ valuesNew };
+		char valuesNewOne[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
+		SimdBase256 opTable{ valuesNewOne };
 		SimdBase256 structural[8]{};
 		for (size_t x = 0; x < 8; ++x) {
 			auto valuesNew00 = in[x] | SimdBase256{ 0x20 };
@@ -97,7 +407,6 @@ namespace Jsonifier {
 		return { convertSimdBytesToBits(whiteSpaceReal), convertSimdBytesToBits(structural) };
 		
 	}
-
 
 	inline SimdBase256 prefixXor(SimdBase256 bitmask, int64_t prevInString) {
 		// There should be no such thing with a processor supporting avx2
@@ -183,7 +492,7 @@ namespace Jsonifier {
 		inline SimdBase256 findEscaped(SimdBase256 escape);
 
 		// Whether the last iteration was still inside a string (all 1's = true, all 0's = false).
-		SimdBase256 prevInString = '\0';
+		uint64_t prevInString = '\0';
 		// Whether the first character of the next iteration is escaped.
 		SimdBase256 prev_escaped = '\0';
 	};
@@ -224,7 +533,7 @@ namespace Jsonifier {
 		SimdBase256 even_bits = 0x5555555555555555ULL;
 		SimdBase256 odd_sequence_starts = backslash & ~even_bits & ~follows_escape;
 		SimdBase256 sequences_starting_on_even_bits;
-		prev_escaped = prev_escaped.collectCarries(odd_sequence_starts, backslash, &sequences_starting_on_even_bits);
+		prev_escaped = prev_escaped.collectCarries(odd_sequence_starts, &sequences_starting_on_even_bits);
 		SimdBase256 invert_mask = sequences_starting_on_even_bits << 1;// The mask we want to return is the *escaped* bits, not escapes.
 
 		// Mask every other backslashed character as an escaped character
@@ -424,9 +733,9 @@ namespace Jsonifier {
 		return string_scanner.finish();
 	}
 
-	template<size_t STEP_SIZE> struct bufBlockReader {
+	template<size_t STEP_SIZE> struct BufBlockReader {
 	  public:
-		inline bufBlockReader(const uint8_t* _buf, size_t _len);
+		inline BufBlockReader(const uint8_t* _buf, size_t _len);
 		inline size_t blockIndex();
 		inline bool has_full_block() const;
 		inline const uint8_t* full_block() const;
@@ -450,23 +759,23 @@ namespace Jsonifier {
 	};
 
 	template<size_t STEP_SIZE>
-	inline bufBlockReader<STEP_SIZE>::bufBlockReader(const uint8_t* _buf, size_t _len)
+	inline BufBlockReader<STEP_SIZE>::BufBlockReader(const uint8_t* _buf, size_t _len)
 		: buf{ _buf }, len{ _len }, lenminusstep{ len < STEP_SIZE ? 0 : len - STEP_SIZE }, idx{ 0 } {
 	}
 
-	template<size_t STEP_SIZE> inline size_t bufBlockReader<STEP_SIZE>::blockIndex() {
+	template<size_t STEP_SIZE> inline size_t BufBlockReader<STEP_SIZE>::blockIndex() {
 		return idx;
 	}
 
-	template<size_t STEP_SIZE> inline bool bufBlockReader<STEP_SIZE>::has_full_block() const {
+	template<size_t STEP_SIZE> inline bool BufBlockReader<STEP_SIZE>::has_full_block() const {
 		return idx < lenminusstep;
 	}
 
-	template<size_t STEP_SIZE> inline const uint8_t* bufBlockReader<STEP_SIZE>::full_block() const {
+	template<size_t STEP_SIZE> inline const uint8_t* BufBlockReader<STEP_SIZE>::full_block() const {
 		return &buf[idx];
 	}
 
-	template<size_t STEP_SIZE> inline size_t bufBlockReader<STEP_SIZE>::get_remainder(uint8_t* dst) const {
+	template<size_t STEP_SIZE> inline size_t BufBlockReader<STEP_SIZE>::get_remainder(uint8_t* dst) const {
 		if (len == idx) {
 			return 0;
 		}// memcpy(dst, null, 0) will trigger an error with some sanitizers
@@ -475,7 +784,7 @@ namespace Jsonifier {
 		return len - idx;
 	}
 
-	template<size_t STEP_SIZE> inline void bufBlockReader<STEP_SIZE>::advance() {
+	template<size_t STEP_SIZE> inline void BufBlockReader<STEP_SIZE>::advance() {
 		idx += STEP_SIZE;
 	}
 
@@ -495,7 +804,7 @@ namespace Jsonifier {
 		// If the kernel sets SIMDJSON_CUSTOM_BIT_INDEXER, then it will provide its own
 		// version of the code.
 
-		inline void write(uint32_t idx, uint64_t bits) {
+		inline void write(uint32_t idx, SimdBase256 bits) {
 			// In some instances, the next branch is expensive because it is mispredicted.
 			// Unfortunately, in other cases,
 			// it helps tremendously.
@@ -506,34 +815,37 @@ namespace Jsonifier {
      * instruction and a fast 'clear-lower-bit' instruction so the following
      * algorithm can be competitive.
      */
-
-			int cnt = static_cast<int>(countOnes(bits));
-			// Do the first 8 all together
-			for (int i = 0; i < 8; i++) {
-				this->tail[i] = idx + trailingZeroes(bits);
-				bits = clearLowestBit(bits);
-			}
-
-			// Do the next 8 all together (we hope in most cases it won't happen at all
-			// and the branch is easily predicted).
-			if (cnt > 8) {
-				for (int i = 8; i < 16; i++) {
-					this->tail[i] = idx + trailingZeroes(bits);
-					bits = clearLowestBit(bits);
+			int cnt{}; 
+			for (size_t x = 0; x < 4; ++x) {
+				cnt += static_cast<int>(countOnes(bits.getUint64(x)));
+				// Do the first 8 all together
+				for (int i = 0; i < 8; i++) {
+					this->tail[i] = idx + trailingZeroes(bits.getUint64(x));
+					bits = clearLowestBit(bits.getUint64(x));
 				}
 
-				// Most files don't have 16+ structurals per block, so we take several basically guaranteed
-				// branch mispredictions here. 16+ structurals per block means either punctuation ({} [] , :)
-				// or the start of a value ("abc" true 123) every four characters.
-				if (cnt > 16) {
-					int i = 16;
-					do {
-						this->tail[i] = idx + trailingZeroes(bits);
-						bits = clearLowestBit(bits);
-						i++;
-					} while (i < cnt);
+				// Do the next 8 all together (we hope in most cases it won't happen at all
+				// and the branch is easily predicted).
+				if (cnt > 8) {
+					for (int i = 8; i < 16; i++) {
+						this->tail[i] = idx + trailingZeroes(bits.getUint64(x));
+						bits = clearLowestBit(bits.getUint64(x));
+					}
+
+					// Most files don't have 16+ structurals per block, so we take several basically guaranteed
+					// branch mispredictions here. 16+ structurals per block means either punctuation ({} [] , :)
+					// or the start of a value ("abc" true 123) every four characters.
+					if (cnt > 16) {
+						int i = 16;
+						do {
+							this->tail[i] = idx + trailingZeroes(bits.getUint64(x));
+							bits = clearLowestBit(bits.getUint64(x));
+							i++;
+						} while (i < cnt);
+					}
 				}
 			}
+			
 
 			this->tail += cnt;
 		}
@@ -548,13 +860,13 @@ namespace Jsonifier {
    *   tolerate unclosed strings. The caller should still ensure that the input is valid UTF-8. If
    *   you are processing substrings, you may want to call on a function like trimmed_length_safe_utf8.
    */
-		template<size_t STEP_SIZE> static ErrorCode index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept;
+		template<size_t STEP_SIZE, typename SimdJsonValue> static ErrorCode index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept;
 
 	  private:
 		inline JsonStructuralIndexer(uint32_t* structuralIndexes);
-		template<size_t STEP_SIZE> inline void step(int8_t* block, bufBlockReader<STEP_SIZE>& reader) noexcept;
+		template<size_t STEP_SIZE> inline void step(int8_t* block, BufBlockReader<STEP_SIZE>& reader) noexcept;
 		inline void next(SimdBase256 in[8], JsonBlock& block, size_t idx);
-		inline ErrorCode finish(SimdJsonValue& parser, size_t idx, size_t len);
+		template<typename SimdJsonValue> inline ErrorCode finish(SimdJsonValue& parser, size_t idx, size_t len);
 
 		JsonScanner scanner{};
 		BitIndexer indexer;
@@ -566,7 +878,7 @@ namespace Jsonifier {
 	}
 
 	// Skip the last character if it is partial
-	inline size_t trim_partial_utf8(const uint8_t* buf, size_t len) {
+	inline size_t trim_partial_utf8(int8_t* buf, size_t len) {
 		if (len < 3) {
 			switch (len) {
 				case 2:
@@ -615,7 +927,7 @@ namespace Jsonifier {
 	// available capacity with just one input. Running 2 at a time seems to give the CPU a good enough
 	// workout.
 	//
-	template<size_t STEP_SIZE> ErrorCode JsonStructuralIndexer::index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept {
+	template<size_t STEP_SIZE, typename SimdJsonValue> ErrorCode JsonStructuralIndexer::index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept {
 		if (simdjson_unlikely(len > parser.capacity())) {
 			return CAPACITY;
 		}
@@ -623,16 +935,7 @@ namespace Jsonifier {
 		if (len == 0) {
 			return ErrorCode::Empty;
 		}
-		if (is_streaming(partial)) {
-			len = trim_partial_utf8(buf, len);
-			// If you end up with an empty window after trimming
-			// the partial UTF-8 bytes, then chances are good that you
-			// have an UTF-8 formatting error.
-			if (len == 0) {
-				return UTF8_ERROR;
-			}
-		}
-		bufBlockReader<STEP_SIZE> reader(buf, len);
+		BufBlockReader<STEP_SIZE> reader(buf, len);
 		JsonStructuralIndexer indexer(parser.structuralIndexes.get());
 
 		// Read all but the last block
@@ -646,10 +949,10 @@ namespace Jsonifier {
 			return ErrorCode::Unexpected_Error;
 		}
 		indexer.step<STEP_SIZE>(block, reader);
-		return indexer.finish(parser, reader.blockIndex(), len, partial);
+		return indexer.finish(parser, reader.blockIndex(), len);
 	}
 
-	template<> inline void JsonStructuralIndexer::step<256>(int8_t* block, bufBlockReader<256>& reader) noexcept {
+	template<> inline void JsonStructuralIndexer::step<256>(int8_t* block, BufBlockReader<256>& reader) noexcept {
 		SimdBase256 in[8](block);
 		for (size_t x = 0; x < 8; ++x) {
 			in[x] = block + 32;
@@ -670,7 +973,7 @@ namespace Jsonifier {
 		prev_structurals = block.structural_start();
 		unescaped_chars_error |= block.non_quote_inside_string(unescaped);
 	}
-
+	template<typename SimdJsonValue>
 	inline ErrorCode JsonStructuralIndexer::finish(SimdJsonValue& parser, size_t idx, size_t len) {
 		// Write out the final iteration's structurals
 		indexer.write(uint32_t(idx - 64), prev_structurals);
@@ -1540,317 +1843,6 @@ namespace Jsonifier {
 		size_t currenPositionInTape{};
 		size_t currentStringSize{};
 	};
-
-	class SimdBase256;
-
-	class SimdBase128 {
-	  public:
-		inline SimdBase128() noexcept = default;
-
-		inline SimdBase128& operator=(char other) {
-			this->value = _mm_set1_epi8(other);
-			return *this;
-		}
-
-		inline SimdBase128(char other) {
-			*this = other;
-		}
-
-		inline operator __m128i() {
-			return this->value;
-		}
-
-	  protected:
-		__m128i value{};
-	};
-
-	class SimdBase256 {
-	  public:
-		inline SimdBase256() noexcept {
-			this->value = _mm256_set1_epi8(0x00);
-		};
-
-		explicit operator bool() {
-			for (size_t x = 0; x < 4; ++x) {
-				if (this->getUint64(x) != 0) {
-					return true;
-				}
-			}
-			return false;
-		}
-
-		 inline static SimdBase256 repeat_16(int8_t v0, int8_t v1, int8_t v2, int8_t v3, int8_t v4, int8_t v5, int8_t v6, int8_t v7,
-			int8_t v8, int8_t v9, int8_t v10, int8_t v11, int8_t v12, int8_t v13, int8_t v14, int8_t v15) {
-			int8_t returnValue[32]{ v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14, v15, v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10,
-				v11, v12, v13, v14, v15 };
-			 return returnValue;
-		}
-
-		inline SimdBase256& operator=(char other) {
-			this->value = _mm256_set1_epi8(other);
-			return *this;
-		}
-
-		inline SimdBase256(char other) {
-			*this = other;
-		}
-
-		inline SimdBase256& operator=(int8_t values[32]) {
-			*this = _mm256_loadu_epi8(values);
-			return *this;
-		}
-
-		inline SimdBase256(int8_t values[32]) {
-			*this = values;
-		}
-
-		inline SimdBase256& operator=(const char* values) {
-			*this = _mm256_loadu_epi8(values);
-			return *this;
-		}
-
-		inline SimdBase256(const char* values) {
-			*this = values;
-		}
-
-		inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
-			this->value = _mm256_set_epi64x(value03, value02, value01, value00);
-		}
-
-		inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
-			this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
-				static_cast<int64_t>(value00));
-		}
-
-		inline SimdBase256& operator=(__m256i other) {
-			this->value = other;
-			return *this;
-		}
-
-		inline SimdBase256(__m256i other) {
-			*this = other;
-		}
-
-		inline void store(char dst[32]) const {
-			return _mm256_storeu_epi8(dst, this->value);
-		}
-
-		inline uint64_t getUint64(size_t index) {
-			switch (index) {
-				case 0: {
-					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 0));
-				}
-				case 1: {
-					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 1));
-				}
-				case 2: {
-					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 2));
-				}
-				case 3: {
-					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 3));
-				}
-				default: {
-					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 0));
-				}
-			}
-		}
-
-		inline int64_t getInt64(size_t index) {
-			switch (index) {
-				case 0: {
-					return _mm256_extract_epi64(this->value, 0);
-				}
-				case 1: {
-					return _mm256_extract_epi64(this->value, 1);
-				}
-				case 2: {
-					return _mm256_extract_epi64(this->value, 2);
-				}
-				case 3: {
-					return _mm256_extract_epi64(this->value, 3);
-				}
-				default: {
-					return _mm256_extract_epi64(this->value, 0);
-				}
-			}
-		}
-
-		inline void insertInt64(int64_t value, size_t index) {
-			switch (index) {
-				case 0: {
-					*this = _mm256_insert_epi64(this->value, value, 0);
-					break;
-				}
-				case 1: {
-					*this = _mm256_insert_epi64(this->value, value, 1);
-					break;
-				}
-				case 2: {
-					*this = _mm256_insert_epi64(this->value, value, 2);
-					break;
-				}
-				case 3: {
-					*this = _mm256_insert_epi64(this->value, value, 3);
-					break;
-				}
-				default: {
-					*this = _mm256_insert_epi64(this->value, value, 0);
-					break;
-				}
-			}
-		}
-
-		inline operator __m256i&() {
-			return this->value;
-		}
-
-		inline SimdBase256 operator|(SimdBase256 other) {
-			return _mm256_or_si256(this->value, other);
-		}
-
-		inline SimdBase256 operator&(SimdBase256 other) {
-			return _mm256_and_si256(this->value, other);
-		}
-
-		inline SimdBase256 operator^(SimdBase256 other) {
-			return _mm256_xor_si256(this->value, other);
-		}
-
-		inline SimdBase256 operator<=(SimdBase256 other) {
-			return _mm256_cmple_epi8_mask(this->value, other);
-		}
-
-		inline SimdBase256 operator+(SimdBase256 other) {
-			return _mm256_add_epi8(this->value, other);
-		}
-
-		inline SimdBase256& operator|=(SimdBase256 other) {
-			*this = *this | other;
-			return *this;
-		}
-
-		inline SimdBase256& operator&=(SimdBase256 other) {
-			*this = *this & other;
-			return *this;
-		}
-
-		inline SimdBase256& operator^=(SimdBase256 other) {
-			*this = *this ^ other;
-			return *this;
-		}
-
-		SimdBase256 operator-(int32_t other) {
-			auto currentValue = *this;
-			if (other == 1) {
-				currentValue = ~currentValue & 1;
-			}
-			return currentValue;
-		}
-
-		inline SimdBase256 operator==(SimdBase256 other) {
-			return _mm256_cmpeq_epi8(this->value, other);
-		}
-
-		inline SimdBase256 operator==(char other) {
-			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
-		}
-
-		inline SimdBase256 operator<<(size_t amount) {
-			int64_t values[4]{};
-			values[0] = _mm256_extract_epi64(this->value, 0);
-			values[1] = _mm256_extract_epi64(this->value, 1);
-			values[2] = _mm256_extract_epi64(this->value, 2);
-			values[3] = _mm256_extract_epi64(this->value, 3);
-			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, (values[0] << (amount % 64)), 0);
-			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount % 64)) | ((values[0] & 1ull) << 63), 1);
-			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount % 64)) | ((values[1] & 1ull) << 63), 2);
-			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount % 64)) | ((values[2] & 1ull) << 63), 3);
-			return newValues;
-		}
-
-		inline SimdBase256 operator>>(size_t amount) {
-			int64_t values[4]{};
-			values[0] = _mm256_extract_epi64(this->value, 0);
-			values[1] = _mm256_extract_epi64(this->value, 1);
-			values[2] = _mm256_extract_epi64(this->value, 2);
-			values[3] = _mm256_extract_epi64(this->value, 3);
-			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, (values[0] >> (amount % 64)) | ((values[1] & 1ull) >> 63), 0);
-			newValues = _mm256_insert_epi64(newValues, (values[1] >> (amount % 64)) | ((values[2] & 1ull) >> 63), 1);
-			newValues = _mm256_insert_epi64(newValues, (values[2] >> (amount % 64)) | ((values[3] & 1ull) >> 63), 2);
-			newValues = _mm256_insert_epi64(newValues, (values[3] >> (amount % 64)), 3);
-			return newValues;
-		}
-
-		inline SimdBase256 operator~() {
-			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
-			return newValues;
-		}
-
-		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
-			SimdBase128 allOnes{ '\xFF' };
-			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
-			prevInString = inString00 >> 63;
-			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
-			prevInString = inString01 >> 63;
-			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
-			prevInString = inString02 >> 63;
-			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
-			prevInString = inString03 >> 63;
-			return SimdBase256{ inString00, inString01, inString02, inString03 };
-		}
-
-		inline bool collectCarries(SimdBase256 other1, SimdBase256* result) {
-			bool returnValue{};
-			uint64_t returnValue64{};
-			for (size_t x = 0; x < 4; ++x) {
-				if (_addcarry_u64(0, this->getUint64(x), other1.getUint64(x), reinterpret_cast<unsigned long long*>(&returnValue64))) {
-					returnValue = true;
-				}
-				result->insertInt64(returnValue64, x);
-			}
-			return returnValue;
-		}
-
-		inline void printBits(const std::string& valuesTitle) {
-			std::cout << valuesTitle;
-			for (size_t x = 0; x < 32; ++x) {
-				for (size_t y = 0; y < 8; ++y) {
-					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
-				}
-			}
-			std::cout << std::endl;
-		}
-
-		inline SimdBase256 bitAndNot(SimdBase256 other) {
-			return _mm256_andnot_si256(other, this->value);
-		}
-
-		inline SimdBase256 shuffle(SimdBase256 other) {
-			return _mm256_shuffle_epi8(other, this->value);
-		}
-
-	  protected:
-		__m256i value{};
-	};
-
-	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00[8]) {
-		SimdBase256 returnValue{};
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[0]), 0);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[1]), 1);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[2]), 2);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[3]), 3);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[4]), 4);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[5]), 5);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[6]), 6);
-		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[7]), 7);
-		return returnValue;
-	}
 
 	class SimdStringSection {
 	  public:
