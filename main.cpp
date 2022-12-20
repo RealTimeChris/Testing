@@ -126,63 +126,17 @@ class FileLoader {
 
 int32_t main() noexcept {
 	try {
-		std::string stringNew{
-			"{\"d\":{\"activitiess\":[{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{"
-			"\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false,\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false,\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false,\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false,\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false,\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true,"
-			"\"TRUTH_TEST2\":false}]}}"
-		};
+		Jsonifier::Jsonifier serializer{};
+		Jsonifier::Jsonifier arrayValue{};
+		arrayValue["TEST_VALUE_01"] = 0.00333423f;
+		arrayValue["TEST_VALUE_02"] = false;
+		arrayValue["TEST_VALUE_03"] = "TESTING_VALUE0101";
+		arrayValue["TEST_VALUE_04"] = 4325454;
+		for (size_t x = 0; x < 10; ++x) {
+			serializer.emplaceBack(arrayValue);
+		}
+		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
+		std::string stringNew{ serializer.operator std::basic_string_view<char, std::char_traits<char>>() };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
