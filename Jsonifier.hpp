@@ -2103,7 +2103,7 @@ namespace Jsonifier {
 
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(string.data(), string.size());
-		//TapeBuilder::parseDocument(*this);
+		TapeBuilder::parseDocument(*this);
 		return std::move(this->tape);
 	}
 
