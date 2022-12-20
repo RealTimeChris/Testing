@@ -1918,7 +1918,7 @@ namespace Jsonifier {
 			visitor.visitKey(*this, key);
 		}
 
-	object_field:
+	Object_Field:
 		if (*advance() != ':') {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
@@ -1945,7 +1945,7 @@ namespace Jsonifier {
 			}
 		}
 
-	object_continue:
+	Object_Continue:
 		switch (*advance()) {
 			case ',':
 				visitor.incrementCount(*this);
@@ -1956,24 +1956,24 @@ namespace Jsonifier {
 					}
 					visitor.visitKey(*this, key);
 				}
-				goto object_field;
+				goto Object_Field;
 			case '}':
 				visitor.visitObjectEnd(*this);
-				goto scope_end;
+				goto Scope_End;
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 
-	scope_end:
+	Scope_End:
 		this->depth--;
 		this->masterParser->getIsArray().erase(this->masterParser->getIsArray().end() - 1);
 		if (this->depth == 0) {
 			goto Document_End;
 		}
 		if (this->masterParser->getIsArray()[this->depth - 1]) {
-			goto array_continue;
+			goto Array_Continue;
 		}
-		goto object_continue;
+		goto Object_Continue;
 	//
 	// Array parser states
 	//
@@ -1986,7 +1986,7 @@ namespace Jsonifier {
 	visitor.visitArrayStart(*this);
 	visitor.incrementCount(*this);
 
-	array_value : {
+	Array_Value : {
 		auto value = advance();
 		switch (*value) {
 			case '{':
@@ -2009,13 +2009,13 @@ namespace Jsonifier {
 		}
 	}
 
-	array_continue : switch (*advance()) {
+	Array_Continue : switch (*advance()) {
 		case ',':
 			visitor.incrementCount(*this);
-			goto array_value;
+			goto Array_Value;
 		case ']':
 			visitor.visitArrayEnd(*this);
-			goto scope_end;
+			goto Scope_End;
 		default:
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 	}
