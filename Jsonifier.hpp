@@ -698,14 +698,17 @@ namespace Jsonifier {
 		}
 
 		template<> std::string getValue(){
-			std::string returnValue{ reinterpret_cast<char*>(this->ptrs.data()) + this->currenPositionInTape,
-				static_cast<size_t>(this->ptrs[this->currenPositionInTape + 1]) - (this->ptrs[this->currenPositionInTape]) };
+			std::string returnValue{ reinterpret_cast<char*>(this->stringView[(this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)]),
+				static_cast<size_t>(
+					(this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) - (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)) };
+			std::cout << "RETURN VALUE: " << returnValue << std::endl;
 			return returnValue;
 		}
 
 		template<> std::vector<JsonParser> getValue() {
-			std::string returnValue{ reinterpret_cast<char*>(this->ptrs.data()) + this->currenPositionInTape,
-				static_cast<size_t>(this->ptrs[this->currenPositionInTape + 1]) - (this->ptrs[this->currenPositionInTape]) };
+			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
+			std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
+			std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 			return std::vector<JsonParser>{};
 		}
 		
@@ -715,23 +718,26 @@ namespace Jsonifier {
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
 			if (newValue == 'r') {
+				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
 				return std::move(*this);
 			}
 			if (newValue == '[') {
+				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 				return std::move(*this);
 			}
 			if (newValue == '{') {
+				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 				return std::move(*this);
 			}
 			if (newValue == '\"') {
-				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape + 1] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
 				return std::move(*this);
 			}
 			
 			
-			std::string returnValue{ reinterpret_cast<char*>(this->stringView[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK]),
+			std::string returnValue{ reinterpret_cast<char*>(this->stringView[(this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)]),
 				static_cast<size_t>(
-					this->ptrs[this->currenPositionInTape + 1] & JSON_VALUE_MASK - this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) };
+					(this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) - (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)) };
 			return std::move(*this);
 		};
 
