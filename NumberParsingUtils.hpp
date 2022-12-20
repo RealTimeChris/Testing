@@ -1867,8 +1867,7 @@ namespace Jsonifier {
 		*outDouble = fromChars(reinterpret_cast<const char*>(ptr));
 		return !(*outDouble > (std::numeric_limits<double>::max)() || *outDouble < std::numeric_limits<double>::lowest());
 	}
-
-	template<typename TapeWriter> inline ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter& writer) {
+	template<typename Jsonifier, typename TapeWriter> inline ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
 		double d;
 		if (parseFloatFallback(src, &d)) {
 			writer.appendDouble(d);
@@ -1983,12 +1982,12 @@ namespace Jsonifier {
 		}
 		return false;
 	}
-	template<typename TapeWriter>
+	template<typename Jsonifier, typename TapeWriter>
 	inline ErrorCode writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits, size_t digit_count,
 		int64_t exponent, TapeWriter& writer) {
 		if (digit_count > 19 && significantDigits(start_digits, digit_count) > 19) {
 			writer.skipDouble();
-			return slowFloatParsing<TapeWriter>(src, writer);
+			return slowFloatParsing<Jsonifier, TapeWriter>(src, writer);
 		}
 		if ((exponent < smallestPower) || (exponent > largestPower)) {
 			static_assert(smallestPower <= -342, "smallestPower is not small enough");
@@ -2009,100 +2008,67 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	template<typename TapeWriter>
-	inline ErrorCode parseNumber(const uint8_t* const src, TapeWriter& writer) {
-		//
-		// Check for minus sign
-		//
+	template<typename Jsonifier, typename TapeWriter> inline ErrorCode parseNumber(const uint8_t* const src, TapeWriter& writer) {
 		bool negative = (*src == '-');
 		const uint8_t* p = src + uint8_t(negative);
-
-		//
-		// Parse the integer part.
-		//
-		// PERF NOTE: we don't use is_made_of_eight_digits_fast because large integers like 123456789 are rare
-		const uint8_t* const start_digits = p;
+		const uint8_t* const startDigits = p;
 		uint64_t i = 0;
 		while (parseDigit(*p, i)) {
 			p++;
 		}
-
-		// If there were no digits, or if the integer starts with 0 and has more than one digit, it's an error.
-		// Optimization note: size_t is expected to be unsigned.
-		size_t digit_count = size_t(p - start_digits);
-		if (digit_count == 0 || ('0' == *start_digits && digit_count > 1)) {
+		size_t digitCount = size_t(p - startDigits);
+		if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
 			return ErrorCode::InvalidNumber;
 		}
-
-		//
-		// Handle floats if there is a . or e (or both)
-		//
 		int64_t exponent = 0;
-		bool is_float = false;
+		bool isFloat = false;
 		if ('.' == *p) {
-			is_float = true;
+			isFloat = true;
 			++p;
 			parseDecimal(src, p, i, exponent);
-			digit_count = int(p - start_digits);// used later to guard against overflows
+			digitCount = int(p - startDigits);
 		}
 		if (('e' == *p) || ('E' == *p)) {
-			is_float = true;
+			isFloat = true;
 			++p;
 			parseExponent(src, p, exponent);
 		}
-		if (is_float) {
-			const bool dirty_end = isNotStructuralOrWhiteSpace(*p);
-			writeFloat(src, negative, i, start_digits, digit_count, exponent, writer);
-			if (dirty_end) {
+		if (isFloat) {
+			const bool dirtyEnd = isNotStructuralOrWhiteSpace(*p);
+			auto returnValue = writeFloat<Jsonifier, TapeWriter>(src, negative, i, startDigits, digitCount, exponent, writer);
+			if (dirtyEnd) {
 				return ErrorCode::InvalidNumber;
 			}
-			return ErrorCode::Success;
+			return returnValue;
 		}
 
-		// The longest negative 64-bit number is 19 digits.
-		// The longest positive 64-bit number is 20 digits.
-		// We do it this way so we don't trigger this branch unless we must.
-		size_t longest_digit_count = negative ? 19 : 20;
-		if (digit_count > longest_digit_count) {
+		size_t longestDigitCount = negative ? 19 : 20;
+		if (digitCount > longestDigitCount) {
 			return ErrorCode::InvalidNumber;
 		}
-		if (digit_count == longest_digit_count) {
+		if (digitCount == longestDigitCount) {
 			if (negative) {
-				// Anything negative above INT64_MAX+1 is invalid
-				if (i > uint64_t(INT64_MAX) + 1) {
+				if (i > std::numeric_limits<int64_t>::max() + 1ull) {
 					return ErrorCode::InvalidNumber;
 				}
-				writer.appendS64(~i + 1);
 				if (isNotStructuralOrWhiteSpace(*p)) {
 					return ErrorCode::InvalidNumber;
 				}
+				writer.appendS64(~i);
 				return ErrorCode::Success;
-				// Positive overflow check:
-				// - A 20 digit number starting with 2-9 is overflow, because 18,446,744,073,709,551,615 is the
-				//   biggest uint64_t.
-				// - A 20 digit number starting with 1 is overflow if it is less than INT64_MAX.
-				//   If we got here, it's a 20 digit number starting with the digit "1".
-				// - If a 20 digit number starting with 1 overflowed (i*10+digit), the result will be smaller
-				//   than 1,553,255,926,290,448,384.
-				// - That is smaller than the smallest possible 20-digit number the user could write:
-				//   10,000,000,000,000,000,000.
-				// - Therefore, if the number is positive and lower than that, it's overflow.
-				// - The value we are looking at is less than or equal to INT64_MAX.
-				//
-			} else if (src[0] != uint8_t('1') || i <= uint64_t(INT64_MAX)) {
+			} else if (src[0] != uint8_t('1') || i <= uint64_t(std::numeric_limits<int64_t>::max())) {
 				return ErrorCode::InvalidNumber;
 			}
 		}
-
-		// Write unsigned if it doesn't fit in a signed integer.
-		if (i > uint64_t(INT64_MAX)) {
-			writer.appendU64(i);
+		ErrorCode returnValue{ ErrorCode::Success };
+		if (i > uint64_t(std::numeric_limits<int64_t>::max())) {
+			writer.appendS64(i);
 		} else {
 			writer.appendS64(negative ? (~i + 1) : i);
 		}
 		if (isNotStructuralOrWhiteSpace(*p)) {
 			return ErrorCode::InvalidNumber;
 		}
-		return ErrorCode::Success;
+		return returnValue;
 	}
 }
