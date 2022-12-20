@@ -2017,17 +2017,21 @@ namespace Jsonifier {
 
 	inline ErrorCode JsonIterator::walkDocument(TapeBuilder&& visitor) noexcept {
 		
-		if (atEof()) {
+		 if (this->atEof()) {
 			return ErrorCode::Empty;
 		}
+		 visitor.visitDocumentStart(*this);
 
+		//
+		// Read first value
+		//
 		{
-			auto value = this->advance();
+			auto value = advance();
 
 			switch (*value) {
 				case '{':
-					if (*peek() == '}') {
-						advance();
+					if (*this->peek() == '}') {
+						this->advance();
 						visitor.visitEmptyObject(*this);
 						break;
 					}
@@ -2047,39 +2051,39 @@ namespace Jsonifier {
 		goto Document_End;
 
 	Object_Begin:
-		masterParser->getCurrentDepth()++;
-		if (masterParser->getCurrentDepth() >= masterParser->getMaxDepth()) {
+		this->masterParser->getCurrentDepth()++;
+		if (this->masterParser->getCurrentDepth() >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		masterParser->getIsArray()[masterParser->getCurrentDepth()] = false;
+		this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()] = false;
 		visitor.visitObjectStart(*this);
 
 		{
-			auto key = this->advance();
+			auto key = advance();
 			if (*key != '"') {
 				return ErrorCode::TapeError;
 			}
-			visitor.visitKey(*this, key);
 			visitor.incrementCount(*this);
+			visitor.visitKey(*this, key);
 		}
 
 	Object_Field:
-		if (*advance() != ':') {
+		if (*this->advance() != ':') {
 			return ErrorCode::TapeError;
 		}
 		{
 			auto value = this->advance();
 			switch (*value) {
 				case '{':
-					if (*peek() == '}') {
-						advance();
+					if (*this->peek() == '}') {
+						this->advance();
 						visitor.visitEmptyObject(*this);
 						break;
 					}
 					goto Object_Begin;
 				case '[':
-					if (*peek() == ']') {
-						advance();
+					if (*this->peek() == ']') {
+						this->advance();
 						visitor.visitEmptyArray(*this);
 						break;
 					}
@@ -2095,10 +2099,11 @@ namespace Jsonifier {
 			case ',':
 				visitor.incrementCount(*this);
 				{
-					auto key = this->advance();
+					auto key = advance();
 					if (*key != '"') {
 						return ErrorCode::TapeError;
 					}
+					visitor.visitKey(*this, key);
 				}
 				goto Object_Field;
 			case '}':
@@ -2109,26 +2114,29 @@ namespace Jsonifier {
 		}
 
 	Scope_End:
-		masterParser->getCurrentDepth()--;
-		if (masterParser->getCurrentDepth() == 0) {
+		this->masterParser->getCurrentDepth()--;
+		if (this->masterParser->getCurrentDepth() == 0) {
 			goto Document_End;
 		}
-		if (masterParser->getIsArray()[masterParser->getCurrentDepth()]) {
+		if (this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()]) {
 			goto Array_Continue;
 		}
 		goto Object_Continue;
 
+	//
+	// Array parser states
+	//
 	Array_Begin:
-		masterParser->getCurrentDepth()++;
-		if (masterParser->getCurrentDepth() >= masterParser->getMaxDepth()) {
+		this->masterParser->getCurrentDepth()++;
+		if (this->masterParser->getCurrentDepth() >= this->masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		masterParser->getIsArray()[masterParser->getCurrentDepth()] = true;
+		this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()] = true;
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
 
 	Array_Value : {
-		auto value = this->advance();
+		auto value = advance();
 		switch (*value) {
 			case '{':
 				if (*peek() == '}') {
@@ -2145,6 +2153,7 @@ namespace Jsonifier {
 				}
 				goto Array_Begin;
 			default:
+				visitor.visitPrimitive(*this, value);
 				break;
 		}
 	}
@@ -2164,9 +2173,10 @@ namespace Jsonifier {
 	Document_End:
 		visitor.visitDocumentEnd(*this);
 
-		auto nextStructuralIndex = uint32_t(nextStructural - &masterParser->getStructuralIndexes()[0]);
+			auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
 
-		if (nextStructuralIndex != masterParser->getTapeLength()) {
+		// If we didn't make it to the end, it's an error
+		if (nextStructuralIndex != this->masterParser->getTapeLength()) {
 			return ErrorCode::TapeError;
 		}
 
