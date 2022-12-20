@@ -267,13 +267,12 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
-		//auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
-		//for (auto& value: theArray) {
-		//activities.emplace_back(std::move(value));
-		//}
+		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
+		for (auto& value: theArray) {
+			activities.emplace_back(std::move(value));
+		}
 	}
-	//std::vector<ActivitiesJson> activities{};
-	~TheDJson() noexcept = default;
+	std::vector<ActivitiesJson> activities{};
 };
 
 namespace Jsonifier {
@@ -389,12 +388,13 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
+
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			//TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
 			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
@@ -409,9 +409,10 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
+
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
