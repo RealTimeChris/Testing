@@ -8,6 +8,25 @@
 
 namespace Jsonifier {
 
+	struct JsonifierException : public std::runtime_error, std::string {
+		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+	};
+
+	enum class TapeType : uint8_t {
+		Root = 'r',
+		Start_Array = '[',
+		Start_Object = '{',
+		End_Array = ']',
+		End_Object = '}',
+		String = '"',
+		Int64 = 'l',
+		Uint64 = 'u',
+		Double = 'd',
+		True_Value = 't',
+		False_Value = 'f',
+		Null_Value = 'n'
+	};
+
 	inline int trailingZeroes(uint64_t input_num) {
 		return ( int )_tzcnt_u64(input_num);
 	}
@@ -200,7 +219,7 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 operator<=(SimdBase256 other) {
-			return _mm256_cmple_epi8_mask(this->value, other);
+			return _mm256_cmpeq_epi8(this->value, other);
 		}
 
 		inline SimdBase256 operator+(SimdBase256 other) {
@@ -735,10 +754,10 @@ namespace Jsonifier {
 
 	template<size_t STEP_SIZE> struct BufBlockReader {
 	  public:
-		inline BufBlockReader(const uint8_t* _buf, size_t _len);
+		inline BufBlockReader(int8_t* _buf, size_t _len);
 		inline size_t blockIndex();
 		inline bool has_full_block() const;
-		inline const uint8_t* full_block() const;
+		inline int8_t* full_block() const;
 		/**
    * Get the last block, padded with spaces.
    *
@@ -748,18 +767,18 @@ namespace Jsonifier {
    *
    * @return the number of effective characters in the last block.
    */
-		inline size_t get_remainder(uint8_t* dst) const;
+		inline size_t get_remainder(int8_t* dst) const;
 		inline void advance();
 
 	  private:
-		const uint8_t* buf;
+		int8_t* buf;
 		const size_t len;
 		const size_t lenminusstep;
 		size_t idx;
 	};
 
 	template<size_t STEP_SIZE>
-	inline BufBlockReader<STEP_SIZE>::BufBlockReader(const uint8_t* _buf, size_t _len)
+	inline BufBlockReader<STEP_SIZE>::BufBlockReader(int8_t* _buf, size_t _len)
 		: buf{ _buf }, len{ _len }, lenminusstep{ len < STEP_SIZE ? 0 : len - STEP_SIZE }, idx{ 0 } {
 	}
 
@@ -771,11 +790,11 @@ namespace Jsonifier {
 		return idx < lenminusstep;
 	}
 
-	template<size_t STEP_SIZE> inline const uint8_t* BufBlockReader<STEP_SIZE>::full_block() const {
+	template<size_t STEP_SIZE> inline int8_t* BufBlockReader<STEP_SIZE>::full_block() const {
 		return &buf[idx];
 	}
 
-	template<size_t STEP_SIZE> inline size_t BufBlockReader<STEP_SIZE>::get_remainder(uint8_t* dst) const {
+	template<size_t STEP_SIZE> inline size_t BufBlockReader<STEP_SIZE>::get_remainder(int8_t* dst) const {
 		if (len == idx) {
 			return 0;
 		}// memcpy(dst, null, 0) will trigger an error with some sanitizers
@@ -790,9 +809,9 @@ namespace Jsonifier {
 
 	class BitIndexer {
 	  public:
-		uint32_t* tail;
+		uint64_t* tail;
 
-		inline BitIndexer(uint32_t* index_buf) : tail(index_buf) {
+		inline BitIndexer(uint64_t* index_buf) : tail(index_buf) {
 		}
 
 		// flatten out values in 'bits' assuming that they are are to have values of idx
@@ -805,11 +824,24 @@ namespace Jsonifier {
 		// version of the code.
 
 		inline void write(uint32_t idx, SimdBase256 bits) {
+			std::cout << "THE BITS TO WRITE: " << bits.getUint64(0) << std::endl;
 			// In some instances, the next branch is expensive because it is mispredicted.
 			// Unfortunately, in other cases,
 			// it helps tremendously.
-			if (bits == 0)
+			bool areWeZero{};
+			for (size_t x = 0; x < 4; ++x) {
+				if (bits.getUint64(x) == 0) {
+					areWeZero = true;
+				} else {
+					areWeZero = false;
+					break;
+				}
+			}
+			if (areWeZero) {
 				return;
+			}
+				
+			
 			/**
      * Under recent x64 systems, we often have both a fast trailing zero
      * instruction and a fast 'clear-lower-bit' instruction so the following
@@ -860,10 +892,10 @@ namespace Jsonifier {
    *   tolerate unclosed strings. The caller should still ensure that the input is valid UTF-8. If
    *   you are processing substrings, you may want to call on a function like trimmed_length_safe_utf8.
    */
-		template<size_t STEP_SIZE, typename SimdJsonValue> static ErrorCode index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept;
+		template<size_t STEP_SIZE, typename SimdJsonValue> static ErrorCode index(int8_t* buf, size_t len, SimdJsonValue& parser);
 
 	  private:
-		inline JsonStructuralIndexer(uint32_t* structuralIndexes);
+		inline JsonStructuralIndexer(uint64_t* structuralIndexes);
 		template<size_t STEP_SIZE> inline void step(int8_t* block, BufBlockReader<STEP_SIZE>& reader) noexcept;
 		inline void next(SimdBase256 in[8], JsonBlock& block, size_t idx);
 		template<typename SimdJsonValue> inline ErrorCode finish(SimdJsonValue& parser, size_t idx, size_t len);
@@ -874,7 +906,7 @@ namespace Jsonifier {
 		SimdBase256 unescaped_chars_error = '\0';
 	};
 
-	inline JsonStructuralIndexer::JsonStructuralIndexer(uint32_t* structuralIndexes) : indexer{ structuralIndexes } {
+	inline JsonStructuralIndexer::JsonStructuralIndexer(uint64_t* structuralIndexes) : indexer{ structuralIndexes } {
 	}
 
 	// Skip the last character if it is partial
@@ -927,13 +959,10 @@ namespace Jsonifier {
 	// available capacity with just one input. Running 2 at a time seems to give the CPU a good enough
 	// workout.
 	//
-	template<size_t STEP_SIZE, typename SimdJsonValue> ErrorCode JsonStructuralIndexer::index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept {
-		if (simdjson_unlikely(len > parser.capacity())) {
-			return ErrorCode::Capacity;
-		}
+	template<size_t STEP_SIZE, typename SimdJsonValue> ErrorCode JsonStructuralIndexer::index(int8_t* buf, size_t len, SimdJsonValue& parser)  {
 		// We guard the rest of the code so that we can assume that len > 0 throughout.
 		if (len == 0) {
-			return ErrorCode::Empty;
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::Empty) };
 		}
 		BufBlockReader<STEP_SIZE> reader(buf, len);
 		JsonStructuralIndexer indexer(parser.structuralIndexes.get());
@@ -944,8 +973,8 @@ namespace Jsonifier {
 		}
 		// Take care of the last block (will always be there unless file is empty which is
 		// not supposed to happen.)
-		uint8_t block[STEP_SIZE];
-		if (simdjson_unlikely(reader.get_remainder(block) == 0)) {
+		int8_t block[STEP_SIZE];
+		if (reader.get_remainder(block) == 0) {
 			return ErrorCode::Unexpected_Error;
 		}
 		indexer.step<STEP_SIZE>(block, reader);
@@ -973,8 +1002,7 @@ namespace Jsonifier {
 		prev_structurals = block.structural_start();
 		unescaped_chars_error |= block.non_quote_inside_string(unescaped);
 	}
-	template<typename SimdJsonValue>
-	inline ErrorCode JsonStructuralIndexer::finish(SimdJsonValue& parser, size_t idx, size_t len) {
+	template<typename SimdJsonValue> inline ErrorCode JsonStructuralIndexer::finish(SimdJsonValue& parser, size_t idx, size_t len) {
 		// Write out the final iteration's structurals
 		indexer.write(uint32_t(idx - 64), prev_structurals);
 		ErrorCode error = scanner.finish();
@@ -1008,10 +1036,11 @@ namespace Jsonifier {
 		parser.nextStructuralIndex = 0;
 		// a valid JSON file cannot have zero structural indexes - we should have found something
 		if (parser.nStructuralIndexes == 0u) {
-			return ErrorCode::Empty;
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::Empty) };
 		}
 		if (parser.structuralIndexes[parser.nStructuralIndexes - 1] > len) {
-			return ErrorCode::Unexpected_Error;
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+				std::to_string(( int32_t )ErrorCode::Unexpected_Error) };
 		} /*
 		if (partial == stage1_mode::streaming_partial) {
 			// If we have an unclosed string, then the last structural
@@ -1070,10 +1099,6 @@ namespace Jsonifier {
 		}*/
 		return ErrorCode::Success;
 	}
-
-	struct JsonifierException : public std::runtime_error, std::string {
-		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
-	};
 
 	constexpr int64_t JSON_VALUE_MASK = 0x00FFFFFFFFFFFFFF;
 	constexpr uint32_t JSON_COUNT_MASK = 0xFFFFFF;
@@ -1217,6 +1242,15 @@ namespace Jsonifier {
 	enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
 	class Jsonifier;
+
+	inline SimdBase256 JsonStringScanner::findEscaped(SimdBase256 _backslash) {
+		if (!_backslash) {
+			SimdBase256 escaped = prev_escaped;
+			prev_escaped = '\0';
+			return escaped;
+		}
+		return findEscapedBranchless(_backslash);
+	}
 
 	class JsonSerializer;
 
@@ -1974,11 +2008,87 @@ namespace Jsonifier {
 		uint32_t count{};
 	};
 
+	class JsonIterator;
+
+	struct TapeWriter {
+		TapeWriter(uint64_t* ptr) {
+			this->nextTapeLocation = ptr;
+		}
+		uint64_t* nextTapeLocation;
+		inline void appendS64(int64_t value) noexcept;
+		inline void appendU64(uint64_t value) noexcept;
+		inline void appendDouble(double value) noexcept;
+		inline void append(uint64_t val, TapeType t) noexcept;
+		inline void skip() noexcept;
+		inline void skipLargeInteger() noexcept;
+		inline void skipDouble() noexcept;
+		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
+
+	  private:
+		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
+	};
+
+	struct TapeBuilder {
+		static inline ErrorCode parseDocument(SimdJsonValue& masterParser) noexcept;
+
+		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitDocumentEnd(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitArrayStart(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitArrayEnd(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitEmptyArray(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitObjectStart(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
+
+		inline ErrorCode visitObjectEnd(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode visitString(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode visitRootString(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode incrementCount(JsonIterator& iter) noexcept;
+
+		TapeWriter tape;
+
+	  private:
+		uint8_t* currentStringBufferLocation{};
+
+		inline TapeBuilder(SimdJsonValue& doc) noexcept;
+
+		inline uint32_t nextTapeIndex(JsonIterator& iter) const noexcept;
+		inline ErrorCode startContainer(JsonIterator& iter) noexcept;
+		inline ErrorCode endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
+		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
+		inline uint8_t* onStartString(JsonIterator& iter) noexcept;
+		inline ErrorCode onEndString(uint8_t* dst) noexcept;
+	};
+
 	class SimdJsonValue {
 	  public:
-		std::unique_ptr<uint32_t[]> structuralIndexes{};
+		std::unique_ptr<uint64_t[]> structuralIndexes{};
 		uint32_t nextStructuralIndex{};
 		uint32_t nStructuralIndexes{};
+		int8_t* buf{};
+		size_t len{};
 
 		inline SimdJsonValue() {}
 
@@ -1986,13 +2096,15 @@ namespace Jsonifier {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
-		inline ErrorCode allocate(size_t capacity, const char*stringViewNew) noexcept {
-			if (capacity == 0) {
+		inline ErrorCode allocate(size_t stringLength, const char*stringViewNew) noexcept {
+			if (stringLength == 0) {
 				this->tape.reset(0, 0, nullptr);
 				this->allocatedCapacity = 0;
 				return ErrorCode::Success;
 			}
-
+			size_t tapeCapacity = round(stringLength + 3, 64);
+			size_t stringCapacity = round(5 * stringLength / 3 + 64, 64);
+			this->structuralIndexes = std::make_unique<uint64_t[]>(tapeCapacity);
 			
 			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
 				this->allocatedCapacity = 0;
@@ -2001,8 +2113,30 @@ namespace Jsonifier {
 			}
 			this->isArray = std::make_unique<bool[]>(12);
 			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
-			this->allocatedCapacity = capacity;
+			this->allocatedCapacity = stringCapacity;
 			return ErrorCode::Success;
+		}
+
+		ErrorCode stage1(int8_t* _buf, size_t _len) noexcept {
+			this->buf = _buf;
+			this->len = _len;
+			return JsonStructuralIndexer::index<256>(_buf, _len, *this);
+		}
+
+		ErrorCode stage2(SimdJsonValue& _doc) noexcept {
+			return TapeBuilder::parseDocument(*this);
+		}
+		ErrorCode parse(int8_t* _buf, size_t _len, SimdJsonValue& _doc) noexcept {
+			auto error = stage1(_buf, _len);
+			if (error != ErrorCode::Success) {
+				return error;
+			}
+			std::cout << "STAGE 1 COMPLETED: " << std::endl;
+			for (size_t x = 0; x < this->nStructuralIndexes; ++x) {
+				std::cout << this->buf[this->structuralIndexes[x]] << std::endl;
+				std::cout << this->structuralIndexes[x] << std::endl;
+			}
+			return stage2(_doc);
 		}
 
 		inline void generateJsonEvents(const char* stringNew, size_t stringLength) {
@@ -2039,7 +2173,7 @@ namespace Jsonifier {
 		inline ~SimdJsonValue() noexcept {};
 
 		inline char* getStringView() {
-			return ( char* )this->tape.getStringView();
+			return ( char* )this->buf;
 		}
 
 		inline uint8_t* getStringViewNew() {
@@ -2055,7 +2189,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* getStructuralIndexes() {
-			return this->tape;
+			return this->structuralIndexes.get();
 		}
 
 		inline JsonParser getJsonData(std::string& string);
@@ -2082,23 +2216,6 @@ namespace Jsonifier {
 		size_t tapeLength{ 0 };
 		uint32_t depth{ 0 };
 	};
-
-	enum class TapeType : uint8_t {
-		Root = 'r',
-		Start_Array = '[',
-		Start_Object = '{',
-		End_Array = ']',
-		End_Object = '}',
-		String = '"',
-		Int64 = 'l',
-		Uint64 = 'u',
-		Double = 'd',
-		True_Value = 't',
-		False_Value = 'f',
-		Null_Value = 'n'
-	};
-
-	class TapeBuilder;
 
 	class JsonIterator {
 	  public:
@@ -2133,11 +2250,17 @@ namespace Jsonifier {
 		  } {};
 
 	inline const uint8_t* JsonIterator::peek() const noexcept {
+		auto newIndex = (*this->nextStructural);
+		std::cout << "THE NEXT INDEX (PEEK): " << newIndex << std::endl;
+		std::cout << "THE NEXT INDEX'S VALUE (PEEK): " << buf[newIndex] << std::endl;
 		return &buf[masterParser->getStructuralIndexes()[*this->nextStructural]];
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
-		return &buf[(*this->nextStructural++) & 0x00FFFFFFFFFFFFFF];
+		auto newIndex = (*this->nextStructural++);
+		std::cout << "THE NEXT INDEX (ADVANCE): " << newIndex << std::endl;
+		std::cout << "THE NEXT INDEX'S VALUE (ADVANCE): " << buf[newIndex] << std::endl;
+		return &buf[newIndex];
 	}
 
 	inline size_t JsonIterator::remainingLen() const noexcept {
@@ -2231,24 +2354,6 @@ namespace Jsonifier {
 		}
 	}
 
-	struct TapeWriter {
-		TapeWriter(uint64_t* ptr) {
-			this->nextTapeLocation = ptr;
-		}
-		uint64_t* nextTapeLocation;
-		inline void appendS64(int64_t value) noexcept;
-		inline void appendU64(uint64_t value) noexcept;
-		inline void appendDouble(double value) noexcept;
-		inline void append(uint64_t val, TapeType t) noexcept;
-		inline void skip() noexcept;
-		inline void skipLargeInteger() noexcept;
-		inline void skipDouble() noexcept;
-		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
-
-	  private:
-		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
-	};
-
 	inline void TapeWriter::appendS64(int64_t value) noexcept {
 		append2(0, value, TapeType::Int64);
 	}
@@ -2290,60 +2395,6 @@ namespace Jsonifier {
 
 	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
-	}
-
-	struct TapeBuilder {
-		static inline ErrorCode parseDocument(SimdJsonValue& masterParser) noexcept;
-
-		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitDocumentEnd(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitArrayStart(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitArrayEnd(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitEmptyArray(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitObjectStart(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
-
-		inline ErrorCode visitObjectEnd(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode visitString(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode visitRootString(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode incrementCount(JsonIterator& iter) noexcept;
-
-		TapeWriter tape;
-
-	  private:
-		uint8_t* currentStringBufferLocation{};
-
-		inline TapeBuilder(SimdJsonValue& doc) noexcept;
-
-		inline uint32_t nextTapeIndex(JsonIterator& iter) const noexcept;
-		inline ErrorCode startContainer(JsonIterator& iter) noexcept;
-		inline ErrorCode endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
-		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
-		inline uint8_t* onStartString(JsonIterator& iter) noexcept;
-		inline ErrorCode onEndString(uint8_t* dst) noexcept;
 	};
 
 	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser) noexcept {
@@ -2723,7 +2774,7 @@ namespace Jsonifier {
 		{
 			auto key = this->advance();
 			if (*key != '"') {
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 			}
 			visitor.visitKey(*this, key);
 			visitor.incrementCount(*this);
@@ -2731,7 +2782,7 @@ namespace Jsonifier {
 
 	Object_Field:
 		if (*advance() != ':') {
-			return ErrorCode::TapeError;
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 		{
 			auto value = this->advance();
@@ -2763,7 +2814,7 @@ namespace Jsonifier {
 				{
 					auto key = this->advance();
 					if (*key != '"') {
-						return ErrorCode::TapeError;
+						throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 					}
 				}
 				goto Object_Field;
@@ -2771,7 +2822,7 @@ namespace Jsonifier {
 				visitor.visitObjectEnd(*this);
 				goto Scope_End;
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 
 	Scope_End:
@@ -2824,7 +2875,7 @@ namespace Jsonifier {
 				visitor.visitArrayEnd(*this);
 				goto Scope_End;
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 
 	Document_End:
@@ -2833,7 +2884,7 @@ namespace Jsonifier {
 		this->nextStructuralIndex = uint32_t(nextStructural - &masterParser->getStructuralIndexes()[0]);
 
 		if (this->nextStructuralIndex != masterParser->getTapeLength()) {
-			return ErrorCode::TapeError;
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 
 		return ErrorCode::Success;
@@ -2862,7 +2913,7 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitRootNumber(*this, value);
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 	}
 
@@ -2889,7 +2940,7 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitNumber(*this, value);
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 	}
 
