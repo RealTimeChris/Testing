@@ -50,8 +50,8 @@ namespace Jsonifier {
 		StopWatch() = delete;
 
 		StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
-			this->maxNumberOfMs.store(data.maxNumberOfMs.load());
-			this->startTime.store(data.startTime.load());
+			this->maxNumberOfMs->store(data.maxNumberOfMs->load());
+			this->startTime->store(data.startTime->load());
 			return *this;
 		}
 
@@ -60,24 +60,24 @@ namespace Jsonifier {
 		}
 
 		StopWatch(TTy maxNumberOfMsNew) {
-			this->maxNumberOfMs.store(maxNumberOfMsNew);
-			this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
+			this->maxNumberOfMs->store(maxNumberOfMsNew);
+			this->startTime->store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 		}
 
 		TTy totalTimePassed() {
 			TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
-			TTy elapsedTime = currentTime - this->startTime.load();
+			TTy elapsedTime = currentTime - this->startTime->load();
 			return elapsedTime;
 		}
 
 		TTy getTotalWaitTime() {
-			return this->maxNumberOfMs.load();
+			return this->maxNumberOfMs->load();
 		}
 
 		bool hasTimePassed() {
 			TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
-			TTy elapsedTime = currentTime - this->startTime.load();
-			if (elapsedTime >= this->maxNumberOfMs.load()) {
+			TTy elapsedTime = currentTime - this->startTime->load();
+			if (elapsedTime >= this->maxNumberOfMs->load()) {
 				return true;
 			} else {
 				return false;
@@ -85,12 +85,12 @@ namespace Jsonifier {
 		}
 
 		void resetTimer() {
-			this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
+			this->startTime->store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 		}
 
 	  protected:
-		std::atomic<TTy> maxNumberOfMs{ TTy{ 0 } };
-		std::atomic<TTy> startTime{ TTy{ 0 } };
+		std::unique_ptr<std::atomic<TTy>> maxNumberOfMs{ std::make_unique<std::atomic<TTy>>(TTy{ 0 }) };
+		std::unique_ptr<std::atomic<TTy>> startTime{ std::make_unique<std::atomic<TTy>>(TTy{ 0 }) };
 	};
 
 	constexpr uint8_t formatVersion{ 131 };
@@ -642,10 +642,9 @@ namespace Jsonifier {
 		return true;
 	}
 
-
 	class JsonParser {
 	  public:
-		JsonParser& operator=(JsonParser&& other) {
+		JsonParser& operator=(JsonParser&& other) noexcept {
 			this->currentStructuralCount = other.currentStructuralCount;
 			this->currenPositionInTape = other.currenPositionInTape;
 			other.currenPositionInTape = 0;
@@ -659,10 +658,10 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		JsonParser& operator=(const JsonParser&) = delete;
-		JsonParser(const JsonParser&) = delete;
+		JsonParser& operator=(const JsonParser&) noexcept = delete;
+		JsonParser(const JsonParser&) noexcept = delete;
 
-		JsonParser(JsonParser&& other) {
+		JsonParser(JsonParser&& other) noexcept {
 			*this = std::move(other);
 		}
 
