@@ -929,7 +929,7 @@ namespace Jsonifier {
 	//
 	template<size_t STEP_SIZE, typename SimdJsonValue> ErrorCode JsonStructuralIndexer::index(int8_t* buf, size_t len, SimdJsonValue& parser) noexcept {
 		if (simdjson_unlikely(len > parser.capacity())) {
-			return CAPACITY;
+			return ErrorCode::Capacity;
 		}
 		// We guard the rest of the code so that we can assume that len > 0 throughout.
 		if (len == 0) {
@@ -1020,7 +1020,7 @@ namespace Jsonifier {
 				parser.nStructuralIndexes--;
 				// a valid JSON file cannot have zero structural indexes - we should have found something
 				if (simdjson_unlikely(parser.nStructuralIndexes == 0u)) {
-					return CAPACITY;
+					return ErrorCode::Capacity;
 				}
 			}
 			// We truncate the input to the end of the last complete document (or zero).
@@ -1029,7 +1029,7 @@ namespace Jsonifier {
 				if (parser.structuralIndexes[0] == 0) {
 					// If the buffer is partial and we started at index 0 but the document is
 					// incomplete, it's too big to parse.
-					return CAPACITY;
+					return ErrorCode::Capacity;
 				} else {
 					// It is possible that the document could be parsed, we just had a lot
 					// of white space.

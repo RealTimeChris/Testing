@@ -35,7 +35,8 @@ namespace Jsonifier {
 		InvalidNumber = 10,
 		Unclosed_String = 11,
 		Unexpected_Error = 12,
-		Utf8_Error = 13
+		Utf8_Error = 13,
+		Capacity = 14
 	};
 
 	struct AdjustedMantissa {
