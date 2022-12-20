@@ -658,12 +658,12 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		JsonParser& operator=(const JsonParser&) noexcept = delete;
-		JsonParser(const JsonParser&) noexcept = delete;
-
 		JsonParser(JsonParser&& other) noexcept {
 			*this = std::move(other);
 		}
+
+		JsonParser& operator=(const JsonParser&) noexcept = delete;
+		JsonParser(const JsonParser&) noexcept = delete;
 
 		JsonParser() noexcept {};
 
@@ -1018,13 +1018,13 @@ namespace Jsonifier {
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
-			//std::cout << valuesTitle;
+			std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
-			//std::cout << std::endl;
+			std::cout << std::endl;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1166,7 +1166,6 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			//this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -1235,6 +1234,7 @@ namespace Jsonifier {
 					stringSize -= 256;
 					collectedSize += 256;
 				}
+				
 				this->tape.setTapeCount(this->tapeLength);
 			}
 		}
@@ -1306,7 +1306,6 @@ namespace Jsonifier {
 	class JsonIterator {
 	  public:
 		uint64_t* nextStructural{ nullptr };
-		uint32_t nextStructuralIndex{};
 		const uint8_t* buf{ nullptr };
 		SimdJsonValue* masterParser;
 
@@ -1339,9 +1338,9 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
-		auto newIndex = (*this->nextStructural++);
-		std::cout << "NEW INDEX: " << newIndex << ", THE INDEX'S VALUE: " << this->masterParser->getStringView()[newIndex] << std::endl;
-		return &buf[newIndex];
+		//auto newIndex = ;
+		//std::cout << "NEW INDEX: " << newIndex << ", THE INDEX'S VALUE: " << this->masterParser->getStringView()[newIndex] << std::endl;
+		return &buf[(*this->nextStructural++)];
 	}
 
 	inline size_t JsonIterator::remainingLen() const noexcept {
@@ -1683,30 +1682,9 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	struct BackslashAndQuote {
-	  public:
-		static constexpr uint32_t BYTES_PROCESSED = 256;
-		inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst);
+	inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst);
 
-		inline bool hasQuoteFirst() {
-			return bool{ ((bsBits - 1) & quoteBits) == 0 };
-		}
-		inline bool hasBackslash() {
-			return bool{ ((quoteBits - 1) & bsBits) == 0 };
-		}
-		inline int32_t quoteIndex() {
-			return trailingZeroCount(quoteBits);
-		}
-		inline int32_t backslashIndex() {
-			return trailingZeroCount(bsBits);
-		}
-
-		SimdBase256 bsBits{};
-		SimdBase256 quoteBits{};
-	};
-
-	inline uint32_t BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
-		static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
+	inline uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
 		SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
 		values.store(reinterpret_cast<char*>(dst));
@@ -1723,7 +1701,7 @@ namespace Jsonifier {
 	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
 		int32_t index{};
 		while (length > 0) {
-			if (auto result = BackslashAndQuote::copyAndFind(src + index, dst + index); result != 0) {
+			if (auto result = copyAndFind(src + index, dst + index); result != 0) {
 				return dst + result;
 			}
 			length -= 32;
@@ -1864,115 +1842,64 @@ namespace Jsonifier {
 		if (atEof()) {
 			return ErrorCode::Empty;
 		}
+		auto value = this->advance();
 
-		{
-			auto value = this->advance();
-
-			switch (*value) {
-				case '{':
-					if (*peek() == '}') {
-						advance();
-						visitor.visitEmptyObject(*this);
-						break;
-					}
-					goto Object_Begin;
-				case '[':
-					if (*peek() == ']') {
-						advance();
-						visitor.visitEmptyArray(*this);
-						break;
-					}
-					goto Array_Begin;
-				default:
-					visitor.visitRootPrimitive(*this, value);
-					break;
-			}
+		switch (*value) {
+			case '{':
+				if (this->lastStructural() != '}') {
+					return ErrorCode::TapeError;
+				};
+				break;
+			case '[':
+				if (this->lastStructural() != ']') {
+					return ErrorCode::TapeError;
+				};
+				break;
 		}
-		goto Document_End;
+		
+
+		switch (*value) {
+			case '{':
+				if (*this->peek() == '}') {
+					this->advance();
+					visitor.visitEmptyObject(*this);
+					break;
+				}
+				goto Object_Begin;
+			case '[':
+				if (*this->peek() == ']') {
+					this->advance();
+					visitor.visitEmptyArray(*this);
+					break;
+				}
+				goto Array_Begin;
+			default:
+				visitor.visitRootPrimitive(*this, value);
+				break;
+		}
+	goto Document_End;
+	this->masterParser->getCurrentDepth()++;
+	if (this->masterParser->getCurrentDepth() >= this->masterParser->getMaxDepth()) {
+		return ErrorCode::DepthError;
+	}
+	this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()] = false;
+	visitor.visitObjectStart(*this);
 
 	Object_Begin:
-		masterParser->getCurrentDepth()++;
-		this->masterParser->getIsArray().push_back(false);
-		if (masterParser->getCurrentDepth() >= masterParser->getMaxDepth()) {
-			return ErrorCode::DepthError;
-		}
-		visitor.visitObjectStart(*this);
-
-		{
-			auto key = this->advance();
-			if (*key != '"') {
-				return ErrorCode::TapeError;
-			}
-			visitor.visitKey(*this, key);
-			visitor.incrementCount(*this);
-		}
-
-	Object_Field:
-		if (*advance() != ':') {
+	{
+		auto key = advance();
+		if (*key != '"') {
 			return ErrorCode::TapeError;
 		}
-		{
-			auto value = this->advance();
-			switch (*value) {
-				case '{':
-					if (*peek() == '}') {
-						advance();
-						visitor.visitEmptyObject(*this);
-						break;
-					}
-					goto Object_Begin;
-				case '[':
-					if (*peek() == ']') {
-						advance();
-						visitor.visitEmptyArray(*this);
-						break;
-					}
-					goto Array_Begin;
-				default:
-					visitor.visitPrimitive(*this, value);
-					break;
-			}
-		}
-
-	Object_Continue:
-		switch (*advance()) {
-			case ',':
-				visitor.incrementCount(*this);
-				{
-					auto key = this->advance();
-					if (*key != '"') {
-						return ErrorCode::TapeError;
-					}
-				}
-				goto Object_Field;
-			case '}':
-				visitor.visitObjectEnd(*this);
-				goto Scope_End;
-			default:
-				return ErrorCode::TapeError;
-		}
-
-	Scope_End:
-		masterParser->getCurrentDepth()--;
-		if (masterParser->getCurrentDepth() == 0) {
-			goto Document_End;
-		}
-		if (masterParser->getIsArray()[masterParser->getCurrentDepth()]) {
-			goto Array_Continue;
-		}
-		goto Object_Continue;
-
-	Array_Begin:
-		masterParser->getCurrentDepth()++;
-		this->masterParser->getIsArray().push_back(true);
-		if (masterParser->getCurrentDepth() >= masterParser->getMaxDepth()) {
-			return ErrorCode::DepthError;
-		}
-		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
+		visitor.visitKey(*this, key);
+	}
 
-	Array_Value : {
-		auto value = this->advance();
+	object_field : if (*advance() != ':') {
+		return ErrorCode::TapeError;
+	}
+	{
+		auto value = advance();
 		switch (*value) {
 			case '{':
 				if (*peek() == '}') {
@@ -1989,32 +1916,96 @@ namespace Jsonifier {
 				}
 				goto Array_Begin;
 			default:
+				visitor.visitPrimitive(*this, value);
 				break;
 		}
 	}
 
-	Array_Continue:
-		switch (*advance()) {
-			case ',':
+	object_continue : switch (*advance()) {
+		case ',':
 				visitor.incrementCount(*this);
-				goto Array_Value;
-			case ']':
-				visitor.visitArrayEnd(*this);
-				goto Scope_End;
-			default:
-				return ErrorCode::TapeError;
-		}
-
-	Document_End:
-		visitor.visitDocumentEnd(*this);
-
-		this->nextStructuralIndex = uint32_t(nextStructural - &masterParser->getStructuralIndexes()[0]);
-
-		if (this->nextStructuralIndex != masterParser->getTapeLength()) {
+			{
+				auto key = advance();
+				if (*key != '"') {
+					return ErrorCode::TapeError;
+				}
+				visitor.visitKey(*this, key);
+			}
+			goto object_field;
+		case '}':
+			visitor.visitObjectEnd(*this);
+			goto scope_end;
+		default:
 			return ErrorCode::TapeError;
-		}
+	}
 
-		return ErrorCode::Success;
+	scope_end : this->masterParser->getCurrentDepth()--;
+	if (this->masterParser->getCurrentDepth() == 0) {
+		goto Document_End;
+	}
+	if (this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()]) {
+		goto array_continue;
+	}
+	goto object_continue;
+
+	//
+	// Array parser states
+	//
+	Array_Begin : 
+	this->masterParser->getCurrentDepth()++;
+	if (this->masterParser->getCurrentDepth() >= this->masterParser->getMaxDepth()) {
+		return ErrorCode::DepthError;
+	}
+	this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()] = true;
+	visitor.visitArrayStart(*this);
+	visitor.incrementCount(*this);
+
+	array_value : {
+		auto value = advance();
+		switch (*value) {
+			case '{':
+				if (*peek() == '}') {
+					advance();
+					visitor.visitEmptyObject(*this);
+					break;
+				}
+				goto Object_Begin;
+			case '[':
+				if (*peek() == ']') {
+					advance();
+					visitor.visitEmptyArray(*this);
+					break;
+				}
+				goto Array_Begin;
+			default:
+				visitor.visitPrimitive(*this, value);
+				break;
+		}
+	}
+
+	array_continue : switch (*advance()) {
+		case ',':
+			visitor.incrementCount(*this);
+			goto array_value;
+		case ']':
+			visitor.visitArrayEnd(*this);
+			goto scope_end;
+		default:
+			return ErrorCode::TapeError;
+	}
+
+	Document_End : 
+	visitor.visitDocumentEnd(*this);
+
+	auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
+
+	// If we didn't make it to the end, it's an error
+	if (nextStructuralIndex != this->masterParser->getTapeLength()) {
+		return ErrorCode::TapeError;
+	}
+
+	return ErrorCode::Success;
+
 	}
 
 	inline ErrorCode JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
@@ -2040,7 +2031,7 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitRootNumber(*this, value);
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 	}
 
@@ -2067,7 +2058,7 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitNumber(*this, value);
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
 		}
 	}
 
