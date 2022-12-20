@@ -583,7 +583,10 @@ namespace Jsonifier {
 			switch (type) {
 				case '"':// we have a string
 					os << "string \"";
+					std::cout << "CURRENT INDEX: " << (tape_val & JSON_VALUE_MASK) << std::endl;
 					std::memcpy(&string_length, stringBuffer + payload, sizeof(uint32_t));
+
+					std::cout << "STRING LENGTH: " << (string_length) << std::endl;
 					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), string_length));
 					os << '"';
 					os << '\n';
@@ -716,7 +719,7 @@ namespace Jsonifier {
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringBuffer.get()));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -1082,7 +1085,7 @@ namespace Jsonifier {
 			return _mm256_storeu_epi8(dst, this->value);
 		}
 
-		inline uint32_t getUint32() {
+		inline int32_t getInt32() {
 			return _mm256_movemask_epi8(*this);
 		}
 
@@ -1690,7 +1693,7 @@ namespace Jsonifier {
 		inline ErrorCode endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
 		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
 		inline uint8_t* onStartString(JsonIterator& iter) noexcept;
-		inline ErrorCode onEndString(uint8_t* dst) noexcept;
+		inline void onEndString(uint8_t* dst) noexcept;
 	};
 
 	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser) noexcept {
@@ -1814,13 +1817,14 @@ namespace Jsonifier {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-	inline int32_t trailingZeroCount(uint32_t toCount) {
-		return _tzcnt_u32(toCount);
+	inline int32_t trailingZeroCount(int32_t toCount) {
+		return ( int )_tzcnt_u64(toCount);
+		
 	}
 
 	struct BackslashAndQuote {
 	  public:
-		static constexpr uint32_t BYTES_PROCESSED = 256;
+		static constexpr uint32_t BYTES_PROCESSED = 32;
 		inline static BackslashAndQuote copyAndFind(const uint8_t* src, uint8_t* dst);
 
 		inline bool hasQuoteFirst() {
@@ -1836,61 +1840,76 @@ namespace Jsonifier {
 			return trailingZeroCount(bsBits);
 		}
 
-		uint32_t bsBits{};
-		uint32_t quoteBits{};
+		int32_t bsBits{};
+		int32_t quoteBits{};
 	};
 
 	inline BackslashAndQuote BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
-		static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
+		static_assert(32 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
 		SimdBase32 values{ reinterpret_cast<const char*>(src) };
 		
 		values.store(reinterpret_cast<char*>(dst));
-		for (size_t x = 0; x < 32; ++x) {
-			if (src[x] == '\"') {
-				dst[x] = '\0';
-				break;
-			}
-		}
 
 		//std::cout << "STRING: " << dst << std::endl;
 		//auto result01 = convertSimdBytesToBits(returnValues01);
 		//auto result02 = convertSimdBytesToBits(returnValues02);
 		return {
-			static_cast<uint32_t>((values == '\\').getUint32()),// bs_bits
-			static_cast<uint32_t>((values== '"').getUint32()),// quote_bits
+			(values == '\\').getInt32(),// bs_bits
+			(values == '"').getInt32(),// quote_bits
 		};
 		//{ Sresult01, result02 };
 	}
 
 	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
-		int32_t index{};
 		while (1) {
-			index += 32;
-			auto bsQuote = BackslashAndQuote::copyAndFind(src, dst);
-			return dst;
-			if (bsQuote.hasBackslash()) {
-				auto bsDist = bsQuote.backslashIndex();
-				uint8_t escapeChar = src[bsDist + 1];
-				if (escapeChar == 'u') {
-					src += bsDist;
-					dst += bsDist;
+			// Copy the next n bytes, and find the backslash and quote in them.
+			auto bs_quote = BackslashAndQuote::copyAndFind(src, dst);
+
+			for (size_t x = 0; x < 32; ++x) {
+				if (src[x] == '\"') {
+					dst[x] = '\0';
+					break;
+				}
+			}
+			// If the next thing is the end quote, copy and return
+			if (bs_quote.hasQuoteFirst()) {
+				// we encountered quotes first. Move dst to point to quotes and exit
+				return dst + bs_quote.quoteIndex();
+			}
+			if (bs_quote.hasBackslash()) {
+				/* find out where the backspace is */
+				auto bs_dist = bs_quote.backslashIndex();
+				uint8_t escape_char = src[bs_dist + 1];
+				/* we encountered backslash first. Handle backslash */
+				if (escape_char == 'u') {
+					/* move src/dst up to the start; they will be further adjusted
+           within the unicode codepoint handling code. */
+					src += bs_dist;
+					dst += bs_dist;
 					if (!handleUnicodeCodepoint(&src, &dst)) {
 						return nullptr;
 					}
 				} else {
-					uint8_t escapeResult = escapeMap[escapeChar];
-					if (escapeResult == 0u) {
-						return nullptr;
+					/* simple 1:1 conversion. Will eat bs_dist+2 characters in input and
+         * write bs_dist+1 characters to output
+         * note this may reach beyond the part of the buffer we've actually
+         * seen. I think this is ok */
+					uint8_t escape_result = escapeMap[escape_char];
+					if (escape_result == 0u) {
+						return nullptr; /* bogus escape value is an error */
 					}
-					dst[bsDist] = escapeResult;
-					src += bsDist + 2ull;
-					dst += bsDist + 1ull;
+					dst[bs_dist] = escape_result;
+					src += bs_dist + 2;
+					dst += bs_dist + 1;
 				}
 			} else {
+				/* they are the same. Since they can't co-occur, it means we
+       * encountered neither. */
 				src += BackslashAndQuote::BYTES_PROCESSED;
 				dst += BackslashAndQuote::BYTES_PROCESSED;
 			}
 		}
+		/* can't be reached */
 		return nullptr;
 	}
 
@@ -1901,6 +1920,7 @@ namespace Jsonifier {
 			return ErrorCode::StringError;
 		}
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
+		std::cout << "THE STRING LENGTH: " << dst02 - dst01 << std::endl;
 		return ErrorCode::Success;
 	}
 
@@ -2012,12 +2032,16 @@ namespace Jsonifier {
 		return currentStringBufferLocation + sizeof(uint32_t);
 	}
 
-	inline ErrorCode TapeBuilder::onEndString(uint8_t* dst) noexcept {
-		uint32_t strLength = uint32_t(dst - (this->currentStringBufferLocation + sizeof(uint32_t)));
-		memcpy(this->currentStringBufferLocation, &strLength, sizeof(uint32_t));
+	inline void TapeBuilder::onEndString(uint8_t* dst) noexcept {
+		uint32_t str_length = uint32_t(dst - (currentStringBufferLocation+ sizeof(uint32_t)));
+		// TODO check for overflow in case someone has a crazy string (>=4GB?)
+		// But only add the overflow check when the document itself exceeds 4GB
+		// Currently unneeded because we refuse to parse docs larger or equal to 4GB.
+		memcpy(currentStringBufferLocation, &str_length, sizeof(uint32_t));
+		// NULL termination is still handy if you expect all your strings to
+		// be NULL terminated? It comes at a small cost
 		*dst = 0;
-		this->currentStringBufferLocation = dst + 1;
-		return ErrorCode::Success;
+		currentStringBufferLocation = dst + 1;
 	}
 
 	inline ErrorCode JsonIterator::walkDocument(TapeBuilder&& visitor) noexcept {
@@ -2234,7 +2258,7 @@ namespace Jsonifier {
 
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(string.data(), string.size());
-		//TapeBuilder::parseDocument(*this);
+		TapeBuilder::parseDocument(*this);
 		return std::move(this->tape);
 	}
 
