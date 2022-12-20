@@ -465,21 +465,21 @@ namespace Jsonifier {
 		if (this->type != JsonType::Object) {
 			return Jsonifier::ObjectType{};
 		}
-		return std::move(*this->jsonValue.object);
+		return *this->jsonValue.object;
 	}
 
 	template<> inline Jsonifier::ArrayType Jsonifier::getValue() {
 		if (this->type != JsonType::Array) {
 			return Jsonifier::ArrayType{};
 		}
-		return std::move(*this->jsonValue.array);
+		return *this->jsonValue.array;
 	}
 
 	template<> inline Jsonifier::StringType Jsonifier::getValue() {
 		if (this->type != JsonType::String) {
 			return Jsonifier::StringType{};
 		}
-		return std::move(*this->jsonValue.string);
+		return *this->jsonValue.string;
 	}
 
 	template<> inline Jsonifier::FloatType Jsonifier::getValue() {
@@ -1728,10 +1728,12 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
 		uint8_t* dst01 = onStartString(iter);
-		auto dst02 = parseString(value + 1, dst01, (*iter.nextStructural + 1) - (*iter.nextStructural));
+		auto dst02 = parseString(value + 1, dst01, (*iter.nextStructural) - (*iter.nextStructural - 1));
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
+		std::cout << "THE STRING LENGTH: " << static_cast<size_t>(dst02 - dst01)
+				  << ", THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02-dst01) } << std::endl;
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
 		return ErrorCode::Success;
 	}

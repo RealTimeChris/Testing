@@ -438,7 +438,7 @@ namespace Jsonifier {
 			this->type = JsonType::Object;
 		}
 		if (this->type == JsonType::Object) {
-			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
+			auto result = this->jsonValue.object->emplace(key, Jsonifier{});
 			return result.first->second;
 		}
 		throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -450,7 +450,7 @@ namespace Jsonifier {
 			this->type = JsonType::Object;
 		}
 		if (this->type == JsonType::Object) {
-			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
+			auto result = this->jsonValue.object->emplace(key, Jsonifier{});
 			return result.first->second;
 		}
 		throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
@@ -463,7 +463,7 @@ namespace Jsonifier {
 			this->type = JsonType::Object;
 		}
 		if (this->type == JsonType::Object) {
-			auto result = this->jsonValue.object->emplace(std::move(key), Jsonifier{});
+			auto result = this->jsonValue.object->emplace(key, Jsonifier{});
 			return result.first->second;
 		}
 		throw std::runtime_error{ "Sorry, but that item-key could not be produced/accessed." };
