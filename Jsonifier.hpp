@@ -583,10 +583,7 @@ namespace Jsonifier {
 			switch (type) {
 				case '"':// we have a string
 					os << "string \"";
-					std::cout << "CURRENT INDEX: " << (tape_val & JSON_VALUE_MASK) << std::endl;
 					std::memcpy(&string_length, stringBuffer + payload, sizeof(uint32_t));
-
-					std::cout << "STRING LENGTH: " << (string_length) << std::endl;
 					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), string_length));
 					os << '"';
 					os << '\n';
@@ -1063,12 +1060,12 @@ namespace Jsonifier {
 			*this = other;
 		}
 
-		inline SimdBase32& operator=(const char* values) {
+		inline SimdBase32& operator=(const char values[32]) {
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
 
-		inline SimdBase32(const char* values) {
+		inline SimdBase32(const char values[32]) {
 			*this = values;
 		}
 
@@ -1381,7 +1378,6 @@ namespace Jsonifier {
 					stringSize -= 256;
 					collectedSize += 256;
 				}
-				//this->tapeLength -= 2;
 				this->tape.setTapeCount(this->tapeLength);
 			}
 		}
@@ -1609,7 +1605,6 @@ namespace Jsonifier {
 		this->nextTapeLocation++;
 	}
 
-	/** Write a double value to tape. */
 	inline void TapeWriter::appendDouble(double value) noexcept {
 		append2(0, value, TapeType::Double);
 	}
@@ -1828,15 +1823,15 @@ namespace Jsonifier {
 		inline static BackslashAndQuote copyAndFind(const uint8_t* src, uint8_t* dst);
 
 		inline bool hasQuoteFirst() {
-			return bool{ ((bsBits - 1) & quoteBits) == 0 };
+			return ((bsBits - 1) & quoteBits) != 0;
 		}
 		inline bool hasBackslash() {
-			return bool{ ((quoteBits - 1) & bsBits) == 0 };
+			return ((quoteBits - 1) & bsBits) != 0;
 		}
-		inline int32_t quoteIndex() {
-			return trailingZeroCount(quoteBits);
+		inline int quoteIndex() {
+			return trailingZeroCount(quoteBits );
 		}
-		inline int32_t backslashIndex() {
+		inline int backslashIndex() {
 			return trailingZeroCount(bsBits);
 		}
 
@@ -1849,67 +1844,41 @@ namespace Jsonifier {
 		SimdBase32 values{ reinterpret_cast<const char*>(src) };
 		
 		values.store(reinterpret_cast<char*>(dst));
-
-		//std::cout << "STRING: " << dst << std::endl;
-		//auto result01 = convertSimdBytesToBits(returnValues01);
-		//auto result02 = convertSimdBytesToBits(returnValues02);
 		return {
-			(values == '\\').getInt32(),// bs_bits
-			(values == '"').getInt32(),// quote_bits
+			(values == '\\').getInt32(),
+			(values == '"').getInt32(),
 		};
-		//{ Sresult01, result02 };
 	}
 
 	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
 		while (1) {
-			// Copy the next n bytes, and find the backslash and quote in them.
-			auto bs_quote = BackslashAndQuote::copyAndFind(src, dst);
-
-			for (size_t x = 0; x < 32; ++x) {
-				if (src[x] == '\"') {
-					dst[x] = '\0';
-					break;
-				}
+			auto bsQuote = BackslashAndQuote::copyAndFind(src, dst);
+			if (bsQuote.hasQuoteFirst()) {
+				return dst + bsQuote.quoteIndex();
 			}
-			// If the next thing is the end quote, copy and return
-			if (bs_quote.hasQuoteFirst()) {
-				// we encountered quotes first. Move dst to point to quotes and exit
-				return dst + bs_quote.quoteIndex();
-			}
-			if (bs_quote.hasBackslash()) {
-				/* find out where the backspace is */
-				auto bs_dist = bs_quote.backslashIndex();
-				uint8_t escape_char = src[bs_dist + 1];
-				/* we encountered backslash first. Handle backslash */
-				if (escape_char == 'u') {
-					/* move src/dst up to the start; they will be further adjusted
-           within the unicode codepoint handling code. */
-					src += bs_dist;
-					dst += bs_dist;
+			if (bsQuote.hasBackslash()) {
+				auto bsDist = bsQuote.backslashIndex();
+				uint8_t escapeChar = src[bsDist + 1];
+				if (escapeChar == 'u') {
+					src += bsDist;
+					dst += bsDist;
 					if (!handleUnicodeCodepoint(&src, &dst)) {
 						return nullptr;
 					}
 				} else {
-					/* simple 1:1 conversion. Will eat bs_dist+2 characters in input and
-         * write bs_dist+1 characters to output
-         * note this may reach beyond the part of the buffer we've actually
-         * seen. I think this is ok */
-					uint8_t escape_result = escapeMap[escape_char];
-					if (escape_result == 0u) {
-						return nullptr; /* bogus escape value is an error */
+					uint8_t escapeResult = escapeMap[escapeChar];
+					if (escapeResult == 0u) {
+						return nullptr;
 					}
-					dst[bs_dist] = escape_result;
-					src += bs_dist + 2;
-					dst += bs_dist + 1;
+					dst[bsDist] = escapeResult;
+					src += bsDist + 2;
+					dst += bsDist + 1;
 				}
 			} else {
-				/* they are the same. Since they can't co-occur, it means we
-       * encountered neither. */
 				src += BackslashAndQuote::BYTES_PROCESSED;
 				dst += BackslashAndQuote::BYTES_PROCESSED;
 			}
 		}
-		/* can't be reached */
 		return nullptr;
 	}
 
@@ -1921,6 +1890,7 @@ namespace Jsonifier {
 		}
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
 		std::cout << "THE STRING LENGTH: " << dst02 - dst01 << std::endl;
+		
 		return ErrorCode::Success;
 	}
 
