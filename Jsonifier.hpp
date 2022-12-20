@@ -716,7 +716,7 @@ namespace Jsonifier {
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -1038,6 +1038,143 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 shuffle(SimdBase256 other) {
+			return _mm256_shuffle_epi8(other, this->value);
+		}
+
+	  protected:
+		__m256i value{};
+	};
+
+	class SimdBase32 {
+	  public:
+		inline SimdBase32() noexcept {
+			this->value = _mm256_set1_epi8(0x00);
+		};
+
+		inline SimdBase32& operator=(char other) {
+			this->value = _mm256_set1_epi8(other);
+			return *this;
+		}
+
+		inline SimdBase32(char other) {
+			*this = other;
+		}
+
+		inline SimdBase32& operator=(const char* values) {
+			*this = _mm256_loadu_epi8(values);
+			return *this;
+		}
+
+		inline SimdBase32(const char* values) {
+			*this = values;
+		}
+
+		inline SimdBase32& operator=(__m256i other) {
+			this->value = other;
+			return *this;
+		}
+
+		inline SimdBase32(__m256i other) {
+			*this = other;
+		}
+
+		inline void store(char dst[32]) const {
+			return _mm256_storeu_epi8(dst, this->value);
+		}
+
+		inline uint32_t getUint32() {
+			return _mm256_movemask_epi8(*this);
+		}
+
+		inline operator __m256i&() {
+			return this->value;
+		}
+
+		inline SimdBase32 operator|(SimdBase32 other) {
+			return _mm256_or_si256(this->value, other);
+		}
+
+		inline SimdBase32 operator&(SimdBase32 other) {
+			return _mm256_and_si256(this->value, other);
+		}
+
+		inline SimdBase32 operator^(SimdBase32 other) {
+			return _mm256_xor_si256(this->value, other);
+		}
+
+		inline SimdBase32 operator+(SimdBase32 other) {
+			return _mm256_add_epi8(this->value, other);
+		}
+
+		inline SimdBase32& operator|=(SimdBase32 other) {
+			*this = *this | other;
+			return *this;
+		}
+
+		inline SimdBase32& operator&=(SimdBase32 other) {
+			*this = *this & other;
+			return *this;
+		}
+
+		inline SimdBase32& operator^=(SimdBase32 other) {
+			*this = *this ^ other;
+			return *this;
+		}
+
+		SimdBase32 operator-(int32_t other) {
+			auto currentValue = *this;
+			if (other == 1) {
+				currentValue = ~currentValue & 1;
+			}
+			return currentValue;
+		}
+
+		inline SimdBase32 operator==(SimdBase32 other) {
+			return _mm256_cmpeq_epi8(this->value, other);
+		}
+
+		inline SimdBase32 operator==(char other) {
+			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
+		}
+
+		inline SimdBase32 operator<<(size_t amount) {
+			int64_t values[4]{};
+			values[0] = _mm256_extract_epi64(this->value, 0);
+			values[1] = _mm256_extract_epi64(this->value, 1);
+			values[2] = _mm256_extract_epi64(this->value, 2);
+			values[3] = _mm256_extract_epi64(this->value, 3);
+			SimdBase32 newValues{};
+			newValues = _mm256_insert_epi64(newValues, (values[0] << (amount % 64)), 0);
+			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount % 64)) | ((values[0] & 1ull) << 63), 1);
+			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount % 64)) | ((values[1] & 1ull) << 63), 2);
+			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount % 64)) | ((values[2] & 1ull) << 63), 3);
+			return newValues;
+		}
+
+		inline SimdBase32 operator~() {
+			SimdBase32 newValues{};
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
+			return newValues;
+		}
+
+		inline void printBits(const std::string& valuesTitle) {
+			std::cout << valuesTitle;
+			for (size_t x = 0; x < 32; ++x) {
+				for (size_t y = 0; y < 8; ++y) {
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+				}
+			}
+			std::cout << std::endl;
+		}
+
+		inline SimdBase32 bitAndNot(SimdBase32 other) {
+			return _mm256_andnot_si256(other, this->value);
+		}
+
+		inline SimdBase32 shuffle(SimdBase32 other) {
 			return _mm256_shuffle_epi8(other, this->value);
 		}
 
@@ -1677,22 +1814,14 @@ namespace Jsonifier {
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-	inline int32_t trailingZeroCount(SimdBase256 toCount) {
-		int32_t returnValue{};
-		for (size_t x = 0; x < 4; ++x) {
-			auto value = _tzcnt_u64(toCount.getUint64(x));
-			if (value < 64) {
-				return value;
-			}
-			returnValue += value;
-		}
-		return returnValue;
+	inline int32_t trailingZeroCount(uint32_t toCount) {
+		return _tzcnt_u32(toCount);
 	}
 
 	struct BackslashAndQuote {
 	  public:
 		static constexpr uint32_t BYTES_PROCESSED = 256;
-		inline static void copyAndFind(const uint8_t* src, uint8_t* dst);
+		inline static BackslashAndQuote copyAndFind(const uint8_t* src, uint8_t* dst);
 
 		inline bool hasQuoteFirst() {
 			return bool{ ((bsBits - 1) & quoteBits) == 0 };
@@ -1707,13 +1836,13 @@ namespace Jsonifier {
 			return trailingZeroCount(bsBits);
 		}
 
-		SimdBase256 bsBits{};
-		SimdBase256 quoteBits{};
+		uint32_t bsBits{};
+		uint32_t quoteBits{};
 	};
 
-	inline void BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
+	inline BackslashAndQuote BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
 		static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
-		SimdBase256 values{ reinterpret_cast<const char*>(src) };
+		SimdBase32 values{ reinterpret_cast<const char*>(src) };
 		
 		values.store(reinterpret_cast<char*>(dst));
 		for (size_t x = 0; x < 32; ++x) {
@@ -1726,7 +1855,10 @@ namespace Jsonifier {
 		//std::cout << "STRING: " << dst << std::endl;
 		//auto result01 = convertSimdBytesToBits(returnValues01);
 		//auto result02 = convertSimdBytesToBits(returnValues02);
-		return;
+		return {
+			static_cast<uint32_t>((values == '\\').getUint32()),// bs_bits
+			static_cast<uint32_t>((values== '"').getUint32()),// quote_bits
+		};
 		//{ Sresult01, result02 };
 	}
 
@@ -1734,9 +1866,8 @@ namespace Jsonifier {
 		int32_t index{};
 		while (1) {
 			index += 32;
-			BackslashAndQuote::copyAndFind(src, dst);
+			auto bsQuote = BackslashAndQuote::copyAndFind(src, dst);
 			return dst;
-			 /*
 			if (bsQuote.hasBackslash()) {
 				auto bsDist = bsQuote.backslashIndex();
 				uint8_t escapeChar = src[bsDist + 1];
@@ -1759,7 +1890,7 @@ namespace Jsonifier {
 				src += BackslashAndQuote::BYTES_PROCESSED;
 				dst += BackslashAndQuote::BYTES_PROCESSED;
 			}
-		}*/}
+		}
 		return nullptr;
 	}
 
