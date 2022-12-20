@@ -560,7 +560,6 @@ namespace Jsonifier {
 	}
 
 	inline bool dumpRawTape(std::ostream& os, uint64_t* tape, const uint8_t* stringBuffer) noexcept {
-#ifdef _DEBUG
 		uint32_t string_length;
 		size_t tape_idx = 0;
 		uint64_t tape_val = tape[tape_idx];
@@ -644,7 +643,6 @@ namespace Jsonifier {
 		payload = tape_val & JSON_VALUE_MASK;
 		type = uint8_t(tape_val >> 56);
 		os << tape_idx << " : " << type << "\t// pointing to " << payload << " (start root)\n";
-#endif
 		return true;
 	}
 
@@ -656,7 +654,9 @@ namespace Jsonifier {
 			this->currentStructuralCount = other.currentStructuralCount;
 			this->currenPositionInTape = other.currenPositionInTape;
 			this->stringView = other.stringView;
+			other.stringView = nullptr;
 			this->ptrs = std::move(other.ptrs);
+			other.ptrs.reset(nullptr);
 			return *this;
 		}
 
@@ -716,7 +716,7 @@ namespace Jsonifier {
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -1192,8 +1192,8 @@ namespace Jsonifier {
 			size_t tapeCapacity = round(capacity + 3, 64);
 			size_t stringCapacity = round(5 * capacity / 3 + 64, 64);
 			this->stringBuffer.resize(stringCapacity);
-			this->tape = JsonParser{ tapeCapacity, reinterpret_cast<const char*>(this->getStringViewNew()) };
-			if (!(!this->stringBuffer.empty() && this->tape)) {
+			this->tape = JsonParser{ tapeCapacity, reinterpret_cast<const char*>(this->stringBuffer.data()) };
+			if (!(!this->stringBuffer.empty() && this->tape.operator uint64_t *())) {
 				this->allocatedCapacity = 0;
 				this->stringBuffer.resize(0);
 				this->tape = JsonParser{ 0, nullptr };
@@ -1255,7 +1255,7 @@ namespace Jsonifier {
 			return this->tape;
 		}
 
-		inline JsonParser getJsonData(std::string& stringLength);
+		inline JsonParser getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2093,7 +2093,6 @@ namespace Jsonifier {
 		this->generateJsonEvents(string.data(), string.size());
 		TapeBuilder::parseDocument(*this);
 		return std::move(this->tape);
-		//;
 	}
 
 };

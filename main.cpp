@@ -240,7 +240,7 @@ ArrayReturnData getArray(ObjectReturnData jsonData, const char* arrayName) {
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
-	ActivitiesJson(Jsonifier::JsonParser&& value) {
+	ActivitiesJson(Jsonifier::JsonParser& value) {
 		this->createdAt = value["created_at"].getValue<std::string>();
 		this->name = value["name"].getValue<std::string>();
 		this->anotherValue = value["ANOTHER_VALUE"].getValue<int32_t>();
@@ -266,10 +266,10 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::JsonParser&& value) {
-		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
+	TheDJson(Jsonifier::JsonParser& value) {
+		auto theArray = value["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
 		for (auto& value: theArray) {
-			activities.emplace_back(std::move(value));
+			activities.emplace_back(value);
 		}
 	}
 	std::vector<ActivitiesJson> activities{};
@@ -277,13 +277,13 @@ struct TheDJson {
 
 namespace Jsonifier {
 	template<> TheDJson JsonParser::getValue() {
-		return TheDJson{ std::move((*this)["d"]) };
+		return TheDJson{ (*this)["d"] };
 	}
 
 }
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonParser&& value) {
+	TheValueJson(Jsonifier::JsonParser& value) {
 		this->theD = value.getValue<TheDJson>();
 	}
 	TheDJson theD{};
@@ -380,12 +380,12 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
-		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			//TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ jsonData };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
 			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
@@ -400,9 +400,9 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
