@@ -655,6 +655,8 @@ namespace Jsonifier {
 			this->currenPositionInTape = other.currenPositionInTape;
 			this->stringView = other.stringView;
 			other.stringView = nullptr;
+
+			this->ptrs.reset(nullptr);
 			this->ptrs = std::move(other.ptrs);
 			other.ptrs.reset(nullptr);
 			return *this;
@@ -667,13 +669,10 @@ namespace Jsonifier {
 			*this = std::move(other);
 		}
 
-		JsonParser(size_t currentStructuralCountNew, const char* stringViewNew) {
-			this->ptrs = std::make_unique<uint64_t[]>(currentStructuralCountNew);
-			this->currentStructuralCount = currentStructuralCountNew;
-			this->stringView = stringViewNew;
-		}
+		JsonParser() noexcept {};
 
 		JsonParser(uint64_t* startingPtr, size_t currentStructuralCountNew, const char* stringViewNew) {
+			this->ptrs.reset(nullptr);
 			this->ptrs = std::make_unique<uint64_t[]>(currentStructuralCountNew);
 			this->currentStructuralCount = currentStructuralCountNew;
 			for (size_t x = 0; x < currentStructuralCount; ++x) {
@@ -716,7 +715,7 @@ namespace Jsonifier {
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -739,15 +738,30 @@ namespace Jsonifier {
 			return *this;
 		};
 
+		const char* getStringView() {
+			return this->stringView;
+		}
+
+		char* getStringViewNew() {
+			return this->stringBuffer.get();
+		}
+
 		JsonParser(ErrorCode error) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
 		}
 
-		void reset(size_t count) {
+		void reset(size_t count, size_t stringSizeNew, const char* newStringView) {
 			if (count > this->currentStructuralCount) {
+				this->ptrs.reset(nullptr);
 				this->ptrs = std::make_unique<uint64_t[]>(count);
+				this->currentStructuralCount = count;
 			}
-			this->currentStructuralCount = count;
+			if (stringSizeNew > this->currentStringSize) {
+				this->stringBuffer.reset(nullptr);
+				this->stringBuffer = std::make_unique<char[]>(count);
+				this->currentStringSize = stringSizeNew;
+			}
+			this->stringView = newStringView;
 			this->currenPositionInTape = 0;
 		}
 
@@ -760,10 +774,12 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		std::unique_ptr<char[]> stringBuffer{ nullptr };
 		std::unique_ptr<uint64_t[]> ptrs{};
 		const char* stringView{ nullptr };
 		size_t currentStructuralCount{};
 		size_t currenPositionInTape{};
+		size_t currentStringSize{};
 	};
 
 	class SimdBase256;
@@ -1181,22 +1197,19 @@ namespace Jsonifier {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
-		inline ErrorCode allocate(size_t capacity) noexcept {
+		inline ErrorCode allocate(size_t capacity, const char*stringViewNew) noexcept {
 			if (capacity == 0) {
-				this->stringBuffer.resize(0);
-				this->tape = JsonParser{ 0, nullptr };
+				this->tape.reset(0, 0, nullptr);
 				this->allocatedCapacity = 0;
 				return ErrorCode::Success;
 			}
 
 			size_t tapeCapacity = round(capacity + 3, 64);
 			size_t stringCapacity = round(5 * capacity / 3 + 64, 64);
-			this->stringBuffer.resize(stringCapacity);
-			this->tape = JsonParser{ tapeCapacity, reinterpret_cast<const char*>(this->stringBuffer.data()) };
-			if (!(!this->stringBuffer.empty() && this->tape.operator uint64_t *())) {
+			this->tape.reset(tapeCapacity, stringCapacity, stringViewNew);
+			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
 				this->allocatedCapacity = 0;
-				this->stringBuffer.resize(0);
-				this->tape = JsonParser{ 0, nullptr };
+				this->tape.reset(0, 0, nullptr);
 				return ErrorCode::MemAlloc;
 			}
 			this->isArray = std::make_unique<bool[]>(12);
@@ -1206,41 +1219,41 @@ namespace Jsonifier {
 		}
 
 		inline void generateJsonEvents(const char* stringNew, size_t stringLength) {
-			if (stringLength == 0) {
-				throw JsonifierException{ "Failed to parse as the string size is 0." };
-			}
-			this->tapeLength = 0;
-			this->stringView = stringNew;
-			this->stringLengthRaw = stringLength;
-			this->tape.reset(this->stringLengthRaw);
-			if (this->allocatedCapacity < this->stringLengthRaw) {
-				if (this->allocate(this->stringLengthRaw) != ErrorCode::Success) {
-					throw JsonifierException{ "Failed to allocate properly!" };
+			if (stringNew) {
+				if (stringLength == 0) {
+					throw JsonifierException{ "Failed to parse as the string size is 0." };
 				}
+				this->stringLengthRaw = stringLength;
+				this->tapeLength = 0;
+				if (this->allocatedCapacity < this->stringLengthRaw) {
+					if (this->allocate(stringLength, stringNew) != ErrorCode::Success) {
+						throw JsonifierException{ "Failed to allocate properly!" };
+					}
+				}
+				int64_t stringSize = this->allocatedCapacity;
+				uint32_t collectedSize{};
+				size_t tapeCurrentIndex{ 0 };
+				int64_t prevInString{};
+				while (stringSize > 0) {
+					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString);
+					auto indexCount = section.getStructuralIndices(this->tape.operator uint64_t*(), collectedSize, tapeCurrentIndex);
+					this->tapeLength += indexCount;
+					stringSize -= 256;
+					collectedSize += 256;
+				}
+				//this->tapeLength -= 2;
+				this->tape.setTapeCount(this->tapeLength);
 			}
-			int64_t stringSize = this->allocatedCapacity;
-			uint32_t collectedSize{};
-			size_t tapeCurrentIndex{ 0 };
-			int64_t prevInString{};
-			while (stringSize > 0) {
-				SimdStringSection section(this->stringView + collectedSize, prevInString);
-				auto indexCount = section.getStructuralIndices(this->tape.operator uint64_t*(), collectedSize, tapeCurrentIndex);
-				this->tapeLength += indexCount;
-				stringSize -= 256;
-				collectedSize += 256;
-			}
-			//this->tapeLength -= 2;
-			this->tape.setTapeCount(this->tapeLength);
 		}
 
 		inline ~SimdJsonValue() noexcept {};
 
 		inline char* getStringView() {
-			return ( char* )this->stringView;
+			return ( char* )this->tape.getStringView();
 		}
 
 		inline uint8_t* getStringViewNew() {
-			return reinterpret_cast<uint8_t*>(this->stringBuffer.data());
+			return reinterpret_cast<uint8_t*>(this->tape.getStringViewNew());
 		}
 
 		OpenContainer* getOpenContainers() {
@@ -1272,11 +1285,9 @@ namespace Jsonifier {
 	  protected:
 		std::unique_ptr<OpenContainer[]> openContainers{};
 		std::unique_ptr<bool[]> isArray{};
-		JsonParser tape{ 0, nullptr };
-		std::string stringBuffer{};
+		JsonParser tape{ 0, 0, nullptr };
 		size_t allocatedCapacity{};
 		size_t stringLengthRaw{};
-		const char* stringView{};
 		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
 		uint32_t depth{ 0 };
@@ -1702,16 +1713,17 @@ namespace Jsonifier {
 
 	inline void BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
 		static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
-		SimdBase256 values[8]{};
-		//SimdBase256 returnValues01[8]{};
-		//SimdBase256 returnValues02[8]{};
-		for (size_t x = 0; x < 4; ++x) {
-			//values[x] = reinterpret_cast<const char*>(src + x * 32);
-			values[x].store(reinterpret_cast<char*>(dst + x * 32));
-			//returnValues01[x] = values[x] == '\\';
-			//returnValues02[x] = values[x] == '"';
-		}
+		SimdBase256 values{ reinterpret_cast<const char*>(src) };
 		
+		values.store(reinterpret_cast<char*>(dst));
+		for (size_t x = 0; x < 32; ++x) {
+			if (src[x] == '\"') {
+				dst[x] = '\0';
+				break;
+			}
+		}
+
+		//std::cout << "STRING: " << dst << std::endl;
 		//auto result01 = convertSimdBytesToBits(returnValues01);
 		//auto result02 = convertSimdBytesToBits(returnValues02);
 		return;
@@ -2091,7 +2103,7 @@ namespace Jsonifier {
 
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(string.data(), string.size());
-		TapeBuilder::parseDocument(*this);
+		//TapeBuilder::parseDocument(*this);
 		return std::move(this->tape);
 	}
 
