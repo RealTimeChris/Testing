@@ -4,6 +4,7 @@
 
 #include "Jsonifier.hpp"
 #include <simdjson.h>
+#include <fstream>
 
 struct ObjectReturnData {
 	simdjson::ondemand::value object{};
@@ -337,6 +338,24 @@ struct TheValue {
 	TheD theD{};
 };
 
+class FileLoader {
+  public:
+	FileLoader(const char* filePath) {
+		std::ofstream theStream{ filePath, std::ios::out | std::ios::in };
+		std::stringstream inputStream{};
+		inputStream << theStream.rdbuf();
+		this->fileContents = inputStream.str();
+	}
+
+	std::string& getFileContents() {
+		return this->fileContents;
+	}
+
+  protected:
+	std::string fileContents{};
+};
+
+
 int32_t main() noexcept {
 	try {
 		std::string stringNew{
@@ -389,8 +408,9 @@ int32_t main() noexcept {
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
 
-		Jsonifier::SimdJsonValue theParser{};
+		
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
@@ -410,9 +430,10 @@ int32_t main() noexcept {
 
 		stopWatch.resetTimer();
 
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
+		
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
