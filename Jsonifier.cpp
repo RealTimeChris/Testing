@@ -2,7 +2,16 @@
 
 namespace Jsonifier {
 
-	
+	JsonifierException::JsonifierException(const std::string& error, std::source_location location) noexcept : std::runtime_error(error) {
+		std::stringstream stream{};
+		stream << "Error Report: \n"
+			   << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
+			   << ")"
+			   << "\nThe Error: \n"
+			   << error << std::endl
+			   << std::endl;
+		*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
+	}
 
 	EnumConverter::operator std::vector<uint64_t>() const noexcept {
 		return this->vector;
@@ -407,7 +416,7 @@ namespace Jsonifier {
 
 	bool Jsonifier::parseString(std::string& string) noexcept {
 		this->parser = std::make_unique<SimdJsonValue>();
-		//*this = this->parser->getJsonData(string);
+		*this = this->parser->getJsonData(string);
 		if (this->type != JsonType::Null) {
 			return true;
 		} else {
