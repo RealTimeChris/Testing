@@ -653,12 +653,14 @@ namespace Jsonifier {
 		JsonParser& operator=(JsonParser&& other) {
 			this->currentStructuralCount = other.currentStructuralCount;
 			this->currenPositionInTape = other.currenPositionInTape;
+			other.currenPositionInTape = 0;
+			other.currentStructuralCount = 0;
+			other.currentStringSize = 0;
 			this->stringView = other.stringView;
 			other.stringView = nullptr;
-
-			this->ptrs.reset(nullptr);
+			this->currentStringSize = other.currentStringSize;
+			this->stringBuffer = std::move(other.stringBuffer);
 			this->ptrs = std::move(other.ptrs);
-			other.ptrs.reset(nullptr);
 			return *this;
 		}
 
@@ -672,7 +674,6 @@ namespace Jsonifier {
 		JsonParser() noexcept {};
 
 		JsonParser(uint64_t* startingPtr, size_t currentStructuralCountNew, const char* stringViewNew) {
-			this->ptrs.reset(nullptr);
 			this->ptrs = std::make_unique<uint64_t[]>(currentStructuralCountNew);
 			this->currentStructuralCount = currentStructuralCountNew;
 			for (size_t x = 0; x < currentStructuralCount; ++x) {
@@ -752,12 +753,10 @@ namespace Jsonifier {
 
 		void reset(size_t count, size_t stringSizeNew, const char* newStringView) {
 			if (count > this->currentStructuralCount) {
-				this->ptrs.reset(nullptr);
 				this->ptrs = std::make_unique<uint64_t[]>(count);
 				this->currentStructuralCount = count;
 			}
 			if (stringSizeNew > this->currentStringSize) {
-				this->stringBuffer.reset(nullptr);
 				this->stringBuffer = std::make_unique<char[]>(count);
 				this->currentStringSize = stringSizeNew;
 			}
@@ -1204,9 +1203,7 @@ namespace Jsonifier {
 				return ErrorCode::Success;
 			}
 
-			size_t tapeCapacity = round(capacity + 3, 64);
-			size_t stringCapacity = round(5 * capacity / 3 + 64, 64);
-			this->tape.reset(tapeCapacity, stringCapacity, stringViewNew);
+			
 			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
 				this->allocatedCapacity = 0;
 				this->tape.reset(0, 0, nullptr);
@@ -1224,6 +1221,9 @@ namespace Jsonifier {
 					throw JsonifierException{ "Failed to parse as the string size is 0." };
 				}
 				this->stringLengthRaw = stringLength;
+				size_t tapeCapacity = round(stringLength + 3, 64);
+				size_t stringCapacity = round(5 * stringLength / 3 + 64, 64);
+				this->tape.reset(tapeCapacity, stringCapacity, stringNew);
 				this->tapeLength = 0;
 				if (this->allocatedCapacity < this->stringLengthRaw) {
 					if (this->allocate(stringLength, stringNew) != ErrorCode::Success) {
