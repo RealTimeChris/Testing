@@ -1209,7 +1209,6 @@ namespace Jsonifier {
 				this->tape.reset(0, 0, nullptr);
 				return ErrorCode::MemAlloc;
 			}
-			this->isArray = std::make_unique<bool[]>(12);
 			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
 			this->allocatedCapacity = capacity;
 			return ErrorCode::Success;
@@ -1277,14 +1276,14 @@ namespace Jsonifier {
 			return this->tapeLength;
 		}
 
-		inline bool* getIsArray() {
-			return this->isArray.get();
+		inline std::vector<bool>& getIsArray() {
+			return this->isArray;
 		}
 		
 	  protected:
 		std::unique_ptr<OpenContainer[]> openContainers{};
-		std::unique_ptr<bool[]> isArray{};
 		JsonParser tape{ 0, 0, nullptr };
+		std::vector<bool> isArray{};
 		size_t allocatedCapacity{};
 		size_t stringLengthRaw{};
 		uint32_t maxDepth{ 500 };
@@ -1743,7 +1742,6 @@ namespace Jsonifier {
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
-		//std::cout << "THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
 		return ErrorCode::Success;
 	}
@@ -1897,10 +1895,10 @@ namespace Jsonifier {
 
 	Object_Begin:
 		masterParser->getCurrentDepth()++;
+		this->masterParser->getIsArray().push_back(false);
 		if (masterParser->getCurrentDepth() >= masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		masterParser->getIsArray()[masterParser->getCurrentDepth()] = false;
 		visitor.visitObjectStart(*this);
 
 		{
@@ -1969,10 +1967,10 @@ namespace Jsonifier {
 
 	Array_Begin:
 		masterParser->getCurrentDepth()++;
+		this->masterParser->getIsArray().push_back(true);
 		if (masterParser->getCurrentDepth() >= masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
-		masterParser->getIsArray()[masterParser->getCurrentDepth()] = true;
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
 
