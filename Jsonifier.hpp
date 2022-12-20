@@ -594,7 +594,10 @@ namespace Jsonifier {
 			switch (type) {
 				case '"':// we have a string
 					os << "string \"";
+					//std::cout << "CURRENT INDEX: " << (tape_val & JSON_VALUE_MASK) << std::endl;
 					std::memcpy(&string_length, stringBuffer + payload, sizeof(uint32_t));
+
+					//std::cout << "STRING LENGTH: " << (string_length) << std::endl;
 					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), string_length));
 					os << '"';
 					os << '\n';
@@ -725,37 +728,37 @@ namespace Jsonifier {
 			std::string returnValue{ reinterpret_cast<char*>(this->stringView[(this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)]),
 				static_cast<size_t>(
 					(this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) - (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)) };
-			//std::cout << "RETURN VALUE: " << returnValue << std::endl;
+			////std::cout << "RETURN VALUE: " << returnValue << std::endl;
 			return returnValue;
 		}
 
 		template<> std::vector<JsonParser> getValue() {
 			std::vector<JsonParser> returnValue{};
 			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
-			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
-			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
+			////std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
+			////std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 			return std::vector<JsonParser>{};
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringBuffer.get()));
+			//dumpRawTape(//std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringBuffer.get()));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
-			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
+			////std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
 			if (newValue == 'r') {
-				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
+				////std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == '[') {
-				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
+				////std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == '{') {
-				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
+				////std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == '\"') {
-				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
+				////std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
 				return *this;
 			}
 			return *this;
@@ -1059,13 +1062,13 @@ namespace Jsonifier {
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
-			//std::cout << valuesTitle;
+			////std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+					////std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
-			//std::cout << std::endl;
+			////std::cout << std::endl;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1095,12 +1098,12 @@ namespace Jsonifier {
 			*this = other;
 		}
 
-		inline SimdBase32& operator=(const char values[32]) {
+		inline SimdBase32& operator=(const char* values) {
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
 
-		inline SimdBase32(const char values[32]) {
+		inline SimdBase32(const char* values) {
 			*this = values;
 		}
 
@@ -1196,13 +1199,13 @@ namespace Jsonifier {
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
-			//std::cout << valuesTitle;
+			////std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					//std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
+					////std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
-			//std::cout << std::endl;
+			////std::cout << std::endl;
 		}
 
 		inline SimdBase32 bitAndNot(SimdBase32 other) {
@@ -1415,6 +1418,7 @@ namespace Jsonifier {
 					collectedSize += 256;
 				}
 				this->tapeLength -= 1;
+
 				this->tape.setTapeCount(this->tapeLength);
 			}
 		}
@@ -1528,7 +1532,22 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
-		return &buf[masterParser->getInputStructuralIndexes()[this->masterParser->getNextStructuralIndex()++]];
+		auto previousStructural = this->masterParser->getNextStructuralIndex();
+		for (size_t x = 0; x < this->remainingLen(); ++x) {
+			//std::cout << "THE INDEX: " << masterParser->getInputStructuralIndexes()[this->masterParser->getNextStructuralIndex()++] << std::endl;
+		}
+		this->masterParser->getNextStructuralIndex() = previousStructural;
+		previousStructural = this->masterParser->getNextStructuralIndex();
+
+		for (size_t x = 0; x < this->remainingLen(); ++x) {
+			//std::cout << "THE INDEX: " << masterParser->getInputStructuralIndexes()[this->masterParser->getNextStructuralIndex()++] << std::endl;
+		}
+		this->masterParser->getNextStructuralIndex() = previousStructural;
+		auto newIndex = this->masterParser->getNextStructuralIndex()++;
+		//std::cout << "THE INDEX (REAL): " << newIndex << std::endl;
+		//std::cout << "THE INDEX (REAL): " << masterParser->getInputStructuralIndexes()[newIndex] << std::endl;
+		//std::cout << "THE INDEX'S VALUE (REAL): " << buf[masterParser->getInputStructuralIndexes()[newIndex]] << std::endl;
+		return &buf[masterParser->getInputStructuralIndexes()[newIndex]];
 	}
 
 	inline size_t JsonIterator::remainingLen() const noexcept {
@@ -1650,6 +1669,7 @@ namespace Jsonifier {
 		this->nextTapeLocation++;
 	}
 
+	/** Write a double value to tape. */
 	inline void TapeWriter::appendDouble(double value) noexcept {
 		append2(0, value, TapeType::Double);
 	}
@@ -1928,10 +1948,14 @@ namespace Jsonifier {
 					dst += bsDist + 1ull;
 				}
 			} else {
+				/* they are the same. Since they can't co-occur, it means we
+       * encountered neither. 
 				src += BackslashAndQuote::BYTES_PROCESSED;
 				dst += BackslashAndQuote::BYTES_PROCESSED;
 			}
-		}*/
+			* /
+		}
+		/* can't be reached */
 		return dst;
 	}
 
@@ -1943,6 +1967,7 @@ namespace Jsonifier {
 		}
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
 		
+
 		return ErrorCode::Success;
 	}
 

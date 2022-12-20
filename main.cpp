@@ -370,8 +370,7 @@ int32_t main() noexcept {
 			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
 			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
 			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,"
-			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_"
-			"VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true}]}}"
+			"\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":\"343334\",\"ANOTHER_TEST_VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true},{\"created_at\":\"1669495273631\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"ETH+0.58%|\",\"test_double\":334.4545,\"type\":3,\"ANOTHER_VALUE\":3434,\"ANOTHER_TEST_VALUE\":\"TESTING-TESTING\",\"ANOTHER_VALUE_02\":3434,\"ANOTHER_TEST_VALUE_03\":\"TESTING-TESTING_031\",\"ANOTHER_VALUE_02w\":3434,\"ANOTHER_TEST_VALUE_03d\":\"TESTING-TESTING_031d\",\"TRUTH_TEST\":true}]}}"
 		};
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -388,8 +387,8 @@ int32_t main() noexcept {
 		std::cout << "THE STRING SIZE AFTER: " << stringNew.size() << std::endl;
 
 		
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue theParser{};
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
@@ -410,9 +409,9 @@ int32_t main() noexcept {
 
 		
 			
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-			simdjson::ondemand::parser parser{};
+		simdjson::ondemand::parser parser{};
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
