@@ -560,6 +560,7 @@ namespace Jsonifier {
 	}
 
 	inline bool dumpRawTape(std::ostream& os, uint64_t* tape, const uint8_t* stringBuffer) noexcept {
+#ifdef _DEBUG
 		uint32_t string_length;
 		size_t tape_idx = 0;
 		uint64_t tape_val = tape[tape_idx];
@@ -643,6 +644,7 @@ namespace Jsonifier {
 		payload = tape_val & JSON_VALUE_MASK;
 		type = uint8_t(tape_val >> 56);
 		os << tape_idx << " : " << type << "\t// pointing to " << payload << " (start root)\n";
+#endif
 		return true;
 	}
 
@@ -654,7 +656,7 @@ namespace Jsonifier {
 			this->currentStructuralCount = other.currentStructuralCount;
 			this->currenPositionInTape = other.currenPositionInTape;
 			this->stringView = other.stringView;
-			this->ptrs = other.ptrs;
+			this->ptrs = std::move(other.ptrs);
 			return *this;
 		}
 
@@ -666,13 +668,13 @@ namespace Jsonifier {
 		}
 
 		JsonParser(size_t currentStructuralCountNew, const char* stringViewNew) {
-			this->ptrs.resize(currentStructuralCountNew);
+			this->ptrs = std::make_unique<uint64_t[]>(currentStructuralCountNew);
 			this->currentStructuralCount = currentStructuralCountNew;
 			this->stringView = stringViewNew;
 		}
 
 		JsonParser(uint64_t* startingPtr, size_t currentStructuralCountNew, const char* stringViewNew) {
-			this->ptrs.resize(currentStructuralCountNew);
+			this->ptrs = std::make_unique<uint64_t[]>(currentStructuralCountNew);
 			this->currentStructuralCount = currentStructuralCountNew;
 			for (size_t x = 0; x < currentStructuralCount; ++x) {
 				this->ptrs[x] = startingPtr[x];
@@ -701,44 +703,40 @@ namespace Jsonifier {
 			std::string returnValue{ reinterpret_cast<char*>(this->stringView[(this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)]),
 				static_cast<size_t>(
 					(this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) - (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)) };
-			std::cout << "RETURN VALUE: " << returnValue << std::endl;
+			//std::cout << "RETURN VALUE: " << returnValue << std::endl;
 			return returnValue;
 		}
 
 		template<> std::vector<JsonParser> getValue() {
+			std::vector<JsonParser> returnValue{};
 			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
-			std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
-			std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
+			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
+			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 			return std::vector<JsonParser>{};
 		}
 		
-		JsonParser operator[](const std::string& key) {
-			dumpRawTape(std::cout, this->ptrs.data(), reinterpret_cast<const uint8_t*>(this->stringView));
+		JsonParser& operator[](const std::string& key) {
+			//dumpRawTape(std::cout, this->ptrs.data(), reinterpret_cast<const uint8_t*>(this->stringView));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
-			std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
+			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
 			if (newValue == 'r') {
-				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
-				return std::move(*this);
+				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
+				return *this;
 			}
 			if (newValue == '[') {
-				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
-				return std::move(*this);
+				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
+				return *this;
 			}
 			if (newValue == '{') {
-				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
-				return std::move(*this);
+				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
+				return *this;
 			}
 			if (newValue == '\"') {
-				std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
-				return std::move(*this);
+				//std::cout << "CURRENT INDEX: " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
+				return *this;
 			}
-			
-			
-			std::string returnValue{ reinterpret_cast<char*>(this->stringView[(this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)]),
-				static_cast<size_t>(
-					(this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) - (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)) };
-			return std::move(*this);
+			return *this;
 		};
 
 		JsonParser(ErrorCode error) {
@@ -746,7 +744,7 @@ namespace Jsonifier {
 		}
 
 		operator uint64_t*() {
-			return this->ptrs.data();
+			return this->ptrs.get();
 		}
 
 		void setTapeCount(size_t count) {
@@ -754,10 +752,10 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		std::unique_ptr<uint64_t[]> ptrs{};
 		const char* stringView{ nullptr };
 		size_t currentStructuralCount{};
 		size_t currenPositionInTape{};
-		std::vector<uint64_t> ptrs{};
 	};
 
 	class SimdBase256;
@@ -1151,7 +1149,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
+			//this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -1864,7 +1862,6 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::onEndString(uint8_t* dst) noexcept {
 		uint32_t strLength = uint32_t(dst - (this->currentStringBufferLocation + sizeof(uint32_t)));
-		std::cout << "STRING LENGTH: " << strLength << std::endl;
 		memcpy(this->currentStringBufferLocation, &strLength, sizeof(uint32_t));
 		*dst = 0;
 		this->currentStringBufferLocation = dst + 1;
@@ -2086,7 +2083,7 @@ namespace Jsonifier {
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(string.data(), string.size());
 		TapeBuilder::parseDocument(*this);
-		return std::move(this->tape) ;//JsonParser{ 0, nullptr };
+		return std::move(this->tape);
 		//;
 	}
 
