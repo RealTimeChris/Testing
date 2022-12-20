@@ -699,7 +699,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		template<> std::string getValue(){
+		template<> std::string getValue() {
 			std::string returnValue{ reinterpret_cast<char*>(this->stringView[(this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)]),
 				static_cast<size_t>(
 					(this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) - (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK)) };
@@ -709,12 +709,8 @@ namespace Jsonifier {
 
 		template<> std::vector<JsonParser> getValue() {
 			std::vector<JsonParser> returnValue{};
-			auto newValue = (this->ptrs[this->currenPositionInTape + 1] >> 56);
-			if (newValue != '[') {
-				throw JsonifierException{ "Sorry, but this type is not Array!" };
-			} 
-			newValue = (this->ptrs[this->currenPositionInTape + 1] >> 32 & JSON_COUNT_MASK);
-			std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
+			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
+			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
 			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 			return std::vector<JsonParser>{};
 		}
@@ -745,6 +741,14 @@ namespace Jsonifier {
 
 		JsonParser(ErrorCode error) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
+		}
+
+		void reset(size_t count) {
+			if (count > this->currentStructuralCount) {
+				this->ptrs = std::make_unique<uint64_t[]>(count);
+			}
+			this->currentStructuralCount = count;
+			this->currenPositionInTape = 0;
 		}
 
 		operator uint64_t*() {
@@ -1208,6 +1212,7 @@ namespace Jsonifier {
 			this->tapeLength = 0;
 			this->stringView = stringNew;
 			this->stringLengthRaw = stringLength;
+			this->tape.reset(this->stringLengthRaw);
 			if (this->allocatedCapacity < this->stringLengthRaw) {
 				if (this->allocate(this->stringLengthRaw) != ErrorCode::Success) {
 					throw JsonifierException{ "Failed to allocate properly!" };
@@ -1676,7 +1681,7 @@ namespace Jsonifier {
 	struct BackslashAndQuote {
 	  public:
 		static constexpr uint32_t BYTES_PROCESSED = 256;
-		inline static BackslashAndQuote copyAndFind(const uint8_t* src, uint8_t* dst);
+		inline static void copyAndFind(const uint8_t* src, uint8_t* dst);
 
 		inline bool hasQuoteFirst() {
 			return bool{ ((bsBits - 1) & quoteBits) == 0 };
@@ -1695,31 +1700,31 @@ namespace Jsonifier {
 		SimdBase256 quoteBits{};
 	};
 
-	inline BackslashAndQuote BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
+	inline void BackslashAndQuote::copyAndFind(const uint8_t* src, uint8_t* dst) {
 		static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than 256 bytes");
 		SimdBase256 values[8]{};
-		SimdBase256 returnValues01[8]{};
-		SimdBase256 returnValues02[8]{};
+		//SimdBase256 returnValues01[8]{};
+		//SimdBase256 returnValues02[8]{};
 		for (size_t x = 0; x < 4; ++x) {
-			values[x] = reinterpret_cast<const char*>(src + x * 32);
+			//values[x] = reinterpret_cast<const char*>(src + x * 32);
 			values[x].store(reinterpret_cast<char*>(dst + x * 32));
-			returnValues01[x] = values[x] == '\\';
-			returnValues02[x] = values[x] == '"';
+			//returnValues01[x] = values[x] == '\\';
+			//returnValues02[x] = values[x] == '"';
 		}
 		
-		auto result01 = convertSimdBytesToBits(returnValues01);
-		auto result02 = convertSimdBytesToBits(returnValues02);
-		return { result01, result02 };
+		//auto result01 = convertSimdBytesToBits(returnValues01);
+		//auto result02 = convertSimdBytesToBits(returnValues02);
+		return;
+		//{ Sresult01, result02 };
 	}
 
 	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
 		int32_t index{};
 		while (1) {
 			index += 32;
-			auto bsQuote = BackslashAndQuote::copyAndFind(src, dst);
-			if (bsQuote.hasQuoteFirst()) {
-				return dst + bsQuote.quoteIndex();
-			}
+			BackslashAndQuote::copyAndFind(src, dst);
+			return dst;
+			 /*
 			if (bsQuote.hasBackslash()) {
 				auto bsDist = bsQuote.backslashIndex();
 				uint8_t escapeChar = src[bsDist + 1];
@@ -1742,7 +1747,7 @@ namespace Jsonifier {
 				src += BackslashAndQuote::BYTES_PROCESSED;
 				dst += BackslashAndQuote::BYTES_PROCESSED;
 			}
-		}
+		}*/}
 		return nullptr;
 	}
 
