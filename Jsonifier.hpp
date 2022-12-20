@@ -709,8 +709,12 @@ namespace Jsonifier {
 
 		template<> std::vector<JsonParser> getValue() {
 			std::vector<JsonParser> returnValue{};
-			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
-			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
+			auto newValue = (this->ptrs[this->currenPositionInTape + 1] >> 56);
+			if (newValue != '[') {
+				throw JsonifierException{ "Sorry, but this type is not Array!" };
+			} 
+			newValue = (this->ptrs[this->currenPositionInTape + 1] >> 32 & JSON_COUNT_MASK);
+			std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
 			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_COUNT_MASK) << std::endl;
 			return std::vector<JsonParser>{};
 		}
