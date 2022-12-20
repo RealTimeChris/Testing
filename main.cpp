@@ -385,7 +385,9 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
-
+		std::cout << "THE STRING SIZE BEFORE: " << stringNew.size() << std::endl;
+		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
+		std::cout << "THE STRING SIZE AFTER: " << stringNew.size() << std::endl;
 		
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			Jsonifier::SimdJsonValue theParser{};
@@ -402,7 +404,6 @@ int32_t main() noexcept {
 		
 		
 		
-		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
 		totalSize = 0;
 		totalTime = 0;
 
