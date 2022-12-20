@@ -556,89 +556,88 @@ namespace Jsonifier {
 	}
 
 	inline bool dumpRawTape(std::ostream& os, uint64_t* tape, const uint8_t* stringBuffer) noexcept {
-		uint32_t string_length;
-		size_t tape_idx = 0;
-		uint64_t tape_val = tape[tape_idx];
-		uint8_t type = uint8_t(tape_val >> 56);
-		os << tape_idx << " : " << type;
-		tape_idx++;
-		size_t how_many = 0;
+		uint32_t stringLength;
+		size_t tapeIndex = 0;
+		uint64_t tapeValue = tape[tapeIndex];
+		uint8_t type = uint8_t(tapeValue >> 56);
+		os << tapeIndex << " : " << type;
+		tapeIndex++;
+		size_t quantity = 0;
 		if (type == 'r') {
-			how_many = size_t(tape_val & JSON_VALUE_MASK);
+			quantity = size_t(tapeValue & JSON_VALUE_MASK);
 		} else {
 			// Error: no starting root node?
 			return false;
 		}
-		os << "\t// pointing to " << how_many << " (right after last node)\n";
+		os << "\t// pointing to " << quantity << " (right after last node)\n";
 		uint64_t payload;
-		for (; tape_idx < how_many; tape_idx++) {
-			os << tape_idx << " : ";
-			tape_val = tape[tape_idx];
-			payload = tape_val & JSON_VALUE_MASK;
-			type = uint8_t(tape_val >> 56);
+		for (; tapeIndex < quantity; tapeIndex++) {
+			os << tapeIndex << " : ";
+			tapeValue = tape[tapeIndex];
+			payload = tapeValue & JSON_VALUE_MASK;
+			type = uint8_t(tapeValue >> 56);
 			switch (type) {
-				case '"':// we have a string
+				case '"':
 					os << "string \"";
-					std::memcpy(&string_length, stringBuffer + payload, sizeof(uint32_t));
-					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), string_length));
+					std::memcpy(&stringLength, stringBuffer + payload, sizeof(uint32_t));
+					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), stringLength));
 					os << '"';
 					os << '\n';
 					break;
-				case 'l':// we have a long int
-					if (tape_idx + 1 >= how_many) {
+				case 'l':
+					if (tapeIndex + 1 >= quantity) {
 						return false;
 					}
-					os << "integer " << static_cast<int64_t>(tape[++tape_idx]) << "\n";
+					os << "integer " << static_cast<int64_t>(tape[++tapeIndex]) << "\n";
 					break;
-				case 'u':// we have a long uint
-					if (tape_idx + 1 >= how_many) {
+				case 'u':
+					if (tapeIndex + 1 >= quantity) {
 						return false;
 					}
-					os << "unsigned integer " << tape[++tape_idx] << "\n";
+					os << "unsigned integer " << tape[++tapeIndex] << "\n";
 					break;
-				case 'd':// we have a double
+				case 'd':
 					os << "float ";
-					if (tape_idx + 1 >= how_many) {
+					if (tapeIndex + 1 >= quantity) {
 						return false;
 					}
 					double answer;
-					std::memcpy(&answer, &tape[++tape_idx], sizeof(answer));
+					std::memcpy(&answer, &tape[++tapeIndex], sizeof(answer));
 					os << answer << '\n';
 					break;
-				case 'n':// we have a null
+				case 'n':
 					os << "null\n";
 					break;
-				case 't':// we have a true
+				case 't':
 					os << "true\n";
 					break;
-				case 'f':// we have a false
+				case 'f':
 					os << "false\n";
 					break;
-				case '{':// we have an object
+				case '{':
 					os << "{\t// pointing to next tape location " << uint32_t(payload) << " (first node after the scope), "
 					   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
 					break;
-				case '}':// we end an object
+				case '}':
 					os << "}\t// pointing to previous tape location " << uint32_t(payload) << " (start of the scope)\n";
 					break;
-				case '[':// we start an array
+				case '[':
 					os << "[\t// pointing to next tape location " << uint32_t(payload) << " (first node after the scope), "
 					   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
 					break;
-				case ']':// we end an array
+				case ']':
 					os << "]\t// pointing to previous tape location " << uint32_t(payload) << " (start of the scope)\n";
 					break;
-				case 'r':// we start and end with the root node
-					// should we be hitting the root node?
+				case 'r':
 					return false;
 				default:
 					return false;
 			}
 		}
-		tape_val = tape[tape_idx];
-		payload = tape_val & JSON_VALUE_MASK;
-		type = uint8_t(tape_val >> 56);
-		os << tape_idx << " : " << type << "\t// pointing to " << payload << " (start root)\n";
+		tapeValue = tape[tapeIndex];
+		payload = tapeValue & JSON_VALUE_MASK;
+		type = uint8_t(tapeValue >> 56);
+		os << tapeIndex << " : " << type << "\t// pointing to " << payload << " (start root)\n";
 		return true;
 	}
 
@@ -710,7 +709,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(//std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
 
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
