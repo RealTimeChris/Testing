@@ -36,7 +36,11 @@ namespace Jsonifier {
 		FAtomError = 7,
 		NAtomError = 8,
 		MemAlloc = 9,
-		InvalidNumber = 10
+		InvalidNumber = 10,
+		Capacity = 11,
+		Unexpected_Error = 12,
+		Unescaped_Characters = 13,
+		Utf8_Error = 14
 	};
 
 	class EnumStringConverter {
@@ -82,7 +86,7 @@ namespace Jsonifier {
 					return "Invalid Number";
 				}
 				default: {
-					return "Unknown Error";
+					return std::to_string(( int32_t )this->code);
 				}
 
 			}
