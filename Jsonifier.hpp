@@ -766,10 +766,6 @@ namespace Jsonifier {
 			this->value = _mm256_set1_epi8(0x00);
 		};
 
-		SimdBase256 lteq(const char) {
-
-		}
-
 		explicit operator bool() {
 			for (size_t x = 0; x < 4; ++x) {
 				if (this->getUint64(x) != 0) {
@@ -795,16 +791,6 @@ namespace Jsonifier {
 
 		inline SimdBase256(const char* values) {
 			*this = values;
-		}
-
-		static inline SimdBase256 repeat_16(const char value01, const char value02, const char value03, const char value04, const char value05,
-			const char value06, const char value07, const char value08, const char value09, const char value10, const char value11,
-			const char value12, const char value13, const char value14, const char value15, const char value16) {
-			const char values[32]{ value01, value02, value03, value04, value05, value06, value07, value08, value09, value10, value11, value12,
-				value13, value14, value15, value16, value01, value02, value03, value04, value05, value06, value07, value08, value09, value10, value11,
-				value12, value13, value14, value15, value16 };
-			SimdBase256 returnValue{ values };
-			return returnValue;
 		}
 
 		inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
@@ -959,20 +945,6 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 operator>>(size_t amount) {
-			int64_t values[4]{};
-			values[0] = _mm256_extract_epi64(this->value, 0);
-			values[1] = _mm256_extract_epi64(this->value, 1);
-			values[2] = _mm256_extract_epi64(this->value, 2);
-			values[3] = _mm256_extract_epi64(this->value, 3);
-			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, (values[0] >> (amount % 64)) | ((values[1] & 1ull) >> 63), 0);
-			newValues = _mm256_insert_epi64(newValues, (values[1] >> (amount % 64)) | ((values[2] & 1ull) >> 63), 1);
-			newValues = _mm256_insert_epi64(newValues, (values[2] >> (amount % 64)) | ((values[3] & 1ull) >> 63), 2);
-			newValues = _mm256_insert_epi64(newValues, (values[3] >> (amount % 64)), 3);
-			return newValues;
-		}
-
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
 			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
@@ -1042,169 +1014,6 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	struct OpenContainer {
-		uint32_t tapeIndex{};
-		uint32_t count{};
-	};
-
-	struct JsonCharacterBlock {
-		static inline JsonCharacterBlock classify(SimdBase256 in[8]);
-		//  ASCII white-space ('\r','\n','\t',' ')
-		inline SimdBase256 whitespace() const noexcept;
-		// non-quote structural characters (comma, colon, braces, brackets)
-		inline SimdBase256 op() const noexcept;
-		// neither a structural character nor a white-space, so letters, numbers and quotes
-		inline SimdBase256 scalar() const noexcept;
-
-		SimdBase256 _whitespace;// ASCII white-space ('\r','\n','\t',' ')
-		SimdBase256 _op;// structural characters (comma, colon, braces, brackets but not quotes)
-	};
-
-	struct JsonStringBlock {
-		// We spell out the constructors in the hope of resolving inlining issues with Visual Studio 2017
-		inline JsonStringBlock(SimdBase256 backslash, SimdBase256 escaped, SimdBase256 quote, SimdBase256 inString)
-			: _backslash(backslash), _escaped(escaped), _quote(quote), _in_string(inString) {
-		}
-
-		// Escaped characters (characters following an escape() character)
-		inline SimdBase256 escaped() {
-			return _escaped;
-		}
-		// Escape characters (backslashes that are not escaped--i.e. in \\, includes only the first \)
-		inline SimdBase256 escape() {
-			return _backslash & ~_escaped;
-		}
-		// Real (non-backslashed) quotes
-		inline SimdBase256 quote() {
-			return _quote;
-		}
-		// Start quotes of strings
-		inline SimdBase256 string_start() {
-			return _quote & _in_string;
-		}
-		// End quotes of strings
-		inline SimdBase256 string_end() {
-			return _quote & ~_in_string;
-		}
-		// Only characters inside the string (not including the quotes)
-		inline SimdBase256 string_content() {
-			return _in_string & ~_quote;
-		}
-		// Return a mask of whether the given characters are inside a string (only works on non-quotes)
-		inline SimdBase256 non_quote_inside_string(SimdBase256 mask) {
-			return mask & _in_string;
-		}
-		// Return a mask of whether the given characters are inside a string (only works on non-quotes)
-		inline SimdBase256 non_quote_outside_string(SimdBase256 mask) {
-			return mask & ~_in_string;
-		}
-		// Tail of string (everything except the start quote)
-		inline SimdBase256 string_tail() {
-			return _in_string ^ _quote;
-		}
-
-		// backslash characters
-		SimdBase256 _backslash;
-		// escaped characters (backslashed--does not include the hex characters after \u)
-		SimdBase256 _escaped;
-		// real quotes (non-backslashed ones)
-		SimdBase256 _quote;
-		// string characters (includes start quote but not end quote)
-		SimdBase256 _in_string;
-	};
-
-	// Scans blocks for string characters, storing the state necessary to do so
-	class JsonStringScanner {
-	  public:
-		inline JsonStringBlock next(SimdBase256 in[8]);
-		// Returns either UNCLOSED_STRING or SUCCESS
-		inline ErrorCode finish();
-
-	  private:
-		// Intended to be defined by the implementation
-		inline SimdBase256 find_escaped(SimdBase256 escape);
-		inline SimdBase256 find_escaped_branchless(SimdBase256 escape);
-
-		// Whether the last iteration was still inside a string (all 1's = true, all 0's = false).
-		int64_t prev_in_string = '\0';
-		// Whether the first character of the next iteration is escaped.
-		SimdBase256 prev_escaped = '\0';
-	};
-
-	struct JsonBlock {
-	  public:
-		// We spell out the constructors in the hope of resolving inlining issues with Visual Studio 2017
-		inline JsonBlock(JsonStringBlock&& string, JsonCharacterBlock characters, SimdBase256 follows_potential_nonquote_scalar)
-			: _string(std::move(string)), _characters(characters), _follows_potential_nonquote_scalar(follows_potential_nonquote_scalar) {
-		}
-		inline JsonBlock(JsonStringBlock string, JsonCharacterBlock characters, SimdBase256 follows_potential_nonquote_scalar)
-			: _string(string), _characters(characters), _follows_potential_nonquote_scalar(follows_potential_nonquote_scalar) {
-		}
-
-		/**
-   * The start of structurals.
-   * In simdjson prior to v0.3, these were called the pseudo-structural characters.
-   **/
-		inline SimdBase256 structural_start() noexcept {
-			return potential_structural_start() & ~_string.string_tail();
-		}
-		/** All JSON whitespace (i.e. not in a string) */
-		inline SimdBase256 whitespace() noexcept {
-			return non_quote_outside_string(_characters.whitespace());
-		}
-
-		// Helpers
-
-		/** Whether the given characters are inside a string (only works on non-quotes) */
-		inline SimdBase256 non_quote_inside_string(SimdBase256 mask) noexcept {
-			return _string.non_quote_inside_string(mask);
-		}
-		/** Whether the given characters are outside a string (only works on non-quotes) */
-		inline SimdBase256 non_quote_outside_string(SimdBase256 mask) noexcept {
-			return _string.non_quote_outside_string(mask);
-		}
-
-		// string and escape characters
-		JsonStringBlock _string;
-		// whitespace, structural characters ('operators'), scalars
-		JsonCharacterBlock _characters;
-		// whether the previous character was a scalar
-		SimdBase256 _follows_potential_nonquote_scalar;
-
-	  private:
-		// Potential structurals (i.e. disregarding strings)
-
-		/**
-   * structural elements ([,],{,},:, comma) plus scalar starts like 123, true and "abc".
-   * They may reside inside a string.
-   **/
-		inline SimdBase256 potential_structural_start() const noexcept {
-			return _characters.op() | potential_scalar_start();
-		}
-		/**
-   * The start of non-operator runs, like 123, true and "abc".
-   * It main reside inside a string.
-   **/
-		inline SimdBase256 potential_scalar_start() const noexcept {
-			// The term "scalar" refers to anything except structural characters and white space
-			// (so letters, numbers, quotes).
-			// Whenever it is preceded by something that is not a structural element ({,},[,],:, ") nor a white-space
-			// then we know that it is irrelevant structurally.
-			return _characters.scalar() & ~follows_potential_scalar();
-		}
-		/**
-   * Whether the given character is immediately after a non-operator like 123, true.
-   * The characters following a quote are not included.
-   */
-		inline SimdBase256 follows_potential_scalar() const noexcept {
-			// _follows_potential_nonquote_scalar: is defined as marking any character that follows a character
-			// that is not a structural element ({,},[,],:, comma) nor a quote (") and that is not a
-			// white space.
-			// It is understood that within quoted region, anything at all could be marked (irrelevant).
-			return _follows_potential_nonquote_scalar;
-		}
-	};
-
 	class SimdStringSection {
 	  public:
 		inline SimdStringSection() noexcept = default;
@@ -1216,7 +1025,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString,
-			size_t& currentIndexIntoTape, size_t stringLength) {
+			size_t& currentIndexIntoTape,size_t stringLength) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
 			for (int i = 0; i < value; i++) {
 				auto valueNew = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
@@ -1270,9 +1079,9 @@ namespace Jsonifier {
 			}
 			this->S256 = convertSimdBytesToBits(structural);
 
-
-			char valuesNewTwo[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113,
-				2, 100, '\t', '\n', 112, 100, '\r', 100, 100 };
+			
+			char valuesNewTwo[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
+				100, '\t', '\n', 112, 100, '\r', 100, 100 };
 			SimdBase256 whitespaceTable{ valuesNewTwo };
 			SimdBase256 whiteSpaceReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
@@ -1318,6 +1127,7 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
+			
 			this->S256 = this->S256.bitAndNot(this->R256);
 			this->S256 = this->S256 | this->Q256;
 			auto P = this->S256 | this->W256;
@@ -1328,13 +1138,7 @@ namespace Jsonifier {
 			return this->S256;
 		}
 
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			SimdBase256 result = match << 1 | overflow;
-			overflow = match >> 63;
-			return result;
-		}
-
-		inline SimdStringSection(const char* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonQuoteScalar, SimdBase256 prevScalar) {
+		inline SimdStringSection(const char* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonQuoteScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1344,23 +1148,10 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 
-
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
 			this->collectStructuralAndWhiteSpaceCharacters();
-			auto nonquoteScalar = scalar() & ~this->Q256;
-			followsPotentialNonQuoteScalar = follows(nonquoteScalar, prevScalar);
-			followsPotentialNonQuoteScalar.printBits("THE NEW BITS: ");
-			prevScalar.printBits("THE NEW BITS (PREV-SCALAR): ");
-			this->S256.printBits("THE NEW S-BITS: ");
-
 			this->S256 = this->collectFinalStructurals();
-
-			this->S256 = this->S256.bitAndNot(followsPotentialNonQuoteScalar);
-
-			this->S256.printBits("THE NEW S-BITS: ");
-
-
 			//this->S256 = this->structuralStart(followsPotentialNonQuoteScalar);
 			//this->collectStructuralAndWhiteSpaceCharacters();
 			//this->S256 = this->collectFinalStructurals();
@@ -1375,133 +1166,124 @@ namespace Jsonifier {
 		SimdBase256 S256{};
 	};
 
-	class SimdJsonValue;
-
-	class JsonScanner {
-	  public:
-		JsonScanner() {
-		}
-		inline JsonBlock next(SimdBase256 in[8]);
-		// Returns either UNCLOSED_STRING or SUCCESS
-		inline ErrorCode finish();
-
-	  private:
-		// Whether the last character of the previous iteration is part of a scalar token
-		// (anything except whitespace or a structural character/'operator').
-		SimdBase256 prev_scalar = '\0';
-		JsonStringScanner string_scanner{};
+	struct OpenContainer {
+		uint32_t tapeIndex{};
+		uint32_t count{};
 	};
 
-	
-	inline int trailing_zeroes(uint64_t input_num) {
-		return ( int )_tzcnt_u64(input_num);
-	}
-
-	/* result might be undefined when input_num is zero */
-	inline uint64_t clear_lowest_bit(uint64_t input_num) {
-		return _blsr_u64(input_num);
-	}
-
-	/* result might be undefined when input_num is zero */
-	inline int leading_zeroes(uint64_t input_num) {
-		return int(_lzcnt_u64(input_num));
-	}
-
-	inline long long int count_ones(uint64_t input_num) {
-		return __popcnt64(input_num);
-	}
-
-	inline bool add_overflow(uint64_t value1, uint64_t value2, uint64_t* result) {
-		return _addcarry_u64(0, value1, value2, reinterpret_cast<unsigned __int64*>(result));
-	};
-
-
-	class BitIndexer {
+	class SimdJsonValue {
 	  public:
-		uint32_t* tail;
-
-		inline BitIndexer(uint32_t* index_buf) : tail(index_buf) {
+		inline SimdJsonValue() {
 		}
 
-		// flatten out values in 'bits' assuming that they are are to have values of idx
-		// plus their position in the bitvector, and store these indexes at
-		// base_ptr[base] incrementing base as we go
-		// will potentially store extra values beyond end of valid bits, so base_ptr
-		// needs to be large enough to handle this
-		//
-		// If the kernel sets SIMDJSON_CUSTOM_BIT_INDEXER, then it will provide its own
-		// version of the code.
-#ifdef SIMDJSON_CUSTOM_BIT_INDEXER
-		inline void write(uint32_t idx, uint64_t bits);
-#else
-		inline void write(uint32_t idx, uint64_t bits) {
-			// In some instances, the next branch is expensive because it is mispredicted.
-			// Unfortunately, in other cases,
-			// it helps tremendously.
-			if (bits == 0)
-				return;
+		int32_t round(int32_t a, int32_t n) {
+			return (((a) + (( n )-1)) & ~(( n )-1));
+		}
 
-			/**
-     * Under recent x64 systems, we often have both a fast trailing zero
-     * instruction and a fast 'clear-lower-bit' instruction so the following
-     * algorithm can be competitive.
-     */
+		inline ErrorCode allocate(size_t capacity, const char* stringViewNew) noexcept {
+			if (capacity == 0) {
+				this->tape.reset(0, 0, nullptr);
+				this->allocatedCapacity = 0;
+				return ErrorCode::Success;
+			}
+
 			
-			int cnt = static_cast<int>(count_ones(bits));
-			std::cout << "WERE WRITING WRITING THE COUNT IS: " << cnt << std::endl;
-			// Do the first 8 all together
-			for (int i = 0; i < 8; i++) {
-				this->tail[i] = idx + trailing_zeroes(bits);
-				bits = clear_lowest_bit(bits);
+			size_t tapeCapacity = round(capacity + 3, 256);
+			size_t stringCapacity = round(5 * capacity / 3 + 256, 256);
+			this->tape.reset(tapeCapacity, stringCapacity, stringViewNew);
+			this->structuralIndices = std::make_unique<uint32_t[]>(tapeCapacity);
+			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
+				this->allocatedCapacity = 0;
+				this->tape.reset(0, 0, nullptr);
+				return ErrorCode::MemAlloc;
 			}
-
-			// Do the next 8 all together (we hope in most cases it won't happen at all
-			// and the branch is easily predicted).
-			if (cnt > 8) {
-				for (int i = 8; i < 16; i++) {
-					this->tail[i] = idx + trailing_zeroes(bits);
-					bits = clear_lowest_bit(bits);
-				}
-
-				// Most files don't have 16+ structurals per block, so we take several basically guaranteed
-				// branch mispredictions here. 16+ structurals per block means either punctuation ({} [] , :)
-				// or the start of a value ("abc" true 123) every four characters.
-				if (cnt > 16) {
-					int i = 16;
-					do {
-						this->tail[i] = idx + trailing_zeroes(bits);
-						bits = clear_lowest_bit(bits);
-						i++;
-					} while (i < cnt);
-				}
-			}
-
-			this->tail += cnt;
+			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
+			this->allocatedCapacity = capacity;
+			return ErrorCode::Success;
 		}
-#endif// SIMDJSON_CUSTOM_BIT_INDEXER
-	};
 
-	class JsonStructuralIndexer {
-	  public:
-		/**
-   * Find the important bits of JSON in a 128-byte chunk, and add them to structural_indexes.
-   *
-   * @param partial Setting the partial parameter to true allows the find_structural_bits to
-   *   tolerate unclosed strings. The caller should still ensure that the input is valid UTF-8. If
-   *   you are processing substrings, you may want to call on a function like trimmed_length_safe_utf8.
-   */
-		template<size_t STEP_SIZE> static ErrorCode index(const uint8_t* buf, size_t len, SimdJsonValue& parser) noexcept;
+		inline void generateJsonEvents(const char* stringNew, size_t stringLength) {
+			if (stringNew) {
+				if (stringLength == 0) {
+					throw JsonifierException{ "Failed to parse as the string size is 0." };
+				}
+				this->stringLengthRaw = stringLength;
+				this->tapeLength = 0;
+				if (this->allocatedCapacity < this->stringLengthRaw) {
+					if (this->allocate(stringLength, stringNew) != ErrorCode::Success) {
+						throw JsonifierException{ "Failed to allocate properly!" };
+					}
+				}
+				int64_t stringSize = this->allocatedCapacity;
+				uint32_t collectedSize{};
+				size_t tapeCurrentIndex{ 0 };
+				int64_t prevInString{};
+				SimdBase256 followsPotentialNonQuoteScalar{};
+				while (stringSize > 0) {
+					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString, followsPotentialNonQuoteScalar);
+					auto indexCount = section.getStructuralIndices(this->structuralIndices.get(), collectedSize, tapeCurrentIndex, stringLength);
+					this->tapeLength += indexCount;
+					stringSize -= 256;
+					collectedSize += 256;
+				}
+				for (size_t x = 0; x < this->tapeLength; ++x) {
+					std::cout << "CURRENT INDEX: " << this->structuralIndices[x]
+							  << ", THAT INDEX'S VALUE: " << this->getStringView()[this->structuralIndices[x]] << std::endl;
+				}
+				this->tape.setTapeCount(this->tapeLength);
+			}
+		}
 
-	  private:
-		inline JsonStructuralIndexer(uint32_t* structural_indexes);
-		template<size_t STEP_SIZE> inline void step(const char* block, size_t index) noexcept;
-		inline void next(SimdBase256 in, JsonBlock& block, size_t idx);
-		inline ErrorCode finish(SimdJsonValue& parser, size_t idx, size_t len);
+		inline ~SimdJsonValue() noexcept {};
 
-		JsonScanner scanner{};
-		BitIndexer indexer;
-		SimdBase256 prev_structurals = '\0';
-		SimdBase256 unescaped_chars_error = '\0';
+		inline char* getStringView() {
+			return ( char* )this->tape.getStringView();
+		}
+
+		inline uint8_t* getStringViewNew() {
+			return reinterpret_cast<uint8_t*>(this->tape.getStringViewNew());
+		}
+
+		OpenContainer* getOpenContainers() {
+			return this->openContainers.get();
+		}
+
+		inline uint32_t& getCurrentDepth() {
+			return this->depth;
+		}
+
+		inline uint64_t* getTape() {
+			return this->tape.operator uint64_t*();
+		}
+
+		inline uint32_t* getStructuralIndices() {
+			return this->structuralIndices.get();
+		}
+
+		inline JsonParser getJsonData(std::string& string);
+
+		inline uint32_t getMaxDepth() {
+			return this->maxDepth;
+		}
+
+		inline size_t getTapeLength() {
+			return this->tapeLength;
+		}
+
+		inline std::vector<bool>& getIsArray() {
+			return this->isArray;
+		}
+
+	  protected:
+		std::unique_ptr<OpenContainer[]> openContainers{};
+		std::unique_ptr<uint32_t[]> structuralIndices{};
+		JsonParser tape{ 0, 0, nullptr };
+		std::vector<bool> isArray{};
+		size_t allocatedCapacity{};
+		size_t stringLengthRaw{};
+		uint32_t maxDepth{ 500 };
+		size_t tapeLength{ 0 };
+		uint32_t depth{ 0 };
 	};
 
 	enum class TapeType : uint8_t {
@@ -1549,555 +1331,6 @@ namespace Jsonifier {
 		inline ErrorCode visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value);
 		inline ErrorCode visitPrimitive(TapeBuilder& visitor, const uint8_t* value);
 	};
-
-	struct TapeWriter {
-		TapeWriter(uint64_t* ptr) {
-			this->nextTapeLocation = ptr;
-		}
-		uint64_t* nextTapeLocation;
-		inline void appendS64(int64_t value) noexcept;
-		inline void appendU64(uint64_t value) noexcept;
-		inline void appendDouble(double value) noexcept;
-		inline void append(uint64_t val, TapeType t) noexcept;
-		inline void skip() noexcept;
-		inline void skipLargeInteger() noexcept;
-		inline void skipDouble() noexcept;
-		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
-
-	  private:
-		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
-	};
-
-	struct TapeBuilder {
-		static inline ErrorCode parseDocument(SimdJsonValue& masterParser);
-
-		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitDocumentEnd(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitArrayStart(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitArrayEnd(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitEmptyArray(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitObjectStart(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
-
-		inline ErrorCode visitObjectEnd(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
-
-		inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode visitString(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode visitRootString(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-		inline ErrorCode visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
-
-		inline ErrorCode incrementCount(JsonIterator& iter) noexcept;
-
-		TapeWriter tape;
-
-	  private:
-		uint8_t* currentStringBufferLocation{};
-
-		inline TapeBuilder(SimdJsonValue& doc) noexcept;
-
-		inline uint32_t nextTapeIndex(JsonIterator& iter) const noexcept;
-		inline ErrorCode startContainer(JsonIterator& iter) noexcept;
-		inline ErrorCode endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
-		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
-		inline uint8_t* onStartString(JsonIterator& iter) noexcept;
-		inline ErrorCode onEndString(uint8_t* dst) noexcept;
-	};
-
-
-	class SimdJsonValue {
-	  public:
-		uint32_t n_structural_indexes{};
-		uint32_t next_structural_index{};
-		std::unique_ptr<uint32_t[]> structural_indexes{ nullptr };
-		uint8_t* buf{};
-		size_t len{};
-
-		inline SimdJsonValue() {
-		}
-
-		int32_t round(int32_t a, int32_t n) {
-			return (((a) + (( n )-1)) & ~(( n )-1));
-		}
-
-
-		 ErrorCode stage1(uint8_t* _buf, size_t _len) noexcept {
-			this->buf = _buf;
-			this->len = _len;
-			return JsonStructuralIndexer::index<128>(_buf, _len, *this);
-		}
-
-
-		 ErrorCode stage2() noexcept {
-			return TapeBuilder::parseDocument(*this);
-		}
-
-		 ErrorCode stage2_next() noexcept {
-			return TapeBuilder::parseDocument(*this);
-		}
-
-		 ErrorCode parse(uint8_t* _buf, size_t _len) noexcept {
-			this->allocate(_len, reinterpret_cast<const char*>(_buf));
-			auto error = stage1(_buf, _len);
-			 if (error != ErrorCode::Success) {
-				return error;
-			}
-			 return stage2();
-			dumpRawTape(std::cout, ( uint64_t* )this->structural_indexes.get(), ( uint8_t* )this->getStringView());
-		}
-
-		inline ErrorCode allocate(size_t capacity, const char* stringViewNew) noexcept {
-			if (capacity == 0) {
-				this->tape.reset(0, 0, nullptr);
-				this->allocatedCapacity = 0;
-				return ErrorCode::Success;
-			}
-
-
-			size_t tapeCapacity = round(capacity + 3, 256);
-			size_t stringCapacity = round(5 * capacity / 3 + 256, 256);
-			this->tape.reset(tapeCapacity, stringCapacity, stringViewNew);
-			this->structural_indexes = std::make_unique<uint32_t[]>(tapeCapacity);
-			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
-				this->allocatedCapacity = 0;
-				this->tape.reset(0, 0, nullptr);
-				return ErrorCode::MemAlloc;
-			}
-			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
-			this->allocatedCapacity = capacity;
-			return ErrorCode::Success;
-		}
-
-		inline void generateJsonEvents(const char* stringNew, size_t stringLength) {
-			if (stringNew) {
-				if (stringLength == 0) {
-					throw JsonifierException{ "Failed to parse as the string size is 0." };
-				}
-				this->stringLengthRaw = stringLength;
-				this->tapeLength = 0;
-				if (this->allocatedCapacity < this->stringLengthRaw) {
-					if (this->allocate(stringLength, stringNew) != ErrorCode::Success) {
-						throw JsonifierException{ "Failed to allocate properly!" };
-					}
-				}
-				int64_t stringSize = this->allocatedCapacity;
-				uint32_t collectedSize{};
-				size_t tapeCurrentIndex{ 0 };
-				int64_t prevInString{};
-				SimdBase256 followsPotentialNonQuoteScalar{};
-				SimdBase256 prevScalar{};
-				while (stringSize > 0) {
-					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString, followsPotentialNonQuoteScalar, prevScalar);
-					auto indexCount = section.getStructuralIndices(this->structuralIndices.get(), collectedSize, tapeCurrentIndex, stringLength);
-					this->tapeLength += indexCount;
-					stringSize -= 256;
-					collectedSize += 256;
-				}
-				for (size_t x = 0; x < this->tapeLength; ++x) {
-					std::cout << "CURRENT INDEX: " << this->structuralIndices[x]
-							  << ", THAT INDEX'S VALUE: " << this->getStringView()[this->structuralIndices[x]] << std::endl;
-				}
-				this->tape.setTapeCount(this->tapeLength);
-			}
-		}
-
-		inline ~SimdJsonValue() noexcept {};
-
-		inline char* getStringView() {
-			return ( char* )this->tape.getStringView();
-		}
-
-		inline uint8_t* getStringViewNew() {
-			return reinterpret_cast<uint8_t*>(this->tape.getStringViewNew());
-		}
-
-		OpenContainer* getOpenContainers() {
-			return this->openContainers.get();
-		}
-
-		inline uint32_t& getCurrentDepth() {
-			return this->depth;
-		}
-
-		inline uint64_t* getTape() {
-			return this->tape.operator uint64_t*();
-		}
-
-		inline uint32_t* getStructuralIndices() {
-			return this->structural_indexes.get();
-		}
-
-		inline JsonParser getJsonData(std::string& string);
-
-		inline uint32_t getMaxDepth() {
-			return this->maxDepth;
-		}
-
-		inline size_t getTapeLength() {
-			return this->tapeLength;
-		}
-
-		size_t capacity() {
-			return this->allocatedCapacity;
-		}
-
-		inline std::vector<bool>& getIsArray() {
-			return this->isArray;
-		}
-
-	  protected:
-		std::unique_ptr<OpenContainer[]> openContainers{};
-		std::unique_ptr<uint32_t[]> structuralIndices{};
-		JsonParser tape{ 0, 0, nullptr };
-		std::vector<bool> isArray{};
-		size_t allocatedCapacity{};
-		size_t stringLengthRaw{};
-		uint32_t maxDepth{ 500 };
-		size_t tapeLength{ 0 };
-		uint32_t depth{ 0 };
-	};
-
-	//
-	// Finds escaped characters (characters following \).
-	//
-	// Handles runs of backslashes like \\\" and \\\\" correctly (yielding 0101 and 01010, respectively).
-	//
-	// Does this by:
-	// - Shift the escape mask to get potentially escaped characters (characters after backslashes).
-	// - Mask escaped sequences that start on *even* bits with 1010101010 (odd bits are escaped, even bits are not)
-	// - Mask escaped sequences that start on *odd* bits with 0101010101 (even bits are escaped, odd bits are not)
-	//
-	// To distinguish between escaped sequences starting on even/odd bits, it finds the start of all
-	// escape sequences, filters out the ones that start on even bits, and adds that to the mask of
-	// escape sequences. This causes the addition to clear out the sequences starting on odd bits (since
-	// the start bit causes a carry), and leaves even-bit sequences alone.
-	//
-	// Example:
-	//
-	// text           |  \\\ | \\\"\\\" \\\" \\"\\" |
-	// escape         |  xxx |  xx xxx  xxx  xx xx  | Removed overflow backslash; will | it into follows_escape
-	// odd_starts     |  x   |  x       x       x   | escape & ~even_bits & ~follows_escape
-	// even_seq       |     c|    cxxx     c xx   c | c = carry bit -- will be masked out later
-	// invert_mask    |      |     cxxx     c xx   c| even_seq << 1
-	// follows_escape |   xx | x xx xxx  xxx  xx xx | Includes overflow bit
-	// escaped        |   x  | x x  x x  x x  x  x  |
-	// desired        |   x  | x x  x x  x x  x  x  |
-	// text           |  \\\ | \\\"\\\" \\\" \\"\\" |
-	//
-	inline SimdBase256 JsonStringScanner::find_escaped_branchless(SimdBase256 backslash) {
-		// If there was overflow, pretend the first character isn't a backslash
-		backslash &= ~prev_escaped;
-		SimdBase256 follows_escape = backslash << 1 | prev_escaped;
-
-		// Get sequences starting on even bits by clearing out the odd series using +
-		SimdBase256 even_bits = 0x5555555555555555ULL;
-		SimdBase256 odd_sequence_starts = backslash & ~even_bits & ~follows_escape;
-		SimdBase256 sequences_starting_on_even_bits;
-		prev_escaped = odd_sequence_starts.collectCarries(backslash, &sequences_starting_on_even_bits);
-		SimdBase256 invert_mask = sequences_starting_on_even_bits << 1;// The mask we want to return is the *escaped* bits, not escapes.
-
-		// Mask every other backslashed character as an escaped character
-		// Flip the mask for sequences that start on even bits, to correct them
-		return (even_bits ^ invert_mask) & follows_escape;
-	}
-
-	//
-	// Return a mask of all string characters plus end quotes.
-	//
-	// prev_escaped is overflow saying whether the next character is escaped.
-	// prev_in_string is overflow saying whether we're still in a string.
-	//
-	// Backslash sequences outside of quotes will be detected in stage 2.
-	//
-	inline JsonStringBlock JsonStringScanner::next(SimdBase256 in[8]) {
-		SimdBase256 backslash[8]{};
-		SimdBase256 escaped[8]{};
-		SimdBase256 quote[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			backslash[x] = in[x] == '\\';
-			escaped[x] = find_escaped(backslash[x]);
-			quote[x] = in[x] == '"' & ~escaped[x];
-		}
-
-		//
-		// prefix_xor flips on bits inside the string (and flips off the end quote).
-		//
-		// Then we xor with prev_in_string: if we were in a string already, its effect is flipped
-		// (characters inside strings are outside, and characters outside strings are inside).
-		//
-		SimdBase256 inString{};
-		for (size_t x = 0; x < 8; ++x) {
-			inString = quote[x].carrylessMultiplication(prev_in_string);
-			prev_in_string = uint64_t(static_cast<int64_t>(inString.getInt64(0)) >> 63);
-		}
-		
-
-		//
-		// Check if we're still in a string at the end of the box so the next block will know
-		//
-		// right shift of a signed value expected to be well-defined and standard
-		// compliant as of C++20, John Regher from Utah U. says this is fine code
-		//
-		
-
-		// Use ^ to turn the beginning quote off, and the end quote on.
-
-		// We are returning a function-local object so either we get a move constructor
-		// or we get copy elision.
-		return JsonStringBlock(convertSimdBytesToBits(backslash), convertSimdBytesToBits(escaped), convertSimdBytesToBits(quote), inString);
-	}
-
-	inline ErrorCode JsonStringScanner::finish() {
-		if (prev_in_string) {
-			return ErrorCode::StringError;
-		}
-		return ErrorCode::Success;
-	}
-
-	inline SimdBase256 JsonCharacterBlock::whitespace() const noexcept {
-		return _whitespace;
-	}
-	inline SimdBase256 JsonCharacterBlock::op() const noexcept {
-		return _op;
-	}
-	inline SimdBase256 JsonCharacterBlock::scalar() const noexcept {
-		return ~(op() | whitespace());
-	}
-
-	// This identifies structural characters (comma, colon, braces, brackets),
-	// and ASCII white-space ('\r','\n','\t',' ').
-	inline JsonCharacterBlock JsonCharacterBlock::classify(SimdBase256 in[8]) {
-		// These lookups rely on the fact that anything < 127 will match the lower 4 bits, which is why
-		// we can't use the generic lookup_16.
-		char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
-		SimdBase256 opTable{ valuesNew };
-		SimdBase256 structural[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			auto valuesNew00 = in[x] | SimdBase256{ 0x20 };
-			structural[x] = in[x].shuffle(opTable) == valuesNew00;
-		}
-		auto S256 = convertSimdBytesToBits(structural);
-
-
-		char valuesNewTwo[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
-			100, '\t', '\n', 112, 100, '\r', 100, 100 };
-		SimdBase256 whitespaceTable{ valuesNewTwo };
-		SimdBase256 whiteSpaceReal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			whiteSpaceReal[x] = in[x].shuffle(whitespaceTable) == in[x];
-		}
-		auto W256 = convertSimdBytesToBits(whiteSpaceReal);
-
-		return { W256, S256 };
-	};
-
-	/**
- * Scans JSON for important bits: structural characters or 'operators', strings, and scalars.
- *
- * The scanner starts by calculating two distinct things:
- * - string characters (taking \" into account)
- * - structural characters or 'operators' ([]{},:, comma)
- *   and scalars (runs of non-operators like 123, true and "abc")
- *
- * To minimize data dependency (a key component of the scanner's speed), it finds these in parallel:
- * in particular, the operator/scalar bit will find plenty of things that are actually part of
- * strings. When we're done, JsonBlock will fuse the two together by masking out tokens that are
- * part of a string.
- */
-	class SimdJsonValue;
-
-
-	//
-	// Check if the current character immediately follows a matching character.
-	//
-	// For example, this checks for quotes with backslashes in front of them:
-	//
-	//     const uint64_t backslashed_quote = in.eq('"') & immediately_follows(in.eq('\'), prev_backslash);
-	//
-	inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-		SimdBase256 result = match << 1 | overflow;
-		overflow = match >> 63;
-		return result;
-	}
-
-	inline JsonBlock JsonScanner::next(SimdBase256 in[8]) {
-		JsonStringBlock strings = string_scanner.next(in);
-		// identifies the white-space and the structural characters
-		JsonCharacterBlock characters = JsonCharacterBlock::classify(in);
-		// The term "scalar" refers to anything except structural characters and white space
-		// (so letters, numbers, quotes).
-		// We want follows_scalar to mark anything that follows a non-quote scalar (so letters and numbers).
-		//
-		// A terminal quote should either be followed by a structural character (comma, brace, bracket, colon)
-		// or nothing. However, we still want ' "a string"true ' to mark the 't' of 'true' as a potential
-		// pseudo-structural character just like we would if we had  ' "a string" true '; otherwise we
-		// may need to add an extra check when parsing strings.
-		//
-		// Performance: there are many ways to skin this cat.
-		SimdBase256 nonquote_scalar = characters.scalar() & ~strings.quote();
-		SimdBase256 follows_nonquote_scalar = follows(nonquote_scalar, prev_scalar);
-		// We are returning a function-local object so either we get a move constructor
-		// or we get copy elision.
-		return JsonBlock(strings,// strings is a function-local object so either it moves or the copy is elided.
-			characters, follows_nonquote_scalar);
-	}
-
-	inline ErrorCode JsonScanner::finish() {
-		return string_scanner.finish();
-	}
-
-	inline JsonStructuralIndexer::JsonStructuralIndexer(uint32_t* structural_indexes) : indexer{ structural_indexes } {
-	}
-
-	// Skip the last character if it is partial
-	inline size_t trim_partial_utf8(const uint8_t* buf, size_t len) {
-		if (len < 3) {
-			switch (len) {
-				case 2:
-					if (buf[len - 1] >= 0xc0) {
-						return len - 1;
-					}// 2-, 3- and 4-byte characters with only 1 byte left
-					if (buf[len - 2] >= 0xe0) {
-						return len - 2;
-					}// 3- and 4-byte characters with only 2 bytes left
-					return len;
-				case 1:
-					if (buf[len - 1] >= 0xc0) {
-						return len - 1;
-					}// 2-, 3- and 4-byte characters with only 1 byte left
-					return len;
-				case 0:
-					return len;
-			}
-		}
-		if (buf[len - 1] >= 0xc0) {
-			return len - 1;
-		}// 2-, 3- and 4-byte characters with only 1 byte left
-		if (buf[len - 2] >= 0xe0) {
-			return len - 2;
-		}// 3- and 4-byte characters with only 1 byte left
-		if (buf[len - 3] >= 0xf0) {
-			return len - 3;
-		}// 4-byte characters with only 3 bytes left
-		return len;
-	}
-
-	//
-	// PERF NOTES:
-	// We pipe 2 inputs through these stages:
-	// 1. Load JSON into registers. This takes a long time and is highly parallelizable, so we load
-	//    2 inputs' worth at once so that by the time step 2 is looking for them input, it's available.
-	// 2. Scan the JSON for critical data: strings, scalars and operators. This is the critical path.
-	//    The output of step 1 depends entirely on this information. These functions don't quite use
-	//    up enough CPU: the second half of the functions is highly serial, only using 1 execution core
-	//    at a time. The second input's scans has some dependency on the first ones finishing it, but
-	//    they can make a lot of progress before they need that information.
-	// 3. Step 1 doesn't use enough capacity, so we run some extra stuff while we're waiting for that
-	//    to finish: utf-8 checks and generating the output from the last iteration.
-	//
-	// The reason we run 2 inputs at a time, is steps 2 and 3 are *still* not enough to soak up all
-	// available capacity with just one input. Running 2 at a time seems to give the CPU a good enough
-	// workout.
-	//
-	template<size_t STEP_SIZE>
-	ErrorCode JsonStructuralIndexer::index(const uint8_t* buf, size_t len, SimdJsonValue& parser) noexcept {
-		if (len > parser.capacity()) {
-			return ErrorCode::Capacity;
-		}
-		// We guard the rest of the code so that we can assume that len > 0 throughout.
-		if (len == 0) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
-				", at the following index into the string: "  };
-		}
-		JsonStructuralIndexer indexer(parser.structural_indexes.get());
-		return indexer.finish(parser, 0, len);
-	}
-
-	template<> inline void JsonStructuralIndexer::step<64>(const char* block, size_t index) noexcept {
-		SimdBase256 in_1[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-
-		}
-		JsonBlock block_1 = scanner.next(in_1);
-		for (size_t x = 0; x < 8; ++x) {
-			this->next(in_1[x], block_1, index);
-		}
-	}
-
-	inline void JsonStructuralIndexer::next(SimdBase256 in, JsonBlock& block, size_t idx) {
-		SimdBase256 unescaped = in.lteq(0x1F);
-		for (size_t x = 0; x < 4; ++x) {
-			indexer.write(uint32_t(idx - 64), prev_structurals.getInt64(x));
-		}
-		prev_structurals = block.structural_start();
-		unescaped_chars_error |= block.non_quote_inside_string(unescaped);
-	}
-
-	inline ErrorCode JsonStructuralIndexer::finish(SimdJsonValue& parser, size_t idx, size_t len) {
-		// Write out the final iteration's structurals
-		for (size_t x = 0; x < 4; ++x) {
-			indexer.write(uint32_t(idx - 64), prev_structurals.getInt64(x));
-		}
-		ErrorCode error = scanner.finish();
-
-		if (unescaped_chars_error) {
-			return ErrorCode::Unescaped_Characters;
-		}
-		parser.n_structural_indexes = uint32_t(indexer.tail - parser.structural_indexes.get());
-		/***
-   * The On Demand API requires special padding.
-   *
-   * This is related to https://github.com/simdjson/simdjson/issues/906
-   * Basically, we want to make sure that if the parsing continues beyond the last (valid)
-   * structural character, it quickly stops.
-   * Only three structural characters can be repeated without triggering an error in JSON:  [,] and }.
-   * We repeat the padding character (at 'len'). We don't know what it is, but if the parsing
-   * continues, then it must be [,] or }.
-   * Suppose it is ] or }. We backtrack to the first character, what could it be that would
-   * not trigger an error? It could be ] or } but no, because you can't start a document that way.
-   * It can't be a comma, a colon or any simple value. So the only way we could continue is
-   * if the repeated character is [. But if so, the document must start with [. But if the document
-   * starts with [, it should end with ]. If we enforce that rule, then we would get
-   * ][[ which is invalid.
-   *
-   * This is illustrated with the test array_iterate_unclosed_error() on the following input:
-   * R"({ "a": [,,)"
-   **/
-		parser.structural_indexes[parser.n_structural_indexes] = uint32_t(len);// used later in partial == stage1_mode::streaming_final
-		parser.structural_indexes[parser.n_structural_indexes + 1] = uint32_t(len);
-		parser.structural_indexes[parser.n_structural_indexes + 2] = 0;
-		parser.next_structural_index = 0;
-		// a valid JSON file cannot have zero structural indexes - we should have found something
-		if (parser.n_structural_indexes == 0u) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } + ", at the following index into the string: " };
-		}
-		if (parser.structural_indexes[parser.n_structural_indexes - 1] > len) {
-			return ErrorCode::Unexpected_Error;
-		}
-		return ErrorCode::Success;
-	};
-
-	class TapeBuilder;
 
 	inline JsonIterator::JsonIterator(SimdJsonValue* masterParserNew, size_t start_structural_index)
 		: nextStructural(masterParserNew->getStructuralIndices()), buf{ reinterpret_cast<const uint8_t*>(masterParserNew->getStringView()) },
@@ -2210,6 +1443,24 @@ namespace Jsonifier {
 		}
 	}
 
+	struct TapeWriter {
+		TapeWriter(uint64_t* ptr) {
+			this->nextTapeLocation = ptr;
+		}
+		uint64_t* nextTapeLocation;
+		inline void appendS64(int64_t value) noexcept;
+		inline void appendU64(uint64_t value) noexcept;
+		inline void appendDouble(double value) noexcept;
+		inline void append(uint64_t val, TapeType t) noexcept;
+		inline void skip() noexcept;
+		inline void skipLargeInteger() noexcept;
+		inline void skipDouble() noexcept;
+		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
+
+	  private:
+		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
+	};
+
 	inline void TapeWriter::appendS64(int64_t value) noexcept {
 		this->append2(0, value, TapeType::Int64);
 	}
@@ -2252,7 +1503,60 @@ namespace Jsonifier {
 		tape_loc = val | ((uint64_t(char(t))) << 56);
 	}
 
-	
+	struct TapeBuilder {
+		static inline ErrorCode parseDocument(SimdJsonValue& masterParser);
+
+		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitDocumentEnd(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitArrayStart(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitArrayEnd(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitEmptyArray(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitObjectStart(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitKey(JsonIterator& iter, const uint8_t* key) noexcept;
+
+		inline ErrorCode visitObjectEnd(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
+
+		inline ErrorCode visitPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode visitRootPrimitive(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode visitString(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitNumber(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode visitRootString(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept;
+
+		inline ErrorCode incrementCount(JsonIterator& iter) noexcept;
+
+		TapeWriter tape;
+
+	  private:
+		uint8_t* currentStringBufferLocation{};
+
+		inline TapeBuilder(SimdJsonValue& doc) noexcept;
+
+		inline uint32_t nextTapeIndex(JsonIterator& iter) const noexcept;
+		inline ErrorCode startContainer(JsonIterator& iter) noexcept;
+		inline ErrorCode endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
+		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
+		inline uint8_t* onStartString(JsonIterator& iter) noexcept;
+		inline ErrorCode onEndString(uint8_t* dst) noexcept;
+	};
+
 	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser) {
 		JsonIterator iter(&masterParser, 0);
 		TapeBuilder builder(masterParser);
@@ -2668,6 +1972,7 @@ namespace Jsonifier {
 
 		Scope_End: {
 			this->depth--;
+			this->masterParser->getIsArray().erase(this->masterParser->getIsArray().end() - 1);
 			if (this->depth == 0) {
 				goto Document_End;
 			}
@@ -2803,13 +2108,9 @@ namespace Jsonifier {
 	}
 
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
-		//this->generateJsonEvents(string.data(), string.size());
-		//TapeBuilder::parseDocument(*this);
-		if (auto result = this->parse(reinterpret_cast<uint8_t*>(string.data()), string.size());result != ErrorCode::Success) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(result) } + ", at the following index into the string: " };
-		}
+		this->generateJsonEvents(string.data(), string.size());
+		TapeBuilder::parseDocument(*this);
 		return std::move(this->tape);
 	}
 
-}
+};
