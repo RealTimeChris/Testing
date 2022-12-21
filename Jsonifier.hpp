@@ -660,8 +660,8 @@ namespace Jsonifier {
 		template<> std::vector<JsonParser> getValue() {
 			std::vector<JsonParser> returnValue{};
 			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
-			std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
-			std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
+			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << newValue << std::endl;
+			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK) << std::endl;
 			return std::vector<JsonParser>{};
 		}
 
