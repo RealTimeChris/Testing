@@ -695,12 +695,12 @@ namespace Jsonifier {
 
 		std::string_view getString() {
 			std::cout << "CURRENT SIZE: "
-					  << static_cast<size_t>(&this->stringBuffer[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK] -
-							 &this->stringBuffer[this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK])
+					  << static_cast<size_t>(&this->stringBuffer[this->ptrs[this->currenPositionInTape+1] & JSON_VALUE_MASK] -
+							 &this->stringBuffer[this->ptrs[this->currenPositionInTape ] & JSON_VALUE_MASK])
 					  << std::endl;
-			return std::string_view{ &this->stringBuffer[this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK],
-				static_cast<size_t>(&this->stringBuffer[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK] -
-					&this->stringBuffer[this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK]) };
+			return std::string_view{ &this->stringBuffer[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK],
+				static_cast<size_t>(&this->stringBuffer[this->ptrs[this->currenPositionInTape + 1] & JSON_VALUE_MASK] -
+					&this->stringBuffer[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK]) };
 		}
 
 		template<> std::vector<JsonParser> getValue() {
@@ -787,7 +787,7 @@ namespace Jsonifier {
 			}
 			if (newValue == '\"') {
 				this->type = JsonType::String;
-				std::cout << "CURRENT INDEX: \" " << this->getStringView() << std::endl;
+				std::cout << "CURRENT INDEX: \" " << this->getString() << std::endl;
 				return *this;
 			}
 			if (newValue == 's') {
