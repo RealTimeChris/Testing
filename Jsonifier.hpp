@@ -496,13 +496,9 @@ namespace Jsonifier {
 		return this->jsonValue.boolean;
 	}
 
-	class escapeJsonString;
-
-	inline std::ostream& operator<<(std::ostream& out, const escapeJsonString& str);
-
-	class escapeJsonString {
+	class EscapeJsonString {
 	  public:
-		escapeJsonString(std::string_view _str) noexcept : str{ _str } {
+		EscapeJsonString(std::string_view _str) noexcept : str{ _str } {
 		}
 		operator std::string() const noexcept {
 			std::stringstream s;
@@ -512,10 +508,10 @@ namespace Jsonifier {
 
 	  private:
 		std::string_view str;
-		friend std::ostream& operator<<(std::ostream& out, const escapeJsonString& unescaped);
+		friend std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped);
 	};
 
-	inline std::ostream& operator<<(std::ostream& out, const escapeJsonString& unescaped) {
+	inline std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped) {
 		for (size_t i = 0; i < unescaped.str.length(); i++) {
 			switch (unescaped.str[i]) {
 				case '\b':
@@ -541,7 +537,6 @@ namespace Jsonifier {
 					break;
 				default:
 					if (static_cast<unsigned char>(unescaped.str[i]) <= 0x1F) {
-						// TODO can this be done once at the beginning, or will it mess up << char?
 						std::ios::fmtflags f(out.flags());
 						out << "\\u" << std::hex << std::setw(4) << std::setfill('0') << int(unescaped.str[i]);
 						out.flags(f);
@@ -564,7 +559,6 @@ namespace Jsonifier {
 		if (type == 'r') {
 			how_many = size_t(tape_val & JSON_VALUE_MASK);
 		} else {
-			// Error: no starting root node?
 			return false;
 		}
 		os << "\t// pointing to " << how_many << " (right after last node)\n";
@@ -575,26 +569,26 @@ namespace Jsonifier {
 			payload = tape_val & JSON_VALUE_MASK;
 			type = uint8_t(tape_val >> 56);
 			switch (type) {
-				case '"':// we have a string
+				case '"':
 					os << "string \"";
 					std::memcpy(&string_length, stringBuffer + payload, sizeof(uint32_t));
-					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), string_length));
+					os << EscapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), string_length));
 					os << '"';
 					os << '\n';
 					break;
-				case 'l':// we have a long int
+				case 'l':
 					if (tape_idx + 1 >= how_many) {
 						return false;
 					}
 					os << "integer " << static_cast<int64_t>(tape[++tape_idx]) << "\n";
 					break;
-				case 'u':// we have a long uint
+				case 'u':
 					if (tape_idx + 1 >= how_many) {
 						return false;
 					}
 					os << "unsigned integer " << tape[++tape_idx] << "\n";
 					break;
-				case 'd':// we have a double
+				case 'd':
 					os << "float ";
 					if (tape_idx + 1 >= how_many) {
 						return false;
@@ -603,31 +597,30 @@ namespace Jsonifier {
 					std::memcpy(&answer, &tape[++tape_idx], sizeof(answer));
 					os << answer << '\n';
 					break;
-				case 'n':// we have a null
+				case 'n':
 					os << "null\n";
 					break;
-				case 't':// we have a true
+				case 't':
 					os << "true\n";
 					break;
-				case 'f':// we have a false
+				case 'f':
 					os << "false\n";
 					break;
-				case '{':// we have an object
+				case '{':
 					os << "{\t// pointing to next tape location " << uint32_t(payload) << " (first node after the scope), "
 					   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
 					break;
-				case '}':// we end an object
+				case '}':
 					os << "}\t// pointing to previous tape location " << uint32_t(payload) << " (start of the scope)\n";
 					break;
-				case '[':// we start an array
+				case '[':
 					os << "[\t// pointing to next tape location " << uint32_t(payload) << " (first node after the scope), "
 					   << " saturated count " << ((payload >> 32) & JSON_COUNT_MASK) << "\n";
 					break;
-				case ']':// we end an array
+				case ']':
 					os << "]\t// pointing to previous tape location " << uint32_t(payload) << " (start of the scope)\n";
 					break;
-				case 'r':// we start and end with the root node
-					// should we be hitting the root node?
+				case 'r':
 					return false;
 				default:
 					return false;
