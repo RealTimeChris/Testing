@@ -40,7 +40,7 @@ namespace Jsonifier {
 			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
-		inline static uint32_t isNotStructuralOrWhitespace(char c) {
+		inline static uint32_t isNotStructuralOrWhiteSpace(char c) {
 			return structuralOrWhitespaceNegated[c];
 		}
 
@@ -58,7 +58,7 @@ namespace Jsonifier {
 		}
 
 		inline static bool isValidTrueAtom(const char* src) {
-			return (str4ncmp(src, "true") | isNotStructuralOrWhitespace(src[4])) == 0;
+			return (str4ncmp(src, "true") | isNotStructuralOrWhiteSpace(src[4])) == 0;
 		}
 
 		inline static bool isValidTrueAtom(const char* src, size_t len) {
@@ -72,7 +72,7 @@ namespace Jsonifier {
 		}
 
 		inline static bool isValidFalseAtom(const char* src) {
-			return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhitespace(src[5])) == 0;
+			return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhiteSpace(src[5])) == 0;
 		}
 
 		inline static bool isValidFalseAtom(const char* src, size_t len) {
@@ -86,7 +86,7 @@ namespace Jsonifier {
 		}
 
 		inline static bool isValidNullAtom(const char* src) {
-			return (str4ncmp(src, "null") | isNotStructuralOrWhitespace(src[4])) == 0;
+			return (str4ncmp(src, "null") | isNotStructuralOrWhiteSpace(src[4])) == 0;
 		}
 
 		inline static bool isValidNullAtom(const char* src, size_t len) {
@@ -234,8 +234,8 @@ namespace Jsonifier {
 			return offset > 0;
 		}
 
-		inline static const char escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-			0, 0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		inline static const char escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0x08, 0, 0, 0, 0x0c, 0, 0, 0, 0,
 			0, 0, 0, 0x0a, 0, 0, 0, 0x0d, 0, 0x09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,

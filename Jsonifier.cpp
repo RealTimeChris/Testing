@@ -246,13 +246,13 @@ namespace Jsonifier {
 		*this = data;
 	}
 
-	Jsonifier& Jsonifier::operator=(uint8_t data) noexcept {
+	Jsonifier& Jsonifier::operator=(char data) noexcept {
 		this->jsonValue.numberUint = data;
 		this->type = JsonType::Uint64;
 		return *this;
 	}
 
-	Jsonifier::Jsonifier(uint8_t data) noexcept {
+	Jsonifier::Jsonifier(char data) noexcept {
 		*this = data;
 	}
 
@@ -654,7 +654,7 @@ namespace Jsonifier {
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
-	void Jsonifier::appendUint8(const uint8_t value) {
+	void Jsonifier::appendUint8(const char value) {
 		char newBuffer[2]{ static_cast<uint8_t>(EtfType::Small_Integer_Ext), static_cast<char>(value) };
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
