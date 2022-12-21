@@ -60,7 +60,7 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->createdAt =DiscordCoreAPI:: getString(value, "created_at");
+		this->createdAt = DiscordCoreAPI::getString(value, "created_at");
 		this->name = DiscordCoreAPI::getString(value, "name");
 		//std::cout << "CURRENT NAME: " << this->name << std::endl;
 		this->anotherValue = DiscordCoreAPI::getInt32(value, "ANOTHER_VALUE");
