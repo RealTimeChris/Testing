@@ -1,6 +1,7 @@
 #pragma once
 
 #include "NumberParsingUtils.hpp"
+#include "StringParsingUtils.hpp"
 
 namespace Jsonifier {
 
@@ -460,15 +461,15 @@ namespace Jsonifier {
 		return this->jsonValue.boolean;
 	}
 
-	class escapeJsonString;
+	class EscapeJsonString;
 
-	inline std::ostream& operator<<(std::ostream& out, const escapeJsonString& str);
+	inline std::ostream& operator<<(std::ostream& out, const EscapeJsonString& str);
 
-	class escapeJsonString {
+	class EscapeJsonString {
 	  public:
-		escapeJsonString(std::string_view _str) noexcept : str{ _str } {
+		EscapeJsonString(std::string_view _str) noexcept : str{ _str } {
 		}
-		operator std::string() const noexcept {
+		operator std::string() noexcept {
 			std::stringstream s;
 			s << *this;
 			return s.str();
@@ -476,10 +477,10 @@ namespace Jsonifier {
 
 	  private:
 		std::string_view str;
-		friend std::ostream& operator<<(std::ostream& out, const escapeJsonString& unescaped);
+		friend std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped);
 	};
 
-	inline std::ostream& operator<<(std::ostream& out, const escapeJsonString& unescaped) {
+	inline std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped) {
 		for (size_t i = 0; i < unescaped.str.length(); i++) {
 			switch (unescaped.str[i]) {
 				case '\b':
@@ -505,7 +506,6 @@ namespace Jsonifier {
 					break;
 				default:
 					if (static_cast<unsigned char>(unescaped.str[i]) <= 0x1F) {
-						// TODO can this be done once at the beginning, or will it mess up << char?
 						std::ios::fmtflags f(out.flags());
 						out << "\\u" << std::hex << std::setw(4) << std::setfill('0') << int(unescaped.str[i]);
 						out.flags(f);
@@ -525,11 +525,9 @@ namespace Jsonifier {
 		os << tapeIndex << " : " << type;
 		tapeIndex++;
 		size_t quantity = 0;
-		std::cout << "THE TYPE: " << ( char )type << std::endl;
 		if (type == 'r') {
 			quantity = size_t(tapeValue & JSON_VALUE_MASK);
 		} else {
-			// Error: no starting root node?
 			return false;
 		}
 		os << "\t// pointing to " << quantity << " (right after last node)\n";
@@ -543,7 +541,7 @@ namespace Jsonifier {
 				case '"':
 					os << "string \"";
 					std::memcpy(&stringLength, stringBuffer + payload, sizeof(uint32_t));
-					os << escapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), stringLength));
+					os << EscapeJsonString(std::string_view(reinterpret_cast<const char*>(stringBuffer + payload + sizeof(uint32_t)), stringLength));
 					os << '"';
 					os << '\n';
 					break;
@@ -1053,7 +1051,7 @@ namespace Jsonifier {
 				if (valueNew >= stringLength) {
 					return i;
 				} else {
-					tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+					tapePtrs[currentIndexIntoTape++] = valueNew;
 					*theBits = _blsr_u64(*theBits);
 				}
 			}
@@ -1074,7 +1072,7 @@ namespace Jsonifier {
 			return potentialStructuralStart(returnData) & ~(this->R256 ^ this->Q256);
 		}
 
-		inline SimdBase256 whitespace() const noexcept {
+		inline SimdBase256 whitespace() noexcept {
 			return this->W256;
 		}
 
@@ -1086,7 +1084,7 @@ namespace Jsonifier {
 			return ~(this->S256) | this->W256 & ~followsPotentialScalar(returnData);
 		}
 	
-		inline SimdBase256 followsPotentialScalar(SimdBase256 returnData) const noexcept {
+		inline SimdBase256 followsPotentialScalar(SimdBase256 returnData) noexcept {
 			return returnData;
 		}
 
@@ -1112,8 +1110,7 @@ namespace Jsonifier {
 				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
 			}
 			this->S256 = convertSimdBytesToBits(structural);
-
-			
+						
 			char valuesNewTwo[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
 				100, '\t', '\n', 112, 100, '\r', 100, 100 };
 			SimdBase256 whitespaceTable{ valuesNewTwo };
@@ -1189,7 +1186,7 @@ namespace Jsonifier {
 			auto scalar = ~(this->S256 | this->W256);
 			//scalar.printBits("THE BITS FAIRNESS: ");
 			auto nonquote_scalar = scalar & ~this->Q256;
-			this->S256 = this->structuralStart(followsPotentialNonQuoteScalar);
+			this->S256 = this->collectFinalStructurals();
 			followsPotentialNonQuoteScalar = follows(nonquote_scalar, previousScalar);
 			followsPotentialNonQuoteScalar.printBits("THE BITS FINAL: ");
 			this->S256.printBits("THE BITS FINAL: ");
@@ -1412,7 +1409,7 @@ namespace Jsonifier {
 
 		inline TapeBuilder(SimdJsonValue& doc) noexcept;
 
-		inline uint32_t nextTapeIndex(JsonIterator& iter) const noexcept;
+		inline uint32_t nextTapeIndex(JsonIterator& iter) noexcept;
 		inline ErrorCode startContainer(JsonIterator& iter) noexcept;
 		inline ErrorCode endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
 		inline ErrorCode emptyContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept;
@@ -1522,23 +1519,26 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
 				", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 		}
+
 		auto value = this->advance();
 
 		switch (*value) {
-			case '{':
+			case '{': {
 				if (this->lastStructural() != '}') {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 				};
 				break;
-			case '[':
+			}
+			case '[': {
 				if (this->lastStructural() != ']') {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 				};
 				break;
+			}
 		}
 
 		switch (*value) {
@@ -1594,47 +1594,51 @@ namespace Jsonifier {
 			}
 			auto value = this->advance();
 			switch (*value) {
-				case '{':
+				case '{': {
 					if (*this->peek() == '}') {
 						this->advance();
 						visitor.visitEmptyObject(*this);
 						break;
 					}
 					goto Object_Begin;
-				case '[':
+				}
+				case '[': {
 					if (*this->peek() == ']') {
 						this->advance();
 						visitor.visitEmptyArray(*this);
 						break;
 					}
 					goto Array_Begin;
-				default:
+				}
+				default: {
 					visitor.visitPrimitive(*this, value);
 					break;
+				}
 			}
 		}
 
 		Object_Continue : {
 			switch (*this->advance()) {
-				case ',':
+				case ',': {
 					visitor.incrementCount(*this);
-					{
-						auto key = this->advance();
-						if (*key != '"') {
-							throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-								std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
-								", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
-						}
-						visitor.visitKey(*this, key);
+					auto key = this->advance();
+					if (*key != '"') {
+						throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+							std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+							", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 					}
+					visitor.visitKey(*this, key);
 					goto Object_Field;
-				case '}':
+				}
+				case '}': {
 					visitor.visitObjectEnd(*this);
 					goto Scope_End;
-				default:
+				}
+				default: {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
+				}
 			}
 		}
 
@@ -1666,38 +1670,44 @@ namespace Jsonifier {
 		Array_Value : {
 			auto value = this->advance();
 			switch (*value) {
-				case '{':
+				case '{': {
 					if (*this->peek() == '}') {
 						this->advance();
 						visitor.visitEmptyObject(*this);
 						break;
 					}
 					goto Object_Begin;
-				case '[':
+				}
+				case '[': {
 					if (*this->peek() == ']') {
 						this->advance();
 						visitor.visitEmptyArray(*this);
 						break;
 					}
 					goto Array_Begin;
-				default:
+				}
+				default: {
 					visitor.visitPrimitive(*this, value);
 					break;
+				}
 			}
 		}
 
 		Array_Continue : {
 			switch (*this->advance()) {
-				case ',':
+				case ',': {
 					visitor.incrementCount(*this);
 					goto Array_Value;
-				case ']':
+				}
+				case ']': {
 					visitor.visitArrayEnd(*this);
 					goto Scope_End;
-				default:
+				}
+				default: {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
+				}
 			}
 		}
 
@@ -1706,7 +1716,6 @@ namespace Jsonifier {
 
 			auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndices()[0]);
 
-			// If we didn't make it to the end, it's an error
 			if (nextStructuralIndex != this->masterParser->getTapeLength()) {
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
@@ -1741,81 +1750,6 @@ namespace Jsonifier {
 
 	inline bool JsonIterator::atEof() noexcept {
 		return this->nextStructural == &masterParser->getStructuralIndices()[masterParser->getTapeLength() - 1];
-	}
-
-	const bool structuralOrWhitespaceNegated[256]{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
-
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1,
-
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-		1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-
-	inline uint32_t isNotStructuralOrWhitespace(uint8_t c) {
-		return structuralOrWhitespaceNegated[c];
-	}
-
-	inline uint32_t string_to_uint32(const char* str) {
-		uint32_t val{};
-		std::memcpy(&val, str, sizeof(uint32_t));
-		return val;
-	}
-
-	inline uint32_t NumberParser::isNotStructuralOrWhiteSpace(uint8_t c) {
-		return structuralOrWhitespaceNegated[c];
-	}
-
-	inline uint32_t str4ncmp(const uint8_t* src, const char* atom) {
-		uint32_t srcval{};
-		static_assert(sizeof(uint32_t) <= 256, "SIMDJSON_PADDING must be larger than 4 bytes");
-		std::memcpy(&srcval, src, sizeof(uint32_t));
-		return srcval ^ string_to_uint32(atom);
-	}
-
-	inline bool isValidTrueAtom(const uint8_t* src) {
-		return (str4ncmp(src, "true") | isNotStructuralOrWhitespace(src[4])) == 0;
-	}
-
-	inline bool isValidTrueAtom(const uint8_t* src, size_t len) {
-		if (len > 4) {
-			return isValidTrueAtom(src);
-		} else if (len == 4) {
-			return !str4ncmp(src, "true");
-		} else {
-			return false;
-		}
-	}
-
-	inline bool isValidFalseAtom(const uint8_t* src) {
-		return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhitespace(src[5])) == 0;
-	}
-
-	inline bool isValidFalseAtom(const uint8_t* src, size_t len) {
-		if (len > 5) {
-			return isValidFalseAtom(src);
-		} else if (len == 5) {
-			return !str4ncmp(src + 1, "alse");
-		} else {
-			return false;
-		}
-	}
-
-	inline bool isValidNullAtom(const uint8_t* src) {
-		return (str4ncmp(src, "null") | isNotStructuralOrWhitespace(src[4])) == 0;
-	}
-
-	inline bool isValidNullAtom(const uint8_t* src, size_t len) {
-		if (len > 4) {
-			return isValidNullAtom(src);
-		} else if (len == 4) {
-			return !str4ncmp(src, "null");
-		} else {
-			return false;
-		}
 	}
 
 	inline void TapeWriter::appendS64(int64_t value) noexcept {
@@ -1920,110 +1854,9 @@ namespace Jsonifier {
 		: tape{ doc.getTape() }, currentStringBufferLocation{ reinterpret_cast<uint8_t*>(doc.getStringViewNew()) } {
 	}
 
-	inline size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
-		if (cp <= 0x7F) {
-			c[0] = uint8_t(cp);
-			return 1;
-		}
-		if (cp <= 0x7FF) {
-			c[0] = uint8_t((cp >> 6) + 192);
-			c[1] = uint8_t((cp & 63) + 128);
-			return 2;
-		} else if (cp <= 0xFFFF) {
-			c[0] = uint8_t((cp >> 12) + 224);
-			c[1] = uint8_t(((cp >> 6) & 63) + 128);
-			c[2] = uint8_t((cp & 63) + 128);
-			return 3;
-		} else if (cp <= 0x10FFFF) {
-			c[0] = uint8_t((cp >> 18) + 240);
-			c[1] = uint8_t(((cp >> 12) & 63) + 128);
-			c[2] = uint8_t(((cp >> 6) & 63) + 128);
-			c[3] = uint8_t((cp & 63) + 128);
-			return 4;
-		}
-
-		return 0;
-	}
-
-	inline bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
-		uint32_t codePoint = NumberParser::hexToU32Nocheck(*srcPtr + 2);
-		*srcPtr += 6;
-		if (codePoint >= 0xd800 && codePoint < 0xdc00) {
-			const uint8_t* srcData = *srcPtr;
-			if (((srcData[0] << 8) | srcData[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
-				return false;
-			}
-			uint32_t codePoint2 = NumberParser::hexToU32Nocheck(srcData + 2);
-			uint32_t lowBit = codePoint2 - 0xdc00;
-			if (lowBit >> 10) {
-				return false;
-			}
-
-			codePoint = (((codePoint - 0xd800) << 10) | lowBit) + 0x10000;
-			*srcPtr += 6;
-		} else if (codePoint >= 0xdc00 && codePoint <= 0xdfff) {
-			return false;
-		}
-		size_t offset = codepointToUtf8(codePoint, *dstPtr);
-		*dstPtr += offset;
-		return offset > 0;
-	}
-
-	static const uint8_t escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x22,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0x08, 0, 0, 0, 0x0c, 0, 0, 0, 0, 0,
-		0, 0, 0x0a, 0, 0, 0, 0x0d, 0, 0x09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-	inline int32_t trailingZeroCount(SimdBase256 toCount) {
-		int32_t returnValue{};
-		for (size_t x = 0; x < 4; ++x) {
-			auto value = _tzcnt_u64(toCount.getUint64(x));
-			if (value < 64) {
-				return value;
-			}
-			returnValue += value;
-		}
-		return returnValue;
-	}
-
-	inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst);
-
-	inline uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
-		SimdBase256 values{ reinterpret_cast<const char*>(src) };
-
-		values.store(reinterpret_cast<char*>(dst));
-		for (size_t x = 0; x < 32; ++x) {
-			if (src[x] == '\"') {
-				dst[x] = '\0';
-				return x;
-			}
-		}
-
-		return 0;
-	}
-
-	inline uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
-		int32_t index{};
-		while (length > 0) {
-			if (auto result = copyAndFind(src + index, dst + index); result != 0) {
-				return dst + result;
-			}
-			length -= 32;
-			index += 32;
-		}
-		return nullptr;
-	}
-
 	inline ErrorCode TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
 		uint8_t* dst01 = onStartString(iter);
-		auto dst02 = parseString(value + 1ull, dst01, (*iter.nextStructural) - (*iter.nextStructural - 1ull));
+		auto dst02 = StringParser::parseString(value + 1ull, dst01, (*iter.nextStructural) - (*iter.nextStructural - 1ull));
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
@@ -2052,7 +1885,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidTrueAtom(value,
+		if (!StringParser::isValidTrueAtom(value,
 				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
 					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
 			return ErrorCode::TAtomError;
@@ -2062,7 +1895,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidTrueAtom(value,
+		if (!StringParser::isValidTrueAtom(value,
 				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
 					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
 			return ErrorCode::NAtomError;
@@ -2072,7 +1905,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidFalseAtom(value,
+		if (!StringParser::isValidFalseAtom(value,
 				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
 					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
 			return ErrorCode::FAtomError;
@@ -2082,7 +1915,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidFalseAtom(value,
+		if (!StringParser::isValidFalseAtom(value,
 				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
 					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
 			return ErrorCode::FAtomError;
@@ -2092,7 +1925,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidNullAtom(value,
+		if (!StringParser::isValidNullAtom(value,
 				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
 					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
 			return ErrorCode::NAtomError;
@@ -2102,7 +1935,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!isValidNullAtom(value,
+		if (!StringParser::isValidNullAtom(value,
 				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
 					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
 			return ErrorCode::NAtomError;
@@ -2111,7 +1944,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) const noexcept {
+	inline uint32_t TapeBuilder::nextTapeIndex(JsonIterator& iter) noexcept {
 		return uint32_t(tape.nextTapeLocation - iter.masterParser->getTape());
 	}
 
