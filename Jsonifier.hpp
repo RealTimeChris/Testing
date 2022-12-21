@@ -1946,9 +1946,7 @@ namespace Jsonifier {
 
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(string.data(), string.size());
-		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
-
-		}
+		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {}
 		return std::move(this->tape);
 	}
 
