@@ -1902,8 +1902,7 @@ namespace Jsonifier {
 			visitor.incrementCount(*this);
 			visitor.visitKey(*this, key);
 		}
-			
-
+		
 		Object_Field: {
 			if (*advance() != ':') {
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
@@ -1928,10 +1927,8 @@ namespace Jsonifier {
 					visitor.visitPrimitive(*this, value);
 					break;
 			}
-
 		}
-			
-
+		
 		Object_Continue : {
 			switch (*advance()) {
 				case ',':
