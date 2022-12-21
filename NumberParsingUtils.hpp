@@ -39,6 +39,59 @@ namespace Jsonifier {
 		InvalidNumber = 10
 	};
 
+	class EnumStringConverter {
+	  public:
+
+		EnumStringConverter(ErrorCode error) {
+			this->code = error;
+		}
+
+		operator std::string() {
+			switch (this->code) {
+				case ErrorCode::Empty: {
+					return "Empty";
+				}
+				case ErrorCode::TapeError: {
+					return "Tape Error";
+				}
+				case ErrorCode::DepthError: {
+					return "Depth Error";
+				}
+				case ErrorCode::Success: {
+					return "Success";
+				}
+				case ErrorCode::StringError: {
+					return "String Error";
+				}
+				case ErrorCode::TAtomError: {
+					return "TAtom Error";
+				}
+				case ErrorCode::FAtomError: {
+					return "FAtom Error";
+				}
+				case ErrorCode::NAtomError: {
+					return "NAtom Error";
+				}
+				case ErrorCode::ParseError: {
+					return "Parse Error";
+				}
+				case ErrorCode::MemAlloc: {
+					return "Mem Alloc";
+				}
+				case ErrorCode::InvalidNumber: {
+					return "Invalid Number";
+				}
+				default: {
+					return "Unknown Error";
+				}
+
+			}
+		}
+
+	  protected:
+		ErrorCode code{};
+	};
+
 	struct AdjustedMantissa {
 		uint64_t mantissa;
 		int power2;

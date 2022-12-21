@@ -1311,13 +1311,15 @@ namespace Jsonifier {
 		SimdJsonValue* masterParser;
 		int32_t depth{};
 
-		inline ErrorCode walkDocument(TapeBuilder&& visitor) noexcept;
+		inline ErrorCode walkDocument(TapeBuilder&& visitor);
 
 		inline JsonIterator(SimdJsonValue* masterParserNew, size_t start_structural_index);
 
 		inline const uint8_t* peek() const noexcept;
 
 		inline const uint8_t* advance() noexcept;
+
+		inline const uint32_t currentIndexIntoString() noexcept;
 
 		inline size_t remainingLen() const noexcept;
 
@@ -1327,8 +1329,8 @@ namespace Jsonifier {
 
 		inline uint8_t lastStructural() const noexcept;
 
-		inline ErrorCode visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
-		inline ErrorCode visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept;
+		inline ErrorCode visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value);
+		inline ErrorCode visitPrimitive(TapeBuilder& visitor, const uint8_t* value);
 	};
 
 	inline JsonIterator::JsonIterator(SimdJsonValue* masterParserNew, size_t start_structural_index)
@@ -1337,6 +1339,10 @@ namespace Jsonifier {
 
 	inline const uint8_t* JsonIterator::peek() const noexcept {
 		return &buf[masterParser->getStructuralIndices()[*this->nextStructural]];
+	}
+
+	inline const uint32_t JsonIterator::currentIndexIntoString() noexcept {
+		return *this->nextStructural;
 	}
 
 	inline const uint8_t* JsonIterator::advance() noexcept {
@@ -1499,7 +1505,7 @@ namespace Jsonifier {
 	}
 
 	struct TapeBuilder {
-		static inline ErrorCode parseDocument(SimdJsonValue& masterParser) noexcept;
+		static inline ErrorCode parseDocument(SimdJsonValue& masterParser);
 
 		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
 
@@ -1552,7 +1558,7 @@ namespace Jsonifier {
 		inline ErrorCode onEndString(uint8_t* dst) noexcept;
 	};
 
-	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser) noexcept {
+	inline ErrorCode TapeBuilder::parseDocument(SimdJsonValue& masterParser) {
 		JsonIterator iter(&masterParser, 0);
 		TapeBuilder builder(masterParser);
 		return iter.walkDocument(std::move(builder));
@@ -1843,21 +1849,27 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode JsonIterator::walkDocument(TapeBuilder&& visitor) noexcept {
+	inline ErrorCode JsonIterator::walkDocument(TapeBuilder&& visitor) {
 		if (atEof()) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::Empty) };
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
+				", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 		}
 		auto value = this->advance();
 
 		switch (*value) {
 			case '{':
 				if (this->lastStructural() != '}') {
-					throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 				};
 				break;
 			case '[':
 				if (this->lastStructural() != ']') {
-					throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 				};
 				break;
 		}
@@ -1890,14 +1902,18 @@ namespace Jsonifier {
 		Object_Begin: {
 			this->depth++;
 			if (this->depth >= this->masterParser->getMaxDepth()) {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::DepthError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::DepthError) } +
+					", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 			this->masterParser->getIsArray().push_back(false);
 			visitor.visitObjectStart(*this);
 
 			auto key = advance();
 			if (*key != '"') {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 			visitor.incrementCount(*this);
 			visitor.visitKey(*this, key);
@@ -1905,7 +1921,9 @@ namespace Jsonifier {
 		
 		Object_Field: {
 			if (*advance() != ':') {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 			auto value = advance();
 			switch (*value) {
@@ -1937,7 +1955,8 @@ namespace Jsonifier {
 						auto key = advance();
 						if (*key != '"') {
 							throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-								std::to_string(( int32_t )ErrorCode::TapeError) };
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 						}
 						visitor.visitKey(*this, key);
 					}
@@ -1946,7 +1965,9 @@ namespace Jsonifier {
 					visitor.visitObjectEnd(*this);
 					goto Scope_End;
 				default:
-					throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 		}
 
@@ -1965,7 +1986,9 @@ namespace Jsonifier {
 		Array_Begin : {
 			this->depth++;
 			if (this->depth >= this->masterParser->getMaxDepth()) {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::DepthError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::DepthError) } +
+					", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 
 			this->masterParser->getIsArray().push_back(true);
@@ -2006,7 +2029,8 @@ namespace Jsonifier {
 					goto Scope_End;
 				default:
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-						std::to_string(( int32_t )ErrorCode::TapeError) };
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 		}
 
@@ -2017,14 +2041,16 @@ namespace Jsonifier {
 
 			// If we didn't make it to the end, it's an error
 			if (nextStructuralIndex != this->masterParser->getTapeLength()) {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 			}
 
 			return ErrorCode::Success;
 		}
 	}
 
-	inline ErrorCode JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+	inline ErrorCode JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) {
 		switch (*value) {
 			case '"':
 				return visitor.visitRootString(*this, value);
@@ -2047,11 +2073,13 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitRootNumber(*this, value);
 			default:
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 		}
 	}
 
-	inline ErrorCode JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) noexcept {
+	inline ErrorCode JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) {
 		switch (*value) {
 			case '"':
 				return visitor.visitString(*this, value);
@@ -2074,7 +2102,9 @@ namespace Jsonifier {
 			case '9':
 				return visitor.visitNumber(*this, value);
 			default:
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )ErrorCode::TapeError) };
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 		}
 	}
 
