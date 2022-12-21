@@ -1067,7 +1067,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline JsonCharacterBlock collectStructuralAndWhiteSpaceCharacters() {
+		inline void collectStructuralAndWhiteSpaceCharacters() {
 			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ valuesNew };
 			SimdBase256 structural[8]{};
@@ -1085,7 +1085,7 @@ namespace Jsonifier {
 				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
 			}
 			this->W256 = convertSimdBytesToBits(whiteSpaceReal);
-			return { this->W256, this->S256 };
+			return;
 		}
 
 		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
@@ -1124,7 +1124,7 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(quotesReal);
 		}
 
-		inline SimdBase256 collectFinalStructurals(bool& previousLastBitSetNew) {
+		inline SimdBase256 collectFinalStructurals() {
 			this->S256 = this->S256.bitAndNot(this->R256);
 			this->S256 = this->S256 | this->Q256;
 			auto P = this->S256 | this->W256;
@@ -1145,7 +1145,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline SimdStringSection(const char* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonQuoteScalar, uint64_t& previousScalar) {
+		inline SimdStringSection(const char* valueNew, int64_t& prevInString, uint64_t& previousScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1156,10 +1156,8 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
-			auto characters = this->collectStructuralAndWhiteSpaceCharacters();
-			auto nonquote_scalar = characters.scalar() & ~this->collectQuotes();
-			followsPotentialNonQuoteScalar = follows(nonquote_scalar, previousScalar);
-			this->S256 = ((~followsPotentialNonQuoteScalar & ~this->R256) | (this->Q256 & this->R256) | this->S256);
+			this->collectStructuralAndWhiteSpaceCharacters();
+			this->S256 = this->collectFinalStructurals();
 		}
 
 	  protected:
@@ -1195,7 +1193,7 @@ namespace Jsonifier {
 			int32_t stringCapacity = round(5 * static_cast<int32_t>(capacity) / 3 + 256, 256);
 			this->tape.reset(tapeCapacity, stringCapacity, stringViewNew);
 			this->structuralIndices = std::make_unique<uint32_t[]>(tapeCapacity);
-			this->isArray.resize(tapeCapacity / 2);
+			this->isArray.resize(15);
 			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
 				this->allocatedCapacity = 0;
 				this->tape.reset(0, 0, nullptr);
@@ -1213,20 +1211,16 @@ namespace Jsonifier {
 				}
 				this->stringLengthRaw = stringLength;
 				this->tapeLength = 0;
-				if (this->allocatedCapacity < this->stringLengthRaw) {
-					if (this->allocate(stringLength, stringNew) != ErrorCode::Success) {
-						throw JsonifierException{ "Failed to allocate properly!" };
-					}
+				if (this->allocate(stringLength, stringNew) != ErrorCode::Success) {
+					throw JsonifierException{ "Failed to allocate properly!" };
 				}
 				int64_t stringSize = this->allocatedCapacity;
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
-				SimdBase256 followsPotentialNonQuoteScalar02{};
 				uint64_t previousScalar{};
 				int64_t prevInString{};
 				while (stringSize > 0) {
-					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString, followsPotentialNonQuoteScalar02,
-						previousScalar);
+					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString, previousScalar);
 					auto indexCount = section.getStructuralIndices(this->structuralIndices.get(), collectedSize, tapeCurrentIndex, stringLength);
 					this->tapeLength += indexCount;
 					stringSize -= 256;
@@ -1484,7 +1478,8 @@ namespace Jsonifier {
 
 		switch (*value) {
 			case '{': {
-				if (this->lastStructural() != '}') {
+				auto valueNew = this->lastStructural();
+				if (valueNew != '}') {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 						", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
