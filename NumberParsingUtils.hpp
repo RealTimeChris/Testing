@@ -190,7 +190,7 @@ namespace Jsonifier {
 		}
 
 		static inline Decimal parseDecimal(const char*& p) noexcept {
-			Decimal answer;
+			Decimal answer{};
 			answer.numDigits = 0;
 			answer.decimalPoint = 0;
 			answer.truncated = false;
