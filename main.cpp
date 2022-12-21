@@ -131,7 +131,7 @@ int32_t main() noexcept {
 		arrayValue["TEST_VALUE_01"] = 0.00333423f;
 		arrayValue["TEST_VALUE_02"] = false;
 		arrayValue["TEST_VALUE_03"] = "TESTING_VALUE0101";
-		arrayValue["TEST_VALUE_04"] = 4325454;
+		arrayValue["TEST_VALUE_04"] = "4325454";
 		for (size_t x = 0; x < 10; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}

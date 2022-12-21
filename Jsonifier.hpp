@@ -666,7 +666,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser& operator[](const std::string& key) {
-			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const char*>(this->stringView));
+			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const char*>(this->stringView));
 
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -919,16 +919,19 @@ namespace Jsonifier {
 			values[3] = _mm256_extract_epi64(this->value, 3);
 			if (values[3] >> 63 & 1) {
 				lastBitSet = true;
+			} else {
+				lastBitSet = false;
 			}
 			SimdBase256 newValues{};
 			if (lastBitSetBefore) {
-				newValues = _mm256_insert_epi64(newValues, (values[0] << (amount)) | (values[1] & 1) >> 63 | 1, 0);
+				newValues = _mm256_insert_epi64(newValues, (values[0] << (amount)) | 1, 0);
 			} else {
-				newValues = _mm256_insert_epi64(newValues, (values[0] << (amount)) | (values[1] & 1) >> 63, 0);
+				newValues = _mm256_insert_epi64(newValues, (values[0] << (amount)), 0);
 			}
-			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount)) | (values[2] & 1) >> 63, 1);
-			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount)) | (values[3] & 1) >> 63, 2);
-			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount)), 3);
+			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount)) | (values[0] & 1) >> 63, 1);
+			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount)) | (values[1] & 1) >> 63, 2);
+			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount)) | (values[2] & 1) >> 63, 3);
+			
 			
 			newValues.printBits("BITS AFTER: ");
 			*this = newValues;
@@ -994,15 +997,26 @@ namespace Jsonifier {
 			bool returnValue{};
 			uint64_t returnValue64{};
 			for (size_t x = 0; x < 4; ++x) {
-				if (_addcarry_u64(0, this->getUint64(x), other.getUint64(x), reinterpret_cast<unsigned long long*>(&returnValue64))) {
+				if (_addcarry_u64(1, this->getUint64(x), other.getUint64(x), &returnValue64)) {
 					returnValue = true;
+					std::cout << "WERE HERE THIS IS IT!" << std::endl;
 				}
-				result->insertInt64(returnValue64, x);
+				result->insertInt64(static_cast<int64_t>(returnValue64), x);
 			}
 			return returnValue;
 		}
 
-		inline void printBits(const std::string& valuesTitle) {
+		inline void printBits(uint64_t values,const std::string& valuesTitle) {
+			std::cout << valuesTitle;
+			for (size_t x = 0; x < 8; ++x) {
+				for (size_t y = 0; y < 8; ++y) {
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&values) + x)) >> y };
+				}
+			}
+			std::cout << std::endl;
+		}
+
+		inline SimdBase256 printBits(const std::string& valuesTitle) {
 			std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
@@ -1010,6 +1024,7 @@ namespace Jsonifier {
 				}
 			}
 			std::cout << std::endl;
+			return *this;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1037,6 +1052,20 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
+	struct JsonCharacterBlock {
+		inline SimdBase256 whitespace() const noexcept {
+			return _whitespace;
+		}
+		inline SimdBase256 op() const noexcept {
+			return _op;
+		}
+		inline SimdBase256 scalar() const noexcept {
+			return ~(op() | whitespace());
+		}
+		SimdBase256 _whitespace{};
+		SimdBase256 _op{};
+	};
+	 
 	class SimdStringSection {
 	  public:
 		inline SimdStringSection() noexcept = default;
@@ -1057,6 +1086,7 @@ namespace Jsonifier {
 					return i;
 				} else {
 					tapePtrs[currentIndexIntoTape++] = valueNew;
+					std::cout << "THE CURRENT VALUE: " << valueNew << std::endl;
 					*theBits = _blsr_u64(*theBits);
 				}
 			}
@@ -1073,7 +1103,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline void collectStructuralAndWhiteSpaceCharacters() {
+		inline JsonCharacterBlock collectStructuralAndWhiteSpaceCharacters() {
 			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ valuesNew };
 			SimdBase256 structural[8]{};
@@ -1091,6 +1121,7 @@ namespace Jsonifier {
 				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
 			}
 			this->W256 = convertSimdBytesToBits(whiteSpaceReal);
+			return { this->W256, this->S256 };
 		}
 
 		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
@@ -1140,14 +1171,24 @@ namespace Jsonifier {
 			} else {
 				this->previousLastBitSet = false;
 			}
-			P.leftShift(1, previousLastBitSetNew);
+			P = P << 1;
 			P &= (~W256).bitAndNot(this->R256);
 			this->S256 = this->S256 | P;
 			this->S256 = S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
 			return this->S256;
 		}
 
-		inline SimdStringSection(const char* valueNew, int64_t& prevInString, int64_t& followsPotentialNonQuoteScalar, int64_t& previousScalar,
+		inline SimdBase256 follows(SimdBase256 match, uint64_t& overflow) {
+			SimdBase256 returnValue{};
+			for (size_t x = 0; x < 4; ++x) {
+				uint64_t result = match.getUint64(x) << 1 | overflow;
+				returnValue.insertInt64(result, x);
+				overflow = match.getUint64(x) >> 63;
+			}
+			return returnValue;
+		}
+
+		inline SimdStringSection(const char* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonQuoteScalar, uint64_t& previousScalar,
 			bool& previousLastBitSetNew) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
@@ -1160,8 +1201,19 @@ namespace Jsonifier {
 			this->previousLastBitSet = previousLastBitSetNew;
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
-			this->collectStructuralAndWhiteSpaceCharacters();
-			this->S256 = this->collectFinalStructurals(previousLastBitSetNew);
+
+			//auto in_string = this->Q256.carrylessMultiplication(prevInString);
+
+			auto characters = this->collectStructuralAndWhiteSpaceCharacters();
+			auto nonquote_scalar = characters.scalar() & ~this->collectQuotes();
+			followsPotentialNonQuoteScalar = follows(nonquote_scalar, previousScalar);
+			followsPotentialNonQuoteScalar.printBits("THE VALUES NEW: ");
+			characters.scalar().printBits("SCALARS: ");
+			nonquote_scalar.printBits("NONQUOTED SCALARS: ");
+			this->S256.printBits("THE STRUCTURAL BITS: ");
+			this->Q256.printBits("QUOTED BITS: ");
+			this->R256.printBits("QUOTED RANGES: ");
+			this->S256 = (~followsPotentialNonQuoteScalar & ~this->R256) | (this->Q256 & this->R256) | this->S256;
 			this->S256.printBits("THE BITS FINAL: ");
 			//this->S256.printBits("BITS BEFORE: ");
 			//this->S256 |= ~scalar | ~followsPotentialNonQuoteScalar;
@@ -1232,8 +1284,8 @@ namespace Jsonifier {
 				int64_t stringSize = this->allocatedCapacity;
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
-				int64_t followsPotentialNonQuoteScalar02{};
-				int64_t previousScalar{};
+				SimdBase256 followsPotentialNonQuoteScalar02{};
+				uint64_t previousScalar{};
 				int64_t prevInString{};
 				bool previousBitSet{};
 				while (stringSize > 0) {
