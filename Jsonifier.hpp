@@ -784,6 +784,15 @@ namespace Jsonifier {
 			*this = other;
 		}
 
+		inline SimdBase256& operator=(uint8_t* values) {
+			*this = _mm256_loadu_epi8(values);
+			return *this;
+		}
+
+		inline SimdBase256(uint8_t* values) {
+			*this = values;
+		}
+
 		inline SimdBase256& operator=(const char* values) {
 			*this = _mm256_loadu_epi8(values);
 			return *this;
@@ -954,7 +963,7 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
+		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
 			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
@@ -979,7 +988,18 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline void printBits(const std::string& valuesTitle) {
+		inline SimdBase256 printBits(uint64_t value,const std::string& valuesTitle) {
+			std::cout << valuesTitle;
+			for (size_t x = 0; x < 8; ++x) {
+				for (size_t y = 0; y < 8; ++y) {
+					std::cout << std::bitset<1>{ static_cast<uint64_t>(*(reinterpret_cast<int8_t*>(&value) + x)) >> y };
+				}
+			}
+			std::cout << std::endl;
+			return *this;
+		}
+
+		inline SimdBase256 printBits(const std::string& valuesTitle) {
 			std::cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
@@ -987,6 +1007,7 @@ namespace Jsonifier {
 				}
 			}
 			std::cout << std::endl;
+			return *this;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1061,12 +1082,69 @@ namespace Jsonifier {
 			return potentialStructuralStart(followsPotentialNonquoteScalar) & ~stringTail();
 		}
 
+		SimdBase256 followsPotentialScalar(SimdBase256 followsPotentialNonquoteScalar) {
+			return followsPotentialNonquoteScalar;
+		}
+
 		SimdBase256 potentialScalarStart(SimdBase256 followsPotentialNonquoteScalar) {
 			return scalar().bitAndNot(followsPotentialNonquoteScalar);
 		}
 
 		SimdBase256 scalar() {
 			return ~this->S256 | this->W256;
+		}
+		inline SimdBase256 structuralStart()  noexcept {
+			return potential_structural_start() & ~(this->R256 ^ this->Q256);
+		}
+
+		inline SimdBase256 whitespace() const noexcept {
+			return this->W256;
+		}
+
+		// whether the previous character was a scalar
+		SimdBase256 _follows_potential_nonquote_scalar{};
+
+		// Potential structurals (i.e. disregarding strings)
+
+		/**
+   * structural elements ([,],{,},:, comma) plus scalar starts like 123, true and "abc".
+   * They may reside inside a string.
+   **/
+		inline SimdBase256 potential_structural_start() noexcept {
+			return this->S256 | potential_scalar_start();
+		}
+		/**
+   * The start of non-operator runs, like 123, true and "abc".
+   * It main reside inside a string.
+   **/
+		inline SimdBase256 potential_scalar_start() noexcept {
+			// The term "scalar" refers to anything except structural characters and white space
+			// (so letters, numbers, quotes).
+			// Whenever it is preceded by something that is not a structural element ({,},[,],:, ") nor a white-space
+			// then we know that it is irrelevant structurally.
+			return ~(this->S256) | this->W256 & ~follows_potential_scalar();
+		}
+		/**
+   * Whether the given character is immediately after a non-operator like 123, true.
+   * The characters following a quote are not included.
+   */
+		inline SimdBase256 follows_potential_scalar() const noexcept {
+			// _follows_potential_nonquote_scalar: is defined as marking any character that follows a character
+			// that is not a structural element ({,},[,],:, comma) nor a quote (") and that is not a
+			// white space.
+			// It is understood that within quoted region, anything at all could be marked (irrelevant).
+			return _follows_potential_nonquote_scalar;
+		}
+		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
+			match.printBits("MATCH BITS: ");
+			overflow.printBits("OVERFLOW BITS: ");
+			SimdBase256 result{};
+			for (size_t x = 0; x < 4; ++x) {
+				result.insertInt64(match.getInt64(x) << 1 | overflow.getInt64(x), x);
+				overflow.insertInt64(match.getInt64(x) >> 63, x);
+			}
+			result.printBits("RESULT BITS: ");
+			return result;
 		}
 
 		inline void collectStructuralAndWhiteSpaceCharacters() {
@@ -1090,7 +1168,7 @@ namespace Jsonifier {
 			this->W256 = convertSimdBytesToBits(whiteSpaceReal);
 		}
 
-		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
+		inline SimdBase256 collectQuotedRange(uint64_t& prevInString) {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
 			SimdBase256 backslashesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
@@ -1127,7 +1205,6 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			
 			this->S256 = this->S256.bitAndNot(this->R256);
 			this->S256 = this->S256 | this->Q256;
 			auto P = this->S256 | this->W256;
@@ -1138,7 +1215,8 @@ namespace Jsonifier {
 			return this->S256;
 		}
 
-		inline SimdStringSection(const char* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonQuoteScalar) {
+		inline SimdStringSection(const char* valueNew, uint64_t& prevInString, SimdBase256& followsPotentialNonQuoteScalar,
+			SimdBase256& previousScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1150,8 +1228,18 @@ namespace Jsonifier {
 
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
+			auto string_tail = this->R256 ^ this->Q256;
 			this->collectStructuralAndWhiteSpaceCharacters();
-			this->S256 = this->collectFinalStructurals();
+			auto scalar = ~(this->S256) | this->W256;
+			//scalar.printBits("THE BITS FAIRNESS: ");
+			auto nonquote_scalar = scalar & ~this->Q256;
+			followsPotentialNonQuoteScalar = follows(nonquote_scalar, previousScalar);
+			this->S256 = this->structuralStart();
+			followsPotentialNonQuoteScalar.printBits("THE BITS FINAL: ");
+			this->S256.printBits("THE BITS FINAL: ");
+			//this->S256.printBits("BITS BEFORE: ");
+			//this->S256 |= ~scalar | ~followsPotentialNonQuoteScalar;
+			//this->S256.printBits("BITS AFTER: ");
 			//this->S256 = this->structuralStart(followsPotentialNonQuoteScalar);
 			//this->collectStructuralAndWhiteSpaceCharacters();
 			//this->S256 = this->collectFinalStructurals();
@@ -1217,10 +1305,12 @@ namespace Jsonifier {
 				int64_t stringSize = this->allocatedCapacity;
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
-				int64_t prevInString{};
-				SimdBase256 followsPotentialNonQuoteScalar{};
+				uint64_t prevInString{};
+				SimdBase256 followsPotentialNonQuoteScalar02{};
+				SimdBase256 previousScalar{};
 				while (stringSize > 0) {
-					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString, followsPotentialNonQuoteScalar);
+					SimdStringSection section(this->tape.getStringView() + collectedSize, prevInString, followsPotentialNonQuoteScalar02,
+						previousScalar);
 					auto indexCount = section.getStructuralIndices(this->structuralIndices.get(), collectedSize, tapeCurrentIndex, stringLength);
 					this->tapeLength += indexCount;
 					stringSize -= 256;
