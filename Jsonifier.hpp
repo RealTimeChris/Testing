@@ -116,15 +116,15 @@ namespace Jsonifier {
 	template<typename Ty>
 	concept IsEnum = std::is_enum<Ty>::value;
 
-	struct EnumConverter {
-		template<IsEnum EnumType> EnumConverter& operator=(std::vector<EnumType> data) {
+	struct  EnumConverter {
+		template<IsEnum EnumType> EnumConverter& operator=(const std::vector<EnumType>& data) {
 			for (auto& value: data) {
 				this->vector.emplace_back(std::move(static_cast<uint64_t>(value)));
 			}
 			return *this;
 		};
 
-		template<IsEnum EnumType> EnumConverter(std::vector<EnumType> data) {
+		template<IsEnum EnumType> EnumConverter(const std::vector<EnumType>& data) {
 			*this = data;
 		};
 
@@ -145,35 +145,27 @@ namespace Jsonifier {
 
 	  protected:
 		std::vector<uint64_t> vector{};
-		bool vectorType{ false };
+		bool vectorType{};
 		uint64_t integer{};
 	};
 
-	enum class JsonType : int8_t { Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
+	enum class JsonType : uint8_t { Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
 
 	enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
-	class Jsonifier;
-
-	class JsonSerializer;
+	class  Jsonifier;
 
 	template<typename Ty>
 	concept IsConvertibleToJsonifier = std::convertible_to<Ty, Jsonifier>;
 
-	template<typename Ty>
-	concept IsConvertibleToJsonSerializer = std::convertible_to<Ty, JsonSerializer>;
-
-	class SimdJsonValue;
-
-	class Jsonifier {
+	class  Jsonifier {
 	  public:
-		friend class JsonSerializer;
 		using MapAllocatorType = std::allocator<std::pair<const std::string, Jsonifier>>;
 		template<typename OTy> using AllocatorType = std::allocator<OTy>;
 		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
 		using ObjectType = std::map<std::string, Jsonifier, std::less<>, MapAllocatorType>;
 		using ArrayType = std::vector<Jsonifier, AllocatorType<Jsonifier>>;
-		using StringType = std::string_view;
+		using StringType = std::string;
 		using FloatType = double;
 		using UintType = uint64_t;
 		using IntType = int64_t;
@@ -199,7 +191,7 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>&& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& value: data) {
-				this->jsonValue.array->emplace_back(std::move(value));
+				this->jsonValue.array->push_back(std::move(value));
 			}
 			return *this;
 		}
@@ -211,7 +203,7 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& value: data) {
-				this->jsonValue.array->emplace_back(value);
+				this->jsonValue.array->push_back(value);
 			}
 			return *this;
 		}
@@ -278,31 +270,17 @@ namespace Jsonifier {
 			*this = data;
 		}
 
-		Jsonifier& operator=(ErrorCode data);
-
-		Jsonifier(ErrorCode data);
-
-		Jsonifier& operator=(ObjectType&& data) noexcept;
-
-		Jsonifier(ObjectType&& data) noexcept;
-
-		Jsonifier& operator=(const ObjectType& data) noexcept;
-
-		Jsonifier(const ObjectType& data) noexcept;
-
 		Jsonifier& operator=(Jsonifier&& data) noexcept;
-
-		Jsonifier(Jsonifier&& data) noexcept;
 
 		Jsonifier& operator=(const Jsonifier& data) noexcept;
 
 		Jsonifier(const Jsonifier& data) noexcept;
 
-		operator std::string_view() noexcept;
+		operator std::string&&() noexcept;
+
+		operator std::string() noexcept;
 
 		void refreshString(JsonifierSerializeType OpCode);
-
-		bool contains(std::string& key);
 
 		Jsonifier& operator=(EnumConverter&& data) noexcept;
 		Jsonifier(EnumConverter&& data) noexcept;
@@ -315,12 +293,6 @@ namespace Jsonifier {
 
 		Jsonifier& operator=(const std::string& data) noexcept;
 		Jsonifier(const std::string& data) noexcept;
-
-		Jsonifier& operator=(std::string_view&& data) noexcept;
-		Jsonifier(std::string_view&& data) noexcept;
-
-		Jsonifier& operator=(std::string_view& data) noexcept;
-		Jsonifier(std::string_view& data) noexcept;
 
 		Jsonifier& operator=(const char* data) noexcept;
 		Jsonifier(const char* data) noexcept;
@@ -364,38 +336,33 @@ namespace Jsonifier {
 		Jsonifier& operator=(std::nullptr_t) noexcept;
 		Jsonifier(std::nullptr_t data) noexcept;
 
-		Jsonifier& operator[](std::string_view);
-
 		Jsonifier& operator[](typename ObjectType::key_type key);
-
-		Jsonifier& operator[](const char*);
 
 		Jsonifier& operator[](uint64_t index);
 
-		template<typename Ty> Ty getValue() {
+		template<typename Ty> const Ty& getValue() const {
+			return Ty{};
+		}
+
+		template<typename Ty> Ty& getValue() {
 			return Ty{};
 		}
 
 		JsonType getType() noexcept;
 
-		bool parseString(std::string&) noexcept;
-
-		size_t size() noexcept;
-
-		Jsonifier& emplaceBack(Jsonifier&& data) noexcept;
-		Jsonifier& emplaceBack(Jsonifier& data) noexcept;
+		void emplaceBack(Jsonifier&& data) noexcept;
+		void emplaceBack(Jsonifier& data) noexcept;
 
 		~Jsonifier() noexcept;
 
 	  protected:
-		std::unique_ptr<SimdJsonValue> parser{};
 		JsonType type{ JsonType::Null };
 		JsonValue jsonValue{};
 		std::string string{};
 
-		void serializeJsonToEtfString(const Jsonifier* jsonData);
+		void serializeJsonToEtfString(const Jsonifier* dataToParse);
 
-		void serializeJsonToJsonString(const Jsonifier* jsonData);
+		void serializeJsonToJsonString(const Jsonifier* dataToParse);
 
 		void writeJsonObject(const ObjectType& ObjectNew);
 
@@ -434,23 +401,29 @@ namespace Jsonifier {
 
 		void writeEtfNull();
 
-		void writeString(const char* data, std::size_t tapeLength);
+		void writeString(const char* data, size_t length);
 
 		void writeCharacter(const char Char);
 
-		void appendBinaryExt(std::string_view bytes, uint32_t sizeNew);
-
-		void appendUnsignedLongLong(const uint64_t value);
+		void appendBinaryExt(const std::string& bytes, const uint32_t sizeNew);
 
 		void appendNewFloatExt(const double FloatValue);
-
-		void appendSmallIntegerExt(uint8_t value);
 
 		void appendListHeader(const uint32_t sizeNew);
 
 		void appendMapHeader(const uint32_t sizeNew);
 
-		void appendIntegerExt(const uint32_t value);
+		void appendUint64(const uint64_t value);
+
+		void appendUint32(const uint32_t value);
+
+		void appendInt64(const int64_t value);
+
+		void appendInt32(const int32_t value);
+
+		void appendUint8(const uint8_t value);
+
+		void appendInt8(const int8_t value);
 
 		void appendBool(bool data);
 
@@ -463,42 +436,63 @@ namespace Jsonifier {
 		void setValue(JsonType TypeNew);
 
 		void destroy() noexcept;
+
+		friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
 	};
 
-	template<> inline Jsonifier::ObjectType Jsonifier::getValue() {
-		if (this->type != JsonType::Object) {
-			return Jsonifier::ObjectType{};
-		}
-		return std::move(*this->jsonValue.object);
+	template<> inline const Jsonifier::ObjectType& Jsonifier::getValue() const {
+		return *this->jsonValue.object;
 	}
 
-	template<> inline Jsonifier::ArrayType Jsonifier::getValue() {
-		if (this->type != JsonType::Array) {
-			return Jsonifier::ArrayType{};
-		}
-		return std::move(*this->jsonValue.array);
+	template<> inline const Jsonifier::ArrayType& Jsonifier::getValue() const {
+		return *this->jsonValue.array;
 	}
 
-	template<> inline Jsonifier::StringType Jsonifier::getValue() {
-		if (this->type != JsonType::String) {
-			return Jsonifier::StringType{};
-		}
-		return std::move(*this->jsonValue.string);
+	template<> inline const Jsonifier::StringType& Jsonifier::getValue() const {
+		return *this->jsonValue.string;
 	}
 
-	template<> inline Jsonifier::FloatType Jsonifier::getValue() {
+	template<> inline const Jsonifier::FloatType& Jsonifier::getValue() const {
 		return this->jsonValue.numberDouble;
 	}
 
-	template<> inline Jsonifier::UintType Jsonifier::getValue() {
+	template<> inline const Jsonifier::UintType& Jsonifier::getValue() const {
 		return this->jsonValue.numberUint;
 	}
 
-	template<> inline Jsonifier::IntType Jsonifier::getValue() {
+	template<> inline const Jsonifier::IntType& Jsonifier::getValue() const {
 		return this->jsonValue.numberInt;
 	}
 
-	template<> inline Jsonifier::BoolType Jsonifier::getValue() {
+	template<> inline const Jsonifier::BoolType& Jsonifier::getValue() const {
+		return this->jsonValue.boolean;
+	}
+
+	template<> inline Jsonifier::ObjectType& Jsonifier::getValue() {
+		return *this->jsonValue.object;
+	}
+
+	template<> inline Jsonifier::ArrayType& Jsonifier::getValue() {
+		return *this->jsonValue.array;
+	}
+
+	template<> inline Jsonifier::StringType& Jsonifier::getValue() {
+		return *this->jsonValue.string;
+	}
+
+	template<> inline Jsonifier::FloatType& Jsonifier::getValue() {
+		return this->jsonValue.numberDouble;
+	}
+
+	template<> inline Jsonifier::UintType& Jsonifier::getValue() {
+		return this->jsonValue.numberUint;
+	}
+
+	template<> inline Jsonifier::IntType& Jsonifier::getValue() {
+		return this->jsonValue.numberInt;
+	}
+
+	template<> inline Jsonifier::BoolType& Jsonifier::getValue() {
 		return this->jsonValue.boolean;
 	}
 
@@ -716,7 +710,7 @@ namespace Jsonifier {
 		}
 		
 		JsonParser& operator[](const std::string& key) {
-			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
+			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const uint8_t*>(this->stringView));
 			
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -1458,20 +1452,20 @@ namespace Jsonifier {
 	};
 
 	inline void TapeWriter::appendS64(int64_t value) noexcept {
-		std::cout << "APPENDING AN S64: " << value << std::endl;
+		//std::cout << "APPENDING AN S64: " << value << std::endl;
 		append2(0, value, TapeType::Int64);
 	}
 
 	inline void TapeWriter::appendU64(uint64_t value) noexcept {
 		append(0, TapeType::Uint64);
-		std::cout << "APPENDING AN U64: " << value << std::endl;
+		//		std::cout << "APPENDING AN U64: " << value << std::endl;
 		*this->nextTapeLocation = value;
 		this->nextTapeLocation++;
 	}
 
 	/** Write a double value to tape. */
 	inline void TapeWriter::appendDouble(double value) noexcept {
-		std::cout << "APPENDING A DOUBLE: " << value << std::endl;
+		//std::cout << "APPENDING A DOUBLE: " << value << std::endl;
 		append2(0, value, TapeType::Double);
 	}
 
@@ -1745,7 +1739,7 @@ namespace Jsonifier {
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
-		std::cout << "THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
+		//std::cout << "THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
 		onEndString(reinterpret_cast<uint8_t*>(dst02));
 		return ErrorCode::Success;
 	}
@@ -1773,7 +1767,7 @@ namespace Jsonifier {
 			return ErrorCode::TAtomError;
 		}
 		tape.append(0, TapeType::True_Value);
-		std::cout << "TRUE ATOM!" << std::endl;
+		//std::cout << "TRUE ATOM!" << std::endl;
 		return ErrorCode::Success;
 	}
 
@@ -1784,7 +1778,7 @@ namespace Jsonifier {
 			return ErrorCode::NAtomError;
 		}
 		tape.append(0, TapeType::True_Value);
-		std::cout << "TRUE ATOM!" << std::endl;
+		//std::cout << "TRUE ATOM!" << std::endl;
 		return ErrorCode::Success;
 	}
 
@@ -1795,7 +1789,7 @@ namespace Jsonifier {
 			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::False_Value);
-		std::cout << "FALSE ATOM!" << std::endl;
+		//std::cout << "FALSE ATOM!" << std::endl;
 		return ErrorCode::Success;
 	}
 
@@ -1806,7 +1800,7 @@ namespace Jsonifier {
 			return ErrorCode::FAtomError;
 		}
 		tape.append(0, TapeType::False_Value);
-		std::cout << "FALSE ATOM!" << std::endl;
+		//std::cout << "FALSE ATOM!" << std::endl;
 		return ErrorCode::Success;
 	}
 
