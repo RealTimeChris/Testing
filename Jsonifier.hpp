@@ -693,41 +693,50 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
+		std::string_view getString() {
+			std::cout << "CURRENT SIZE: "
+					  << static_cast<size_t>(&this->stringBuffer[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK] -
+							 &this->stringBuffer[this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK])
+					  << std::endl;
+			return std::string_view{ &this->stringBuffer[this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK],
+				static_cast<size_t>(&this->stringBuffer[this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK] -
+					&this->stringBuffer[this->ptrs[this->currenPositionInTape - 1] & JSON_VALUE_MASK]) };
+		}
+
 		template<> std::vector<JsonParser> getValue() {
 			std::vector<JsonParser> returnValue{};
-			/*
 			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << (char)newValue << std::endl;
 			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape] & JSON_COUNT_MASK) << std::endl;
 			for (size_t x = 0; x < (this->ptrs[this->currenPositionInTape] & JSON_COUNT_MASK); ++x) {
 				newValue = (this->ptrs[this->currenPositionInTape + x] >> 56);
 				if (newValue == '[') {
-					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape],
-						this->currentStructuralCount - this->currenPositionInTape, this->stringView });
+					//returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape],
+						//this->currentStructuralCount - this->currenPositionInTape, this->stringView });
 					//std::cout << "CURRENT INDEX: [ " << (this->ptrs[this->currenPositionInTape + x] & JSON_COUNT_MASK) << std::endl;
 				}
 				if (newValue == '{') {
-					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape],
-						this->currentStructuralCount - this->currenPositionInTape, this->stringView });
+					//returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape],
+						//this->currentStructuralCount - this->currenPositionInTape, this->stringView });
 					//std::cout << "CURRENT INDEX: { " << (this->ptrs[this->currenPositionInTape + x] & JSON_COUNT_MASK) << std::endl;
 				}
 				if (newValue == '\"') {
-					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
+					//returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
 					//std::cout << "CURRENT INDEX: \" " << (this->ptrs[this->currenPositionInTape + x] & JSON_VALUE_MASK) << std::endl;
 				}
 				if (newValue == 'l') {
-					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
+					//returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
 					//std::cout << "CURRENT INDEX: l " << (this->ptrs[this->currenPositionInTape + x + 1]) << std::endl;
 				}
 				if (newValue == 's') {
-					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
+					//returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
 					//std::cout << "CURRENT INDEX: s " << (this->ptrs[this->currenPositionInTape + x + 1]) << std::endl;
 				}
 				if (newValue == 'd') {
-					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
+					//returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
 					//std::cout << "CURRENT INDEX: d " << *reinterpret_cast<double*>((&this->ptrs[this->currenPositionInTape + x + 1])) << std::endl;
 				}
-			}*/
+			}
 			return std::vector<JsonParser>{};
 		}
 
@@ -754,57 +763,58 @@ namespace Jsonifier {
 
 		JsonParser& operator[](const std::string& key) {
 			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const char*>(this->stringView));
-			char newValue{};
+			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			/*
 			if (findKey(key.data())) {
-				newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
+				
 				std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
 			}
+			*/
 			if (newValue == 'r') {
-				std::cout << "CURRENT INDEX: r " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: r " << (this->ptrs[++this->currenPositionInTape ] & JSON_VALUE_MASK) << std::endl;
 				this->type = JsonType::Object;
 				return *this;
 			}
 			if (newValue == '[') {
-				std::cout << "CURRENT INDEX: [ " << (this->ptrs[this->currenPositionInTape] & JSON_COUNT_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: [ " << (this->ptrs[++this->currenPositionInTape] & JSON_COUNT_MASK) << std::endl;
 				this->type = JsonType::Array;
 				return *this;
 			}
 			if (newValue == '{') {
-				std::cout << "CURRENT INDEX: { " << (this->ptrs[this->currenPositionInTape] & JSON_COUNT_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: { " << (this->ptrs[++this->currenPositionInTape] & JSON_COUNT_MASK) << std::endl;
 				this->type = JsonType::Object;
 				return *this;
 			}
 			if (newValue == '\"') {
 				this->type = JsonType::String;
-				std::cout << "CURRENT INDEX: \" " << (this->ptrs[this->currenPositionInTape + 1] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: \" " << this->getStringView() << std::endl;
 				return *this;
 			}
 			if (newValue == 's') {
 				this->type = JsonType::Int64;
-				std::cout << "CURRENT INDEX: s " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: s " << (this->ptrs[++this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == 'd') {
 				this->type = JsonType::Float;
-				std::cout << "CURRENT INDEX: d " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: d " << (this->ptrs[++this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == 'l') {
 				this->type = JsonType::Uint64;
-				std::cout << "CURRENT INDEX: l " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: l " << (this->ptrs[++this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == 't' || newValue == 'f') {
 				this->type = JsonType::Bool;
-				std::cout << "CURRENT INDEX: t " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: t " << (this->ptrs[++this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
 				return *this;
 			}
 			if (newValue == 'n') {
 				this->type = JsonType::Null;
-				std::cout << "CURRENT INDEX: n " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
+				std::cout << "CURRENT INDEX: n " << (this->ptrs[this->currenPositionInTape ] & JSON_VALUE_MASK) << std::endl;
 				return *this;
-			}*/
+			}
 			return *this;
 		};
 

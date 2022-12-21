@@ -133,7 +133,7 @@ int32_t main() noexcept {
 		arrayValue["TEST_VALUE_01"] = 0.00333423f;
 		arrayValue["TEST_VALUE_02"] = false;
 		arrayValue["TEST_VALUE_03"] = "TESTING_VALUE0101";
-		arrayValue["TEST_VALUE_04"] = "4325454";
+		arrayValue["TEST_VALUE_04"] = 4325454;
 		for (size_t x = 0; x < 10; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
@@ -171,8 +171,9 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 
 
-		Jsonifier::SimdJsonValue theParser{};
+		
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
@@ -193,9 +194,10 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 
 
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
+		
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
