@@ -1070,70 +1070,23 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		SimdBase256 potentialStructuralStart(SimdBase256 followsPotentialNonquoteScalar) noexcept {
-			return this->S256 | this->potentialScalarStart(followsPotentialNonquoteScalar);
-		}
-
-		SimdBase256 stringTail() {
-			return this->S256 ^ this->Q256;
-		}
-
-		SimdBase256 structuralStart(SimdBase256 followsPotentialNonquoteScalar) noexcept {
-			return potentialStructuralStart(followsPotentialNonquoteScalar) & ~stringTail();
-		}
-
-		SimdBase256 followsPotentialScalar(SimdBase256 followsPotentialNonquoteScalar) {
-			return followsPotentialNonquoteScalar;
-		}
-
-		SimdBase256 potentialScalarStart(SimdBase256 followsPotentialNonquoteScalar) {
-			return scalar().bitAndNot(followsPotentialNonquoteScalar);
-		}
-
-		SimdBase256 scalar() {
-			return ~this->S256 | this->W256;
-		}
-		inline SimdBase256 structuralStart()  noexcept {
-			return potential_structural_start() & ~(this->R256 ^ this->Q256);
+		inline SimdBase256 structuralStart(SimdBase256 returnData) noexcept {
+			return potential_structural_start(returnData) & ~(this->R256 ^ this->Q256);
 		}
 
 		inline SimdBase256 whitespace() const noexcept {
 			return this->W256;
 		}
 
-		// whether the previous character was a scalar
-		SimdBase256 _follows_potential_nonquote_scalar{};
-
-		// Potential structurals (i.e. disregarding strings)
-
-		/**
-   * structural elements ([,],{,},:, comma) plus scalar starts like 123, true and "abc".
-   * They may reside inside a string.
-   **/
-		inline SimdBase256 potential_structural_start() noexcept {
-			return this->S256 | potential_scalar_start();
+		inline SimdBase256 potential_structural_start(SimdBase256 returnData) noexcept {
+			return this->S256 | potential_scalar_start(returnData);
 		}
-		/**
-   * The start of non-operator runs, like 123, true and "abc".
-   * It main reside inside a string.
-   **/
-		inline SimdBase256 potential_scalar_start() noexcept {
-			// The term "scalar" refers to anything except structural characters and white space
-			// (so letters, numbers, quotes).
-			// Whenever it is preceded by something that is not a structural element ({,},[,],:, ") nor a white-space
-			// then we know that it is irrelevant structurally.
-			return ~(this->S256) | this->W256 & ~follows_potential_scalar();
+		inline SimdBase256 potential_scalar_start(SimdBase256 returnData) noexcept {
+			return ~(this->S256) | this->W256 & ~follows_potential_scalar(returnData);
 		}
-		/**
-   * Whether the given character is immediately after a non-operator like 123, true.
-   * The characters following a quote are not included.
-   */
-		inline SimdBase256 follows_potential_scalar() const noexcept {
-			// _follows_potential_nonquote_scalar: is defined as marking any character that follows a character
-			// that is not a structural element ({,},[,],:, comma) nor a quote (") and that is not a
-			// white space.
-			// It is understood that within quoted region, anything at all could be marked (irrelevant).
-			return _follows_potential_nonquote_scalar;
+	
+		inline SimdBase256 follows_potential_scalar(SimdBase256 returnData) const noexcept {
+			return returnData;
 		}
 		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
 			match.printBits("MATCH BITS: ");
@@ -1233,8 +1186,8 @@ namespace Jsonifier {
 			auto scalar = ~(this->S256) | this->W256;
 			//scalar.printBits("THE BITS FAIRNESS: ");
 			auto nonquote_scalar = scalar & ~this->Q256;
+			this->S256 = this->structuralStart(followsPotentialNonQuoteScalar);
 			followsPotentialNonQuoteScalar = follows(nonquote_scalar, previousScalar);
-			this->S256 = this->structuralStart();
 			followsPotentialNonQuoteScalar.printBits("THE BITS FINAL: ");
 			this->S256.printBits("THE BITS FINAL: ");
 			//this->S256.printBits("BITS BEFORE: ");
@@ -1480,7 +1433,7 @@ namespace Jsonifier {
 		return val;
 	}
 
-	inline uint32_t isNotStructuralOrWhiteSpace(uint8_t c) {
+	inline uint32_t NumberParser::isNotStructuralOrWhiteSpace(uint8_t c) {
 		return structuralOrWhitespaceNegated[c];
 	}
 
@@ -1733,14 +1686,14 @@ namespace Jsonifier {
 	}
 
 	inline bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
-		uint32_t codePoint = hexToU32Nocheck(*srcPtr + 2);
+		uint32_t codePoint = NumberParser::hexToU32Nocheck(*srcPtr + 2);
 		*srcPtr += 6;
 		if (codePoint >= 0xd800 && codePoint < 0xdc00) {
 			const uint8_t* srcData = *srcPtr;
 			if (((srcData[0] << 8) | srcData[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
 				return false;
 			}
-			uint32_t codePoint2 = hexToU32Nocheck(srcData + 2);
+			uint32_t codePoint2 = NumberParser::hexToU32Nocheck(srcData + 2);
 			uint32_t lowBit = codePoint2 - 0xdc00;
 			if (lowBit >> 10) {
 				return false;
@@ -1825,7 +1778,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitNumber(JsonIterator& iter, const uint8_t* value) noexcept {
-		return parseNumber<ErrorCode, TapeWriter>(value, this->tape);
+		return NumberParser::parseNumber<ErrorCode, TapeWriter>(value, this->tape);
 	}
 
 	inline ErrorCode TapeBuilder::visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept {
