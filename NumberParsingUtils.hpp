@@ -543,15 +543,15 @@ namespace Jsonifier {
 		}
 
 		static inline double fromChars(const char* first) noexcept {
-			bool negative = first[0] == '-';
+			bool negative{ first[0] == '-' };
 			if (negative) {
 				first++;
 			}
-			AdjustedMantissa am = parseLongMantissa(first);
-			uint64_t word = am.mantissa;
+			AdjustedMantissa am{ parseLongMantissa(first) };
+			uint64_t word{ am.mantissa };
 			word |= uint64_t(am.power2) << mantissaExplicitBits();
 			word = negative ? word | (uint64_t(1) << signIndex()) : word;
-			double value;
+			double value{};
 			std::memcpy(&value, &word, sizeof(double));
 			return value;
 		}
@@ -570,7 +570,7 @@ namespace Jsonifier {
 		}
 
 		template<typename Jsonifier, typename TapeWriter> static inline ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
-			double d;
+			double d{};
 			if (parseFloatFallback(src, &d)) {
 				writer.appendDouble(d);
 				return ErrorCode::Success;
