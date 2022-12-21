@@ -7,7 +7,7 @@ AlignEscapedNewlines: DontAlign
 AlignOperands: 'false'
 AlignTrailingComments: 'false'
 AllowAllArgumentsOnNextLine: 'false'
-AllowAllConstructorInitializersOnNextLine: 'false'
+AllowAllConstructorInitializersOnNextLine: 'true'
 AllowAllParametersOfDeclarationOnNextLine: 'false'
 AllowShortBlocksOnASingleLine: 'true'
 AllowShortCaseLabelsOnASingleLine: 'false'
