@@ -1064,39 +1064,6 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline SimdBase256 structuralStart(SimdBase256 returnData) noexcept {
-			return potentialStructuralStart(returnData) & ~(this->R256 ^ this->Q256);
-		}
-
-		inline SimdBase256 whitespace() noexcept {
-			return this->W256;
-		}
-
-		inline SimdBase256 potentialStructuralStart(SimdBase256 returnData) noexcept {
-			return this->S256 | potentialScalarStart(returnData);
-		}
-
-		inline SimdBase256 potentialScalarStart(SimdBase256 returnData) noexcept {
-			return ~(this->S256) | this->W256 & ~followsPotentialScalar(returnData);
-		}
-	
-		inline SimdBase256 followsPotentialScalar(SimdBase256 returnData) noexcept {
-			return returnData;
-		}
-
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			SimdBase256 result{};
-			for (size_t x = 0; x < 4; ++x) {
-				result.insertInt64(match.getInt64(x) << 1 | overflow.getInt64(x), x);
-				overflow.insertInt64(match.getInt64(x) >> 63, x);
-			}
-
-			match.printBits("MATCH BITS: ");
-			overflow.printBits("OVERFLOW BITS: ");
-			result.printBits("RESULT BITS: ");
-			return result;
-		}
-
 		inline void collectStructuralAndWhiteSpaceCharacters() {
 			char valuesNew[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ valuesNew };
@@ -1177,13 +1144,8 @@ namespace Jsonifier {
 
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
-			auto stringTail = this->R256 ^ this->Q256;
 			this->collectStructuralAndWhiteSpaceCharacters();
-			auto scalar = ~(this->S256 | this->W256);
-			//scalar.printBits("THE BITS FAIRNESS: ");
-			auto nonquote_scalar = scalar & ~this->Q256;
 			this->S256 = this->collectFinalStructurals();
-			followsPotentialNonQuoteScalar = follows(nonquote_scalar, previousScalar);
 			followsPotentialNonQuoteScalar.printBits("THE BITS FINAL: ");
 			this->S256.printBits("THE BITS FINAL: ");
 			//this->S256.printBits("BITS BEFORE: ");
