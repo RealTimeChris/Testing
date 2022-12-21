@@ -136,7 +136,9 @@ int32_t main() noexcept {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ serializer.operator std::string() };
+		std::string stringNew{ "{\"d\":{\"activities\":[{\"created_at\":\"1671625865952\",\"id\":\"ec0b28a579ecb4bd\",\"name\":\"flavibot.xyz | "
+							   "/help\",\"type\":3}],\"client_status\":{\"web\":\"online\"},\"guild_id\":\"815087249556373516\",\"status\":"
+							   "\"online\",\"user\":{\"id\":\"684773505157431347\"}},\"op\":0,\"s\":2084,\"t\":\"PRESENCE_UPDATE\"}" };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
