@@ -1022,13 +1022,8 @@ namespace Jsonifier {
 			size_t& currentIndexIntoTape, size_t stringLength) {
 			uint64_t value = static_cast<uint64_t>(__popcnt64(*theBits));
 			for (int i = 0; i < value; i++) {
-				auto valueNew = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-				if (valueNew >= stringLength) {
-					return i;
-				} else {
-					tapePtrs[currentIndexIntoTape++] = valueNew;
-					*theBits = _blsr_u64(*theBits);
-				}
+				tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+				*theBits = _blsr_u64(*theBits);
 			}
 
 			return value;
@@ -1301,7 +1296,7 @@ namespace Jsonifier {
 	};
 
 	struct TapeBuilder {
-		static inline ErrorCode parseDocument(SimdJsonValue& masterParser);
+		inline static ErrorCode parseDocument(SimdJsonValue& masterParser);
 
 		inline ErrorCode visitDocumentStart(JsonIterator& iter) noexcept;
 

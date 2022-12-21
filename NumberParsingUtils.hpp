@@ -94,7 +94,7 @@ namespace Jsonifier {
 
 	class NumberParser {
 	  public:
-		template<typename I> static inline bool parseDigit(const uint8_t c, I& i) {
+		template<typename I> inline static bool parseDigit(const uint8_t c, I& i) {
 			const uint8_t digit = static_cast<uint8_t>(c - '0');
 			if (digit > 9) {
 				return false;
@@ -103,7 +103,7 @@ namespace Jsonifier {
 			return true;
 		}
 
-		static inline ErrorCode parseDecimal(const uint8_t* const src, const uint8_t*& p, uint64_t& i, int64_t& exponent) {
+		inline static ErrorCode parseDecimal(const uint8_t* const src, const uint8_t*& p, uint64_t& i, int64_t& exponent) {
 			const uint8_t* const firstAfterPeriod = p;
 
 			if (parseDigit(*p, i)) {
@@ -119,7 +119,7 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
-		static inline ErrorCode parseExponent(const uint8_t* const src, const uint8_t*& p, int64_t& exponent) {
+		inline static ErrorCode parseExponent(const uint8_t* const src, const uint8_t*& p, int64_t& exponent) {
 			bool negExp = ('-' == *p);
 			if (negExp || '+' == *p) {
 				p++;
@@ -161,11 +161,11 @@ namespace Jsonifier {
 			return 63;
 		}
 
-		static inline bool isInteger(char c) noexcept {
+		inline static bool isInteger(char c) noexcept {
 			return (c >= '0' && c <= '9');
 		}
 
-		static inline Decimal parseDecimal(const char*& p) noexcept {
+		inline static Decimal parseDecimal(const char*& p) noexcept {
 			Decimal answer{};
 			answer.numDigits = 0;
 			answer.decimalPoint = 0;
@@ -240,7 +240,7 @@ namespace Jsonifier {
 			return answer;
 		}
 
-		static inline uint32_t numberOfDigitsDecimalLeftShift(Decimal& h, uint32_t shift) {
+		inline static uint32_t numberOfDigitsDecimalLeftShift(Decimal& h, uint32_t shift) {
 			shift &= 63;
 
 			const uint16_t numberOfDigitsDecimalLeftShift_table[65]{ 0x0000, 0x0800, 0x0801, 0x0803, 0x1006, 0x1009, 0x100D, 0x1812, 0x1817, 0x181D,
@@ -303,7 +303,7 @@ namespace Jsonifier {
 			return num_new_digits;
 		}
 
-		static inline void trim(Decimal& h) {
+		inline static void trim(Decimal& h) {
 			while ((h.numDigits > 0) && (h.digits[h.numDigits - 1] == 0)) {
 				h.numDigits--;
 			}
@@ -311,7 +311,7 @@ namespace Jsonifier {
 
 		inline static const int32_t decimalPointRange{ 2047 };
 
-		static inline void decimalRightShift(Decimal& h, uint32_t shift) {
+		inline static void decimalRightShift(Decimal& h, uint32_t shift) {
 			uint32_t read_index = 0;
 			uint32_t write_index = 0;
 
@@ -357,7 +357,7 @@ namespace Jsonifier {
 			trim(h);
 		}
 
-		static inline uint64_t round(Decimal& h) {
+		inline static uint64_t round(Decimal& h) {
 			if ((h.numDigits == 0) || (h.decimalPoint < 0)) {
 				return 0;
 			} else if (h.decimalPoint > 18) {
@@ -381,7 +381,7 @@ namespace Jsonifier {
 			return n;
 		}
 
-		static inline void decimalLeftShift(Decimal& h, uint32_t shift) {
+		inline static void decimalLeftShift(Decimal& h, uint32_t shift) {
 			if (h.numDigits == 0) {
 				return;
 			}
@@ -423,7 +423,7 @@ namespace Jsonifier {
 		}
 
 
-		static inline AdjustedMantissa computeFloat(Decimal& d) {
+		inline static AdjustedMantissa computeFloat(Decimal& d) {
 			AdjustedMantissa answer;
 			if (d.numDigits == 0) {
 				answer.power2 = 0;
@@ -513,12 +513,12 @@ namespace Jsonifier {
 			return answer;
 		}
 
-		static inline AdjustedMantissa parseLongMantissa(const char* first) {
+		inline static AdjustedMantissa parseLongMantissa(const char* first) {
 			Decimal d = parseDecimal(first);
 			return computeFloat(d);
 		}
 
-		static inline double fromChars(const char* first) noexcept {
+		inline static double fromChars(const char* first) noexcept {
 			bool negative{ first[0] == '-' };
 			if (negative) {
 				first++;
@@ -532,7 +532,7 @@ namespace Jsonifier {
 			return value;
 		}
 
-		static inline size_t significantDigits(const uint8_t* start_digits, size_t digit_count) {
+		inline static size_t significantDigits(const uint8_t* start_digits, size_t digit_count) {
 			const uint8_t* start = start_digits;
 			while ((*start == '0') || (*start == '.')) {
 				++start;
@@ -540,12 +540,12 @@ namespace Jsonifier {
 			return digit_count - size_t(start - start_digits);
 		}
 
-		static inline bool parseFloatFallback(const uint8_t* ptr, double* outDouble) {
+		inline static bool parseFloatFallback(const uint8_t* ptr, double* outDouble) {
 			*outDouble = fromChars(reinterpret_cast<const char*>(ptr));
 			return !(*outDouble > (std::numeric_limits<double>::max)() || *outDouble < std::numeric_limits<double>::lowest());
 		}
 
-		template<typename Jsonifier, typename TapeWriter> static inline ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
+		template<typename Jsonifier, typename TapeWriter> inline static ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
 			double d{};
 			if (parseFloatFallback(src, &d)) {
 				writer.appendDouble(d);
@@ -560,7 +560,7 @@ namespace Jsonifier {
 		inline static const double powerOfTen[24]{ 1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17,
 			1e18, 1e19, 1e20, 1e21, 1e22 };
 
-		static inline bool computeFloat64(int64_t power, uint64_t i, bool negative, double& d) {
+		inline static bool computeFloat64(int64_t power, uint64_t i, bool negative, double& d) {
 			if (0 <= power && power <= 22 && i <= 9007199254740991) {
 				if (power < 0) {
 					d = d / powerOfTen[-power];
@@ -576,7 +576,7 @@ namespace Jsonifier {
 		}
 
 		template<typename Jsonifier, typename TapeWriter>
-		static inline ErrorCode writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits, size_t digit_count,
+		inline static ErrorCode writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits, size_t digit_count,
 			int64_t exponent, TapeWriter& writer) {
 			if (digit_count > 19 && significantDigits(start_digits, digit_count) > 19) {
 				writer.skipDouble();
@@ -601,7 +601,7 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
-		template<typename Jsonifier, typename TapeWriter> static inline ErrorCode parseNumber(const uint8_t* const src, TapeWriter& writer) {
+		template<typename Jsonifier, typename TapeWriter> inline static ErrorCode parseNumber(const uint8_t* const src, TapeWriter& writer) {
 			bool negative = (*src == '-');
 			const uint8_t* p = src + uint8_t(negative);
 			const uint8_t* const startDigits = p;
