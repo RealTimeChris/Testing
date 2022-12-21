@@ -461,10 +461,6 @@ namespace Jsonifier {
 		return this->jsonValue.boolean;
 	}
 
-	class EscapeJsonString;
-
-	inline std::ostream& operator<<(std::ostream& out, const EscapeJsonString& str);
-
 	class EscapeJsonString {
 	  public:
 		EscapeJsonString(std::string_view _str) noexcept : str{ _str } {
