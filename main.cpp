@@ -136,7 +136,7 @@ int32_t main() noexcept {
 			serializer.emplaceBack(arrayValue);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ serializer.operator std::basic_string_view<char, std::char_traits<char>>() };
+		std::string stringNew{ serializer.operator std::string() };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
