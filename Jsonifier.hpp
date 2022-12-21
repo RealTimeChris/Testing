@@ -695,6 +695,7 @@ namespace Jsonifier {
 
 		template<> std::vector<JsonParser> getValue() {
 			std::vector<JsonParser> returnValue{};
+			/*
 			auto newValue = (this->ptrs[this->currenPositionInTape] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: 0202 " << (char)newValue << std::endl;
 			//std::cout << "CURRENT INDEX: 0202 " << (this->ptrs[this->currenPositionInTape] & JSON_COUNT_MASK) << std::endl;
@@ -726,11 +727,12 @@ namespace Jsonifier {
 					returnValue.emplace_back(JsonParser{ &this->ptrs[this->currenPositionInTape], 1, this->stringView });
 					//std::cout << "CURRENT INDEX: d " << *reinterpret_cast<double*>((&this->ptrs[this->currenPositionInTape + x + 1])) << std::endl;
 				}
-			}
+			}*/
 			return std::vector<JsonParser>{};
 		}
 
 		bool findKey(const char* keyToFind) {
+			/*
 			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
 				std::cout << std::string_view{ &this->stringView[this->ptrs[this->currenPositionInTape]],
 					static_cast<size_t>(&this->stringView[this->ptrs[this->currenPositionInTape + x]] -
@@ -746,13 +748,14 @@ namespace Jsonifier {
 						return true;
 					}
 				}
-			}
+			}*/
 			return false;
 		}
 
 		JsonParser& operator[](const std::string& key) {
 			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const char*>(this->stringView));
 			char newValue{};
+			/*
 			if (findKey(key.data())) {
 				newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 				std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -801,7 +804,7 @@ namespace Jsonifier {
 				this->type = JsonType::Null;
 				std::cout << "CURRENT INDEX: n " << (this->ptrs[this->currenPositionInTape] & JSON_VALUE_MASK) << std::endl;
 				return *this;
-			}
+			}*/
 			return *this;
 		};
 
