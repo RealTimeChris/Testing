@@ -1818,8 +1818,8 @@ namespace Jsonifier {
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
-		std::cout << "THE STRING LENGTH: " << static_cast<size_t>(dst02 - dst01)
-				  << ", THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
+		//std::cout << "THE STRING LENGTH: " << static_cast<size_t>(dst02 - dst01)
+				  //<< ", THE STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
 		onEndString(reinterpret_cast<char*>(dst02));
 		return ErrorCode::Success;
 	}
