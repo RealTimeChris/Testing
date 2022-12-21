@@ -666,7 +666,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const char*>(this->stringView));
+			dumpRawTape(std::cout, this->ptrs.get(), reinterpret_cast<const char*>(this->stringView));
 
 			auto newValue = (this->ptrs[this->currenPositionInTape++] >> 56);
 			//std::cout << "CURRENT INDEX'S VALUE: " << newValue << std::endl;
@@ -1213,8 +1213,8 @@ namespace Jsonifier {
 			this->S256.printBits("THE STRUCTURAL BITS: ");
 			this->Q256.printBits("QUOTED BITS: ");
 			this->R256.printBits("QUOTED RANGES: ");
-			this->S256 = (~followsPotentialNonQuoteScalar & ~this->R256) | (this->Q256 & this->R256) | this->S256;
-			this->S256.printBits("THE BITS FINAL: ");
+			this->S256 = ((~followsPotentialNonQuoteScalar & ~this->R256) | (this->Q256 & this->R256) | this->S256).printBits("THE BITS FINAL: ");
+			//this->S256.printBits("THE BITS FINAL: ");
 			//this->S256.printBits("BITS BEFORE: ");
 			//this->S256 |= ~scalar | ~followsPotentialNonQuoteScalar;
 			//this->S256.printBits("BITS AFTER: ");
@@ -1697,7 +1697,8 @@ namespace Jsonifier {
 		auto value = this->advance();
 		switch (*value) {
 			case '{': {
-				if (*this->peek() == '}') {
+				auto newValue = *this->peek();
+				if (newValue == '}') {
 					this->advance();
 					visitor.visitEmptyObject(*this);
 					break;
@@ -1705,7 +1706,8 @@ namespace Jsonifier {
 				goto Object_Begin;
 			}
 			case '[': {
-				if (*this->peek() == ']') {
+				auto newValue = *this->peek();
+				if (newValue == ']') {
 					this->advance();
 					visitor.visitEmptyArray(*this);
 					break;
@@ -1753,9 +1755,9 @@ namespace Jsonifier {
 	}
 
 	inline const char* JsonIterator::advance() noexcept {
-		auto newIndex = (*this->nextStructural++);
-		std::cout << "NEW INDEX: " << newIndex << ", THE INDEX'S VALUE: " << this->masterParser->getStringView()[newIndex] << std::endl;
-		return &buf[newIndex];
+		//auto newIndex = 
+		//std::cout << "NEW INDEX: " << newIndex << ", THE INDEX'S VALUE: " << this->masterParser->getStringView()[newIndex] << std::endl;
+		return &buf[(*this->nextStructural++)];
 	}
 
 	inline char JsonIterator::lastStructural() noexcept {
@@ -1767,6 +1769,10 @@ namespace Jsonifier {
 	}
 
 	inline const char* JsonIterator::peek() noexcept {
+		for (size_t x = 0; x < 1022; ++x) {
+			std::cout << "WERE HERE THIS IS VALUE: " << std::to_string(x) << ", " << this->buf[this->masterParser->getStructuralIndices()[x]]
+					  << std::endl;
+		}
 		return &buf[masterParser->getStructuralIndices()[*this->nextStructural]];
 	}
 
