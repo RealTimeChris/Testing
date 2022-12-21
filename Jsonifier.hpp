@@ -1206,6 +1206,7 @@ namespace Jsonifier {
 			int32_t stringCapacity = round(5 * static_cast<int32_t>(capacity) / 3 + 256, 256);
 			this->tape.reset(tapeCapacity, stringCapacity, stringViewNew);
 			this->structuralIndices = std::make_unique<uint32_t[]>(tapeCapacity);
+			this->isArray.resize(tapeCapacity / 2);
 			if (!(this->tape.getStringViewNew() && this->tape.operator uint64_t*())) {
 				this->allocatedCapacity = 0;
 				this->tape.reset(0, 0, nullptr);
@@ -1548,7 +1549,7 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::DepthError) } +
 				", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 		}
-		this->masterParser->getIsArray().push_back(false);
+		this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()] = false;
 		visitor.visitObjectStart(*this);
 
 		auto key = this->advance();
@@ -1619,11 +1620,10 @@ namespace Jsonifier {
 
 	Scope_End : {
 		this->masterParser->getCurrentDepth()--;
-		this->masterParser->getIsArray().erase(this->masterParser->getIsArray().end() - 1);
 		if (this->masterParser->getCurrentDepth() == 0) {
 			goto Document_End;
 		}
-		if (this->masterParser->getIsArray()[this->masterParser->getCurrentDepth() - 1ull]) {
+		if (this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()]) {
 			goto Array_Continue;
 		}
 		goto Object_Continue;
@@ -1636,8 +1636,7 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::DepthError) } +
 				", at the following index into the string: " + std::to_string(this->currentIndexIntoString()) };
 		}
-
-		this->masterParser->getIsArray().push_back(true);
+		this->masterParser->getIsArray()[this->masterParser->getCurrentDepth()] = true;
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
 	}
