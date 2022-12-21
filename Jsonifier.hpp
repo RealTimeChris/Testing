@@ -1127,8 +1127,6 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			auto scalar = ~this->S256 | this->W256;
-			auto nonquote_scalar = scalar & ~this->Q256;
 			
 			this->S256 = this->S256.bitAndNot(this->R256);
 			this->S256 = this->S256 | this->Q256;
@@ -1152,8 +1150,9 @@ namespace Jsonifier {
 
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
-
-			this->S256 = this->structuralStart(followsPotentialNonQuoteScalar);
+			this->collectStructuralAndWhiteSpaceCharacters();
+			this->S256 = this->collectFinalStructurals();
+			//this->S256 = this->structuralStart(followsPotentialNonQuoteScalar);
 			//this->collectStructuralAndWhiteSpaceCharacters();
 			//this->S256 = this->collectFinalStructurals();
 			//this->S256.printBits("THE BITS: ");
