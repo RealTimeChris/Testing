@@ -1960,7 +1960,7 @@ namespace Jsonifier {
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 		0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
-	static inline uint32_t hexToU32Nocheck(const uint8_t* src) {
+	inline static uint32_t hexToU32Nocheck(const uint8_t* src) {
 		uint32_t v1 = digitToVal32[630 + src[0]];
 		uint32_t v2 = digitToVal32[420 + src[1]];
 		uint32_t v3 = digitToVal32[210 + src[2]];
