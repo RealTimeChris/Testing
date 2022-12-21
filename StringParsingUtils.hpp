@@ -40,28 +40,28 @@ namespace Jsonifier {
 			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 
-		inline static uint32_t isNotStructuralOrWhitespace(uint8_t c) {
+		inline static uint32_t isNotStructuralOrWhitespace(char c) {
 			return structuralOrWhitespaceNegated[c];
 		}
 
-		inline static uint32_t stringToUint32(const char* str) {
+		static inline uint32_t stringToUint32(const char* str) {
 			uint32_t val{};
 			std::memcpy(&val, str, sizeof(uint32_t));
 			return val;
 		}
 
-		inline static uint32_t str4ncmp(const uint8_t* src, const char* atom) {
+		static inline uint32_t str4ncmp(const char* src, const char* atom) {
 			uint32_t srcval{};
 			static_assert(sizeof(uint32_t) <= 256, "SIMDJSON_PADDING must be larger than 4 bytes");
 			std::memcpy(&srcval, src, sizeof(uint32_t));
 			return srcval ^ stringToUint32(atom);
 		}
 
-		inline static bool isValidTrueAtom(const uint8_t* src) {
+		static inline bool isValidTrueAtom(const char* src) {
 			return (str4ncmp(src, "true") | isNotStructuralOrWhitespace(src[4])) == 0;
 		}
 
-		inline static bool isValidTrueAtom(const uint8_t* src, size_t len) {
+		static inline bool isValidTrueAtom(const char* src, size_t len) {
 			if (len > 4) {
 				return isValidTrueAtom(src);
 			} else if (len == 4) {
@@ -71,11 +71,11 @@ namespace Jsonifier {
 			}
 		}
 
-		inline static bool isValidFalseAtom(const uint8_t* src) {
+		static inline bool isValidFalseAtom(const char* src) {
 			return (str4ncmp(src + 1, "alse") | isNotStructuralOrWhitespace(src[5])) == 0;
 		}
 
-		inline static bool isValidFalseAtom(const uint8_t* src, size_t len) {
+		static inline bool isValidFalseAtom(const char* src, size_t len) {
 			if (len > 5) {
 				return isValidFalseAtom(src);
 			} else if (len == 5) {
@@ -85,11 +85,11 @@ namespace Jsonifier {
 			}
 		}
 
-		inline static bool isValidNullAtom(const uint8_t* src) {
+		static inline bool isValidNullAtom(const char* src) {
 			return (str4ncmp(src, "null") | isNotStructuralOrWhitespace(src[4])) == 0;
 		}
 
-		inline static bool isValidNullAtom(const uint8_t* src, size_t len) {
+		static inline bool isValidNullAtom(const char* src, size_t len) {
 			if (len > 4) {
 				return isValidNullAtom(src);
 			} else if (len == 4) {
@@ -99,25 +99,25 @@ namespace Jsonifier {
 			}
 		}
 
-		inline static size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
+		static inline size_t codepointToUtf8(uint32_t cp, char* c) {
 			if (cp <= 0x7F) {
-				c[0] = uint8_t(cp);
+				c[0] = char(cp);
 				return 1;
 			}
 			if (cp <= 0x7FF) {
-				c[0] = uint8_t((cp >> 6) + 192);
-				c[1] = uint8_t((cp & 63) + 128);
+				c[0] = char((cp >> 6) + 192);
+				c[1] = char((cp & 63) + 128);
 				return 2;
 			} else if (cp <= 0xFFFF) {
-				c[0] = uint8_t((cp >> 12) + 224);
-				c[1] = uint8_t(((cp >> 6) & 63) + 128);
-				c[2] = uint8_t((cp & 63) + 128);
+				c[0] = char((cp >> 12) + 224);
+				c[1] = char(((cp >> 6) & 63) + 128);
+				c[2] = char((cp & 63) + 128);
 				return 3;
 			} else if (cp <= 0x10FFFF) {
-				c[0] = uint8_t((cp >> 18) + 240);
-				c[1] = uint8_t(((cp >> 12) & 63) + 128);
-				c[2] = uint8_t(((cp >> 6) & 63) + 128);
-				c[3] = uint8_t((cp & 63) + 128);
+				c[0] = char((cp >> 18) + 240);
+				c[1] = char(((cp >> 12) & 63) + 128);
+				c[2] = char(((cp >> 6) & 63) + 128);
+				c[3] = char((cp & 63) + 128);
 				return 4;
 			}
 
@@ -202,7 +202,7 @@ namespace Jsonifier {
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
-		inline static uint32_t hexToU32Nocheck(const uint8_t* src) {
+		static inline uint32_t hexToU32Nocheck(const char* src) {
 			uint32_t v1 = digitToVal32[630 + src[0]];
 			uint32_t v2 = digitToVal32[420 + src[1]];
 			uint32_t v3 = digitToVal32[210 + src[2]];
@@ -210,12 +210,12 @@ namespace Jsonifier {
 			return v1 | v2 | v3 | v4;
 		}
 
-		inline static bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
+		static inline bool handleUnicodeCodepoint(const char** srcPtr, char** dstPtr) {
 			uint32_t codePoint = hexToU32Nocheck(*srcPtr + 2);
 			*srcPtr += 6;
 			if (codePoint >= 0xd800 && codePoint < 0xdc00) {
-				const uint8_t* srcData = *srcPtr;
-				if (((srcData[0] << 8) | srcData[1]) != ((static_cast<uint8_t>('\\') << 8) | static_cast<uint8_t>('u'))) {
+				const char* srcData = *srcPtr;
+				if (((srcData[0] << 8) | srcData[1]) != ((static_cast<char>('\\') << 8) | static_cast<char>('u'))) {
 					return false;
 				}
 				uint32_t codePoint2 = hexToU32Nocheck(srcData + 2);
@@ -234,7 +234,7 @@ namespace Jsonifier {
 			return offset > 0;
 		}
 
-		inline static const uint8_t escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+		inline static const char escapeMap[256]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0x08, 0, 0, 0, 0x0c, 0, 0, 0, 0,
@@ -246,7 +246,7 @@ namespace Jsonifier {
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-		template<typename SimdBase256> inline static int32_t trailingZeroCount(SimdBase256 toCount) {
+		template<typename SimdBase256> static inline int32_t trailingZeroCount(SimdBase256 toCount) {
 			int32_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
 				auto value = _tzcnt_u64(toCount.getUint64(x));
@@ -258,7 +258,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		template<typename SimdBase256> inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
+		template<typename SimdBase256> static inline uint32_t copyAndFind(const char* src, char* dst) {
 			SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
 			values.store(reinterpret_cast<char*>(dst));
@@ -272,7 +272,7 @@ namespace Jsonifier {
 			return 0;
 		}
 
-		inline static uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
+		static inline char* parseString(const char* src, char* dst, size_t length) {
 			int32_t index{};
 			while (length > 0) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {

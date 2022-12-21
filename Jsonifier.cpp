@@ -246,13 +246,13 @@ namespace Jsonifier {
 		*this = data;
 	}
 
-	Jsonifier& Jsonifier::operator=(uint8_t data) noexcept {
+	Jsonifier& Jsonifier::operator=(char data) noexcept {
 		this->jsonValue.numberUint = data;
 		this->type = JsonType::Uint64;
 		return *this;
 	}
 
-	Jsonifier::Jsonifier(uint8_t data) noexcept {
+	Jsonifier::Jsonifier(char data) noexcept {
 		*this = data;
 	}
 
@@ -520,8 +520,8 @@ namespace Jsonifier {
 	}
 
 	void Jsonifier::writeEtfUint(const UintType jsonData) {
-		if (jsonData >= std::numeric_limits<uint8_t>::min() && jsonData <= std::numeric_limits<uint8_t>::max()) {
-			this->appendUint8(static_cast<uint8_t>(jsonData));
+		if (jsonData >= std::numeric_limits<char>::min() && jsonData <= std::numeric_limits<char>::max()) {
+			this->appendUint8(static_cast<char>(jsonData));
 		} else if (jsonData >= std::numeric_limits<uint32_t>::min() && jsonData <= std::numeric_limits<uint32_t>::max()) {
 			this->appendUint32(static_cast<uint32_t>(jsonData));
 		} else {
@@ -648,53 +648,53 @@ namespace Jsonifier {
 	}
 
 	void Jsonifier::appendNewFloatExt(const double FloatValue) {
-		char newBuffer[9]{ static_cast<uint8_t>(EtfType::New_Float_Ext) };
+		char newBuffer[9]{ static_cast<char>(EtfType::New_Float_Ext) };
 		const void* punner{ &FloatValue };
 		storeBits(newBuffer + 1, *static_cast<const uint64_t*>(punner));
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
-	void Jsonifier::appendUint8(const uint8_t value) {
-		char newBuffer[2]{ static_cast<uint8_t>(EtfType::Small_Integer_Ext), static_cast<char>(value) };
+	void Jsonifier::appendUint8(const char value) {
+		char newBuffer[2]{ static_cast<char>(EtfType::Small_Integer_Ext), static_cast<char>(value) };
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
 	void Jsonifier::appendInt8(const int8_t value) {
-		char newBuffer[2]{ static_cast<uint8_t>(EtfType::Small_Integer_Ext), static_cast<char>(value) };
+		char newBuffer[2]{ static_cast<char>(EtfType::Small_Integer_Ext), static_cast<char>(value) };
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
 	void Jsonifier::appendUint32(const uint32_t value) {
-		char newBuffer[5]{ static_cast<uint8_t>(EtfType::Integer_Ext) };
+		char newBuffer[5]{ static_cast<char>(EtfType::Integer_Ext) };
 		storeBits(newBuffer + 1, value);
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
 	void Jsonifier::appendInt32(const int32_t value) {
-		char newBuffer[5]{ static_cast<uint8_t>(EtfType::Integer_Ext) };
+		char newBuffer[5]{ static_cast<char>(EtfType::Integer_Ext) };
 		storeBits(newBuffer + 1, value);
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
 	void Jsonifier::appendListHeader(const uint32_t sizeNew) {
-		char newBuffer[5]{ static_cast<uint8_t>(EtfType::List_Ext) };
+		char newBuffer[5]{ static_cast<char>(EtfType::List_Ext) };
 		storeBits(newBuffer + 1, sizeNew);
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
 	void Jsonifier::appendMapHeader(const uint32_t sizeNew) {
-		char newBuffer[5]{ static_cast<uint8_t>(EtfType::Map_Ext) };
+		char newBuffer[5]{ static_cast<char>(EtfType::Map_Ext) };
 		storeBits(newBuffer + 1, sizeNew);
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
 	void Jsonifier::appendBool(bool data) {
 		if (data) {
-			char newBuffer[6]{ static_cast<uint8_t>(EtfType::Small_Atom_Ext), static_cast<uint8_t>(4), 't', 'r', 'u', 'e' };
+			char newBuffer[6]{ static_cast<char>(EtfType::Small_Atom_Ext), static_cast<char>(4), 't', 'r', 'u', 'e' };
 			this->writeString(newBuffer, std::size(newBuffer));
 
 		} else {
-			char newBuffer[7]{ static_cast<uint8_t>(EtfType::Small_Atom_Ext), static_cast<uint8_t>(5), 'f', 'a', 'l', 's', 'e' };
+			char newBuffer[7]{ static_cast<char>(EtfType::Small_Atom_Ext), static_cast<char>(5), 'f', 'a', 'l', 's', 'e' };
 			this->writeString(newBuffer, std::size(newBuffer));
 		}
 	}
@@ -705,11 +705,11 @@ namespace Jsonifier {
 	}
 
 	void Jsonifier::appendNilExt() {
-		this->writeCharacter(static_cast<uint8_t>(EtfType::Nil_Ext));
+		this->writeCharacter(static_cast<char>(EtfType::Nil_Ext));
 	}
 
 	void Jsonifier::appendNil() {
-		char newBuffer[5]{ static_cast<uint8_t>(EtfType::Small_Atom_Ext), static_cast<uint8_t>(3), 'n', 'i', 'l' };
+		char newBuffer[5]{ static_cast<char>(EtfType::Small_Atom_Ext), static_cast<char>(3), 'n', 'i', 'l' };
 		this->writeString(newBuffer, std::size(newBuffer));
 	}
 
