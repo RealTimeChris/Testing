@@ -38,7 +38,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theArray = value["d"]["activities"].getValue<std::vector<Jsonifier::JsonParser>>();
 		for (auto& value: theArray) {
-			std::cout << "THE CURRENT SIZE: " << theArray.size() << std::endl;
+			std::cout << "THE CURRENT SIZE: " << std::endl;
 			activities.emplace_back(std::move(value));
 		}
 	}
