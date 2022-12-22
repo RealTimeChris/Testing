@@ -138,27 +138,7 @@ int32_t main() noexcept {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{
-			"{\"d\":{\"activities\":[{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4},{\"created_at\":\"1671633694558\",\"id\":\"custom\",\"name\":\"Custom Status\",\"state\":\"Destroyer of "
-			"ethereal garbage, Jewish speed runner, mematic warfare expert, hates midwits,  why do you need to be "
-			"needed?\",\"type\":4}],\"TEST_VALUE\":0.0444,\"client_status\":{\"mobile\":\"online\"},\"guild_id\":\"931640556814237706\",\"status\":"
-			"\"online\",\"user\":{"
-			"\"id\":\"849261763013640233\"}},\"op\":0,\"s\":3053,\"t\":\"PRESENCE_UPDATE\"}"
-		};
+		std::string stringNew{ serializer.operator std::string&&() };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
