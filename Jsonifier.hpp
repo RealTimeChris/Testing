@@ -1417,10 +1417,6 @@ namespace Jsonifier {
 			return this->openContainers.get();
 		}
 
-		inline uint32_t& getCurrentDepth() {
-			return this->depth;
-		}
-
 		inline uint32_t* getStructuralIndexes() {
 			return this->structuralIndexes.get();
 		}
@@ -1453,7 +1449,6 @@ namespace Jsonifier {
 		size_t stringLengthRaw{};
 		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
-		uint32_t depth{ 0 };
 		char* stringView{};
 	};
 
@@ -1699,7 +1694,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::incrementCount(JsonIterator& iter) noexcept {
-		iter.masterParser->getOpenContainers()[iter.masterParser->getCurrentDepth()].count++;
+		iter.masterParser->getOpenContainers()[iter.depth].count++;
 		return ErrorCode::Success;
 	}
 
@@ -1805,16 +1800,16 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::startContainer(JsonIterator& iter) noexcept {
-		iter.masterParser->getOpenContainers()[iter.masterParser->getCurrentDepth()].tapeIndex = nextTapeIndex(iter);
-		iter.masterParser->getOpenContainers()[iter.masterParser->getCurrentDepth()].count = 0;
+		iter.masterParser->getOpenContainers()[iter.depth].tapeIndex = nextTapeIndex(iter);
+		iter.masterParser->getOpenContainers()[iter.depth].count = 0;
 		tape.skip();
 		return ErrorCode::Success;
 	}
 
 	inline ErrorCode TapeBuilder::endContainer(JsonIterator& iter, TapeType start, TapeType end) noexcept {
-		const uint32_t startTapeIndex = iter.masterParser->getOpenContainers()[iter.masterParser->getCurrentDepth()].tapeIndex;
+		const uint32_t startTapeIndex = iter.masterParser->getOpenContainers()[iter.depth].tapeIndex;
 		tape.append(startTapeIndex, end);
-		const uint32_t count = iter.masterParser->getOpenContainers()[iter.masterParser->getCurrentDepth()].count;
+		const uint32_t count = iter.masterParser->getOpenContainers()[iter.depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
 		TapeWriter::write(iter.masterParser->getTape()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
 		return ErrorCode::Success;
@@ -1976,11 +1971,11 @@ namespace Jsonifier {
 		}
 
 	Scope_End:
-		masterParser->getCurrentDepth()--;
-		if (masterParser->getCurrentDepth() == 0) {
+		depth--;
+		if (depth == 0) {
 			goto Document_End;
 		}
-		if (masterParser->getIsArray()[masterParser->getCurrentDepth()]) {
+		if (masterParser->getIsArray()[depth]) {
 			goto Array_Continue;
 		}
 		goto Object_Continue;
