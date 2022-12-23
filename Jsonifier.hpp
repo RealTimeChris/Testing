@@ -1747,9 +1747,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!StringParser::isValidTrueAtom(value,
-				static_cast<size_t>(iter.masterParser->getStringView()[static_cast<size_t>(*iter.nextStructural)] -
-					static_cast<size_t>((iter.masterParser->getStringView()[static_cast<size_t>(*(iter.nextStructural) - 1ull)]))))) {
+		if (!StringParser::isValidTrueAtom(value)) {
 			return ErrorCode::TAtomError;
 		}
 		this->tape.append(0, TapeType::True_Value);
@@ -1757,9 +1755,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootTrueAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!StringParser::isValidTrueAtom(value,
-				static_cast<size_t>(iter.masterParser->getStringView()[*iter.nextStructural]) -
-					static_cast<size_t>((iter.masterParser->getStringView()[*(iter.nextStructural - 1)])))) {
+		if (!StringParser::isValidTrueAtom(value)) {
 			return ErrorCode::NAtomError;
 		}
 		this->tape.append(0, TapeType::True_Value);
@@ -1767,9 +1763,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!StringParser::isValidFalseAtom(value,
-				static_cast<size_t>(iter.masterParser->getStringView()[*iter.nextStructural]) -
-					static_cast<size_t>((iter.masterParser->getStringView()[*(iter.nextStructural - 1ull)])))) {
+		if (!StringParser::isValidFalseAtom(value)) {
 			return ErrorCode::FAtomError;
 		}
 		this->tape.append(0, TapeType::False_Value);
@@ -1777,9 +1771,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootFalseAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!StringParser::isValidFalseAtom(value,
-				static_cast<size_t>(iter.masterParser->getStringView()[*iter.nextStructural]) -
-					static_cast<size_t>((iter.masterParser->getStringView()[*(iter.nextStructural - 1ull)])))) {
+		if (!StringParser::isValidFalseAtom(value)) {
 			return ErrorCode::FAtomError;
 		}
 		this->tape.append(0, TapeType::False_Value);
@@ -1787,9 +1779,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!StringParser::isValidNullAtom(value,
-				static_cast<size_t>(iter.masterParser->getStringView()[*iter.nextStructural]) -
-					static_cast<size_t>((iter.masterParser->getStringView()[*(iter.nextStructural - 1ull)])))) {
+		if (!StringParser::isValidNullAtom(value)) {
 			return ErrorCode::NAtomError;
 		}
 		this->tape.append(0, TapeType::Null_Value);
@@ -1797,9 +1787,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootNullAtom(JsonIterator& iter, const uint8_t* value) noexcept {
-		if (!StringParser::isValidNullAtom(value,
-				static_cast<size_t>(iter.masterParser->getStringView()[*iter.nextStructural]) -
-					static_cast<size_t>((iter.masterParser->getStringView()[*(iter.nextStructural - 1ull)])))) {
+		if (!StringParser::isValidNullAtom(value)) {
 			return ErrorCode::NAtomError;
 		}
 		this->tape.append(0, TapeType::Null_Value);

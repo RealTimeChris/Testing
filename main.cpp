@@ -111,9 +111,9 @@ int32_t main() noexcept {
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
 		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
+		Jsonifier::SimdJsonValue parserNew{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-			Jsonifier::SimdJsonValue parser{};
-			auto jsonData = parser.getJsonData(stringNew);
+			auto jsonData = parserNew.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;
 		}
@@ -126,9 +126,9 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 
 		
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-			simdjson::ondemand::parser parser{};
+		simdjson::ondemand::parser parser{};
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			totalSize += oldSize;
