@@ -861,8 +861,9 @@ namespace Jsonifier {
 			std::cout << tape_idx << " : " << type << "\t// pointing to " << (tape_val & JSON_VALUE_MASK) << " (start root)\n";
 			
 			
-			dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
+			
 			*/
+			dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
 			auto newValue = uint8_t{};
 			
 			if (newValue == 'r') {

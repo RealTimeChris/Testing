@@ -85,13 +85,19 @@ struct TheValue {
 int32_t main() noexcept {
 	try {
 		Jsonifier::Jsonifier serializer{};
-		Jsonifier::Jsonifier arrayValue{};
-		arrayValue["TEST_VALUE_00"] = 0.00333423;
-		arrayValue["TEST_VALUE_02"] = false;
-		arrayValue["TEST_VALUE_03"] = "TESTING_VALUE0101";
-		arrayValue["TEST_VALUE_04"] = 4325454;
-		for (size_t x = 0; x < 12; ++x) {
-			serializer["d"]["activitiess"].emplaceBack(arrayValue);
+		Jsonifier::Jsonifier arrayValueNew{};
+		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
+		arrayValueNew["TEST_VALUE_02"] = false;
+		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_04"] = 4325454;
+		arrayValueNew["TEST_VALUE_05"] = 0.00333423;
+		arrayValueNew["TEST_VALUE_06"] = false;
+		arrayValueNew["TEST_VALUE_07"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_08"] = 4325454;
+		auto arrayValue = arrayValueNew;
+		arrayValueNew["TEST_VALUE_95"] = arrayValue;
+		for (size_t x = 0; x < 60; ++x) {
+			serializer["d"]["activitiess"].emplaceBack(arrayValueNew);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);

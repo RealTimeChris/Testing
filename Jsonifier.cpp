@@ -484,7 +484,6 @@ namespace Jsonifier {
 
 	void Jsonifier::writeJsonFloat(const FloatType x) {
 		auto floatValue = std::to_string(x);
-		std::cout << "THE FLOAT VALUE: " << floatValue << std::endl;
 		this->writeString(floatValue.data(), floatValue.size());
 	}
 
