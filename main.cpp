@@ -99,7 +99,9 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto arrayValue = arrayValueNew;
-		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
+		arrayValueNew["TEST_VALUE_95"] = arrayValue;
+		arrayValueNew["TEST_VALUE_92"] = arrayValue;
+		arrayValueNew["TEST_VALUE_93"] = arrayValue;
 		for (size_t x = 0; x < 60; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValueNew);
 		}

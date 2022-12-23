@@ -862,7 +862,7 @@ namespace Jsonifier {
 			
 			
 			
-			*/
+			
 			//dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
 			auto newValue = uint8_t{};
 			
@@ -907,7 +907,7 @@ namespace Jsonifier {
 			if (newValue == 'n') {
 				this->type = JsonType::Null;
 				return *this;
-			}
+			}*/
 			return *this;
 		};
 
@@ -1224,8 +1224,7 @@ namespace Jsonifier {
 			size_t& currentIndexIntoTape, size_t stringLength) {
 			uint64_t cnt = __popcnt64(*theBits);
 			uint64_t newValue{};
-			for (uint64_t i = 0; i < 8; i++) {
-
+			for (uint64_t i = 0; i < cnt; i++) {
 				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 
 				if (newValue >= stringLength) {
@@ -1235,36 +1234,6 @@ namespace Jsonifier {
 				} else {
 					tapePtrs[i + currentIndexIntoTape] = newValue;
 					*theBits = _blsr_u64(*theBits);
-				}
-			}
-
-			if (cnt > 8){
-				for (int i = 8; i < 16; i++) {
-					newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-					if (newValue >= stringLength) {
-						currentIndexIntoTape += cnt;
-						return cnt;
-
-					} else {
-						tapePtrs[i + currentIndexIntoTape] = newValue;
-						*theBits = _blsr_u64(*theBits);
-					}
-				}
-
-				if (cnt > 16){
-					int i = 16;
-					do {
-						newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-						if (newValue >= stringLength) {
-							currentIndexIntoTape += cnt;
-							return cnt;
-							
-						} else {
-							tapePtrs[i + currentIndexIntoTape] = newValue;
-							*theBits = _blsr_u64(*theBits);
-						}
-						i++;
-					} while (i < cnt);
 				}
 			}
 			currentIndexIntoTape += cnt;
@@ -1350,7 +1319,7 @@ namespace Jsonifier {
 			auto stringTail = this->R256 ^ this->Q256;
 			SimdBase256 nonquote_scalar = scalar.bitAndNot(this->Q256);
 			followsPotentialNonQuoteScalar = follows(nonquote_scalar, prevScalar);
-			return this->S256 | (~S256 | this->W256) & ~followsPotentialNonQuoteScalar & ~stringTail;
+			return this->S256 | (~S256 | this->W256).bitAndNot(followsPotentialNonQuoteScalar).bitAndNot(stringTail);
 		}
 
 		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString,SimdBase256& prevScalar, SimdBase256&followsPotentialNonQuoteScalar) {
@@ -1386,7 +1355,7 @@ namespace Jsonifier {
 	  public:
 		inline SimdJsonValue() {
 		}
-
+		StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 1 } };
 		int32_t round(int32_t a, int32_t n) {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
@@ -1398,7 +1367,7 @@ namespace Jsonifier {
 				this->allocatedCapacity = 0;
 				return ErrorCode::Success;
 			}
-
+			std::cout << "WERE ALLOCATING!" << std::endl;
 			size_t tapeCapacity = round(this->stringLengthRaw + 3, 64);
 			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 64, 64);
 			this->stringView = stringViewNew;
@@ -1406,7 +1375,7 @@ namespace Jsonifier {
 			this->structuralIndexes = std::make_unique<uint32_t[]>(tapeCapacity);
 			this->tapeLength = 0;
 			this->tape = std::make_unique<uint64_t[]>(tapeCapacity);
-			this->isArray.resize(32);
+			this->isArray = std::make_unique<bool[]>(32);
 
 			if (!(this->getStringViewNew() && this->tape.get())) {
 				this->allocatedCapacity = 0;
@@ -1414,12 +1383,13 @@ namespace Jsonifier {
 				this->structuralIndexes.reset(nullptr);
 				return ErrorCode::MemAlloc;
 			}
-			this->openContainers = std::make_unique<OpenContainer[]>(this->maxDepth);
+			this->openContainers = std::make_unique<OpenContainer[]>(32);
 			this->allocatedCapacity = stringCapacity;
 			return ErrorCode::Success;
 		}
 
 		inline void generateJsonEvents(uint8_t* stringNew, size_t stringLength) {
+			stopWatch.resetTimer();
 			if (stringNew) {
 				if (stringLength == 0) {
 					throw JsonifierException{ "Failed to parse as the string size is 0." };
@@ -1439,14 +1409,19 @@ namespace Jsonifier {
 				SimdBase256 followsPotentialNonquoteScalar{};
 				int64_t prevInString{};
 				while (stringSize > 0) {
+					stopWatch.resetTimer();
 					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar, followsPotentialNonquoteScalar);
+					//std::cout << "TOTAL TIME PASSED 0101: " << stopWatch.totalTimePassed().count() << std::endl;
+					stopWatch.resetTimer();
 					auto indexCount =
 						section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, this->stringLengthRaw);
+					//std::cout << "TOTAL TIME PASSED 0202: " << stopWatch.totalTimePassed().count() << std::endl;
 					this->tapeLength += indexCount;
 					stringSize -= 256;
 					collectedSize += 256;
 				}
 			}
+			//std::cout << "TOTAL TIME PASSED 0303: " << stopWatch.totalTimePassed().count() << std::endl;
 		}
 
 		inline ~SimdJsonValue() noexcept {};
@@ -1481,8 +1456,8 @@ namespace Jsonifier {
 			return this->tapeLength;
 		}
 
-		inline std::vector<bool>& getIsArray() {
-			return this->isArray;
+		inline bool* getIsArray() {
+			return this->isArray.get();
 		}
 
 	  protected:
@@ -1490,7 +1465,7 @@ namespace Jsonifier {
 		std::unique_ptr<OpenContainer[]> openContainers{};
 		std::unique_ptr<uint64_t[]> tape{ nullptr };
 		std::unique_ptr<char[]> stringBuffer{};
-		std::vector<bool> isArray{};
+		std::unique_ptr<bool[]> isArray{};
 		size_t allocatedCapacity{};
 		size_t stringLengthRaw{};
 		uint32_t maxDepth{ 500 };
