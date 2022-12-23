@@ -1214,21 +1214,74 @@ namespace Jsonifier {
 			return value;
 		}
 
-		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t currentIndex, size_t& currentIndexIntoTape, bool& prevInScalar, size_t stringLength) {
+		inline uint64_t follows(const uint64_t match, int64_t& overflow) {
+			const uint64_t result = match << 1 | overflow;
+			overflow = match >> 63;
+			std::cout << "PREV IN OLD: " << std::bitset<64>{ static_cast<uint64_t>(overflow) } << std::endl;
+			overflow <<= 63;
+			std::cout << "PREV IN NEW: " << std::bitset<64>{ static_cast<uint64_t>(overflow) } << std::endl;
+			return result;
+		}
+
+		inline SimdBase256 findEscaped(SimdBase256 backslash) {
+			backslash &= ~this->prevEscaped;
+			SimdBase256 follows_escape = backslash << 1 | this->prevEscaped;
+			SimdBase256 even_bits = 0x5555555555555555ULL;
+			SimdBase256 odd_sequence_starts = backslash & ~even_bits & ~follows_escape;
+			SimdBase256 sequences_starting_on_even_bits;
+			this->prevEscaped = odd_sequence_starts.collectCarries(backslash, &sequences_starting_on_even_bits);
+			SimdBase256 invert_mask = sequences_starting_on_even_bits << 1;
+			return (even_bits ^ invert_mask) & follows_escape;
+		}
+
+		inline void next(SimdBase256 values, int64_t& prevInString) {
+			this->backslash = values == '\\';
+			this->escaped = findEscaped(this->backslash);
+			this->quoteVals = (values == '"').bitAndNot(this->escaped);
+
+			SimdBase256 inString = this->quoteVals.carrylessMultiplication(prevInString);
+
+			prevInString = uint64_t(static_cast<int64_t>(inString.getInt64(0)) >> 63);
+			return;
+		}		
+
+		inline SimdBase256 structuralStart() noexcept {
+			return potentialStructuralStart() & ~stringTail();
+		}
+
+		inline SimdBase256 potentialStructuralStart() noexcept {
+			return op() | potentialScalarStart();
+		}
+
+		inline SimdBase256 potentialScalarStart() noexcept {
+			return scalar() & ~followsPotentialScalar();
+		}
+
+		inline SimdBase256 followsPotentialScalar() noexcept {
+			return this->followsPotentialNonquoteScalar;
+		}
+
+		inline SimdBase256 whitespace() const noexcept {
+			return this->whitespaceVals;
+		}
+
+		inline SimdBase256 stringTail() noexcept {
+			return this->inStringVals ^ this->quoteVals;
+		}
+
+		inline SimdBase256 op() const noexcept {
+			return this->opVals;
+		}
+
+		inline SimdBase256 scalar() const noexcept {
+			return ~(op() | whitespace());
+		}
+
+		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t currentIndex, size_t& currentIndexIntoTape, int64_t& prevInScalar, size_t stringLength) {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
 				auto newValue = this->S256.getUint64(x);
-				if ((newValue >> 63) & 1 && x == 3) {
-					prevInScalar = true;
-				} else {
-					prevInScalar = false;
-				}
-
-
-				if (prevInScalar && x == 0) {
-					newValue = newValue | (1ull);
-				}
-				this->S256.insertInt64(newValue, x);
+				follows(newValue, prevInScalar);
 				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndex, currentIndexIntoTape, stringLength);
 			}
 			return returnValue;
@@ -1268,19 +1321,19 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256 << 1);
-			auto ES = E & this->S256;
+			this->opVals = B256.bitAndNot(B256 << 1);
+			auto ES = E & this->opVals;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
 			auto OD1 = ECE.bitAndNot(E);
-			auto OS = this->S256 & O;
+			auto OS = this->opVals & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(prevInString);
+			this->quoteVals = this->quoteVals.bitAndNot(OD);
+			return this->quoteVals.carrylessMultiplication(prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1294,16 +1347,16 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			this->S256 = this->S256.bitAndNot(this->R256);
-			this->S256 = this->S256 | this->Q256;
-			auto P = this->S256 | this->W256;
+			this->opVals = this->opVals.bitAndNot(this->inStringVals);
+			this->opVals = this->opVals | this->quoteVals;
+			auto P = this->opVals | this->whitespaceVals;
 			P = P << 1;
-			P &= (~W256).bitAndNot(this->R256);
-			this->S256 = this->S256 | P;
-			return S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
+			P &= (~this->whitespaceVals).bitAndNot(this->inStringVals);
+			this->opVals = this->opVals | P;
+			return this->opVals.bitAndNot((this->quoteVals.bitAndNot(this->inStringVals)));
 		}
 
-		inline SimdStringSection(const char* valueNew, int64_t& prevInString) {
+		inline SimdStringSection(const char* valueNew, int64_t& prevInString, int64_t& prevInScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1312,17 +1365,32 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[5], valueNew + 160);
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
-
-			this->Q256 = this->collectQuotes();
-			this->R256 = this->collectQuotedRange(prevInString);
-			this->W256 = this->collectWhiteSpace();
-			this->S256 = this->collectStructuralCharacters();
+			for (size_t x = 0; x < 8; ++x) {
+				this->next(this->values[x], prevInString);
+			}
+			this->quoteVals = this->collectQuotes();
+			this->inStringVals = this->collectQuotedRange(prevInString);
+			this->whitespaceVals = this->collectWhiteSpace();
+			this->opVals = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("THE BITS PRE-FINAL: ");
+			this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar << 63), 0);
+			std::cout << "PREV IN SCALAR: " << std::bitset<64>{ static_cast<uint64_t>(prevInScalar << 63) } << std::endl;
+			this->S256.printBits("THE BITS FINAL: ");
 		}
 
 	  protected:
+		bool prevEscaped{};
+		SimdBase256 backslash{};
+		SimdBase256 escaped{};
+		SimdBase256 quote{};
+		SimdBase256 followsPotentialNonquoteScalar{};
 		SimdBase256 values[8]{};
 		SimdBase256 Q256{};
+		SimdBase256 inStringVals{};
+		SimdBase256 quoteVals{};
+		SimdBase256 whitespaceVals{};
+		SimdBase256 opVals{};
 		SimdBase256 W256{};
 		SimdBase256 R256{};
 		SimdBase256 S256{};
@@ -1386,10 +1454,10 @@ namespace Jsonifier {
 				this->tapeLength = 0;
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
-				bool prevInScalar{};
+				int64_t prevInScalar{};
 				int64_t prevInString{};
 				while (stringSize > 0) {
-					SimdStringSection section(this->getStringView() + collectedSize, prevInString);
+					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar);
 					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, prevInScalar,
 						this->stringLengthRaw);
 					this->tapeLength += indexCount;
@@ -1494,8 +1562,7 @@ namespace Jsonifier {
 	};
 
 	inline JsonIterator::JsonIterator(SimdJsonValue* masterParserNew, size_t start_structural_index)
-		: nextStructural(masterParserNew->getStructuralIndexes()), buffer{ reinterpret_cast<const char*>(masterParserNew->getStringView()) },
-		  masterParser{ masterParserNew } {};
+		: nextStructural(masterParserNew->getStructuralIndexes()), buffer{ masterParserNew->getStringView() }, masterParser{ masterParserNew } {};
 
 	inline const char* JsonIterator::peek() const noexcept {
 		return &this->buffer[*this->nextStructural];
@@ -1902,6 +1969,9 @@ namespace Jsonifier {
 		goto Document_End;
 
 	Object_Begin:
+		if (( * this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << (*this->nextStructural) << std::endl;
+		}
 		this->depth++;
 		if (this->depth >= masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
@@ -1920,8 +1990,12 @@ namespace Jsonifier {
 			visitor.incrementCount(*this);
 		}
 
-	Object_Field:
-		if (*this->advance() != ':') {
+	Object_Field: {
+		auto newValue = *this->advance();
+		if ((*this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
+		if (newValue != ':') {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
@@ -1953,14 +2027,21 @@ namespace Jsonifier {
 			}
 		}
 
-	Object_Continue:
-		switch (*this->advance()) {
+		}
+		
+
+	Object_Continue: {
+			auto newValue = *this->advance();
+		if ((*this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
+		switch (newValue) {
 			case ',':
 				visitor.incrementCount(*this);
 				{
 					auto key = this->advance();
 					if (*key != '"') {
-						throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+						throw JsonifierException{ "Sorry, but you've encountered the following error: " + 
 							std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 							", at the following index into the string: " + std::to_string(*this->nextStructural) };
 					}
@@ -1975,7 +2056,13 @@ namespace Jsonifier {
 					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 
+	}
+		
+
 	Scope_End:
+		if (( * this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
 		this->depth--;
 		if (this->depth == 0) {
 			goto Document_End;
@@ -1986,6 +2073,9 @@ namespace Jsonifier {
 		goto Object_Continue;
 
 	Array_Begin:
+		if (( * this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
 		this->depth++;
 		if (this->depth >= masterParser->getMaxDepth()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -1997,49 +2087,65 @@ namespace Jsonifier {
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
 
-	Array_Value : {
-		auto value = this->advance();
-		switch (*value) {
-			case '{':
-				if (*this->peek() == '}') {
-					this->advance();
-					visitor.visitEmptyObject(*this);
-					break;
-				}
-				goto Object_Begin;
-			case '[':
-				if (*this->peek() == ']') {
-					this->advance();
-					visitor.visitEmptyArray(*this);
-					break;
-				}
-				goto Array_Begin;
-			default:
-				if (auto resultCode = visitor.visitPrimitive(*this, value);resultCode != ErrorCode::Success) {
-					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-						std::string{ static_cast<EnumStringConverter>(resultCode) } +
-						", at the following index into the string: " + std::to_string(*this->nextStructural) };
-				}
-				break;
+	Array_Value: {
+		auto value = *this->advance();
+		auto valueNew = this->peek();
+		if ((*this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
 		}
-	}
-
-	Array_Continue: {
-		auto newValue = *this->advance();
-		switch (newValue) {
-			case ',':
-				visitor.incrementCount(*this);
-				goto Array_Value;
-			case ']':
-				visitor.visitArrayEnd(*this);
-				goto Scope_End;
-			default:
-				return ErrorCode::TapeError;
+		{
+			switch (value) {
+				case '{':
+					if (*this->peek() == '}') {
+						this->advance();
+						visitor.visitEmptyObject(*this);
+						break;
+					}
+					goto Object_Begin;
+				case '[':
+					if (*this->peek() == ']') {
+						this->advance();
+						visitor.visitEmptyArray(*this);
+						break;
+					}
+					goto Array_Begin;
+				default:
+					if (auto resultCode = visitor.visitPrimitive(*this, valueNew); resultCode != ErrorCode::Success) {
+						throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+							std::string{ static_cast<EnumStringConverter>(resultCode) } +
+							", at the following index into the string: " + std::to_string(*this->nextStructural) };
+					}
+					break;
+			}
 		}
 	}
 		
 
+	Array_Continue: {
+		auto newValue = *this->advance();
+		if ((*this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
+		{
+			switch (newValue) {
+				case ',':
+					visitor.incrementCount(*this);
+					goto Array_Value;
+				case ']':
+					visitor.visitArrayEnd(*this);
+					goto Scope_End;
+				default:
+					return ErrorCode::TapeError;
+			}
+		}
+	}
+		
+		
+
 	Document_End:
+		if (( * this->nextStructural) >= 1700) {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		}
 		visitor.visitDocumentEnd(*this);
 
 		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
@@ -2113,6 +2219,11 @@ namespace Jsonifier {
 
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(string.data(), string.size());
+		std::cout << "THE VALUES: ";
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "THE INDEX: " << (this->getStructuralIndexes()[x] & JSON_VALUE_MASK) << ", THE INDEX's VALUE"
+					  << ( char )this->stringView[(this->getStructuralIndexes()[x])] << std::endl;
+		}
 		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
