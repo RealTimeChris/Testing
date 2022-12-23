@@ -1144,11 +1144,10 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(int64_t& prevInString, int64_t& prevInScalarRollover) {
+		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
 			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
-			prevInScalarRollover = inString00;
 			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
 			prevInString = inString01 >> 63;
 			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
@@ -1168,6 +1167,13 @@ namespace Jsonifier {
 				result->insertInt64(returnValue64, x);
 			}
 			return returnValue;
+		}
+
+		inline void printBits(uint64_t values,const std::string& valuesTitle) {
+			using std::cout;
+			cout << valuesTitle;
+			cout << std::bitset<64>{ values };
+			cout << std::endl;
 		}
 
 		inline void printBits(const std::string& valuesTitle) {
@@ -1216,18 +1222,60 @@ namespace Jsonifier {
 
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString,
 			size_t& currentIndexIntoTape, size_t stringLength) {
-			uint64_t value = static_cast<size_t>(__popcnt64(*theBits));
-			for (int i = 0; i < value; i++) {
-				auto valueNew = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-				if (valueNew < stringLength) {
-					tapePtrs[currentIndexIntoTape++] = valueNew;
-					*theBits = _blsr_u64(*theBits);
+			int cnt = static_cast<int>(__popcnt64(*theBits));
+			// Do the first 8 all together
+			int64_t newValue{};
+			for (int i = 0; i < 8; i++) {
+
+				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+
+				if (newValue >= stringLength) {
+					currentIndexIntoTape += cnt;
+					return cnt;
+
 				} else {
-					return valueNew;
+					tapePtrs[i + currentIndexIntoTape] = newValue;
+					*theBits = _blsr_u64(*theBits);
 				}
 			}
 
-			return value;
+			// Do the next 8 all together (we hope in most cases it won't happen at all
+			// and the branch is easily predicted).
+			if (cnt > 8){
+				for (int i = 8; i < 16; i++) {
+					newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+					if (newValue >= stringLength) {
+						currentIndexIntoTape += cnt;
+						return cnt;
+
+					} else {
+						tapePtrs[i + currentIndexIntoTape] = newValue;
+						*theBits = _blsr_u64(*theBits);
+					}
+				}
+
+				// Most files don't have 16+ structurals per block, so we take several basically guaranteed
+				// branch mispredictions here. 16+ structurals per block means either punctuation ({} [] , :)
+				// or the start of a value ("abc" true 123) every four characters.
+				if (cnt > 16){
+					int i = 16;
+					do {
+						newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+						if (newValue >= stringLength) {
+							currentIndexIntoTape += cnt;
+							return cnt;
+							
+						} else {
+							tapePtrs[i + currentIndexIntoTape] = newValue;
+							*theBits = _blsr_u64(*theBits);
+						}
+						i++;
+					} while (i < cnt);
+				}
+			}
+			currentIndexIntoTape += cnt;
+			std::cout << "CURRENT COUNT: " << cnt << std::endl;
+			return cnt;
 		}
 
 		inline uint64_t follows(const uint64_t match, int64_t& overflow) {
@@ -1236,12 +1284,11 @@ namespace Jsonifier {
 			return result;
 		}
 
-		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t currentIndex, size_t& currentIndexIntoTape, int64_t& prevInScalar, size_t stringLength) {
+		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t currentIndexIntoString, size_t& currentIndexIntoTape, size_t stringLength) {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
 				auto newValue = this->S256.getUint64(x);
-				follows(newValue, prevInScalar);
-				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndex, currentIndexIntoTape, stringLength);
+				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoString, currentIndexIntoTape, stringLength);
 			}
 			return returnValue;
 		}
@@ -1269,7 +1316,7 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(structural);
 		}
 
-		inline SimdBase256 collectQuotedRange(int64_t& prevInString, int64_t& prevInScalarRollover) {
+		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
 			SimdBase256 backslashesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
@@ -1292,7 +1339,7 @@ namespace Jsonifier {
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(prevInString, prevInScalarRollover);
+			return this->Q256.carrylessMultiplication(prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1315,7 +1362,7 @@ namespace Jsonifier {
 			return this->S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
 		}
 
-		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString, int64_t& prevInScalar, int64_t& prevInScalarRollover) {
+		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonquoteScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1325,11 +1372,21 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->Q256 = this->collectQuotes();
-			this->R256 = this->collectQuotedRange(prevInString, prevInScalarRollover);
+			this->R256 = this->collectQuotedRange(prevInString);
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
+			auto scalar = ~this->S256 | this->W256;
+			scalar.printBits("SCALAR BITS: ");
+			auto stringTail = this->R256 ^ this->Q256;
+			stringTail.printBits("STRING TAIL BITS: ");
 			this->S256 = this->collectFinalStructurals();
-			this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar & ~prevInScalarRollover), 0);
+			//this->S256.printBits(this->R256.getInt64(0) & 1ull, "THE BITS FINAL REAL: ");
+			//this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar & ~prevInScalarRollover), 0);
+			//prevInScalar = prevInScalarRollover;
+			//this->S256.printBits("THE BITS FINAL: ");
+			//this->S256.printBits(prevInScalar, "THE BITS FINAL REAL: ");
+			//SimdBase256 theValue{ reinterpret_cast<uint8_t*>(&prevInScalar) };
+			//theValue.printBits("THE BITS FINAL: ");
 		}
 
 	  protected:
@@ -1400,18 +1457,21 @@ namespace Jsonifier {
 				this->tapeLength = 0;
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
-				int64_t prevInScalar{};
-				int64_t prevInScalarRollover{};
+				SimdBase256 prevInScalar{};
 				int64_t prevInString{};
 				while (stringSize > 0) {
-					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar, prevInScalarRollover);
-					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, prevInScalar,
-						this->stringLengthRaw);
+					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar);
+					auto indexCount =
+						section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, this->stringLengthRaw);
 					this->tapeLength += indexCount;
 					stringSize -= 256;
 					collectedSize += 256;
 				}
-				this->tapeLength -= 1;
+			}
+			this->tapeLength -= 1;
+			for (size_t x = 0; x < this->tapeLength; ++x) {
+				std::cout << "CURRENT INDEX: " << this->getStructuralIndexes()[x]
+						  << ", THAT INDEX'S VALUE: " << this->stringView[this->getStructuralIndexes()[x]] << std::endl;
 			}
 		}
 
@@ -1444,7 +1504,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getTapeLength() {
-			return this->tapeLength;
+			return this->tapeLength + 1;
 		}
 
 		inline std::vector<bool>& getIsArray() {
@@ -1586,7 +1646,7 @@ namespace Jsonifier {
 
 	template<typename T> inline void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
 		append(val, t);
-		static_assert(sizeof(val2) == sizeof(*this->nextTapeLocation), "Type is not 64 bits!");
+		static_assert(sizeof(val2) == sizeof(*this->nextTapeLocation), "Type is not 64 *theBits!");
 		memcpy(this->nextTapeLocation, &val2, sizeof(val2));
 		this->nextTapeLocation++;
 	}
@@ -1924,6 +1984,8 @@ namespace Jsonifier {
 		visitor.visitObjectStart(*this);
 
 		{
+			auto nextStructuralIndex = uint32_t(this->nextStructural - this->masterParser->getStructuralIndexes());
+			std::cout << "NEXT STRUCTURAL INDEX: " << nextStructuralIndex << std::endl;
 			auto key = this->advance();
 			if (*key != '"') {
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -1967,10 +2029,8 @@ namespace Jsonifier {
 					break;
 			}
 		}
-
-		}
+	}
 		
-
 	Object_Continue: {
 			auto newValue = *this->advance();
 		switch (newValue) {
@@ -1995,9 +2055,8 @@ namespace Jsonifier {
 		}
 
 	}
-		
-
-	Scope_End:
+	
+	Scope_End : {
 		this->depth--;
 		if (this->depth == 0) {
 			goto Document_End;
@@ -2006,8 +2065,9 @@ namespace Jsonifier {
 			goto Array_Continue;
 		}
 		goto Object_Continue;
+	}
 
-	Array_Begin:
+	Array_Begin : {
 		this->depth++;
 		if (this->depth >= masterParser->getMaxDepth()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -2015,11 +2075,12 @@ namespace Jsonifier {
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 		this->masterParser->getIsArray()[this->depth] = true;
-		
+
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
+	}
 
-	Array_Value: {
+	Array_Value : {
 		auto value = this->advance();
 		{
 			switch (*value) {
@@ -2047,9 +2108,8 @@ namespace Jsonifier {
 			}
 		}
 	}
-		
 
-	Array_Continue: {
+	Array_Continue : {
 		auto newValue = *this->advance();
 		{
 			switch (newValue) {
@@ -2064,20 +2124,21 @@ namespace Jsonifier {
 			}
 		}
 	}
-		
-		
 
-	Document_End:
+	Document_End: {
 		visitor.visitDocumentEnd(*this);
+		if (this->atEof()) {
+			return ErrorCode::Success;
+		}
 
-		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
+		auto nextStructuralIndex = uint32_t(this->nextStructural - this->masterParser->getStructuralIndexes());
 
 		if (nextStructuralIndex != this->masterParser->getTapeLength()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
-
+	}
 		return ErrorCode::Success;
 	}
 
