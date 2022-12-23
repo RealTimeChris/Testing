@@ -1146,10 +1146,10 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator~() noexcept {
 			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
+			newValues.insertInt64(~this->getInt64(0), 0);
+			newValues.insertInt64(~this->getInt64(1), 1);
+			newValues.insertInt64(~this->getInt64(2), 2);
+			newValues.insertInt64(~this->getInt64(3), 3);
 			return newValues;
 		}
 
