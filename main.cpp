@@ -36,7 +36,7 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
-		auto theArray = value["d"]["activities"].getValue<std::vector<Jsonifier::JsonParser>>();
+		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
 		for (auto& value: theArray) {
 			std::cout << "THE CURRENT SIZE: " << std::endl;
 			activities.emplace_back(std::move(value));
@@ -53,10 +53,9 @@ namespace Jsonifier {
 }
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonParser&& value) {
-		this->theD = value.getValue<TheDJson>();
+	TheValueJson(Jsonifier::JsonParser& value) {
+		//this->theD = value.getValue<TheDJson>();
 	}
-	TheDJson theD{};
 };
 
 struct Activities {
@@ -90,8 +89,8 @@ struct TheD {
 	TheD(simdjson::ondemand::value value) {
 		simdjson::ondemand::value valueNew{};
 		value["d"].get(valueNew);
-		auto theArray = DiscordCoreAPI::getArray(valueNew, "activities");
-		//std::string_view guildId = value["d"]["guild_id"].get<std::string_view>();
+		auto theArray = DiscordCoreAPI::getArray(valueNew, "activitiess");
+		//std::cout << "THE ARRAY SIZE: " << theArray.arrayValue.count_elements().value_unsafe() << std::endl;
 		if (theArray.didItSucceed) {
 			for (auto value: theArray.arrayValue) {
 				activities.emplace_back(value.value());
@@ -149,15 +148,16 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
-
-
+		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
 		
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+		
+			
 			Jsonifier::SimdJsonValue theParser{};
-			auto jsonData = theParser.getJsonData(stringNew);
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+				auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ jsonData };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
 			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
@@ -167,7 +167,7 @@ int32_t main() noexcept {
 
 
 
-		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
+		
 		totalSize = 0;
 		totalTime = 0;
 
@@ -175,9 +175,12 @@ int32_t main() noexcept {
 
 
 		
-		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
+			
+			
+			
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-			simdjson::ondemand::parser parser{};
+		simdjson::ondemand::parser parser{};
+		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
