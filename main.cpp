@@ -53,10 +53,6 @@ struct Activities {
 		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
 		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
 		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
-		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
-		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
-		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_07");
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -99,7 +95,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 60; ++x) {
+		for (size_t x = 0; x < 12; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValueNew);
 		}
 		

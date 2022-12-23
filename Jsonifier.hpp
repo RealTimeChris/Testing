@@ -977,7 +977,7 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256& operator=(const uint8_t* values) noexcept {
-			*this = _mm256_loadu_epi8(values);
+			*this = _mm256_load_si256(reinterpret_cast<const __m256i*>(values));
 			return *this;
 		}
 
@@ -1253,96 +1253,97 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline SimdBase256 collectWhiteSpace() {
-			uint8_t valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
-				100, '\t', '\n', 112, 100, '\r', 100, 100 };
-			SimdBase256 whitespaceTable{ valuesNew };
-			SimdBase256 whiteSpaceReal[8]{};
-			for (size_t x = 0; x < 8; ++x) {
-				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
-			}
-			return convertSimdBytesToBits(whiteSpaceReal);
+		inline void collectQuotedRange() {
+			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
+			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
+			this->Op256 = this->B256.bitAndNot(this->B256 << 1);
+			auto ES = E & this->Op256;
+			SimdBase256 EC{};
+			this->B256.collectCarries(ES, &EC);
+			auto ECE = EC.bitAndNot(this->B256);
+			auto OD1 = ECE.bitAndNot(E);
+			auto OS = this->Op256 & O;
+			auto OC = this->B256 + OS;
+			auto OCE = OC.bitAndNot(this->B256);
+			auto OD2 = OCE & E;
+			auto OD = OD1 | OD2;
+			this->Q256 = this->Q256.bitAndNot(OD);
+			this->R256 = this->Q256.carrylessMultiplication(this->prevInString);
 		}
 
-		inline SimdBase256 collectStructuralCharacters() {
+		inline void collectFinalStructurals() {
+			auto scalar = ~this->S256 | this->W256;
+			auto stringTail = this->R256 ^ this->Q256;
+			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
+			this->followsPotentialNonQuoteScalar = follows(nonquoteScalar, this->prevScalar);
+			this->S256 = this->S256 | (~this->S256 | this->W256).bitAndNot(this->followsPotentialNonQuoteScalar).bitAndNot(stringTail);
+		}
+
+		inline void collapseValues(const uint8_t* valueNew) {
+			SimdBase256 values[8]{};
+			this->packStringIntoValue(&values[0], valueNew);
+			this->packStringIntoValue(&values[1], valueNew + 32);
+			this->packStringIntoValue(&values[2], valueNew + 64);
+			this->packStringIntoValue(&values[3], valueNew + 96);
+			this->packStringIntoValue(&values[4], valueNew + 128);
+			this->packStringIntoValue(&values[5], valueNew + 160);
+			this->packStringIntoValue(&values[6], valueNew + 192);
+			this->packStringIntoValue(&values[7], valueNew + 224);
+			SimdBase256 quotes = _mm256_set1_epi8('"');
+			SimdBase256 quotesReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				quotesReal[x] = (values[x] == quotes);
+			}
+
+			this->Q256 = convertSimdBytesToBits(quotesReal);
+
+			SimdBase256 whitespaceTable{ this->wsValues };
+			SimdBase256 whiteSpaceReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				whiteSpaceReal[x] = values[x].shuffle(whitespaceTable) == values[x];
+			}
+			this->W256 = convertSimdBytesToBits(whiteSpaceReal);
+
+
+			SimdBase256 backslashes = _mm256_set1_epi8('\\');
+			SimdBase256 backslashesReal[8]{};
+			for (size_t x = 0; x < 8; ++x) {
+				backslashesReal[x] = values[x] == backslashes;
+			}
+
+			this->B256 = convertSimdBytesToBits(backslashesReal);
+
 			uint8_t newValues[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ newValues };
 			SimdBase256 structural[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				auto valuesNew00 = this->values[x] | SimdBase256{ 0x20 };
-				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
+				auto valuesNew00 = values[x] | SimdBase256{ 0x20 };
+				structural[x] = values[x].shuffle(opTable) == valuesNew00;
 			}
 
-			return convertSimdBytesToBits(structural);
+			this->S256 = convertSimdBytesToBits(structural);
 		}
 
-		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
-			SimdBase256 backslashes = _mm256_set1_epi8('\\');
-			SimdBase256 backslashesReal[8]{};
-			for (size_t x = 0; x < 8; ++x) {
-				backslashesReal[x] = this->values[x] == backslashes;
-			}
 
-			auto B256 = convertSimdBytesToBits(backslashesReal);
-
-			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
-			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256 << 1);
-			auto ES = E & this->S256;
-			SimdBase256 EC{};
-			B256.collectCarries(ES, &EC);
-			auto ECE = EC.bitAndNot(B256);
-			auto OD1 = ECE.bitAndNot(E);
-			auto OS = this->S256 & O;
-			auto OC = B256 + OS;
-			auto OCE = OC.bitAndNot(B256);
-			auto OD2 = OCE & E;
-			auto OD = OD1 | OD2;
-			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(prevInString);
-		}
-
-		inline SimdBase256 collectQuotes() {
-			SimdBase256 quotes = _mm256_set1_epi8('"');
-			SimdBase256 quotesReal[8]{};
-			for (size_t x = 0; x < 8; ++x) {
-				quotesReal[x] = (this->values[x] == quotes);
-			}
-
-			return convertSimdBytesToBits(quotesReal);
-		}
-
-		inline SimdBase256 collectFinalStructurals(SimdBase256& prevScalar, SimdBase256& followsPotentialNonQuoteScalar) {
-			auto scalar = ~this->S256 | this->W256;
-			auto stringTail = this->R256 ^ this->Q256;
-			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
-			followsPotentialNonQuoteScalar = follows(nonquoteScalar, prevScalar);
-			return this->S256 | (~S256 | this->W256).bitAndNot(followsPotentialNonQuoteScalar).bitAndNot(stringTail);
-		}
-
-		inline void submitDataForParsing(const uint8_t* valueNew, int64_t& prevInString, SimdBase256& prevScalar,
-			SimdBase256& followsPotentialNonQuoteScalar) {
-			this->packStringIntoValue(&this->values[0], valueNew);
-			this->packStringIntoValue(&this->values[1], valueNew + 32);
-			this->packStringIntoValue(&this->values[2], valueNew + 64);
-			this->packStringIntoValue(&this->values[3], valueNew + 96);
-			this->packStringIntoValue(&this->values[4], valueNew + 128);
-			this->packStringIntoValue(&this->values[5], valueNew + 160);
-			this->packStringIntoValue(&this->values[6], valueNew + 192);
-			this->packStringIntoValue(&this->values[7], valueNew + 224);
-			this->Q256 = this->collectQuotes();
-			this->R256 = this->collectQuotedRange(prevInString);
-			this->W256 = this->collectWhiteSpace();
-			this->S256 = this->collectStructuralCharacters();
-			this->S256 = this->collectFinalStructurals(prevScalar, followsPotentialNonQuoteScalar);
+		inline void submitDataForParsing(const uint8_t* valueNew) {
+			this->collapseValues(valueNew);
+			this->collectQuotedRange();
+			this->collectFinalStructurals();
 		}
 
 	  protected:
-		SimdBase256 values[8]{};
+		uint8_t wsValues[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
+			100, '\t', '\n', 112, 100, '\r', 100, 100 };
+		uint8_t opValues[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
+		SimdBase256 followsPotentialNonQuoteScalar{};
+		SimdBase256 prevScalar{};
+		int64_t prevInString{};
+		SimdBase256 Op256{};
 		SimdBase256 Q256{};
 		SimdBase256 W256{};
 		SimdBase256 R256{};
 		SimdBase256 S256{};
+		SimdBase256 B256{};
 	};
 
 	struct OpenContainer {
@@ -1403,12 +1404,8 @@ namespace Jsonifier {
 				this->tapeLength = 0;
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
-				SimdBase256 prevInScalar{};
-				SimdBase256 followsPotentialNonquoteScalar{};
-				int64_t prevInString{};
-				
 				while (stringSize > 0) {
-					this->section.submitDataForParsing(this->getStringView() + collectedSize, prevInString, prevInScalar, followsPotentialNonquoteScalar);
+					this->section.submitDataForParsing(this->getStringView() + collectedSize);
 					auto indexCount =
 						this->section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, this->stringLengthRaw);
 					this->tapeLength += indexCount;
