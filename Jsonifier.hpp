@@ -1222,9 +1222,9 @@ namespace Jsonifier {
 
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString,
 			size_t& currentIndexIntoTape, size_t stringLength) {
-			int cnt = static_cast<int>(__popcnt64(*theBits));
-			int64_t newValue{};
-			for (int i = 0; i < 8; i++) {
+			uint64_t cnt = __popcnt64(*theBits);
+			uint64_t newValue{};
+			for (uint64_t i = 0; i < 8; i++) {
 
 				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 
@@ -1271,8 +1271,8 @@ namespace Jsonifier {
 			return cnt;
 		}
 
-		inline uint64_t follows(const uint64_t match, int64_t& overflow) {
-			const uint64_t result = match << 1 | overflow;
+		inline int64_t follows(const uint64_t match, int64_t& overflow) {
+			int64_t result = match << 1 | overflow;
 			overflow = match >> 63;
 			return result;
 		}
@@ -1349,11 +1349,11 @@ namespace Jsonifier {
 			auto scalar = ~this->S256 | this->W256;
 			auto stringTail = this->R256 ^ this->Q256;
 			SimdBase256 nonquote_scalar = scalar & ~this->Q256;
+			int64_t prevScalarValue{ prevScalar.getInt64(0) };
 			for (size_t x = 0; x < 4; ++x) {
-				int64_t prevScalarValue{ prevScalar.getInt64(0) };
 				followsPotentialNonQuoteScalar.insertInt64(follows(nonquote_scalar.getInt64(x), prevScalarValue), x);
-				prevScalar.insertInt64(prevScalarValue, 0);
 			}
+			prevScalar.insertInt64(prevScalarValue, 0);
 			return this->S256 | (~S256 | this->W256) & ~followsPotentialNonQuoteScalar & ~stringTail;
 		}
 
@@ -1371,13 +1371,6 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals(prevScalar, followsPotentialNonQuoteScalar);
-			//this->S256.printBits(this->R256.getInt64(0) & 1ull, "THE BITS FINAL REAL: ");
-			//this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar & ~prevInScalarRollover), 0);
-			//prevInScalar = prevInScalarRollover;
-			//this->S256.printBits("THE BITS FINAL: ");
-			//this->S256.printBits(prevInScalar, "THE BITS FINAL REAL: ");
-			//SimdBase256 theValue{ reinterpret_cast<uint8_t*>(&prevInScalar) };
-			//theValue.printBits("THE BITS FINAL: ");
 		}
 
 	  protected:
@@ -1458,7 +1451,6 @@ namespace Jsonifier {
 					collectedSize += 256;
 				}
 			}
-			this->tapeLength -= 1;
 		}
 
 		inline ~SimdJsonValue() noexcept {};
@@ -1490,7 +1482,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getTapeLength() {
-			return this->tapeLength + 1;
+			return this->tapeLength;
 		}
 
 		inline std::vector<bool>& getIsArray() {
