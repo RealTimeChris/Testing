@@ -1218,14 +1218,15 @@ namespace Jsonifier {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
 				auto newValue = this->S256.getUint64(x);
-
-				if (prevInScalar && x == 0) {
-					newValue = newValue | (1ull);
-				}
 				if ((newValue >> 63) & 1 && x == 3) {
 					prevInScalar = true;
 				} else {
 					prevInScalar = false;
+				}
+
+
+				if (prevInScalar && x == 0) {
+					newValue = newValue | (1ull);
 				}
 				this->S256.insertInt64(newValue, x);
 				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndex, currentIndexIntoTape, stringLength);
@@ -1601,9 +1602,9 @@ namespace Jsonifier {
 
 		inline ErrorCode visitEmptyObject(JsonIterator& iter) noexcept;
 
-		inline ErrorCode visitPrimitive(JsonIterator& iter, const char* value) noexcept;
+		inline ErrorCode visitPrimitive(JsonIterator& iter, const char* value);
 
-		inline ErrorCode visitRootPrimitive(JsonIterator& iter, const char* value) noexcept;
+		inline ErrorCode visitRootPrimitive(JsonIterator& iter, const char* value);
 
 		inline ErrorCode visitString(JsonIterator& iter, const char* value) noexcept;
 		inline ErrorCode visitNumber(JsonIterator& iter, const char* value) noexcept;
@@ -1640,10 +1641,10 @@ namespace Jsonifier {
 		return iter.walkDocument(builder);
 	}
 
-	inline ErrorCode TapeBuilder::visitRootPrimitive(JsonIterator& iter, const char* value) noexcept {
+	inline ErrorCode TapeBuilder::visitRootPrimitive(JsonIterator& iter, const char* value) {
 		return iter.visitRootPrimitive(*this, value);
 	}
-	inline ErrorCode TapeBuilder::visitPrimitive(JsonIterator& iter, const char* value) noexcept {
+	inline ErrorCode TapeBuilder::visitPrimitive(JsonIterator& iter, const char* value) {
 		return iter.visitPrimitive(*this, value);
 	}
 	inline ErrorCode TapeBuilder::visitEmptyObject(JsonIterator& iter) noexcept {
@@ -2076,7 +2077,8 @@ namespace Jsonifier {
 				return visitor.visitRootNumber(*this, value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 	}
 
@@ -2104,7 +2106,8 @@ namespace Jsonifier {
 				return visitor.visitNumber(*this, value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 	}
 
@@ -2113,6 +2116,13 @@ namespace Jsonifier {
 		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		}
+		std::cout << "THE VALUES: ";
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "THE INDEX: " << (this->getTape()[x] & JSON_VALUE_MASK) << ", THE INDEX's VALUE" << ( char )(this->getTape()[x] >> 56)
+					  << std::endl;
+
+			
 		}
 		return JsonParser{ this->getTape(), this->getTapeLength(), this->stringBuffer.data() };
 	}
