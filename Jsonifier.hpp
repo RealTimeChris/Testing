@@ -949,11 +949,7 @@ namespace Jsonifier {
 
 	class SimdBase256 {
 	  public:
-		inline SimdBase256() noexcept {
-			this->value = _mm256_set1_epi8(0x00);
-		};
-
-		explicit operator bool() {
+		explicit operator bool() noexcept {
 			for (size_t x = 0; x < 4; ++x) {
 				if (this->getUint64(x) != 0) {
 					return true;
@@ -962,47 +958,47 @@ namespace Jsonifier {
 			return false;
 		}
 
-		inline SimdBase256& operator=(uint8_t other) {
+		inline SimdBase256& operator=(uint8_t other) noexcept {
 			this->value = _mm256_set1_epi8(other);
 			return *this;
 		}
 
-		inline SimdBase256(uint8_t other) {
+		inline SimdBase256(uint8_t other) noexcept {
 			*this = other;
 		}
 
-		inline SimdBase256& operator=(const uint8_t* values) {
+		inline SimdBase256& operator=(uint64_t* other) noexcept {
+			*this = _mm256_set_epi64x(other[0], other[1], other[2], other[3]);
+			return *this;
+		}
+
+		inline SimdBase256(uint64_t* other) noexcept {
+			*this = other;
+		}
+
+		inline SimdBase256& operator=(const uint8_t* values) noexcept {
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
 
-		inline SimdBase256(const uint8_t* values) {
+		inline SimdBase256(const uint8_t* values) noexcept {
 			*this = values;
 		}
 
-		inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
+		inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) noexcept {
 			this->value = _mm256_set_epi64x(value03, value02, value01, value00);
 		}
 
-		inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
+		inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) noexcept {
 			this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
 				static_cast<int64_t>(value00));
 		}
 
-		inline SimdBase256& operator=(__m256i other) {
-			this->value = other;
-			return *this;
-		}
-
-		inline SimdBase256(__m256i other) {
-			*this = other;
-		}
-
-		inline void store(uint8_t dst[32]) const {
+		inline void store(uint8_t dst[32]) const noexcept {
 			return _mm256_storeu_epi8(dst, this->value);
 		}
 
-		inline uint64_t getUint64(size_t index) {
+		inline uint64_t getUint64(size_t index) noexcept {
 			switch (index) {
 				case 0: {
 					return static_cast<size_t>(_mm256_extract_epi64(this->value, 0));
@@ -1022,7 +1018,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline int64_t getInt64(size_t index) {
+		inline int64_t getInt64(size_t index) noexcept {
 			switch (index) {
 				case 0: {
 					return _mm256_extract_epi64(this->value, 0);
@@ -1042,7 +1038,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline void insertInt64(int64_t value, size_t index) {
+		inline void insertInt64(int64_t value, size_t index) noexcept {
 			switch (index) {
 				case 0: {
 					this->value = _mm256_insert_epi64(this->value, value, 0);
@@ -1067,58 +1063,74 @@ namespace Jsonifier {
 			}
 		}
 
+		inline SimdBase256() noexcept : value{ __m256i() } {
+		}
+
+		inline SimdBase256(const __m256i _value) noexcept : value(_value) {
+		}
+
+		inline operator const __m256i&() const noexcept {
+			return this->value;
+		}
 		inline operator __m256i&() {
 			return this->value;
 		}
 
-		inline SimdBase256 operator|(SimdBase256 other) {
-			return _mm256_or_si256(this->value, other);
+		inline SimdBase256 operator+(const SimdBase256 other) const noexcept {
+			return _mm256_add_epi8(*this, other);
 		}
 
-		inline SimdBase256 operator&(SimdBase256 other) {
-			return _mm256_and_si256(this->value, other);
+		inline SimdBase256 operator-(const SimdBase256 other) const noexcept {
+			return _mm256_sub_epi8(*this, other);
 		}
 
-		inline SimdBase256 operator^(SimdBase256 other) {
-			return _mm256_xor_si256(this->value, other);
+		inline SimdBase256& operator+=(const SimdBase256 other) noexcept {
+			*this = *this + other;
+			  return *static_cast<SimdBase256*>(this);
 		}
 
-		inline SimdBase256 operator+(SimdBase256 other) {
-			return _mm256_add_epi8(this->value, other);
+		inline SimdBase256& operator-=(const SimdBase256 other) noexcept {
+			*this = *this - other;
+			  return *static_cast<SimdBase256*>(this);
 		}
 
-		inline SimdBase256& operator|=(SimdBase256 other) {
-			*this = *this | other;
-			return *this;
+		inline SimdBase256 operator|(const SimdBase256 other) const noexcept {
+			return _mm256_or_si256(*this, other);
+		}
+		inline SimdBase256 operator&(const SimdBase256 other) const noexcept {
+			return _mm256_and_si256(*this, other);
+		}
+		inline SimdBase256 operator^(const SimdBase256 other) const noexcept {
+			return _mm256_xor_si256(*this, other);
 		}
 
-		inline SimdBase256& operator&=(SimdBase256 other) {
-			*this = *this & other;
-			return *this;
+		inline SimdBase256& operator|=(const SimdBase256 other) noexcept {
+			auto this_cast = static_cast<SimdBase256*>(this);
+			*this_cast = *this_cast | other;
+			return *this_cast;
 		}
 
-		inline SimdBase256& operator^=(SimdBase256 other) {
-			*this = *this ^ other;
-			return *this;
+		inline SimdBase256& operator&=(const SimdBase256 other) noexcept {
+			auto this_cast = static_cast<SimdBase256*>(this);
+			*this_cast = *this_cast & other;
+			return *this_cast;
 		}
 
-		SimdBase256 operator-(int32_t other) {
-			auto currentValue = *this;
-			if (other == 1) {
-				currentValue = ~currentValue & 1;
-			}
-			return currentValue;
+		inline SimdBase256& operator^=(const SimdBase256 other) noexcept {
+			 auto this_cast = static_cast<SimdBase256*>(this);
+			 *this_cast = *this_cast ^ other;
+			 return *this_cast;
 		}
 
-		inline SimdBase256 operator==(SimdBase256 other) {
+		inline SimdBase256 operator==(SimdBase256 other) noexcept {
 			return _mm256_cmpeq_epi8(this->value, other);
 		}
 
-		inline SimdBase256 operator==(uint8_t other) {
+		inline SimdBase256 operator==(uint8_t other) noexcept {
 			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
 		}
 
-		inline SimdBase256 operator<<(size_t amount) {
+		inline SimdBase256 operator<<(size_t amount) noexcept {
 			uint64_t values[4]{};
 			values[0] = _mm256_extract_epi64(this->value, 0);
 			values[1] = _mm256_extract_epi64(this->value, 1);
@@ -1132,7 +1144,7 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 operator~() {
+		inline SimdBase256 operator~() noexcept {
 			SimdBase256 newValues{};
 			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
 			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
@@ -1141,7 +1153,7 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
+		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) noexcept {
 			SimdBase128 allOnes{ '\xFF' };
 			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
@@ -1154,7 +1166,7 @@ namespace Jsonifier {
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
 
-		inline bool collectCarries(SimdBase256 other1, SimdBase256* result) {
+		inline bool collectCarries(SimdBase256 other1, SimdBase256* result) noexcept {
 			bool returnValue{};
 			uint64_t returnValue64{};
 			for (size_t x = 0; x < 4; ++x) {
@@ -1166,7 +1178,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline void printBits(const std::string& valuesTitle) {
+		inline void printBits(const std::string& valuesTitle) noexcept {
 		using std::cout;
 			cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
@@ -1177,11 +1189,11 @@ namespace Jsonifier {
 			cout << std::endl;
 		}
 
-		inline SimdBase256 bitAndNot(SimdBase256 other) {
+		inline SimdBase256 bitAndNot(SimdBase256 other) noexcept {
 			return _mm256_andnot_si256(other, this->value);
 		}
 
-		inline SimdBase256 shuffle(SimdBase256 other) {
+		inline SimdBase256 shuffle(SimdBase256 other) noexcept {
 			return _mm256_shuffle_epi8(other, this->value);
 		}
 
