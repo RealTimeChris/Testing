@@ -49,14 +49,14 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_00");
-		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
-		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
-		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
-		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
-		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
-		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_07");
+		//this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_00");
+		//this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
+		//this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
+		//this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
+		//this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
+		//this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
+		//this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
+		//this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_07");
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -115,7 +115,6 @@ int32_t main() noexcept {
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
 		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
-			
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
@@ -129,6 +128,7 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
+
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
