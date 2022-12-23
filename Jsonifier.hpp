@@ -1218,7 +1218,7 @@ namespace Jsonifier {
 			const uint64_t result = match << 1 | overflow;
 			overflow = match >> 63;
 			std::cout << "PREV IN OLD: " << std::bitset<64>{ static_cast<uint64_t>(overflow) } << std::endl;
-			overflow <<= 63;
+			//overflow <<= 63;
 			std::cout << "PREV IN NEW: " << std::bitset<64>{ static_cast<uint64_t>(overflow) } << std::endl;
 			return result;
 		}
@@ -1235,11 +1235,8 @@ namespace Jsonifier {
 		}
 
 		inline void next(SimdBase256 values, int64_t& prevInString) {
-			this->backslash = values == '\\';
-			this->escaped = findEscaped(this->backslash);
-			this->quoteVals = (values == '"').bitAndNot(this->escaped);
 
-			SimdBase256 inString = this->quoteVals.carrylessMultiplication(prevInString);
+			SimdBase256 inString = this->Q256.carrylessMultiplication(prevInString);
 
 			prevInString = uint64_t(static_cast<int64_t>(inString.getInt64(0)) >> 63);
 			return;
@@ -1262,15 +1259,15 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 whitespace() const noexcept {
-			return this->whitespaceVals;
+			return this->W256;
 		}
 
 		inline SimdBase256 stringTail() noexcept {
-			return this->inStringVals ^ this->quoteVals;
+			return this->R256 ^ this->Q256;
 		}
 
 		inline SimdBase256 op() const noexcept {
-			return this->opVals;
+			return this->S256;
 		}
 
 		inline SimdBase256 scalar() const noexcept {
@@ -1321,19 +1318,19 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->opVals = B256.bitAndNot(B256 << 1);
-			auto ES = E & this->opVals;
+			this->S256 = B256.bitAndNot(B256 << 1);
+			auto ES = E & this->S256;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
 			auto OD1 = ECE.bitAndNot(E);
-			auto OS = this->opVals & O;
+			auto OS = this->S256 & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			this->quoteVals = this->quoteVals.bitAndNot(OD);
-			return this->quoteVals.carrylessMultiplication(prevInString);
+			this->Q256 = this->Q256.bitAndNot(OD);
+			return this->Q256.carrylessMultiplication(prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1347,13 +1344,13 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			this->opVals = this->opVals.bitAndNot(this->inStringVals);
-			this->opVals = this->opVals | this->quoteVals;
-			auto P = this->opVals | this->whitespaceVals;
+			this->S256 = this->S256.bitAndNot(this->R256);
+			this->S256 = this->S256 | this->Q256;
+			auto P = this->S256 | this->W256;
 			P = P << 1;
-			P &= (~this->whitespaceVals).bitAndNot(this->inStringVals);
-			this->opVals = this->opVals | P;
-			return this->opVals.bitAndNot((this->quoteVals.bitAndNot(this->inStringVals)));
+			P &= (~this->W256).bitAndNot(this->R256);
+			this->S256 = this->S256 | P;
+			return this->S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
 		}
 
 		inline SimdStringSection(const char* valueNew, int64_t& prevInString, int64_t& prevInScalar) {
@@ -1368,29 +1365,22 @@ namespace Jsonifier {
 			for (size_t x = 0; x < 8; ++x) {
 				this->next(this->values[x], prevInString);
 			}
-			this->quoteVals = this->collectQuotes();
-			this->inStringVals = this->collectQuotedRange(prevInString);
-			this->whitespaceVals = this->collectWhiteSpace();
-			this->opVals = this->collectStructuralCharacters();
+			this->Q256 = this->collectQuotes();
+			this->R256= this->collectQuotedRange(prevInString);
+			this->W256= this->collectWhiteSpace();
+			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
 			this->S256.printBits("THE BITS PRE-FINAL: ");
-			this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar << 63), 0);
-			std::cout << "PREV IN SCALAR: " << std::bitset<64>{ static_cast<uint64_t>(prevInScalar << 63) } << std::endl;
+			this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar), 0);
+			std::cout << "PREV IN SCALAR: " << std::bitset<64>{ static_cast<uint64_t>(prevInScalar) } << std::endl;
 			this->S256.printBits("THE BITS FINAL: ");
 		}
 
 	  protected:
 		bool prevEscaped{};
-		SimdBase256 backslash{};
-		SimdBase256 escaped{};
-		SimdBase256 quote{};
 		SimdBase256 followsPotentialNonquoteScalar{};
 		SimdBase256 values[8]{};
 		SimdBase256 Q256{};
-		SimdBase256 inStringVals{};
-		SimdBase256 quoteVals{};
-		SimdBase256 whitespaceVals{};
-		SimdBase256 opVals{};
 		SimdBase256 W256{};
 		SimdBase256 R256{};
 		SimdBase256 S256{};
