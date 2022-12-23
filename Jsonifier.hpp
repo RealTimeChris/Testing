@@ -737,6 +737,16 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
+		template<> inline bool getValue() {
+			bool returnValue{};
+			return returnValue;
+		}
+
+		template<> inline int64_t getValue() {
+			int64_t returnValue{};
+			return returnValue;
+		}
+
 		template<> inline int32_t getValue() {
 			int32_t returnValue{};
 			return returnValue;
@@ -1133,10 +1143,11 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
+		inline SimdBase256 carrylessMultiplication(int64_t& prevInString, int64_t& prevInScalarRollover) {
 			SimdBase128 allOnes{ '\xFF' };
 			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
 			prevInString = inString00 >> 63;
+			prevInScalarRollover = inString00;
 			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
 			prevInString = inString01 >> 63;
 			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
@@ -1257,7 +1268,7 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(structural);
 		}
 
-		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
+		inline SimdBase256 collectQuotedRange(int64_t& prevInString, int64_t& prevInScalarRollover) {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
 			SimdBase256 backslashesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
@@ -1280,7 +1291,7 @@ namespace Jsonifier {
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(prevInString);
+			return this->Q256.carrylessMultiplication(prevInString, prevInScalarRollover);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1303,7 +1314,7 @@ namespace Jsonifier {
 			return this->S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
 		}
 
-		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString, int64_t& prevInScalar) {
+		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString, int64_t& prevInScalar, int64_t& prevInScalarRollover) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1313,11 +1324,11 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->Q256 = this->collectQuotes();
-			this->R256 = this->collectQuotedRange(prevInString);
+			this->R256 = this->collectQuotedRange(prevInString, prevInScalarRollover);
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar & ~this->R256.getInt64(0)), 0);
+			this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar & ~prevInScalarRollover), 0);
 		}
 
 	  protected:
@@ -1389,9 +1400,10 @@ namespace Jsonifier {
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
 				int64_t prevInScalar{};
+				int64_t prevInScalarRollover{};
 				int64_t prevInString{};
 				while (stringSize > 0) {
-					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar);
+					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar, prevInScalarRollover);
 					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, prevInScalar,
 						this->stringLengthRaw);
 					this->tapeLength += indexCount;

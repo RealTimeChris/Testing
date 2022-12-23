@@ -8,29 +8,17 @@
 #include <fstream>
 
 struct ActivitiesJson {
-	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::JsonParser&& value) {
-		this->createdAt = value["created_at"].getValue<std::string>();
-		this->name = value["name"].getValue<std::string>();
-		this->anotherValue = value["ANOTHER_VALUE"].getValue<int32_t>();
-		this->anotherTestValue = value["ANOTHER_TEST_VALUE"].getValue<std::string>();
-		this->anotherValue02 = value["ANOTHER_VALUE_02"].getValue<int32_t>();
-		this->anotherValue02w = value["ANOTHER_VALUE_02w"].getValue<int32_t>();
-		this->id = value["id"].getValue<std::string>();
-		this->type = value["type"].getValue<int8_t>();
-		this->testDouble = value["test_double"].getValue<double>();
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<std::string>();
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<double>();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<bool>();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<int64_t>();
+		
 	};
-	std::string createdAt{};
-	double testDouble{};
-	int8_t type{};
-	std::string name{};
-	int32_t anotherValue{};
-	std::string anotherTestValue{};
-	int32_t anotherValue02{};
-	std::string anotherTestValue03{};
-	std::string anotherTestValue03d{};
-	int32_t anotherValue02w{};
-	std::string id{};
+	double TEST_VALUE_01{};
+	bool TEST_VALUE_02{};
+	std::string TEST_VALUE_03{};
+	int64_t TEST_VALUE_04{};
 };
 
 struct TheDJson {
@@ -125,35 +113,21 @@ int32_t main() noexcept {
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
-			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
-			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
 			TheValueJson value{ std::move(jsonData) };
-			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
-			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
-
-
-		
 		totalSize = 0;
 		totalTime = 0;
 
 		stopWatch.resetTimer();
-
-
-		
-			
-			
-			
-			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
-			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
