@@ -38,7 +38,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
 		for (auto& value: theArray) {
-			std::cout << "THE CURRENT SIZE: " << std::endl;
+			
 			activities.emplace_back(std::move(value));
 		}
 	}
@@ -53,35 +53,23 @@ namespace Jsonifier {
 }
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonParser& value) {
-		//this->theD = value.getValue<TheDJson>();
+	TheValueJson(Jsonifier::JsonParser&& value) {
+		this->theD = value["d"].getValue<TheDJson>();
 	}
+	TheDJson theD{};
 };
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->createdAt = DiscordCoreAPI::getString(value, "created_at");
-		this->name = DiscordCoreAPI::getString(value, "name");
-		//std::cout << "CURRENT NAME: " << this->name << std::endl;
-		this->anotherValue = DiscordCoreAPI::getInt32(value, "ANOTHER_VALUE");
-		this->anotherTestValue = DiscordCoreAPI::getString(value, "ANOTHER_TEST_VALUE");
-		this->anotherValue02 = DiscordCoreAPI::getInt32(value, "ANOTHER_VALUE_02");
-		this->anotherValue02w = DiscordCoreAPI::getInt32(value, "ANOTHER_VALUE_02w");
-		this->id = DiscordCoreAPI::getString(value, "id");
-		this->type = DiscordCoreAPI::getInt8(value, "type");
-		this->testDouble = DiscordCoreAPI::getFloat(value, "test_double");
+		this->TEST_VALUE_03 = DiscordCoreAPI::getString(value, "TEST_VALUE_03");
+		this->TEST_VALUE_01 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_01");
+		this->TEST_VALUE_02 = DiscordCoreAPI::getBool(value, "TEST_VALUE_02");
+		this->TEST_VALUE_04 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_04");
 	};
-	std::string createdAt{};
-	double testDouble{};
-	int8_t type{};
-	std::string name{};
-	int32_t anotherValue{};
-	std::string anotherTestValue{};
-	int32_t anotherValue02{};
-	std::string anotherTestValue03{};
-	std::string anotherTestValue03d{};
-	int32_t anotherValue02w{};
-	std::string id{};
+	double TEST_VALUE_01{};
+	bool TEST_VALUE_02{};
+	std::string TEST_VALUE_03{};
+	int64_t TEST_VALUE_04{};
 };
 
 struct TheD {
@@ -90,7 +78,6 @@ struct TheD {
 		simdjson::ondemand::value valueNew{};
 		value["d"].get(valueNew);
 		auto theArray = DiscordCoreAPI::getArray(valueNew, "activitiess");
-		//std::cout << "THE ARRAY SIZE: " << theArray.arrayValue.count_elements().value_unsafe() << std::endl;
 		if (theArray.didItSucceed) {
 			for (auto value: theArray.arrayValue) {
 				activities.emplace_back(value.value());
@@ -107,35 +94,15 @@ struct TheValue {
 	TheD theD{};
 };
 
-class FileLoader {
-  public:
-	FileLoader(const char* filePath) {
-		std::ofstream theStream{ filePath, std::ios::out | std::ios::in };
-		std::stringstream inputStream{};
-		inputStream << theStream.rdbuf();
-		this->fileContents = inputStream.str();
-	}
-
-	std::string& getFileContents() {
-		return this->fileContents;
-	}
-
-  protected:
-	std::string fileContents{};
-};
-
-
 int32_t main() noexcept {
 	try {
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValue{};
-		arrayValue["TEST_VALUE_01"] = 0.00333423f;
+		arrayValue["TEST_VALUE_00"] = 0.00333423;
 		arrayValue["TEST_VALUE_02"] = false;
 		arrayValue["TEST_VALUE_03"] = "TESTING_VALUE0101";
 		arrayValue["TEST_VALUE_04"] = 4325454;
-		for (size_t x = 0; x < 10; ++x) {
-			serializer["d"]["activitiess"].emplaceBack(arrayValue);
-		}
+		serializer["d"]["activitiess"]["TEST_VALUE"] = arrayValue;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::string stringNew{ serializer.operator std::string&&() };
 
@@ -152,12 +119,12 @@ int32_t main() noexcept {
 		
 		
 			
-			Jsonifier::SimdJsonValue theParser{};
+		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 64ull; ++x) {
-				auto jsonData = theParser.getJsonData(stringNew);
+			auto jsonData = theParser.getJsonData(stringNew);
 			//jsonData.refreshString(Jsonifier::JsonifierSerializeType::Json);
 			//std::cout << "THE DATA: " << jsonData.operator std::basic_string_view<char, std::char_traits<char>>() << std::endl;
-			TheValueJson value{ jsonData };
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "THE VALUE: " << value.theD.activities.back().name << std::endl;
 			//std::cout << "ANOTHER_VALUE_02w: " << jsonData.operator std::string_view() << std::endl;
 			totalSize += oldSize;

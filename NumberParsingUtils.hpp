@@ -46,17 +46,20 @@ namespace Jsonifier {
 
 	class NumberParser {
 	  public:
-		template<typename I> inline static bool parseDigit(const char c, I& i) {
-			const char digit = static_cast<char>(c - '0');
-			if (digit > 9) {
+
+		template<typename I> inline static bool parseDigit(const uint8_t c, I& i) {
+			const uint8_t digit = static_cast<uint8_t>(c - '0');
+			std::cout << "THE CURRENT DIGIT: " << c << std::endl;
+			std::cout << "THE CURRENT DIGIT: " << +digit << std::endl;
+			if (digit > 9 || digit < -2) {
 				return false;
 			}
 			i = 10 * i + digit;
 			return true;
 		}
 
-		inline static ErrorCode parseDecimal(const char* const src, const char*& p, uint64_t& i, int64_t& exponent) {
-			const char* const firstAfterPeriod = p;
+		inline static ErrorCode parseDecimal(const uint8_t* const src, const uint8_t*& p, uint64_t& i, int64_t& exponent) {
+			const uint8_t* const firstAfterPeriod = p;
 
 			if (parseDigit(*p, i)) {
 				++p;
@@ -71,7 +74,7 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
-		inline static ErrorCode parseExponent(const char* const src, const char*& p, int64_t& exponent) {
+		inline static ErrorCode parseExponent(const uint8_t* const src, const uint8_t*& p, int64_t& exponent) {
 			bool negExp = ('-' == *p);
 			if (negExp || '+' == *p) {
 				p++;
@@ -113,7 +116,7 @@ namespace Jsonifier {
 
 		inline static const uint32_t maxDigits = 768;
 
-		inline static bool isInteger(char c) noexcept {
+		inline static bool isInteger(uint8_t c) noexcept {
 			return (c >= '0' && c <= '9');
 		}
 
@@ -122,11 +125,11 @@ namespace Jsonifier {
 			int32_t decimalPoint;
 			bool negative;
 			bool truncated;
-			char digits[maxDigits];
+			uint8_t digits[maxDigits];
 		};
 
-		inline static Decimal parseDecimal(const char*& p) noexcept {
-			Decimal answer;
+		inline static Decimal parseDecimal(const uint8_t*& p) noexcept {
+			Decimal answer{};
 			answer.numDigits = 0;
 			answer.decimalPoint = 0;
 			answer.truncated = false;
@@ -140,14 +143,14 @@ namespace Jsonifier {
 			}
 			while (isInteger(*p)) {
 				if (answer.numDigits < maxDigits) {
-					answer.digits[answer.numDigits] = char(*p - '0');
+					answer.digits[answer.numDigits] = uint8_t(*p - '0');
 				}
 				answer.numDigits++;
 				++p;
 			}
 			if (*p == '.') {
 				++p;
-				const char* firstAfterPeriod = p;
+				const uint8_t* firstAfterPeriod = p;
 				if (answer.numDigits == 0) {
 					while (*p == '0') {
 						++p;
@@ -155,7 +158,7 @@ namespace Jsonifier {
 				}
 				while (isInteger(*p)) {
 					if (answer.numDigits < maxDigits) {
-						answer.digits[answer.numDigits] = char(*p - '0');
+						answer.digits[answer.numDigits] = uint8_t(*p - '0');
 					}
 					answer.numDigits++;
 					++p;
@@ -163,7 +166,7 @@ namespace Jsonifier {
 				answer.decimalPoint = int32_t(firstAfterPeriod - p);
 			}
 			if (answer.numDigits > 0) {
-				const char* preverse = p - 1;
+				const uint8_t* preverse = p - 1;
 				int32_t trailingZeros = 0;
 				while ((*preverse == '0') || (*preverse == '.')) {
 					if (*preverse == '0') {
@@ -189,7 +192,7 @@ namespace Jsonifier {
 				}
 				int32_t expNumber = 0;
 				while (isInteger(*p)) {
-					char digit = char(*p - '0');
+					uint8_t digit = uint8_t(*p - '0');
 					if (expNumber < 0x10000) {
 						expNumber = 10 * expNumber + digit;
 					}
@@ -213,7 +216,7 @@ namespace Jsonifier {
 			uint32_t pow5_a = 0x7FF & x_a;
 			uint32_t pow5_b = 0x7FF & x_b;
 
-			static char numberOfDigitsDecimalLeftShift_table_powers_of_5[0x051C]{ 5, 2, 5, 1, 2, 5, 6, 2, 5, 3, 1, 2, 5, 1, 5, 6, 2, 5, 7, 8, 1, 2, 5,
+			static uint8_t numberOfDigitsDecimalLeftShift_table_powers_of_5[0x051C]{ 5, 2, 5, 1, 2, 5, 6, 2, 5, 3, 1, 2, 5, 1, 5, 6, 2, 5, 7, 8, 1, 2, 5,
 				3, 9, 0, 6, 2, 5, 1, 9, 5, 3, 1, 2, 5, 9, 7, 6, 5, 6, 2, 5, 4, 8, 8, 2, 8, 1, 2, 5, 2, 4, 4, 1, 4, 0, 6, 2, 5, 1, 2, 2, 0, 7, 0, 3, 1,
 				2, 5, 6, 1, 0, 3, 5, 1, 5, 6, 2, 5, 3, 0, 5, 1, 7, 5, 7, 8, 1, 2, 5, 1, 5, 2, 5, 8, 7, 8, 9, 0, 6, 2, 5, 7, 6, 2, 9, 3, 9, 4, 5, 3, 1,
 				2, 5, 3, 8, 1, 4, 6, 9, 7, 2, 6, 5, 6, 2, 5, 1, 9, 0, 7, 3, 4, 8, 6, 3, 2, 8, 1, 2, 5, 9, 5, 3, 6, 7, 4, 3, 1, 6, 4, 0, 6, 2, 5, 4, 7,
@@ -244,7 +247,7 @@ namespace Jsonifier {
 				0, 7, 0, 9, 4, 4, 1, 1, 9, 2, 4, 4, 8, 1, 3, 9, 1, 9, 0, 6, 7, 3, 8, 2, 8, 1, 2, 5, 8, 6, 7, 3, 6, 1, 7, 3, 7, 9, 8, 8, 4, 0, 3, 5, 4,
 				7, 2, 0, 5, 9, 6, 2, 2, 4, 0, 6, 9, 5, 9, 5, 3, 3, 6, 9, 1, 4, 0, 6, 2, 5 };
 
-			const char* pow5 = &numberOfDigitsDecimalLeftShift_table_powers_of_5[pow5_a];
+			const uint8_t* pow5 = &numberOfDigitsDecimalLeftShift_table_powers_of_5[pow5_a];
 
 			uint32_t i = 0;
 			uint32_t n = pow5_b - pow5_a;
@@ -299,12 +302,12 @@ namespace Jsonifier {
 			}
 			uint64_t mask = (uint64_t(1) << shift) - 1;
 			while (read_index < h.numDigits) {
-				char new_digit = char(n >> shift);
+				uint8_t new_digit = uint8_t(n >> shift);
 				n = (10 * (n & mask)) + h.digits[read_index++];
 				h.digits[write_index++] = new_digit;
 			}
 			while (n > 0) {
-				char new_digit = char(n >> shift);
+				uint8_t new_digit = uint8_t(n >> shift);
 				n = 10 * (n & mask);
 				if (write_index < maxDigits) {
 					h.digits[write_index++] = new_digit;
@@ -354,7 +357,7 @@ namespace Jsonifier {
 				uint64_t quotient = n / 10;
 				uint64_t remainder = n - (10 * quotient);
 				if (write_index < maxDigits) {
-					h.digits[write_index] = char(remainder);
+					h.digits[write_index] = uint8_t(remainder);
 				} else if (remainder > 0) {
 					h.truncated = true;
 				}
@@ -366,7 +369,7 @@ namespace Jsonifier {
 				uint64_t quotient = n / 10;
 				uint64_t remainder = n - (10 * quotient);
 				if (write_index < maxDigits) {
-					h.digits[write_index] = char(remainder);
+					h.digits[write_index] = uint8_t(remainder);
 				} else if (remainder > 0) {
 					h.truncated = true;
 				}
@@ -400,7 +403,7 @@ namespace Jsonifier {
 
 			static const uint32_t max_shift = 60;
 			static const uint32_t num_powers = 19;
-			static const char powers[19]{ 0, 3, 6, 9, 13, 16, 19, 23, 26, 29, 33, 36, 39, 43, 46, 49, 53, 56, 59 };
+			static const uint8_t powers[19]{ 0, 3, 6, 9, 13, 16, 19, 23, 26, 29, 33, 36, 39, 43, 46, 49, 53, 56, 59 };
 
 			int32_t exp2 = 0;
 			while (d.decimalPoint > 0) {
@@ -471,12 +474,12 @@ namespace Jsonifier {
 			return answer;
 		}
 
-		inline static AdjustedMantissa parseLongMantissa(const char* first) {
+		inline static AdjustedMantissa parseLongMantissa(const uint8_t* first) {
 			Decimal d = parseDecimal(first);
 			return computeFloat(d);
 		}
 
-		inline static double fromChars(const char* first) noexcept {
+		inline static double fromChars(const uint8_t* first) noexcept {
 			bool negative = first[0] == '-';
 			if (negative) {
 				first++;
@@ -490,21 +493,21 @@ namespace Jsonifier {
 			return value;
 		}
 
-		inline static size_t significantDigits(const char* start_digits, size_t digit_count) {
-			const char* start = start_digits;
+		inline static size_t significantDigits(const uint8_t* startDigits, size_t digitCount) {
+			const uint8_t* start = startDigits;
 			while ((*start == '0') || (*start == '.')) {
 				++start;
 			}
-			return digit_count - size_t(start - start_digits);
+			return digitCount - size_t(start - startDigits);
 		}
 
-		inline static bool parseFloatFallback(const char* ptr, double* outDouble) {
-			*outDouble = fromChars(reinterpret_cast<const char*>(ptr));
+		inline static bool parseFloatFallback(const uint8_t* ptr, double* outDouble) {
+			*outDouble = fromChars(reinterpret_cast<const uint8_t*>(ptr));
 			return !(*outDouble > (std::numeric_limits<double>::max)() || *outDouble < std::numeric_limits<double>::lowest());
 		}
 
-		template<typename TapeWriter> inline static ErrorCode slowFloatParsing(const char* src, TapeWriter writer) {
-			double d;
+		template<typename TapeWriter> inline static ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
+			double d{};
 			if (parseFloatFallback(src, &d)) {
 				writer.appendDouble(d);
 				return ErrorCode::Success;
@@ -596,7 +599,7 @@ namespace Jsonifier {
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
-		inline static uint32_t hexToU32Nocheck(const char* src) {
+		inline static uint32_t hexToU32Nocheck(const uint8_t* src) {
 			uint32_t v1 = digitToVal32[630 + src[0]];
 			uint32_t v2 = digitToVal32[420 + src[1]];
 			uint32_t v3 = digitToVal32[210 + src[2]];
@@ -620,9 +623,9 @@ namespace Jsonifier {
 		}
 
 		template<typename TapeWriter>
-		inline static ErrorCode writeFloat(const char* const src, bool negative, uint64_t i, const char* start_digits, size_t digit_count,
+		inline static ErrorCode writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* startDigits, size_t digitCount,
 			int64_t exponent, TapeWriter& writer) {
-			if (digit_count > 19 && significantDigits(start_digits, digit_count) > 19) {
+			if (digitCount > 19 && significantDigits(startDigits, digitCount) > 19) {
 				writer.skipDouble();
 				return slowFloatParsing<TapeWriter>(src, writer);
 			}
@@ -645,10 +648,11 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
-		template<typename TapeWriter> inline static ErrorCode parseNumber(const char* const src, TapeWriter& writer) {
+		template<typename TapeWriter>
+		inline static ErrorCode parseNumber(const uint8_t* src, TapeWriter& writer) {
 			bool negative = (*src == '-');
-			const char* p = src + char(negative);
-			const char* const startDigits = p;
+			const uint8_t* p = src + uint8_t(negative);
+			const uint8_t* const startDigits = p;
 			uint64_t i = 0;
 			while (parseDigit(*p, i)) {
 				p++;
@@ -672,11 +676,11 @@ namespace Jsonifier {
 			}
 			if (isFloat) {
 				const bool dirtyEnd = StringParser::isNotStructuralOrWhiteSpace(*p);
-				auto returnValue = writeFloat<TapeWriter>(src, negative, i, startDigits, digitCount, exponent, writer);
+				writeFloat<TapeWriter>(src, negative, i, startDigits, digitCount, exponent, writer);
 				if (dirtyEnd) {
 					return ErrorCode::InvalidNumber;
 				}
-				return returnValue;
+				return ErrorCode::Success;
 			}
 
 			size_t longestDigitCount = negative ? 19 : 20;
@@ -685,28 +689,28 @@ namespace Jsonifier {
 			}
 			if (digitCount == longestDigitCount) {
 				if (negative) {
-					if (i > std::numeric_limits<int64_t>::max() + 1ull) {
+					if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1) {
 						return ErrorCode::InvalidNumber;
 					}
+					writer.appendS64(~i + 1);
 					if (StringParser::isNotStructuralOrWhiteSpace(*p)) {
 						return ErrorCode::InvalidNumber;
 					}
-					writer.appendS64(~i);
 					return ErrorCode::Success;
-				} else if (src[0] != char('1') || i <= uint64_t(std::numeric_limits<int64_t>::max())) {
+				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
 					return ErrorCode::InvalidNumber;
 				}
 			}
-			ErrorCode returnValue{ ErrorCode::Success };
-			if (i > uint64_t(std::numeric_limits<int64_t>::max())) {
-				writer.appendS64(i);
+
+			if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+				writer.appendU64(i);
 			} else {
 				writer.appendS64(negative ? (~i + 1) : i);
 			}
 			if (StringParser::isNotStructuralOrWhiteSpace(*p)) {
 				return ErrorCode::InvalidNumber;
 			}
-			return returnValue;
+			return ErrorCode::Success;
 		}
 	};
 
