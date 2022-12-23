@@ -49,8 +49,6 @@ namespace Jsonifier {
 
 		template<typename I> inline static bool parseDigit(const uint8_t c, I& i) {
 			const uint8_t digit = static_cast<uint8_t>(c - '0');
-			std::cout << "THE CURRENT DIGIT: " << c << std::endl;
-			std::cout << "THE CURRENT DIGIT: " << +digit << std::endl;
 			if (digit > 9 || digit < -2) {
 				return false;
 			}
