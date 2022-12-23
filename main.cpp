@@ -90,8 +90,12 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_02"] = false;
 		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_04"] = 4325454;
+		arrayValueNew["TEST_VALUE_05"] = 0.00333423;
+		arrayValueNew["TEST_VALUE_02"] = false;
+		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_04"] = 4325454;
 		auto arrayValue = arrayValueNew;
-		arrayValueNew["TEST_VALUE_95"] = arrayValue;
+		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 60; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValueNew);
 		}

@@ -863,7 +863,7 @@ namespace Jsonifier {
 			
 			
 			*/
-			dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
+			//dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
 			auto newValue = uint8_t{};
 			
 			if (newValue == 'r') {
@@ -1223,7 +1223,6 @@ namespace Jsonifier {
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t currentIndexIntoString,
 			size_t& currentIndexIntoTape, size_t stringLength) {
 			int cnt = static_cast<int>(__popcnt64(*theBits));
-			// Do the first 8 all together
 			int64_t newValue{};
 			for (int i = 0; i < 8; i++) {
 
@@ -1239,8 +1238,6 @@ namespace Jsonifier {
 				}
 			}
 
-			// Do the next 8 all together (we hope in most cases it won't happen at all
-			// and the branch is easily predicted).
 			if (cnt > 8){
 				for (int i = 8; i < 16; i++) {
 					newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
@@ -1254,9 +1251,6 @@ namespace Jsonifier {
 					}
 				}
 
-				// Most files don't have 16+ structurals per block, so we take several basically guaranteed
-				// branch mispredictions here. 16+ structurals per block means either punctuation ({} [] , :)
-				// or the start of a value ("abc" true 123) every four characters.
 				if (cnt > 16){
 					int i = 16;
 					do {
@@ -1274,7 +1268,6 @@ namespace Jsonifier {
 				}
 			}
 			currentIndexIntoTape += cnt;
-			std::cout << "CURRENT COUNT: " << cnt << std::endl;
 			return cnt;
 		}
 
@@ -1352,17 +1345,19 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(quotesReal);
 		}
 
-		inline SimdBase256 collectFinalStructurals() {
-			this->S256 = this->S256.bitAndNot(this->R256);
-			this->S256 = this->S256 | this->Q256;
-			auto P = this->S256 | this->W256;
-			P = P << 1;
-			P &= (~this->W256).bitAndNot(this->R256);
-			this->S256 = this->S256 | P;
-			return this->S256.bitAndNot((this->Q256.bitAndNot(this->R256)));
+		inline SimdBase256 collectFinalStructurals(SimdBase256& prevScalar, SimdBase256& followsPotentialNonQuoteScalar) {
+			auto scalar = ~this->S256 | this->W256;
+			auto stringTail = this->R256 ^ this->Q256;
+			SimdBase256 nonquote_scalar = scalar & ~this->Q256;
+			for (size_t x = 0; x < 4; ++x) {
+				int64_t prevScalarValue{ prevScalar.getInt64(0) };
+				followsPotentialNonQuoteScalar.insertInt64(follows(nonquote_scalar.getInt64(x), prevScalarValue), x);
+				prevScalar.insertInt64(prevScalarValue, 0);
+			}
+			return this->S256 | (~S256 | this->W256) & ~followsPotentialNonQuoteScalar & ~stringTail;
 		}
 
-		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString, SimdBase256& followsPotentialNonquoteScalar) {
+		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString,SimdBase256& prevScalar, SimdBase256&followsPotentialNonQuoteScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1375,11 +1370,7 @@ namespace Jsonifier {
 			this->R256 = this->collectQuotedRange(prevInString);
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
-			auto scalar = ~this->S256 | this->W256;
-			scalar.printBits("SCALAR BITS: ");
-			auto stringTail = this->R256 ^ this->Q256;
-			stringTail.printBits("STRING TAIL BITS: ");
-			this->S256 = this->collectFinalStructurals();
+			this->S256 = this->collectFinalStructurals(prevScalar, followsPotentialNonQuoteScalar);
 			//this->S256.printBits(this->R256.getInt64(0) & 1ull, "THE BITS FINAL REAL: ");
 			//this->S256.insertInt64(this->S256.getInt64(0) | (prevInScalar & ~prevInScalarRollover), 0);
 			//prevInScalar = prevInScalarRollover;
@@ -1390,8 +1381,6 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		bool prevEscaped{};
-		SimdBase256 followsPotentialNonquoteScalar{};
 		SimdBase256 values[8]{};
 		SimdBase256 Q256{};
 		SimdBase256 W256{};
@@ -1458,9 +1447,10 @@ namespace Jsonifier {
 				uint32_t collectedSize{};
 				size_t tapeCurrentIndex{ 0 };
 				SimdBase256 prevInScalar{};
+				SimdBase256 followsPotentialNonquoteScalar{};
 				int64_t prevInString{};
 				while (stringSize > 0) {
-					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar);
+					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar, followsPotentialNonquoteScalar);
 					auto indexCount =
 						section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, this->stringLengthRaw);
 					this->tapeLength += indexCount;
@@ -1469,10 +1459,6 @@ namespace Jsonifier {
 				}
 			}
 			this->tapeLength -= 1;
-			for (size_t x = 0; x < this->tapeLength; ++x) {
-				std::cout << "CURRENT INDEX: " << this->getStructuralIndexes()[x]
-						  << ", THAT INDEX'S VALUE: " << this->stringView[this->getStructuralIndexes()[x]] << std::endl;
-			}
 		}
 
 		inline ~SimdJsonValue() noexcept {};
@@ -1984,8 +1970,6 @@ namespace Jsonifier {
 		visitor.visitObjectStart(*this);
 
 		{
-			auto nextStructuralIndex = uint32_t(this->nextStructural - this->masterParser->getStructuralIndexes());
-			std::cout << "NEXT STRUCTURAL INDEX: " << nextStructuralIndex << std::endl;
 			auto key = this->advance();
 			if (*key != '"') {
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
