@@ -1235,7 +1235,6 @@ namespace Jsonifier {
 					return valueNew;
 				}
 			}
-
 			return value;
 		}
 
@@ -1321,7 +1320,7 @@ namespace Jsonifier {
 			return this->S256 | (~S256 | this->W256).bitAndNot(followsPotentialNonQuoteScalar).bitAndNot(stringTail);
 		}
 
-		inline SimdStringSection(const uint8_t* valueNew, int64_t& prevInString, SimdBase256& prevScalar,
+		inline void submitDataForParsing(const uint8_t* valueNew, int64_t& prevInString, SimdBase256& prevScalar,
 			SimdBase256& followsPotentialNonQuoteScalar) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
@@ -1372,10 +1371,10 @@ namespace Jsonifier {
 			this->stringView = stringViewNew;
 			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 64);
 			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
-			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
+			this->structuralIndexes.reset(new (std::nothrow) uint32_t[stringCapacity]);
 			this->tapeLength = 0;
 			this->tape.reset(new (std::nothrow) uint64_t[tapeCapacity]);
-			this->isArray.reset(new (std::nothrow) bool[32]);
+			this->isArray.reset(new (std::nothrow) bool[this->maxDepth]);
 
 			if (!(this->getStringViewNew() && this->tape.get())) {
 				this->allocatedCapacity = 0;
@@ -1407,10 +1406,11 @@ namespace Jsonifier {
 				SimdBase256 prevInScalar{};
 				SimdBase256 followsPotentialNonquoteScalar{};
 				int64_t prevInString{};
+				
 				while (stringSize > 0) {
-					SimdStringSection section(this->getStringView() + collectedSize, prevInString, prevInScalar, followsPotentialNonquoteScalar);
+					this->section.submitDataForParsing(this->getStringView() + collectedSize, prevInString, prevInScalar, followsPotentialNonquoteScalar);
 					auto indexCount =
-						section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, this->stringLengthRaw);
+						this->section.getStructuralIndices(this->structuralIndexes.get(), collectedSize, tapeCurrentIndex, this->stringLengthRaw);
 					this->tapeLength += indexCount;
 					stringSize -= 256;
 					collectedSize += 256;
@@ -1461,9 +1461,10 @@ namespace Jsonifier {
 		std::unique_ptr<uint8_t[]> stringBuffer{ nullptr };
 		std::unique_ptr<uint64_t[]> tape{ nullptr };
 		std::unique_ptr<bool[]> isArray{ nullptr };
+		const uint32_t maxDepth{ 512 };
+		SimdStringSection section{};
 		size_t allocatedCapacity{};
 		size_t stringLengthRaw{};
-		uint32_t maxDepth{ 500 };
 		size_t tapeLength{ 0 };
 		uint8_t* stringView{};
 	};
