@@ -88,13 +88,9 @@ int32_t main() noexcept {
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_02"] = false;
-		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
-		arrayValueNew["TEST_VALUE_04"] = 4325454;
-		arrayValueNew["TEST_VALUE_05"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_02"] = true;
-		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
-		arrayValueNew["TEST_VALUE_04"] = 4325454;
+		arrayValueNew["TEST_VALUE_01"] = true;
+		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_03"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 60; ++x) {
@@ -114,7 +110,7 @@ int32_t main() noexcept {
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
 		Jsonifier::SimdJsonValue theParser{};
-		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+		for (size_t x = 0ull; x < 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
 			//TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;
