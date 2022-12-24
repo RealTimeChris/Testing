@@ -91,18 +91,18 @@ int32_t main() noexcept {
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_01"] = false;
-		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE0101";
-		arrayValueNew["TEST_VALUE_03"] = 4325454;
-		arrayValueNew["TEST_VALUE_04"] = 3434.00333423;
-		arrayValueNew["TEST_VALUE_05"] = true;
-		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE01034";
-		arrayValueNew["TEST_VALUE_07"] = 2545445;
+		//arrayValueNew["TEST_VALUE_01"] = false;
+		//arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE0101";
+		//arrayValueNew["TEST_VALUE_03"] = 4325454;
+		//arrayValueNew["TEST_VALUE_04"] = 3434.00333423;
+		//arrayValueNew["TEST_VALUE_05"] = true;
+		//arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE01034";
+		//arrayValueNew["TEST_VALUE_07"] = 2545445;
 		
 		auto arrayValue = arrayValueNew;
-		arrayValueNew["TEST_VALUE05"] = arrayValue;
-		for (size_t x = 0; x < 60; ++x) {
-			serializer["d"]["activitiess"].emplaceBack(arrayValueNew);
+		//arrayValueNew["TEST_VALUE05"] = arrayValue;
+		for (size_t x = 0; x < 1; ++x) {
+			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -116,9 +116,9 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			//TheValue value{ newDocument };
 			totalSize += oldSize;
@@ -128,9 +128,9 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		stringNew.resize(stringNew.size() + 64 - stringNew.size() % 64);
-		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+			stringNew.resize(stringNew.size() + 64 - stringNew.size() % 64);
+			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
 			//TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;

@@ -620,7 +620,7 @@ namespace Jsonifier {
 
 	void Jsonifier::appendUint64(uint64_t value) {
 		char newBuffer[11]{ static_cast<int8_t>(EtfType::Small_Big_Ext) };
-		char encodedBytes{};
+		uint8_t encodedBytes{};
 		while (value > 0) {
 			newBuffer[3 + encodedBytes] = value & 0xFF;
 			value >>= 8;
@@ -633,7 +633,7 @@ namespace Jsonifier {
 
 	void Jsonifier::appendInt64(int64_t value) {
 		char newBuffer[11]{ static_cast<int8_t>(EtfType::Small_Big_Ext) };
-		char encodedBytes{};
+		uint8_t encodedBytes{};
 		while (value > 0) {
 			newBuffer[3 + encodedBytes] = value & 0xFF;
 			value >>= 8;
