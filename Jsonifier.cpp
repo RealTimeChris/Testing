@@ -484,7 +484,6 @@ namespace Jsonifier {
 
 	void Jsonifier::writeJsonFloat(const FloatType x) {
 		auto floatValue = std::to_string(x);
-		std::cout << "THE FLOAT VALUE: " << floatValue << std::endl;
 		this->writeString(floatValue.data(), floatValue.size());
 	}
 
@@ -620,7 +619,7 @@ namespace Jsonifier {
 
 	void Jsonifier::appendUint64(uint64_t value) {
 		char newBuffer[11]{ static_cast<int8_t>(EtfType::Small_Big_Ext) };
-		uint8_t encodedBytes{};
+		char encodedBytes{};
 		while (value > 0) {
 			newBuffer[3 + encodedBytes] = value & 0xFF;
 			value >>= 8;
@@ -628,12 +627,12 @@ namespace Jsonifier {
 		}
 		newBuffer[1] = encodedBytes;
 		newBuffer[2] = 0;
-		this->writeString(newBuffer, 1ull + 2ull + static_cast<size_t>(encodedBytes));
+		this->writeString(newBuffer, 1 + 2 + static_cast<size_t>(encodedBytes));
 	}
 
 	void Jsonifier::appendInt64(int64_t value) {
 		char newBuffer[11]{ static_cast<int8_t>(EtfType::Small_Big_Ext) };
-		uint8_t encodedBytes{};
+		char encodedBytes{};
 		while (value > 0) {
 			newBuffer[3 + encodedBytes] = value & 0xFF;
 			value >>= 8;
@@ -645,7 +644,7 @@ namespace Jsonifier {
 		} else {
 			newBuffer[2] = 1;
 		}
-		this->writeString(newBuffer, 1ull + 2ull + static_cast<size_t>(encodedBytes));
+		this->writeString(newBuffer, 1 + 2 + static_cast<size_t>(encodedBytes));
 	}
 
 	void Jsonifier::appendNewFloatExt(const double FloatValue) {
