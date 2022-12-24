@@ -43,7 +43,7 @@ namespace Jsonifier {
 
 struct TheValueJson {
 	TheValueJson(Jsonifier::JsonParser&& value) {
-		this->theD = value["d"].getValue<TheDJson>();
+		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
 };
@@ -112,7 +112,7 @@ int32_t main() noexcept {
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
-			//TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;
 		} 
 		totalTime += stopWatch.totalTimePassed().count();

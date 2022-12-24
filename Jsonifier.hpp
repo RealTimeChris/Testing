@@ -700,7 +700,7 @@ namespace Jsonifier {
 		template<typename OTy> using AllocatorType = std::allocator<OTy>;
 		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
 		using ObjectType = std::map<std::string_view, JsonParser, std::less<>, MapAllocatorType>;
-		using ArrayType = std::vector<JsonParser, AllocatorType<JsonParser>>;
+		using ArrayType = std::vector<JsonParser>;
 		using StringType = std::string;
 		using FloatType = double;
 		using UintType = uint64_t;
@@ -722,37 +722,40 @@ namespace Jsonifier {
 			BoolType boolean;
 		};
 
-		JsonParser parseJson(JsonParser* dataToParse = nullptr) {
-			if (dataToParse == nullptr) {
-				dataToParse = this;
-			}
+		JsonParser parseJson(JsonParser* dataToParse ) {
 			if (dataToParse->tapeIter.atEof()) {
 				return std::move(*this);
 			}
-			std::cout << "CURRENT KEY: (PEEKING) " << dataToParse->tapeIter.peek() << std::endl;
 			switch (dataToParse->tapeIter.peek()) {
 				case '{': {
+					std::cout << "CURRENT KEY: (OBJECT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonObject(dataToParse);
 				}
 				case '[': {
+					std::cout << "CURRENT KEY: (ARRAY) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonArray(dataToParse);
 				}
 				case '"': {
+					std::cout << "CURRENT KEY: (STRING) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonString(dataToParse);
 				}
 				case 'd': {
+					std::cout << "CURRENT KEY: (FLOAT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonFloat(dataToParse);
 				}
 				case 'l': {
+					std::cout << "CURRENT KEY: (UINT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonUint(dataToParse);
 				}
 				case 's': {
+					std::cout << "CURRENT KEY: (INT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonInt(dataToParse);
 				}
 				case 'f': {
 					[[fallthrough]];
 				}
 				case 't': {
+					std::cout << "CURRENT KEY: (BOOL) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonBool(dataToParse);
 				}
 				case 'n': {
@@ -760,15 +763,15 @@ namespace Jsonifier {
 				}
 				case 'r': {
 					std::cout << "CURRENT KEY: (PARSING OBJECT)0202 " << dataToParse->tapeIter.peek() << std::endl;
+					dataToParse->setValue(JsonType::Object);
 					dataToParse->tapeIter.advance();
 					return parseJson(dataToParse);
 				}
 			}
 		}
 
-		
 		JsonParser parseJsonUint(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING UINT 0202) " << dataToParse->getUint64() << std::endl;
+			std::cout << "VALUE: (PARSING UINT 0202) " << dataToParse->getUint64() << std::endl;
 			dataToParse->setValue(JsonType::Uint64);
 			dataToParse->jsonValue.numberUint = dataToParse->getUint64();
 			dataToParse->tapeIter.advance();
@@ -776,7 +779,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser parseJsonInt(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING INT 0202) " << dataToParse->getInt64() << std::endl;
+			std::cout << "VALUE: (PARSING INT 0202) " << dataToParse->getInt64() << std::endl;
 			dataToParse->setValue(JsonType::Int64);
 			dataToParse->jsonValue.numberInt = dataToParse->getInt64();
 			dataToParse->tapeIter.advance();
@@ -792,8 +795,7 @@ namespace Jsonifier {
 				
 				for (size_t x = 0; x < currentSize; ++x) {
 					auto key = dataToParse->getKey();
-					std::cout << "PARSING OBJECT 0202: " << dataToParse->tapeIter.peek() << std::endl;
-					std::cout << "PARSING OBJECT 0101: " << key << std::endl;
+					std::cout << "PARSING OBJECT KEY: " << key << std::endl;
 					dataToParse->tapeIter.advance();
 					dataToParse->jsonValue.object->insert_or_assign(key,
 						JsonParser{ dataToParse->tapeIter.getTapePosition(), dataToParse->tapeIter.peekLengthOrSize(),
@@ -820,7 +822,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser parseJsonString(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING STRING 0202) " << dataToParse->getString() << std::endl;
+			std::cout << "VALUE: (PARSING STRING 0202) " << dataToParse->getString() << std::endl;
 			dataToParse->setValue(JsonType::String);
 			*dataToParse->jsonValue.string = dataToParse->getString();
 			dataToParse->tapeIter.advance();
@@ -828,7 +830,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser parseJsonFloat(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING FLOAT 0202) " << dataToParse->getFloat() << std::endl;
+			std::cout << "VALUE: (PARSING FLOAT 0202) " << dataToParse->getFloat() << std::endl;
 			dataToParse->setValue(JsonType::Float);
 			dataToParse->jsonValue.numberDouble = dataToParse->getFloat();
 			dataToParse->tapeIter.advance();
@@ -836,7 +838,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser parseJsonBool(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING BOOL 0202) " <<std::boolalpha<< dataToParse->getBool() << std::endl;
+			std::cout << "VALUE: (PARSING BOOL 0202) " <<std::boolalpha<< dataToParse->getBool() << std::endl;
 			dataToParse->setValue(JsonType::Bool);
 			dataToParse->jsonValue.numberDouble = dataToParse->getBool();
 			dataToParse->tapeIter.advance();
@@ -844,7 +846,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser parseJsonNull(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING NULL 0202) " << dataToParse->tapeIter.peek() << std::endl;
+			std::cout << "VALUE: (PARSING NULL 0202) " << dataToParse->tapeIter.peek() << std::endl;
 			dataToParse->setValue(JsonType::Null);
 			dataToParse->tapeIter.advance();
 			return std::move(*this);
@@ -938,74 +940,61 @@ namespace Jsonifier {
 
 		JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew) {
 			this->tapeIter = TapeIterator{ stringBufferNew, tapePtrsNew, count };
-			this->parseJson();
+			this->parseJson(this);
 		}
 
 		template<typename OTy> inline OTy getValue();
 
 		template<> inline double getValue() {
-			double returnValue{};
-			return returnValue;
+			return this->jsonValue.numberDouble;
 		}
 
 		template<> inline float getValue() {
-			double returnValue{};
-			return returnValue;
+			return this->jsonValue.numberDouble;
 		}
 
 		template<> inline bool getValue() {
-			bool returnValue{};
-			return returnValue;
+			return this->jsonValue.boolean;
 		}
 
 		template<> inline uint64_t getValue() {
-			uint64_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberUint;
 		}
 
 		template<> inline uint32_t getValue() {
-			uint32_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberUint;
 		}
 
 		template<> inline uint16_t getValue() {
-			uint16_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberUint;
 		}
 
 		template<> inline uint8_t getValue() {
-			uint8_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberUint;
 		}
 
 		template<> inline int64_t getValue() {
-			int64_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberInt;
 		}
 
 		template<> inline int32_t getValue() {
-			int32_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberInt;
 		}
 
 		template<> inline int16_t getValue() {
-			int16_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberInt;
 		}
 
 		template<> inline int8_t getValue() {
-			int8_t returnValue{};
-			return returnValue;
+			return this->jsonValue.numberInt;
 		}
 
 		template<> inline std::string getValue() {
-			std::string returnValue{};
-			return returnValue;
+			return *this->jsonValue.string;
 		}
 
 		template<> inline std::string_view getValue() {
-			std::string returnValue{};
-			return returnValue;
+			return *this->jsonValue.string;
 		}
 
 		bool getBool() {
@@ -1060,76 +1049,23 @@ namespace Jsonifier {
 		}
 
 		template<> inline std::vector<JsonParser> getValue() {
-			std::cout << "CURRENT KEY (VECTOR): " << (this->tapeIter.peekLengthOrSize()) << std::endl;
-
-			std::vector<JsonParser> returnValue{};
-			auto currentSize = this->tapeIter.peekLengthOrSize();
-			
-			this->tapeIter.advance();
-			for (size_t x = 0; x < currentSize; ++x) {
-				
-				returnValue.push_back(
-					JsonParser{ this->tapeIter.getTapePosition(), this->tapeIter.peekLengthOrSize(), this->tapeIter.getStringBuffer() });
-				std::cout << "CURRENT KEY: (REALER) " << this->tapeIter.peek() << std::endl;
-				this->tapeIter.advance();
-			}
-
-			return std::vector<JsonParser>{};
+			std::cout << "CURRENT SIZE (VECTOR): " << (this->tapeIter.peekLengthOrSize()) << std::endl;
+			return std::move(*this->jsonValue.array);
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
-			std::cout << "CURRENT KEY: " << this->tapeIter.peek() << std::endl;
 			//dumpRawTape(std::cout, this->tapeIter.getTape(), this->tapeIter.getStringBuffer());
 			auto newValue = this->tapeIter.peek();
-			
-			if (newValue == 'r') {
-				this->tapeIter.advance();
-				this->type = JsonType::Object;
-				return this->operator[](key);
-			}
-			if (newValue == '[') {
-				this->type = JsonType::Array;
-				//throw JsonifierException{ "We're not here this is not it! [" };
-				return *this;
-			}
-			if (newValue == '{') {
-				this->tapeIter.advance();
-				this->type = JsonType::Object;
-				//throw JsonifierException{ "We're not here this is not it! {" };
-				return *this;
-			}
-			if (newValue == '\"') {
-				auto theString = this->getKey();
-				std::cout << "THE KEY (REAL): " << key << std::endl;
-				std::cout << "THE KEY: " << theString << std::endl;
-				if (key == theString) {
-					this->tapeIter.advance();
-					return this->operator[](key);
-				} else {
-					throw JsonifierException{ "Sorry, but that key is incorrect!" };
+			switch (this->type) {
+				case JsonType::Object: {
+					return this->jsonValue.object->at(static_cast<std::string_view>(key));
+				}
+				default: {
+					std::cout << "CURRENT KEY []OPERATOR: " << key << std::endl;
+					std::cout << "CURRENT TYPE: " << ( int32_t )this->type << std::endl;
+					throw JsonifierException{ "Sorry, but this is not of type Object!" };
 				}
 			}
-			if (newValue == 's') {
-				this->type = JsonType::Int64;
-				return *this;
-			}
-			if (newValue == 'd') {
-				this->type = JsonType::Float;
-				return *this;
-			}
-			if (newValue == 'l') {
-				this->type = JsonType::Uint64;
-				return *this;
-			}
-			if (newValue == 't' || newValue == 'f') {
-				this->type = JsonType::Bool;
-				return *this;
-			}
-			if (newValue == 'n') {
-				this->type = JsonType::Null;
-				return *this;
-			}
-			return *this;
 		};
 
 		inline JsonParser(ErrorCode error) {
