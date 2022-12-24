@@ -783,18 +783,17 @@ namespace Jsonifier {
 		JsonParser parseJsonObject(JsonParser* dataToParse) {
 			this->setValue(JsonType::Object);
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
-			std::cout << "CURRENT KEY: (PARSING OBJECT-SIZE) " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
+			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
 				dataToParse->tapeIter.advance();
 				
 				for (size_t x = 0; x < currentSize; ++x) {
 					auto key = this->getKey();
-					std::cout << "CURRENT KEY: (PARSING OBJECT 0202) " << dataToParse->tapeIter.peek() << std::endl;
-					std::cout << "CURRENT KEY: (PARSING OBJECT 0101) " << key << std::endl;
+					std::cout << "PARSING OBJECT 0202: " << dataToParse->tapeIter.peek() << std::endl;
+					std::cout << "PARSING OBJECT 0101: " << key << std::endl;
 					this->tapeIter.advance();
 					this->jsonValue.object->insert_or_assign(key,
 						JsonParser{ this->tapeIter.getTapePosition(), this->tapeIter.peekLengthOrSize(), this->tapeIter.getStringBuffer() });
-					this->tapeIter.advance();
 				}
 			}
 			return std::move(*this);
@@ -803,47 +802,24 @@ namespace Jsonifier {
 		JsonParser parseJsonArray(JsonParser* dataToParse) {
 			this->setValue(JsonType::Array);
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
-			std::cout << "CURRENT KEY: (PARSING ARRAY-SIZE) " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
+			std::cout << "PARSING ARRAY-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
 				dataToParse->tapeIter.advance();
-			
-					for (size_t x = 0; x < currentSize; ++x) {
-						std::cout << "CURRENT KEY: (PARSING ARRAY 0202) " << dataToParse->tapeIter.peek() << std::endl;
-						this->jsonValue.array->emplace_back(
-							JsonParser{ this->tapeIter.getTapePosition(), this->tapeIter.peekLengthOrSize(), this->tapeIter.getStringBuffer() });
-						this->tapeIter.advance();
-					} /*
-				if (objectNew.empty()) {
-					this->writeString("{}", 2);
-					return;
+				for (size_t x = 0; x < currentSize; ++x) {
+					std::cout << "PARSING ARRAY 0202: " << dataToParse->tapeIter.peek() << std::endl;
+					this->jsonValue.array->emplace_back(
+						JsonParser{ this->tapeIter.getTapePosition(), this->tapeIter.peekLengthOrSize(), this->tapeIter.getStringBuffer() });
+					this->tapeIter.advance();
 				}
-				this->writeCharacter('{');
-
-				int32_t index{};
-				for (auto& [key, value]: objectNew) {
-					this->writeJsonString(key);
-					this->writeCharacter(':');
-					this->serializeJsonToJsonString(&value);
-
-					if (index != objectNew.size() - 1) {
-						this->writeCharacter(',');
-					}
-					++index;
-				}
-
-				this->writeCharacter('}');
-				*/
 			}
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonString(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING STRING 0202) " << dataToParse->getString() << std::endl;
-			/*
-			this->writeCharacter('"');
-			this->writeString(stringNew.data(), stringNew.size());
-			this->writeCharacter('"');
-			*/
+			this->setValue(JsonType::String);
+			*this->jsonValue.string = this->getString();
+			this->tapeIter.advance();
 			return std::move(*this);
 		}
 
@@ -857,21 +833,16 @@ namespace Jsonifier {
 
 		JsonParser parseJsonBool(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING BOOL 0202) " << dataToParse->tapeIter.peek() << std::endl;
-			/*
-			if (jsonValueNew) {
-				this->writeString("true", 4);
-			} else {
-				this->writeString("false", 5);
-			}
-			*/
+			this->setValue(JsonType::Bool);
+			this->jsonValue.numberDouble = this->getBool();
+			this->tapeIter.advance();
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonNull(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING NULL 0202) " << dataToParse->tapeIter.peek() << std::endl;
-			/*
-			this->writeString("null", 4);
-			*/
+			this->setValue(JsonType::Null);
+			this->tapeIter.advance();
 			return std::move(*this);
 		}
 
@@ -1076,6 +1047,7 @@ namespace Jsonifier {
 		}
 
 		inline std::string_view getKey() {
+			std::cout << "CURRENT KEY: " << this->getString() << std::endl;
 			return this->getString();
 		}
 
