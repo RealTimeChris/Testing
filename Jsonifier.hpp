@@ -550,13 +550,13 @@ namespace Jsonifier {
 	}
 
 	inline bool dumpRawTape(std::ostream& os , uint64_t* tape, const uint8_t* stringBuffer) noexcept {
-		uint32_t string_length;
-		size_t tape_idx = 0;
-		uint64_t tape_val = tape[tape_idx];
-		uint8_t type = uint8_t(tape_val >> 56);
+		uint32_t string_length{};
+		size_t tape_idx{ 0 };
+		uint64_t tape_val{ tape[tape_idx] };
+		uint8_t type{ uint8_t(tape_val >> 56) };
 		std::cout  << tape_idx << " : " << type;
 		tape_idx++;
-		size_t how_many = 0;
+		size_t how_many{ 0 };
 		if (type == 'r') {
 			how_many = size_t(tape_val & JSON_VALUE_MASK);
 		} else {
@@ -664,7 +664,24 @@ namespace Jsonifier {
 					return ((*tapePosition) & JSON_VALUE_MASK);
 				}
 			}
+			std::cout << "THE SIZE: " << (*(tapePosition + 1) & JSON_VALUE_MASK) - ((*tapePosition) & JSON_VALUE_MASK) << std::endl;
 			return (*(tapePosition + 1) & JSON_VALUE_MASK) - ((*tapePosition) & JSON_VALUE_MASK);
+		}
+
+		inline uint8_t* getStringBuffer() {
+			return this->buffer;
+		}
+
+		inline char* getStringBufferAtCurrentPosition() {
+			return reinterpret_cast<char*>(&this->buffer[(*this->tapePosition) & JSON_VALUE_MASK]);
+		}
+
+		inline uint64_t* getTapePosition() {
+			return this->tapePosition;
+		}
+
+		inline uint64_t* getTape() {
+			return this->initialTapePosition;
 		}
 
 		inline uint32_t position() const noexcept {
@@ -707,17 +724,20 @@ namespace Jsonifier {
 	
 	class JsonParser {
 	  public:
+
+		JsonParser() noexcept = default;
+
 		JsonParser& operator=(JsonParser&& other) noexcept {
 			this->tapeIter = other.tapeIter;
 			return *this;
 		}
 
-		JsonParser& operator=(const JsonParser&) = delete;
-		JsonParser(const JsonParser&) = delete;
-
-		JsonParser(JsonParser&& other) noexcept  {
+		JsonParser(JsonParser&& other) noexcept {
 			*this = std::move(other);
 		}
+
+		JsonParser& operator=(const JsonParser&) = delete;
+		JsonParser(const JsonParser&) = delete;
 
 		JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew) {
 			this->tapeIter = TapeIterator{ stringBufferNew, tapePtrsNew };
@@ -730,8 +750,33 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
+		template<> inline float getValue() {
+			double returnValue{};
+			return returnValue;
+		}
+
 		template<> inline bool getValue() {
 			bool returnValue{};
+			return returnValue;
+		}
+
+		template<> inline uint64_t getValue() {
+			uint64_t returnValue{};
+			return returnValue;
+		}
+
+		template<> inline uint32_t getValue() {
+			uint32_t returnValue{};
+			return returnValue;
+		}
+
+		template<> inline uint16_t getValue() {
+			uint16_t returnValue{};
+			return returnValue;
+		}
+
+		template<> inline uint8_t getValue() {
+			uint8_t returnValue{};
 			return returnValue;
 		}
 
@@ -745,6 +790,11 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
+		template<> inline int16_t getValue() {
+			int16_t returnValue{};
+			return returnValue;
+		}
+
 		template<> inline int8_t getValue() {
 			int8_t returnValue{};
 			return returnValue;
@@ -755,8 +805,27 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline std::string_view getString() {
-			return std::string_view{};
+		template<> inline std::string_view getValue() {
+			std::string returnValue{};
+			return returnValue;
+		}
+
+		inline std::string_view getKey() {
+			std::string_view returnValue{};
+			if (this->tapeIter.peek() == '"') {
+				size_t stringLength{};
+				std::memcpy(&stringLength, this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK),
+					sizeof(uint32_t));
+				returnValue = std::string_view(reinterpret_cast<const char*>(this->tapeIter.getStringBuffer() +
+												   (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK) + sizeof(uint32_t)),
+					stringLength);
+			}
+			return returnValue;
+		}
+
+		template<> inline JsonParser getValue() {
+			JsonParser returnValue{};
+			return returnValue;
 		}
 
 		template<> inline std::vector<JsonParser> getValue() {
@@ -765,8 +834,9 @@ namespace Jsonifier {
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
+			std::cout << "CURRENT KEY: " << this->tapeIter.peek() << std::endl;
 			for (size_t x = 0; x < 12; ++x) {
-				std::cout << "THE TAPE IS THIS VALUE: " << x << ( char )this->tapeIter.advance() << std::endl;
+				//std::cout << "THE TAPE IS THIS VALUE: " << x << ( char )this->tapeIter.advance() << std::endl;
 			}
 			/*
 			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
@@ -857,25 +927,36 @@ namespace Jsonifier {
 			
 			
 			*/
-			//dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
-			auto newValue = uint8_t{};
+			//dumpRawTape(std::cout, this->tapeIter.getTape(), this->tapeIter.getStringBuffer());
+			auto newValue = this->tapeIter.peek();
 			
 			if (newValue == 'r') {
-				return *this;
+				this->tapeIter.advance();
+				this->type = JsonType::Object;
+				return this->operator[](key);
 			}
 			if (newValue == '[') {
+				this->tapeIter.advance();
+				this->type = JsonType::Array;
+				//throw JsonifierException{ "We're not here this is not it! [" };
 				return *this;
 			}
 			if (newValue == '{') {
-				return this->operator[](key);
+				this->tapeIter.advance();
+				this->type = JsonType::Object;
+				//throw JsonifierException{ "We're not here this is not it! {" };
+				return *this;
 			}
 			if (newValue == '\"') {
-				auto theString = this->getString();
+				auto theString = this->getKey();
+				std::cout << "THE KEY (REAL): " << key << std::endl;
+				std::cout << "THE KEY: " << theString << std::endl;
 				if (key == theString) {
+					this->tapeIter.advance();
 					return *this;
 
 				} else {
-					return *this;
+					throw JsonifierException{ "Sorry, but that key is incorrect!" };
 				}
 			}
 			if (newValue == 's') {
@@ -902,6 +983,7 @@ namespace Jsonifier {
 
 	  protected:
 		TapeIterator tapeIter{};
+		JsonType type{};
 	};
 
 	class SimdBase256;
@@ -1628,30 +1710,30 @@ namespace Jsonifier {
 			this->nextTapeLocation = ptr;
 		}
 		uint64_t* nextTapeLocation;
-		inline void appendS64(int64_t value) noexcept;
-		inline void appendU64(uint64_t value) noexcept;
-		inline void appendDouble(double value) noexcept;
-		inline void append(uint64_t val, TapeType t) noexcept;
+		inline void appendS64(int64_t&& value) noexcept;
+		inline void appendU64(uint64_t&& value) noexcept;
+		inline void appendDouble(double&& value) noexcept;
+		inline void append(uint64_t&& val, TapeType t) noexcept;
 		inline void skip() noexcept;
 		inline void skipLargeInteger() noexcept;
 		inline void skipDouble() noexcept;
-		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
+		inline static void write(uint64_t& tape_loc, uint64_t&& val, TapeType t) noexcept;
 
 	  private:
-		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
+		template<typename T> inline void append2(uint64_t&& val, T&& val2, TapeType t) noexcept;
 	};
 
-	inline void TapeWriter::appendS64(int64_t value) noexcept {
+	inline void TapeWriter::appendS64(int64_t&& value) noexcept {
 		append2(0, value, TapeType::Int64);
 	}
 
-	inline void TapeWriter::appendU64(uint64_t value) noexcept {
+	inline void TapeWriter::appendU64(uint64_t&& value) noexcept {
 		append(0, TapeType::Uint64);
 		*this->nextTapeLocation = value;
 		this->nextTapeLocation++;
 	}
 
-	inline void TapeWriter::appendDouble(double value) noexcept {
+	inline void TapeWriter::appendDouble(double&& value) noexcept {
 		append2(0, value, TapeType::Double);
 	}
 
@@ -1667,19 +1749,19 @@ namespace Jsonifier {
 		this->nextTapeLocation += 2;
 	}
 
-	inline void TapeWriter::append(uint64_t val, TapeType t) noexcept {
+	inline void TapeWriter::append(uint64_t&& val, TapeType t) noexcept {
 		*this->nextTapeLocation = val | ((uint64_t(uint8_t(t))) << 56);
 		this->nextTapeLocation++;
 	}
 
-	template<typename T> inline void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
-		append(val, t);
+	template<typename T> inline void TapeWriter::append2(uint64_t&& val, T&& val2, TapeType t) noexcept {
+		append(std::move(val), std::move(t));
 		static_assert(sizeof(val2) == sizeof(*this->nextTapeLocation), "Type is not 64 *theBits!");
 		memcpy(this->nextTapeLocation, &val2, sizeof(val2));
 		this->nextTapeLocation++;
 	}
 
-	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
+	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t&& val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(uint8_t(t))) << 56);
 	}
 

@@ -507,7 +507,7 @@ namespace Jsonifier {
 		template<typename TapeWriter> inline static ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
 			double d{};
 			if (parseFloatFallback(src, &d)) {
-				writer.appendDouble(d);
+				writer.appendDouble(std::move(d));
 				return ErrorCode::Success;
 			}
 			return ErrorCode::InvalidNumber;
@@ -642,7 +642,7 @@ namespace Jsonifier {
 					return ErrorCode::InvalidNumber;
 				}
 			}
-			writer.appendDouble(d);
+			writer.appendDouble(std::move(d));
 			return ErrorCode::Success;
 		}
 
@@ -701,7 +701,7 @@ namespace Jsonifier {
 			}
 
 			if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-				writer.appendU64(i);
+				writer.appendU64(std::move(i));
 			} else {
 				writer.appendS64(negative ? (~i + 1) : i);
 			}
