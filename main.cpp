@@ -25,6 +25,7 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
+		std::cout << "THE CURRENT SIZE: " << theArray.size() << std::endl;
 		for (auto& value: theArray) {
 			
 			activities.emplace_back(std::move(value));
@@ -115,7 +116,7 @@ int32_t main() noexcept {
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			//TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;
 		} 
 		totalTime += stopWatch.totalTimePassed().count();
