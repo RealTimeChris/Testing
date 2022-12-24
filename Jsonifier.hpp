@@ -749,7 +749,10 @@ namespace Jsonifier {
 				case 's': {
 					return dataToParse->parseJsonInt(dataToParse);
 				}
-				case 't' | 'f': {
+				case 'f': {
+					[[fallthrough]];
+				}
+				case 't': {
 					return dataToParse->parseJsonBool(dataToParse);
 				}
 				case 'n': {
@@ -766,50 +769,51 @@ namespace Jsonifier {
 		
 		JsonParser parseJsonUint(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING UINT 0202) " << dataToParse->getUint64() << std::endl;
-			this->setValue(JsonType::Uint64);
-			this->jsonValue.numberUint = this->getUint64();
-			this->tapeIter.advance();
+			dataToParse->setValue(JsonType::Uint64);
+			dataToParse->jsonValue.numberUint = dataToParse->getUint64();
+			dataToParse->tapeIter.advance();
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonInt(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING INT 0202) " << dataToParse->getInt64() << std::endl;
-			this->setValue(JsonType::Int64);
-			this->jsonValue.numberInt = this->getInt64();
-			this->tapeIter.advance();
+			dataToParse->setValue(JsonType::Int64);
+			dataToParse->jsonValue.numberInt = dataToParse->getInt64();
+			dataToParse->tapeIter.advance();
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonObject(JsonParser* dataToParse) {
-			this->setValue(JsonType::Object);
+			dataToParse->setValue(JsonType::Object);
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
 			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
 				dataToParse->tapeIter.advance();
 				
 				for (size_t x = 0; x < currentSize; ++x) {
-					auto key = this->getKey();
+					auto key = dataToParse->getKey();
 					std::cout << "PARSING OBJECT 0202: " << dataToParse->tapeIter.peek() << std::endl;
 					std::cout << "PARSING OBJECT 0101: " << key << std::endl;
-					this->tapeIter.advance();
-					this->jsonValue.object->insert_or_assign(key,
-						JsonParser{ this->tapeIter.getTapePosition(), this->tapeIter.peekLengthOrSize(), this->tapeIter.getStringBuffer() });
+					dataToParse->tapeIter.advance();
+					dataToParse->jsonValue.object->insert_or_assign(key,
+						JsonParser{ dataToParse->tapeIter.getTapePosition(), dataToParse->tapeIter.peekLengthOrSize(),
+							dataToParse->tapeIter.getStringBuffer() });
 				}
 			}
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonArray(JsonParser* dataToParse) {
-			this->setValue(JsonType::Array);
+			dataToParse->setValue(JsonType::Array);
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
 			std::cout << "PARSING ARRAY-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
 				dataToParse->tapeIter.advance();
 				for (size_t x = 0; x < currentSize; ++x) {
 					std::cout << "PARSING ARRAY 0202: " << dataToParse->tapeIter.peek() << std::endl;
-					this->jsonValue.array->emplace_back(
-						JsonParser{ this->tapeIter.getTapePosition(), this->tapeIter.peekLengthOrSize(), this->tapeIter.getStringBuffer() });
-					this->tapeIter.advance();
+					dataToParse->jsonValue.array->emplace_back(JsonParser{ dataToParse->tapeIter.getTapePosition(),
+						dataToParse->tapeIter.peekLengthOrSize(), dataToParse->tapeIter.getStringBuffer() });
+					dataToParse->tapeIter.advance();
 				}
 			}
 			return std::move(*this);
@@ -817,32 +821,32 @@ namespace Jsonifier {
 
 		JsonParser parseJsonString(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING STRING 0202) " << dataToParse->getString() << std::endl;
-			this->setValue(JsonType::String);
-			*this->jsonValue.string = this->getString();
-			this->tapeIter.advance();
+			dataToParse->setValue(JsonType::String);
+			*dataToParse->jsonValue.string = dataToParse->getString();
+			dataToParse->tapeIter.advance();
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonFloat(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING FLOAT 0202) " << dataToParse->getFloat() << std::endl;
-			this->setValue(JsonType::Float);
-			this->jsonValue.numberDouble = this->getFloat();
-			this->tapeIter.advance();
+			dataToParse->setValue(JsonType::Float);
+			dataToParse->jsonValue.numberDouble = dataToParse->getFloat();
+			dataToParse->tapeIter.advance();
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonBool(JsonParser* dataToParse) {
-			std::cout << "CURRENT KEY: (PARSING BOOL 0202) " << dataToParse->tapeIter.peek() << std::endl;
-			this->setValue(JsonType::Bool);
-			this->jsonValue.numberDouble = this->getBool();
-			this->tapeIter.advance();
+			std::cout << "CURRENT KEY: (PARSING BOOL 0202) " <<std::boolalpha<< dataToParse->getBool() << std::endl;
+			dataToParse->setValue(JsonType::Bool);
+			dataToParse->jsonValue.numberDouble = dataToParse->getBool();
+			dataToParse->tapeIter.advance();
 			return std::move(*this);
 		}
 
 		JsonParser parseJsonNull(JsonParser* dataToParse) {
 			std::cout << "CURRENT KEY: (PARSING NULL 0202) " << dataToParse->tapeIter.peek() << std::endl;
-			this->setValue(JsonType::Null);
-			this->tapeIter.advance();
+			dataToParse->setValue(JsonType::Null);
+			dataToParse->tapeIter.advance();
 			return std::move(*this);
 		}
 

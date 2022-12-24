@@ -92,7 +92,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_04"] = 4325454;
 		arrayValueNew["TEST_VALUE_05"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_02"] = false;
+		arrayValueNew["TEST_VALUE_02"] = true;
 		arrayValueNew["TEST_VALUE_03"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_04"] = 4325454;
 		auto arrayValue = arrayValueNew;
