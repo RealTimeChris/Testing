@@ -628,7 +628,7 @@ namespace Jsonifier {
 		}
 		newBuffer[1] = encodedBytes;
 		newBuffer[2] = 0;
-		this->writeString(newBuffer, 1 + 2 + static_cast<size_t>(encodedBytes));
+		this->writeString(newBuffer, 1ull + 2ull + static_cast<size_t>(encodedBytes));
 	}
 
 	void Jsonifier::appendInt64(int64_t value) {
@@ -645,7 +645,7 @@ namespace Jsonifier {
 		} else {
 			newBuffer[2] = 1;
 		}
-		this->writeString(newBuffer, 1 + 2 + static_cast<size_t>(encodedBytes));
+		this->writeString(newBuffer, 1ull + 2ull + static_cast<size_t>(encodedBytes));
 	}
 
 	void Jsonifier::appendNewFloatExt(const double FloatValue) {

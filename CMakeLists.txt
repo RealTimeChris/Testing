@@ -16,7 +16,7 @@ project(
 	HOMEPAGE_URL "https://discordcoreapi.com"
 	DESCRIPTION "${DESCRIPTION}"
 )
-#set(CMAKE_CXX_FLAGS_DEBUG "/O2")
+
 if (UNIX)
 	set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -Ofast")
 endif()

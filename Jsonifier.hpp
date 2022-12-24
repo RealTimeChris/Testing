@@ -2145,11 +2145,11 @@ namespace Jsonifier {
 		StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 		this->generateJsonEvents(string.data(), string.size());
 		totalTimePassed += stopWatch.totalTimePassed().count();
-		std::cout << "TOTAL TIME PASSED: " << totalTimePassed / iterationCount << std::endl;
-		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
-		}
+		//std::cout << "TOTAL TIME PASSED: " << totalTimePassed / iterationCount << std::endl;
+		//if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
+		//	throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+		//std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		//}
 		this->tapeLength = (this->getTape()[0] & JSON_VALUE_MASK);
 		return JsonParser{ this->getTape(), this->tapeLength, reinterpret_cast<uint8_t*>(this->getStringBuffer()) };
 	}
