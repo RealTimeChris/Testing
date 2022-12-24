@@ -791,105 +791,16 @@ namespace Jsonifier {
 		}
 
 		template<> inline std::vector<JsonParser> getValue() {
-			std::cout << "CURRENT KEY (VECTOR): " << (this->tapeIter.peekLengthOrSize() & JSON_COUNT_MASK) << std::endl;
+			std::cout << "CURRENT KEY (VECTOR): " << (this->tapeIter.peekLengthOrSize()) << std::endl;
+			for (size_t x = 0; x < 60; ++x) {
+				std::cout << "THE CURRENT ITEM: " << this->tapeIter.advance() << std::endl;
+			}
 			std::vector<JsonParser> returnValue{};
 			return std::vector<JsonParser>{};
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
 			std::cout << "CURRENT KEY: " << this->tapeIter.peek() << std::endl;
-			for (size_t x = 0; x < 12; ++x) {
-				//std::cout << "THE TAPE IS THIS VALUE: " << x << ( char )this->tapeIter.advance() << std::endl;
-			}
-			/*
-			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
-				std::cout << "CURRENT INDEX NEW: " << (x) << std::endl;
-				std::cout << "CURRENT VALUE NEW: " << ( uint8_t )(this->tapePtrs[x] >> 56) << std::endl;
-				std::cout << "CURRENT VALUE NEW: " << (this->tapePtrs[x] & JSON_VALUE_MASK) << std::endl;
-				std::cout << "CURRENT COUNT NEWER: " << (((this->tapePtrs[x] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
-			}
-			
-			uint32_t string_length;
-			size_t tape_idx = this->currenPositionInTape;
-			uint64_t tape_val = this->tapePtrs[tape_idx];
-			uint8_t type = uint8_t(tape_val >> 56);
-			std::cout << tape_idx << " : " << type;
-			tape_idx++;
-			size_t how_many = 0;
-			if (type == 'r') {
-				how_many = size_t(tape_val & JSON_VALUE_MASK);
-			}
-			std::cout << "\t// pointing to " << how_many << " (right after last node)\n";
-			for (; tape_idx < how_many; tape_idx++) {
-				std::cout  << tape_idx << " : ";
-				tape_val = tapePtrs[tape_idx];
-				type = uint8_t(tape_val >> 56);
-				switch (type) {
-					case '"':
-						std::cout << "string \"";
-						std::memcpy(&string_length, stringBuffer + (tape_val & JSON_VALUE_MASK), sizeof(uint32_t));
-						std::cout  << EscapeJsonString(std::string_view(
-							reinterpret_cast<const uint8_t*>(stringBuffer + (tape_val & JSON_VALUE_MASK) + sizeof(uint32_t)), string_length));
-						std::cout  << '"';
-						std::cout  << '\n';
-						break;
-					case 'l':
-						if (tape_idx + 1 >= how_many) {
-							return *this;
-						}
-						std::cout  << "integer " << static_cast<int64_t>(tapePtrs[++tape_idx]) << "\n";
-						break;
-					case 'u':
-						if (tape_idx + 1 >= how_many) {
-							return *this;
-						}
-						std::cout  << "unsigned integer " << tapePtrs[++tape_idx] << "\n";
-						break;
-					case 'd':
-						std::cout  << "float ";
-						if (tape_idx + 1 >= how_many) {
-							return *this;
-						}
-						double answer;
-						std::memcpy(&answer, &tapePtrs[++tape_idx], sizeof(answer));
-						std::cout  << answer << '\n';
-						break;
-					case 'n':
-						std::cout  << "null\n";
-						break;
-					case 't':
-						std::cout  << "true\n";
-						break;
-					case 'f':
-						std::cout  << "false\n";
-						break;
-					case '{':
-						std::cout  << "{\t// pointing to next tape location " << uint32_t((tape_val & JSON_VALUE_MASK)) << " (first node after the scope), "
-						   << " saturated count " << (((tape_val & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << "\n";
-						break;
-					case '}':
-						std::cout  << "}\t// pointing to previous tape location " << uint32_t((tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
-						break;
-					case '[':
-						std::cout  << "[\t// pointing to next tape location " << uint32_t((tape_val & JSON_VALUE_MASK)) << " (first node after the scope), "
-						   << " saturated count " << (((tape_val & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << "\n";
-						break;
-					case ']':
-						std::cout  << "]\t// pointing to previous tape location " << uint32_t((tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
-						break;
-					case 'r': {
-					}
-					default: {
-					}
-				}
-			}
-			tape_val = tapePtrs[tape_idx];
-			type = uint8_t(tape_val >> 56);
-			std::cout << tape_idx << " : " << type << "\t// pointing to " << (tape_val & JSON_VALUE_MASK) << " (start root)\n";
-			
-			
-			
-			*/
 			//dumpRawTape(std::cout, this->tapeIter.getTape(), this->tapeIter.getStringBuffer());
 			auto newValue = this->tapeIter.peek();
 			
