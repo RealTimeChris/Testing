@@ -114,8 +114,8 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			theParser.getJsonData(stringNew);
-			//TheValueJson value{ std::move(jsonData) };
+			auto jsonData = theParser.getJsonData(stringNew);
+			TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;
 		} 
 		totalTime += stopWatch.totalTimePassed().count();
