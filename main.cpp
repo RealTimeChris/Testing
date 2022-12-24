@@ -112,11 +112,6 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
-		stringNew.resize(stringNew.size() + 256 - stringNew.size() % 256);
-		
-		
-			
-		
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
