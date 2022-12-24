@@ -863,7 +863,7 @@ namespace Jsonifier {
 			
 			
 			*/
-			dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
+			//dumpRawTape(std::cout, this->tapePtrs, this->stringBuffer);
 			auto newValue = uint8_t{};
 			
 			if (newValue == 'r') {
@@ -1208,13 +1208,13 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	template<size_t STEP_SIZE> struct StringBlockReader {
+	template<size_t StepSize> struct StringBlockReader {
 	  public:
 		inline StringBlockReader(const uint8_t* _buf, size_t _len);
-		inline size_t blockIndex();
-		inline bool hasFullBlock() const;
-		inline const uint8_t* fullBlock() const;
 		inline size_t getRemainder(uint8_t* dst) const;
+		inline const uint8_t* fullBlock() const;
+		inline bool hasFullBlock() const;
+		inline size_t blockIndex();
 		inline void advance();
 
 	  private:
@@ -1224,34 +1224,34 @@ namespace Jsonifier {
 		size_t idx;
 	};
 
-	template<size_t STEP_SIZE>
-	inline StringBlockReader<STEP_SIZE>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: buf{ _buf }, len{ _len }, lenminusstep{ len < STEP_SIZE ? 0 : len - STEP_SIZE }, idx{ 0 } {
+	template<size_t StepSize>
+	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
+		: buf{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
 	}
 
-	template<size_t STEP_SIZE> inline size_t StringBlockReader<STEP_SIZE>::blockIndex() {
+	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
 		return idx;
 	}
 
-	template<size_t STEP_SIZE> inline bool StringBlockReader<STEP_SIZE>::hasFullBlock() const {
+	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
 		return idx < lenminusstep;
 	}
 
-	template<size_t STEP_SIZE> inline const uint8_t* StringBlockReader<STEP_SIZE>::fullBlock() const {
+	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
 		return &buf[idx];
 	}
 
-	template<size_t STEP_SIZE> inline size_t StringBlockReader<STEP_SIZE>::getRemainder(uint8_t* dst) const {
+	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
 		if (len == idx) {
 			return 0;
-		}// memcpy(dst, null, 0) will trigger an error with some sanitizers
-		std::memset(dst, 0x20, STEP_SIZE);// std::memset STEP_SIZE because it's more efficient to write out 8 or 16 bytes at once.
+		}
+		std::memset(dst, 0x20, StepSize);
 		std::memcpy(dst, buf + idx, len - idx);
 		return len - idx;
 	}
 
-	template<size_t STEP_SIZE> inline void StringBlockReader<STEP_SIZE>::advance() {
-		idx += STEP_SIZE;
+	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
+		idx += StepSize;
 	}
 
 
@@ -1266,26 +1266,50 @@ namespace Jsonifier {
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape,
 			size_t stringLength) {
 			int cnt = static_cast<int>(__popcnt64(*theBits));
+			int64_t newValue{};
 			for (int i = 0; i < 8; i++) {
-				tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndexIntoString;
-				*theBits = _blsr_u64(*theBits);
-			}
+				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 
-			if (cnt > 8){
-				for (int i = 8; i < 16; i++) {
-					tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndexIntoString;
+				if (newValue >= stringLength) {
+					currentIndexIntoTape += cnt;
+					return cnt;
+
+				} else {
+					tapePtrs[i + currentIndexIntoTape] = newValue;
 					*theBits = _blsr_u64(*theBits);
 				}
+			}
 
-				if (cnt > 16){
+			if (cnt > 8) {
+				for (int i = 8; i < 16; i++) {
+					newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+					if (newValue >= stringLength) {
+						currentIndexIntoTape += cnt;
+						return cnt;
+
+					} else {
+						tapePtrs[i + currentIndexIntoTape] = newValue;
+						*theBits = _blsr_u64(*theBits);
+					}
+				}
+
+				if (cnt > 16) {
 					int i = 16;
 					do {
-						tapePtrs[currentIndexIntoTape++] = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndexIntoString;
-						*theBits = _blsr_u64(*theBits);
+						newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+						if (newValue >= stringLength) {
+							currentIndexIntoTape += cnt;
+							return cnt;
+
+						} else {
+							tapePtrs[i + currentIndexIntoTape] = newValue;
+							*theBits = _blsr_u64(*theBits);
+						}
 						i++;
 					} while (i < cnt);
 				}
 			}
+			currentIndexIntoTape += cnt;
 			return cnt;
 		}
 
@@ -1301,6 +1325,7 @@ namespace Jsonifier {
 				auto newValue = this->S256.getUint64(x);
 				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoTape, stringLength);
 			}
+			this->currentIndexIntoString += 256;
 			return returnValue;
 		}
 
@@ -1385,13 +1410,11 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[5], valueNew + 160);
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
-			this->currentIndexIntoString += 256;
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange(prevInString);
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals(prevScalar, followsPotentialNonQuoteScalar);
-			this->S256.printBits("THE FINAL BITS: ");
 		}
 
 	  protected:
@@ -1483,20 +1506,18 @@ namespace Jsonifier {
 					stringReader.advance();
 				}
 				uint8_t block[256];
-				if (stringReader.getRemainder(block) == 0) {
-					return;
-				}
+				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block, prevInString, prevInScalar, followsPotentialNonquoteScalar);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->tapeLength += indexCount;
 				totalTime += stopWatch.totalTimePassed().count();
-				std::cout << "TOTAL TIME PASSED: " << totalTime / iterationCount << std::endl;
-			}
-			for (size_t x = 0; x < this->tapeLength; ++x) {
-				std::cout << "THE CURRENT INDEX: " << this->structuralIndexes[x]
-						  << ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
+				//std::cout << "TOTAL TIME PASSED: " << totalTime / iterationCount << std::endl;
 			}
 			this->tapeLength -= 1;
+			//for (size_t x = 0; x < this->tapeLength; ++x) {
+				//std::cout << "THE CURRENT INDEX: " << this->structuralIndexes[x]
+						  //<< ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
+			//}
 			
 		}
 
@@ -2214,10 +2235,10 @@ namespace Jsonifier {
 	
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
-		}
+		//if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
+		//throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+		//			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		//}
 		this->tapeLength = (this->getTape()[0] & JSON_VALUE_MASK);
 		return JsonParser{ this->getTape(), this->getTapeLength(), this->stringBuffer.get() };
 	}
