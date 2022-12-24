@@ -635,6 +635,7 @@ namespace Jsonifier {
 	class TapeIterator {
 	  public:
 		TapeIterator() noexcept = default;
+
 		TapeIterator(uint8_t* bufferNew, uint64_t* tapePositionNew) {
 			this->initialTapePosition = tapePositionNew;
 			this->tapePosition = tapePositionNew;
@@ -707,13 +708,7 @@ namespace Jsonifier {
 	class JsonParser {
 	  public:
 		JsonParser& operator=(JsonParser&& other) noexcept {
-			this->currentStructuralCount = other.currentStructuralCount;
-			this->currenPositionInTape = other.currenPositionInTape;
-			other.currenPositionInTape = 0;
-			other.currentStructuralCount = 0;
-			this->stringBuffer = other.stringBuffer;
-			this->stringBuffer = std::move(other.stringBuffer);
-			this->tapePtrs = other.tapePtrs;
+			this->tapeIter = other.tapeIter;
 			return *this;
 		}
 
@@ -725,9 +720,7 @@ namespace Jsonifier {
 		}
 
 		JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew) {
-			this->stringBuffer = stringBufferNew;
-			this->currentStructuralCount = count;
-			this->tapePtrs = tapePtrsNew;
+			this->tapeIter = TapeIterator{ stringBufferNew, tapePtrsNew };
 		}
 
 		template<typename OTy> inline OTy getValue();
@@ -758,9 +751,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline std::string getValue() {
-			std::string returnValue{ reinterpret_cast<char*>(this->stringBuffer[(this->tapePtrs[this->currenPositionInTape] & JSON_VALUE_MASK)]),
-				static_cast<size_t>((this->tapePtrs[this->currenPositionInTape + 1] & JSON_VALUE_MASK) -
-					(this->tapePtrs[this->currenPositionInTape] & JSON_VALUE_MASK)) };
+			std::string returnValue{};
 			return returnValue;
 		}
 
@@ -774,6 +765,9 @@ namespace Jsonifier {
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
+			for (size_t x = 0; x < 12; ++x) {
+				std::cout << "THE TAPE IS THIS VALUE: " << this->tapeIter.advance() << std::endl;
+			}
 			/*
 			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
 				std::cout << "CURRENT INDEX NEW: " << (x) << std::endl;
@@ -867,21 +861,17 @@ namespace Jsonifier {
 			auto newValue = uint8_t{};
 			
 			if (newValue == 'r') {
-				this->type = JsonType::Object;
 				return *this;
 			}
 			if (newValue == '[') {
-				this->type = JsonType::Array;
 				return *this;
 			}
 			if (newValue == '{') {
-				this->type = JsonType::Object;
 				return this->operator[](key);
 			}
 			if (newValue == '\"') {
 				auto theString = this->getString();
 				if (key == theString) {
-					this->type = JsonType::String;
 					return *this;
 
 				} else {
@@ -889,23 +879,18 @@ namespace Jsonifier {
 				}
 			}
 			if (newValue == 's') {
-				this->type = JsonType::Int64;
 				return *this;
 			}
 			if (newValue == 'd') {
-				this->type = JsonType::Float;
 				return *this;
 			}
 			if (newValue == 'l') {
-				this->type = JsonType::Uint64;
 				return *this;
 			}
 			if (newValue == 't' || newValue == 'f') {
-				this->type = JsonType::Bool;
 				return *this;
 			}
 			if (newValue == 'n') {
-				this->type = JsonType::Null;
 				return *this;
 			}
 			return *this;
@@ -916,11 +901,7 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		uint8_t* stringBuffer{ nullptr };
-		size_t currentStructuralCount{};
-		uint64_t* tapePtrs{ nullptr };
-		size_t currenPositionInTape{};
-		JsonType type{};
+		TapeIterator tapeIter{};
 	};
 
 	class SimdBase256;

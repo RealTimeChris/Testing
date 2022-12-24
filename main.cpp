@@ -49,10 +49,10 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		//this->TEST_VALUE_03 = DiscordCoreAPI::getString(value, "TEST_VALUE_03");
-		//this->TEST_VALUE_01 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_01");
-		//this->TEST_VALUE_02 = DiscordCoreAPI::getBool(value, "TEST_VALUE_02");
-		//this->TEST_VALUE_04 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_04");
+		this->TEST_VALUE_03 = DiscordCoreAPI::getString(value, "TEST_VALUE_03");
+		this->TEST_VALUE_01 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_01");
+		this->TEST_VALUE_02 = DiscordCoreAPI::getBool(value, "TEST_VALUE_02");
+		this->TEST_VALUE_04 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_04");
 	};
 	double TEST_VALUE_01{};
 	bool TEST_VALUE_02{};
@@ -64,13 +64,13 @@ struct TheD {
 	TheD() noexcept = default;
 	TheD(simdjson::ondemand::value value) {
 		simdjson::ondemand::value valueNew{};
-		//value["d"].get(valueNew);
-		//auto theArray = DiscordCoreAPI::getArray(valueNew, "activitiess");
-		//		if (theArray.didItSucceed) {
-		//for (auto value: theArray.arrayValue) {
-		//activities.emplace_back(value.value());
-		//			}
-		//}
+		value["d"].get(valueNew);
+		auto theArray = DiscordCoreAPI::getArray(valueNew, "activitiess");
+		if (theArray.didItSucceed) {
+			for (auto value: theArray.arrayValue) {
+				activities.emplace_back(value.value());
+			}
+		}
 	}
 	std::vector<Activities> activities{};
 };
@@ -114,8 +114,8 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			theParser.getJsonData(stringNew);
+			//TheValueJson value{ std::move(jsonData) };
 			totalSize += oldSize;
 		} 
 		totalTime += stopWatch.totalTimePassed().count();

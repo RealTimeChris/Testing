@@ -216,18 +216,6 @@ namespace Jsonifier {
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-		template<typename SimdBase256> inline static int32_t trailingZeroCount(SimdBase256 toCount) {
-			int32_t returnValue{};
-			for (size_t x = 0; x < 4; ++x) {
-				auto value = _tzcnt_u64(toCount.getUint64(x));
-				if (value < 64) {
-					return value;
-				}
-				returnValue += value;
-			}
-			return returnValue;
-		}
-
 		template<typename SimdBase256> inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
 			SimdBase256 values{ reinterpret_cast<const uint8_t*>(src) };
 
