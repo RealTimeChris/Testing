@@ -728,41 +728,33 @@ namespace Jsonifier {
 			}
 			switch (dataToParse->tapeIter.peek()) {
 				case '{': {
-					std::cout << "CURRENT KEY: (OBJECT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonObject(dataToParse);
 				}
 				case '[': {
-					std::cout << "CURRENT KEY: (ARRAY) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonArray(dataToParse);
 				}
 				case '"': {
-					std::cout << "CURRENT KEY: (STRING) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonString(dataToParse);
 				}
 				case 'd': {
-					std::cout << "CURRENT KEY: (FLOAT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonFloat(dataToParse);
 				}
 				case 'l': {
-					std::cout << "CURRENT KEY: (UINT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonUint(dataToParse);
 				}
 				case 's': {
-					std::cout << "CURRENT KEY: (INT) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonInt(dataToParse);
 				}
 				case 'f': {
 					[[fallthrough]];
 				}
 				case 't': {
-					std::cout << "CURRENT KEY: (BOOL) " << dataToParse->getString() << std::endl;
 					return dataToParse->parseJsonBool(dataToParse);
 				}
 				case 'n': {
 					return dataToParse->parseJsonNull(dataToParse);
 				}
 				case 'r': {
-					std::cout << "CURRENT KEY: (PARSING OBJECT)0202 " << dataToParse->tapeIter.peek() << std::endl;
 					dataToParse->setValue(JsonType::Object);
 					dataToParse->tapeIter.advance();
 					return parseJson(dataToParse);
