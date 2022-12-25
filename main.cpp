@@ -7,15 +7,19 @@
 #include "DataParsingFunctionc.hpp"
 #include <fstream>
 
+Jsonifier ::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+int64_t iterationCount{};
+int64_t totalTime{};
+
 struct ActivitiesJson {
 	ActivitiesJson(Jsonifier::JsonParser&& value) {
 		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
 		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string_view>();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
 		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<uint64_t>();
 		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
 		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string_view>();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
 		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<uint64_t>();
 	};
 	double TEST_VALUE_00{};
@@ -33,10 +37,16 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theObject = std::move(value["d"]);
 		auto theArray = std::move(theObject["activitiess"]);
+		iterationCount = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
 		for (auto& value: theArray.getValue<std::vector<Jsonifier::JsonParser>>()) {
+			iterationCount++;
 			
 			activities.emplace_back(std::move(value));
+			totalTime += stopWatch.totalTimePassed().count();
 		}
+		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<ActivitiesJson> activities{};
 };
@@ -57,14 +67,14 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_00");
-		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
-		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
-		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_04 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
-		this->TEST_VALUE_05 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
-		this->TEST_VALUE_06 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
 		this->TEST_VALUE_07 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_07");
+		this->TEST_VALUE_06 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
+		this->TEST_VALUE_05 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
+		this->TEST_VALUE_04 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
+		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_00");
+		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
+		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -83,10 +93,17 @@ struct TheD {
 		value["d"].get(valueNew);
 		auto theArray = DiscordCoreAPI::getArray(valueNew, "activitiess");
 		if (theArray.didItSucceed) {
-			for (auto value: theArray.arrayValue) {
-				activities.emplace_back(value.value());
+			iterationCount = 0;
+			totalTime = 0;
+			iterationCount++;
+			stopWatch.resetTimer();
+			for (auto value : theArray.arrayValue) {
+				activities.emplace_back(std::move(value));
+				totalTime += stopWatch.totalTimePassed().count();
 			}
+			
 		}
+		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<Activities> activities{};
 };
@@ -111,7 +128,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto arrayValue = arrayValueNew;
-		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
+		arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 2; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
@@ -128,9 +145,9 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::string stringNewer = stringNew;
 		stopWatch.resetTimer();
-		
+
+		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			Jsonifier::SimdJsonValue theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -150,10 +167,10 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
-		
+
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			totalSize += oldSize;
