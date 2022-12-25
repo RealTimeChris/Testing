@@ -24,9 +24,11 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
-		auto theArray = value["d"]["activitiess"].getValue<std::vector<Jsonifier::JsonParser>>();
+		auto theObject = std::move(value["d"]);
+		std::cout << "THE CURRENT SIZE: " << theObject.size() << std::endl;
+		auto theArray = std::move(theObject["activitiess"]);
 		std::cout << "THE CURRENT SIZE: " << theArray.size() << std::endl;
-		for (auto& value: theArray) {
+		for (auto& value: theArray.getValue<std::vector<Jsonifier::JsonParser>>()) {
 			
 			activities.emplace_back(std::move(value));
 		}

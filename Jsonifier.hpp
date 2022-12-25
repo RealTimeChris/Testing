@@ -648,6 +648,7 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t advance() noexcept {
+			std::cout << "CURRENT STRUCTURAL: " << this->peek() << std::endl;
 			return (*(tapePosition++)) >> 56;
 		}
 
@@ -723,41 +724,41 @@ namespace Jsonifier {
 		};
 
 		JsonParser parseJson(JsonParser*dataToParse) {
-			if (this->tapeIter.atEof()) {
-				return std::move(*this);
+			if (dataToParse->tapeIter.atEof()) {
+				return std::move(*dataToParse);
 			}
-			std::cout << "CURRENT STRUCTURAL (REAL): " << this->tapeIter.peek() << std::endl;
-			switch (this->tapeIter.peek()) {
+			std::cout << "CURRENT STRUCTURAL (REAL): " << dataToParse->tapeIter.peek() << std::endl;
+			switch (dataToParse->tapeIter.peek()) {
 				case '{': {
-					return this->parseJsonObject(dataToParse);
+					return dataToParse->parseJsonObject(dataToParse);
 				}
 				case '[': {
-					return this->parseJsonArray(dataToParse);
+					return dataToParse->parseJsonArray(dataToParse);
 				}
 				case '"': {
-					return this->parseJsonString(dataToParse);
+					return dataToParse->parseJsonString(dataToParse);
 				}
 				case 'd': {
-					return this->parseJsonFloat(dataToParse);
+					return dataToParse->parseJsonFloat(dataToParse);
 				}
 				case 'l': {
-					return this->parseJsonUint(dataToParse);
+					return dataToParse->parseJsonUint(dataToParse);
 				}
 				case 's': {
-					return this->parseJsonInt(dataToParse);
+					return dataToParse->parseJsonInt(dataToParse);
 				}
 				case 'f': {
 					[[fallthrough]];
 				}
 				case 't': {
-					return this->parseJsonBool(dataToParse);
+					return dataToParse->parseJsonBool(dataToParse);
 				}
 				case 'n': {
-					return this->parseJsonNull(dataToParse);
+					return dataToParse->parseJsonNull(dataToParse);
 				}
 				case 'r': {
-					this->setValue(JsonType::Object);
-					this->tapeIter.advance();
+					dataToParse->setValue(JsonType::Object);
+					dataToParse->tapeIter.advance();
 					return parseJson(dataToParse);
 				}
 			}
@@ -786,7 +787,6 @@ namespace Jsonifier {
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
 			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
-				dataToParse->tapeIter.advance();
 				for (size_t x = 0; x < currentSize; ++x) {
 					auto key = dataToParse->getKey();
 					std::cout << "PARSING OBJECT KEY: " << key << std::endl;
@@ -794,7 +794,6 @@ namespace Jsonifier {
 					dataToParse->jsonValue.object->emplace(key,
 						JsonParser{ dataToParse->tapeIter.getTapePosition(), dataToParse->tapeIter.peekLengthOrSize(),
 							dataToParse->tapeIter.getStringBuffer() });
-
 					dataToParse->tapeIter.advance();
 				}
 			}
@@ -812,6 +811,7 @@ namespace Jsonifier {
 					std::cout << "LENGTH OR SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 					dataToParse->jsonValue.array->emplace_back(JsonParser{ dataToParse->tapeIter.getTapePosition(),
 						dataToParse->tapeIter.peekLengthOrSize(), dataToParse->tapeIter.getStringBuffer() });
+					dataToParse->tapeIter.advance();
 				}
 			}
 			return std::move(*dataToParse);
@@ -1035,10 +1035,9 @@ namespace Jsonifier {
 		}
 
 		inline std::string_view getKey() {
-			std::cout << "CURRENT KEY: " << this->getString() << std::endl;
-			auto returnValue = this->getString();
 			this->tapeIter.advance();
-			return returnValue;
+			std::cout << "CURRENT KEY: " << this->getString() << std::endl;
+			return this->getString();
 		}
 
 		template<> inline JsonParser getValue() {
@@ -1054,7 +1053,15 @@ namespace Jsonifier {
 			auto newValue = this->tapeIter.peek();
 			switch (this->type) {
 				case JsonType::Object: {
-					return this->jsonValue.object->at(static_cast<std::string_view>(key));
+					if (this->jsonValue.object->contains(key)) {
+						std::cout << "THE KEYS: " << this->jsonValue.object->begin().operator*().first << std::endl;
+						std::cout << "THE KEYS (SECOND): "
+								  << ( int32_t )this->jsonValue.object->begin().operator*().second.jsonValue.array->begin().operator*().type
+								  << std::endl;
+						return this->jsonValue.object->at(static_cast<std::string_view>(key));
+					} else {
+						throw JsonifierException{ "Sorry, but that key does not exist!" };
+					}
 				}
 				default: {
 					std::cout << "CURRENT KEY []OPERATOR: " << key << std::endl;
