@@ -732,7 +732,7 @@ namespace Jsonifier {
 
 		JsonParser parseJson(JsonParser*dataToParse) {
 			if (dataToParse->tapeIter.atEof()) {
-				return std::move(*dataToParse);
+				return *dataToParse;
 			}
 			switch (dataToParse->tapeIter.peek()) {
 				case '{': {
@@ -861,6 +861,31 @@ namespace Jsonifier {
 			return returnData;
 		}
 
+		void setValue(JsonType typeNew) const {
+			this->destroy();
+			this->type = typeNew;
+			switch (this->type) {
+				case JsonType::Object: {
+					AllocatorType<ObjectType> allocator{};
+					this->jsonValue.object = AllocatorTraits<ObjectType>::allocate(allocator, 1);
+					AllocatorTraits<ObjectType>::construct(allocator, this->jsonValue.object);
+					break;
+				}
+				case JsonType::Array: {
+					AllocatorType<ArrayType> allocator{};
+					this->jsonValue.array = AllocatorTraits<ArrayType>::allocate(allocator, 1);
+					AllocatorTraits<ArrayType>::construct(allocator, this->jsonValue.array);
+					break;
+				}
+				case JsonType::String: {
+					AllocatorType<StringType> allocator{};
+					this->jsonValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
+					AllocatorTraits<StringType>::construct(allocator, this->jsonValue.string);
+					break;
+				}
+			}
+		}
+
 		void setValue(JsonType typeNew) {
 			this->destroy();
 			this->type = typeNew;
@@ -881,6 +906,29 @@ namespace Jsonifier {
 					AllocatorType<StringType> allocator{};
 					this->jsonValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
 					AllocatorTraits<StringType>::construct(allocator, this->jsonValue.string);
+					break;
+				}
+			}
+		}
+
+		void destroy() const noexcept {
+			switch (this->type) {
+				case JsonType::Object: {
+					AllocatorType<ObjectType> allocator{};
+					AllocatorTraits<ObjectType>::destroy(allocator, this->jsonValue.object);
+					AllocatorTraits<ObjectType>::deallocate(allocator, this->jsonValue.object, 1);
+					break;
+				}
+				case JsonType::Array: {
+					AllocatorType<ArrayType> allocator{};
+					AllocatorTraits<ArrayType>::destroy(allocator, this->jsonValue.array);
+					AllocatorTraits<ArrayType>::deallocate(allocator, this->jsonValue.array, 1);
+					break;
+				}
+				case JsonType::String: {
+					AllocatorType<StringType> allocator{};
+					AllocatorTraits<StringType>::destroy(allocator, this->jsonValue.string);
+					AllocatorTraits<StringType>::deallocate(allocator, this->jsonValue.string, 1);
 					break;
 				}
 			}
@@ -930,22 +978,22 @@ namespace Jsonifier {
 			this->destroy();
 		}
 
-		JsonType type{ JsonType::Null };
-		JsonValue jsonValue{};
+		mutable JsonType type{ JsonType::Null };
+		mutable JsonValue jsonValue{};
 
 		JsonParser& operator=(JsonParser&& other) noexcept {
 			this->setValue(this->type);
 			switch (this->type) {
 				case JsonType::Object: {
-					this->jsonValue.object = other.jsonValue.object;
+					*this->jsonValue.object = std::move(*other.jsonValue.object);
 					break;
 				}
 				case JsonType::Array: {
-					this->jsonValue.array = other.jsonValue.array;
+					*this->jsonValue.array = std::move(*other.jsonValue.array);
 					break;
 				}
 				case JsonType::String: {
-					this->jsonValue.string = other.jsonValue.string;
+					*this->jsonValue.string = std::move(*other.jsonValue.string);
 					break;
 				}
 				case JsonType::Bool: {
@@ -966,8 +1014,8 @@ namespace Jsonifier {
 				}
 			}
 			std::cout << "CURRENT TYPE: "<< (int32_t)this->type<< std::endl;
-			//this->tapeIter = other.tapeIter;
-			//other.type = JsonType::Null;
+			this->tapeIter = other.tapeIter;
+			other.setValue(JsonType::Null);
 			return *this;
 		}
 
@@ -975,8 +1023,47 @@ namespace Jsonifier {
 			*this = std::move(other);
 		}
 
-		JsonParser& operator=(const JsonParser&) = delete;
-		JsonParser(const JsonParser&) = delete;
+		JsonParser& operator=(const JsonParser& other) noexcept {
+			this->setValue(this->type);
+			switch (this->type) {
+				case JsonType::Object: {
+					*this->jsonValue.object = *other.jsonValue.object;
+					break;
+				}
+				case JsonType::Array: {
+					*this->jsonValue.array = *other.jsonValue.array;
+					break;
+				}
+				case JsonType::String: {
+					*this->jsonValue.string = *other.jsonValue.string;
+					break;
+				}
+				case JsonType::Bool: {
+					this->jsonValue.boolean = other.jsonValue.boolean;
+					break;
+				}
+				case JsonType::Int64: {
+					this->jsonValue.numberInt = other.jsonValue.numberInt;
+					break;
+				}
+				case JsonType::Uint64: {
+					this->jsonValue.numberUint = other.jsonValue.numberUint;
+					break;
+				}
+				case JsonType::Float: {
+					this->jsonValue.numberDouble = other.jsonValue.numberDouble;
+					break;
+				}
+			}
+			std::cout << "CURRENT TYPE: " << ( int32_t )this->type << std::endl;
+			this->tapeIter = other.tapeIter;
+			other.setValue(JsonType::Null);
+			return *this;
+		}
+
+		JsonParser(const JsonParser& other) noexcept {
+			*this = other;
+		}
 
 		JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew) {
 			this->tapeIter = TapeIterator{ stringBufferNew, tapePtrsNew, count };
