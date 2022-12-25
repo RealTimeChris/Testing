@@ -774,7 +774,7 @@ namespace Jsonifier {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Uint64);
 			returnData.jsonValue.numberDouble = dataToParse->getUint64();
-			std::cout << "VALUE: (PARSING UINT 0202) " << dataToParse->getFloat() << std::endl;
+			std::cout << "VALUE: (PARSING UINT 0202) " << dataToParse->getUint64() << std::endl;
 			dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
 			return returnData;
@@ -784,7 +784,7 @@ namespace Jsonifier {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Int64);
 			returnData.jsonValue.numberDouble = dataToParse->getInt64();
-			std::cout << "VALUE: (PARSING INT 0202) " << dataToParse->getFloat() << std::endl;
+			std::cout << "VALUE: (PARSING INT 0202) " << dataToParse->getInt64() << std::endl;
 			dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
 			return returnData;
@@ -793,7 +793,6 @@ namespace Jsonifier {
 		JsonParser parseJsonObject(JsonParser* dataToParse) {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Object);
-			std::cout << "VALUE: (PARSING STRING 0202) " << dataToParse->getFloat() << std::endl;
 			dataToParse->tapeIter.advance();
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
 			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
@@ -812,7 +811,6 @@ namespace Jsonifier {
 		JsonParser parseJsonArray(JsonParser* dataToParse) {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Array);
-			std::cout << "VALUE: (PARSING STRING 0202) " << dataToParse->getFloat() << std::endl;
 			dataToParse->tapeIter.advance();
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
 			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
@@ -2306,12 +2304,14 @@ namespace Jsonifier {
 	
 	Scope_End : {
 		this->depth--;
+		
 		if (this->depth == 0) {
 			goto Document_End;
 		}
 		if (masterParser->getIsArray()[this->depth]) {
 			goto Array_Continue;
 		}
+		this->masterParser->getTapeLength()++;
 		goto Object_Continue;
 	}
 
