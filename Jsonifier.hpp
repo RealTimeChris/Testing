@@ -719,25 +719,6 @@ namespace Jsonifier {
 
 		union JsonValue {
 			JsonValue() noexcept = default;
-			JsonValue& operator=(JsonValue&&other) {
-				if (other.array) {
-					this->array = other.array;
-					other.array = nullptr;
-				}
-				if (other.object) {
-					this->object = other.object;
-					other.object = nullptr;
-				}
-				if (other.string) {
-					this->string = other.string;
-					other.string = nullptr;
-				}
-				return *this;
-			};
-			
-			JsonValue(JsonValue&& other) noexcept {
-				*this = std::move(other);
-			};
 			JsonValue& operator=(const JsonValue&) noexcept = delete;
 			JsonValue(const JsonValue&) noexcept = delete;
 			ObjectType* object;
@@ -947,9 +928,22 @@ namespace Jsonifier {
 		JsonValue jsonValue{};
 
 		JsonParser& operator=(JsonParser&& other) noexcept {
-			this->jsonValue = std::move(other.jsonValue);
-			this->tapeIter = other.tapeIter;
 			this->type = other.type;
+			switch (this->type) {
+				case JsonType::Object: {
+					this->jsonValue.object = other.jsonValue.object;
+					break;
+				}
+				case JsonType::Array: {
+					this->jsonValue.array = other.jsonValue.array;
+					break;
+				}
+				case JsonType::String: {
+					this->jsonValue.string = other.jsonValue.string;
+					break;
+				}
+			}
+			this->tapeIter = other.tapeIter;
 			other.type = JsonType::Null;
 			return *this;
 		}
