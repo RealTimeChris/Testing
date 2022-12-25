@@ -9,10 +9,12 @@
 
 struct ActivitiesJson {
 	ActivitiesJson(Jsonifier::JsonParser&& value) {
-		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<std::string>();
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<double>();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<bool>();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<int64_t>();
+		std::cout << "THE TYPE: " << ( int32_t )value.getType() << std::endl;
+		this->TEST_VALUE_03 = value["TEST_VALUE_02"].getValue<std::string>();
+		std::cout << "THE TYPE: " << this->TEST_VALUE_03 << std::endl;
+		//this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<double>();
+		//this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<bool>();
+		//this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<int64_t>();
 		
 	};
 	double TEST_VALUE_01{};
@@ -25,9 +27,9 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theObject = std::move(value["d"]);
-		std::cout << "THE CURRENT SIZE: " << theObject.size() << std::endl;
+		std::cout << "THE CURRENT SIZE: (REAL) " << theObject.size() << std::endl;
 		auto theArray = std::move(theObject["activitiess"]);
-		std::cout << "THE CURRENT SIZE: " << theArray.size() << std::endl;
+		std::cout << "THE CURRENT SIZE: (REAL2) " << theArray.size() << std::endl;
 		for (auto& value: theArray.getValue<std::vector<Jsonifier::JsonParser>>()) {
 			
 			activities.emplace_back(std::move(value));
@@ -93,6 +95,10 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_01"] = true;
 		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_03"] = 4325454;
+		arrayValueNew["TEST_VALUE_04"] = 0.00333423;
+		arrayValueNew["TEST_VALUE_05"] = true;
+		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 1; ++x) {
