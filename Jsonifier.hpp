@@ -652,7 +652,12 @@ namespace Jsonifier {
 		}
 
 		inline bool atEof() {
-			return (this->tapePosition - this->initialTapePosition) >= this->currentStructuralCount;
+			if((this->tapePosition - this->initialTapePosition) >= this->currentStructuralCount){
+				std::cout << "WERE AT EOF AT EOF!" << std::endl;
+				return true;
+			} else {
+				return false;
+			}
 		}
 
 		inline uint8_t peek() const noexcept {
@@ -707,7 +712,7 @@ namespace Jsonifier {
 		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
 		using ObjectType = std::map<std::string_view, JsonParser, std::less<>, MapAllocatorType>;
 		using ArrayType = std::vector<JsonParser>;
-		using StringType = std::string;
+		using StringType = std::string_view;
 		using FloatType = double;
 		using UintType = uint64_t;
 		using IntType = int64_t;
@@ -795,7 +800,6 @@ namespace Jsonifier {
 			if (currentSize > 0) {
 				for (size_t x = 0; x < currentSize; ++x) {
 					auto key = dataToParse->getKey();
-					dataToParse->tapeIter.peekLengthOrSize();
 					returnData.jsonValue.object->emplace(key, dataToParse->parseJson(dataToParse));
 				}
 			}
@@ -807,10 +811,9 @@ namespace Jsonifier {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Array);
 			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
-			dataToParse->tapeIter.advance();
 			if (currentSize > 0) {
 				for (size_t x = 0; x < currentSize; ++x) {
-					dataToParse->tapeIter.peekLengthOrSize();
+					dataToParse->tapeIter.advance();
 					returnData.jsonValue.array->emplace_back(dataToParse->parseJson(dataToParse));
 				}
 			}
@@ -1135,14 +1138,14 @@ namespace Jsonifier {
 			if (this->type != JsonType::String) {
 				throw JsonifierException{ "Sorry, but this object's type is not String!" };
 			}
-			return *this->jsonValue.string;
+			return static_cast<std::string>(*this->jsonValue.string);
 		}
 
 		template<> inline std::string_view getValue() {
 			if (this->type != JsonType::String) {
 				throw JsonifierException{ "Sorry, but this object's type is not String!" };
 			}
-			return *this->jsonValue.string;
+			return std::move(*this->jsonValue.string);
 		}
 
 		bool getBool() {
@@ -2470,7 +2473,6 @@ namespace Jsonifier {
 
 		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
 
-		// If we didn't make it to the end, it's an error
 		if (nextStructuralIndex != this->masterParser->getStructuralIndexCount()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
@@ -2544,6 +2546,7 @@ namespace Jsonifier {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
+
 		return JsonParser{ this->getTape(), this->getTapeLength(), this->stringBuffer.get() };
 	}
 
