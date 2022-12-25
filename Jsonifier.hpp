@@ -763,6 +763,9 @@ namespace Jsonifier {
 					dataToParse->tapeIter.advance();
 					return parseJson(dataToParse);
 				}
+				default: {
+					return *dataToParse;
+				}
 			}
 		}
 
