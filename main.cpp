@@ -93,12 +93,12 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_03"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 60; ++x) {
-			serializer["d"]["activitiess"].emplaceBack(arrayValueNew);
+		for (size_t x = 0; x < 1; ++x) {
+			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ serializer.operator std::string&&() };
+		std::string stringNew{ serializer.operator std::string() };
 
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};

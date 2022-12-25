@@ -98,7 +98,7 @@ namespace Jsonifier {
 		std::atomic<TTy> startTime{ TTy{ 0 } };
 	};
 
-	constexpr uint8_t formatVersion{ 131 };
+	const uint8_t formatVersion{ 131 };
 
 	enum class EtfType : uint8_t {
 		New_Float_Ext = 70,
@@ -120,7 +120,7 @@ namespace Jsonifier {
 	struct EnumConverter {
 		template<IsEnum EnumType> EnumConverter& operator=(const std::vector<EnumType>& data) {
 			for (auto& value: data) {
-				this->vector.emplace_back(std::move(static_cast<size_t>(value)));
+				this->vector.emplace_back(std::move(static_cast<uint64_t>(value)));
 			}
 			return *this;
 		};
@@ -130,7 +130,7 @@ namespace Jsonifier {
 		};
 
 		template<IsEnum EnumType> EnumConverter& operator=(EnumType data) {
-			this->integer = static_cast<size_t>(data);
+			this->integer = static_cast<uint64_t>(data);
 			return *this;
 		};
 
@@ -192,7 +192,7 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>&& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& value: data) {
-				this->jsonValue.array->emplace_back(std::move(value));
+				this->jsonValue.array->push_back(std::move(value));
 			}
 			return *this;
 		}
@@ -204,7 +204,7 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& value: data) {
-				this->jsonValue.array->emplace_back(value);
+				this->jsonValue.array->push_back(value);
 			}
 			return *this;
 		}
@@ -262,7 +262,7 @@ namespace Jsonifier {
 		};
 
 		template<IsEnum Ty> Jsonifier& operator=(Ty data) noexcept {
-			this->jsonValue.numberUint = static_cast<size_t>(data);
+			this->jsonValue.numberUint = static_cast<uint64_t>(data);
 			this->type = JsonType::Uint64;
 			return *this;
 		}
@@ -722,41 +722,42 @@ namespace Jsonifier {
 			BoolType boolean;
 		};
 
-		JsonParser parseJson(JsonParser* dataToParse ) {
-			if (dataToParse->tapeIter.atEof()) {
+		JsonParser parseJson(JsonParser*dataToParse) {
+			if (this->tapeIter.atEof()) {
 				return std::move(*this);
 			}
-			switch (dataToParse->tapeIter.peek()) {
+			std::cout << "CURRENT STRUCTURAL (REAL): " << this->tapeIter.peek() << std::endl;
+			switch (this->tapeIter.peek()) {
 				case '{': {
-					return dataToParse->parseJsonObject(dataToParse);
+					return this->parseJsonObject(dataToParse);
 				}
 				case '[': {
-					return dataToParse->parseJsonArray(dataToParse);
+					return this->parseJsonArray(dataToParse);
 				}
 				case '"': {
-					return dataToParse->parseJsonString(dataToParse);
+					return this->parseJsonString(dataToParse);
 				}
 				case 'd': {
-					return dataToParse->parseJsonFloat(dataToParse);
+					return this->parseJsonFloat(dataToParse);
 				}
 				case 'l': {
-					return dataToParse->parseJsonUint(dataToParse);
+					return this->parseJsonUint(dataToParse);
 				}
 				case 's': {
-					return dataToParse->parseJsonInt(dataToParse);
+					return this->parseJsonInt(dataToParse);
 				}
 				case 'f': {
 					[[fallthrough]];
 				}
 				case 't': {
-					return dataToParse->parseJsonBool(dataToParse);
+					return this->parseJsonBool(dataToParse);
 				}
 				case 'n': {
-					return dataToParse->parseJsonNull(dataToParse);
+					return this->parseJsonNull(dataToParse);
 				}
 				case 'r': {
-					dataToParse->setValue(JsonType::Object);
-					dataToParse->tapeIter.advance();
+					this->setValue(JsonType::Object);
+					this->tapeIter.advance();
 					return parseJson(dataToParse);
 				}
 			}
@@ -767,7 +768,8 @@ namespace Jsonifier {
 			dataToParse->setValue(JsonType::Uint64);
 			dataToParse->jsonValue.numberUint = dataToParse->getUint64();
 			dataToParse->tapeIter.advance();
-			return std::move(*this);
+			dataToParse->tapeIter.advance();
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonInt(JsonParser* dataToParse) {
@@ -775,7 +777,8 @@ namespace Jsonifier {
 			dataToParse->setValue(JsonType::Int64);
 			dataToParse->jsonValue.numberInt = dataToParse->getInt64();
 			dataToParse->tapeIter.advance();
-			return std::move(*this);
+			dataToParse->tapeIter.advance();
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonObject(JsonParser* dataToParse) {
@@ -784,17 +787,18 @@ namespace Jsonifier {
 			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
 				dataToParse->tapeIter.advance();
-				
 				for (size_t x = 0; x < currentSize; ++x) {
 					auto key = dataToParse->getKey();
 					std::cout << "PARSING OBJECT KEY: " << key << std::endl;
-					dataToParse->tapeIter.advance();
-					dataToParse->jsonValue.object->insert_or_assign(key,
+					std::cout << "LENGTH OR SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
+					dataToParse->jsonValue.object->emplace(key,
 						JsonParser{ dataToParse->tapeIter.getTapePosition(), dataToParse->tapeIter.peekLengthOrSize(),
 							dataToParse->tapeIter.getStringBuffer() });
+
+					dataToParse->tapeIter.advance();
 				}
 			}
-			return std::move(*this);
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonArray(JsonParser* dataToParse) {
@@ -805,12 +809,12 @@ namespace Jsonifier {
 				dataToParse->tapeIter.advance();
 				for (size_t x = 0; x < currentSize; ++x) {
 					std::cout << "PARSING ARRAY 0202: " << dataToParse->tapeIter.peek() << std::endl;
+					std::cout << "LENGTH OR SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 					dataToParse->jsonValue.array->emplace_back(JsonParser{ dataToParse->tapeIter.getTapePosition(),
 						dataToParse->tapeIter.peekLengthOrSize(), dataToParse->tapeIter.getStringBuffer() });
-					dataToParse->tapeIter.advance();
 				}
 			}
-			return std::move(*this);
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonString(JsonParser* dataToParse) {
@@ -818,15 +822,17 @@ namespace Jsonifier {
 			dataToParse->setValue(JsonType::String);
 			*dataToParse->jsonValue.string = dataToParse->getString();
 			dataToParse->tapeIter.advance();
-			return std::move(*this);
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonFloat(JsonParser* dataToParse) {
 			std::cout << "VALUE: (PARSING FLOAT 0202) " << dataToParse->getFloat() << std::endl;
 			dataToParse->setValue(JsonType::Float);
 			dataToParse->jsonValue.numberDouble = dataToParse->getFloat();
+			//dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
-			return std::move(*this);
+			dataToParse->tapeIter.advance();
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonBool(JsonParser* dataToParse) {
@@ -834,14 +840,13 @@ namespace Jsonifier {
 			dataToParse->setValue(JsonType::Bool);
 			dataToParse->jsonValue.numberDouble = dataToParse->getBool();
 			dataToParse->tapeIter.advance();
-			return std::move(*this);
+			return std::move(*dataToParse);
 		}
 
 		JsonParser parseJsonNull(JsonParser* dataToParse) {
 			std::cout << "VALUE: (PARSING NULL 0202) " << dataToParse->tapeIter.peek() << std::endl;
 			dataToParse->setValue(JsonType::Null);
-			dataToParse->tapeIter.advance();
-			return std::move(*this);
+			return std::move(*dataToParse);
 		}
 
 		void setValue(JsonType typeNew) {
@@ -915,8 +920,6 @@ namespace Jsonifier {
 
 		JsonType type{ JsonType::Null };
 		JsonValue jsonValue{};
-
-		//JsonParser() noexcept = default;
 
 		JsonParser& operator=(JsonParser&& other) noexcept {
 			this->tapeIter = other.tapeIter;
@@ -1033,7 +1036,9 @@ namespace Jsonifier {
 
 		inline std::string_view getKey() {
 			std::cout << "CURRENT KEY: " << this->getString() << std::endl;
-			return this->getString();
+			auto returnValue = this->getString();
+			this->tapeIter.advance();
+			return returnValue;
 		}
 
 		template<> inline JsonParser getValue() {
@@ -1045,8 +1050,7 @@ namespace Jsonifier {
 			return std::move(*this->jsonValue.array);
 		}
 
-		inline JsonParser& operator[](const std::string& key) {
-			//dumpRawTape(std::cout, this->tapeIter.getTape(), this->tapeIter.getStringBuffer());
+		inline JsonParser& operator[](const std::string& key) {			
 			auto newValue = this->tapeIter.peek();
 			switch (this->type) {
 				case JsonType::Object: {
@@ -1659,10 +1663,10 @@ namespace Jsonifier {
 				//std::cout << "TOTAL TIME PASSED: " << totalTime / iterationCount << std::endl;
 			}
 			this->tapeLength -= 1;
-			//for (size_t x = 0; x < this->tapeLength; ++x) {
-				//std::cout << "THE CURRENT INDEX: " << this->structuralIndexes[x]
-						  //<< ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
-			//}
+			for (size_t x = 0; x < this->tapeLength; ++x) {
+				std::cout << "THE CURRENT INDEX: " << this->structuralIndexes[x]
+						  << ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
+			}
 			
 		}
 
@@ -1810,9 +1814,7 @@ namespace Jsonifier {
 	}
 
 	inline void TapeWriter::appendU64(uint64_t&& value) noexcept {
-		append(0, TapeType::Uint64);
-		*this->nextTapeLocation = value;
-		this->nextTapeLocation++;
+		append2(0, value, TapeType::Uint64);
 	}
 
 	inline void TapeWriter::appendDouble(double&& value) noexcept {
@@ -1961,11 +1963,12 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
 		uint8_t* dst01 = reinterpret_cast<uint8_t*>(onStartString(iter));
-		dst01 = StringParser::parseString(value + 1ull, dst01, (*iter.nextStructural + 1ull) - (*iter.nextStructural));
-		if (dst01 == nullptr) {
+		auto dst02 = StringParser::parseString(value + 1ull, dst01, (*iter.nextStructural + 1ull) - (*iter.nextStructural));
+		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
-		onEndString(reinterpret_cast<uint8_t*>(dst01));
+		std::cout << "THE CURRENT STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
+		onEndString(dst02);
 		return ErrorCode::Success;
 	}
 
@@ -2221,6 +2224,7 @@ namespace Jsonifier {
 							std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 							", at the following index into the string: " + std::to_string(*this->nextStructural) };
 					}
+					visitor.visitKey(*this, key);
 				}
 				goto Object_Field;
 			case '}':
