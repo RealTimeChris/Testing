@@ -12,12 +12,15 @@ int64_t iterationCount{};
 int64_t totalTime{};
 
 struct ActivitiesJson {
+	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::JsonParser&& value) {
 		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
+		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
 		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
 		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
 		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<uint64_t>();
 		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
+		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_05"].getType() << std::endl;
 		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
 		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
 		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<uint64_t>();
@@ -37,14 +40,16 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theObject = std::move(value["d"]);
 		auto theArray = std::move(theObject["activitiess"]);
+		//std::cout << "CURRENT SIZE: " << theArray.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		for (auto& value: theArray.getValue<std::vector<Jsonifier::JsonParser>>()) {
+		for (size_t x = 0; x < 12; ++x) {
 			iterationCount++;
 			
 			activities.emplace_back(std::move(value));
 			totalTime += stopWatch.totalTimePassed().count();
+			activities.emplace_back(ActivitiesJson{});
 		}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
@@ -128,8 +133,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto arrayValue = arrayValueNew;
-		arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 2; ++x) {
+		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
+		for (size_t x = 0; x < 12; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
 		

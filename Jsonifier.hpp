@@ -731,421 +731,102 @@ namespace Jsonifier {
 			BoolType boolean;
 		};
 
-		JsonParser parseJson(JsonParser*dataToParse) {
-			if (dataToParse->tapeIter.atEof()) {
-				return *dataToParse;
-			}
-			switch (dataToParse->tapeIter.peek()) {
-				case '{': {
-					return dataToParse->parseJsonObject(dataToParse);
-				}
-				case '[': {
-					return dataToParse->parseJsonArray(dataToParse);
-				}
-				case '"': {
-					return dataToParse->parseJsonString(dataToParse);
-				}
-				case 'd': {
-					return dataToParse->parseJsonFloat(dataToParse);
-				}
-				case 'l': {
-					return dataToParse->parseJsonUint(dataToParse);
-				}
-				case 's': {
-					return dataToParse->parseJsonInt(dataToParse);
-				}
-				case 'f': {
-					[[fallthrough]];
-				}
-				case 't': {
-					return dataToParse->parseJsonBool(dataToParse);
-				}
-				case 'n': {
-					return dataToParse->parseJsonNull(dataToParse);
-				}
-				case 'r': {
-					dataToParse->setValue(JsonType::Object);
-					dataToParse->tapeIter.advance();
-					return parseJson(dataToParse);
-				}
-				default: {
-					return *dataToParse;
-				}
-			}
+		uint64_t parseJsonUint() {
+			return uint64_t{};
 		}
 
-		JsonParser parseJsonUint(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Uint64);
-			returnData.jsonValue.numberDouble = dataToParse->getUint64();
-			dataToParse->tapeIter.advance();
-			dataToParse->tapeIter.advance();
-			return returnData;
+		uint64_t* findKey(const char* keyToFind) {
+
 		}
 
-		JsonParser parseJsonInt(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Int64);
-			returnData.jsonValue.numberDouble = dataToParse->getInt64();
-			dataToParse->tapeIter.advance();
-			dataToParse->tapeIter.advance();
-			return returnData;
-		}
-
-		JsonParser parseJsonObject(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Object);
-			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
-			dataToParse->tapeIter.advance();
-			if (currentSize > 0) {
-				for (size_t x = 0; x < currentSize; ++x) {
-					auto key = dataToParse->getKey();
-					returnData.jsonValue.object->emplace(key, dataToParse->parseJson(dataToParse));
-				}
-			}
-
-			return returnData;
-		}
-
-		JsonParser parseJsonArray(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Array);
-			auto currentSize = dataToParse->tapeIter.peekLengthOrSize();
-			if (currentSize > 0) {
-				for (size_t x = 0; x < currentSize; ++x) {
-					dataToParse->tapeIter.advance();
-					returnData.jsonValue.array->emplace_back(dataToParse->parseJson(dataToParse));
-				}
-			}
+		int64_t parseJsonInt() {
+			int64_t returnData{};
 			return returnData;
 		}
 
 		JsonParser() noexcept = default; 
 
-		JsonParser parseJsonString(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::String);
-			*returnData.jsonValue.string = dataToParse->getString();
-			dataToParse->tapeIter.advance();
+		std::string_view parseJsonString() {
+			std::string_view  returnData{};
 			return returnData;
 		}
 
-		JsonParser parseJsonFloat(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Float);
-			returnData.jsonValue.numberDouble = dataToParse->getFloat();
-			dataToParse->tapeIter.advance();
-			dataToParse->tapeIter.advance();
+		double parseJsonFloat() {
+			double returnData{};
 			return returnData;
 		}
 
-		JsonParser parseJsonBool(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Bool);
-			returnData.jsonValue.boolean = dataToParse->getBool();
-			dataToParse->tapeIter.advance();
+		bool parseJsonBool() {
+			bool returnData{};
 			return returnData;
 		}
 
-		JsonParser parseJsonNull(JsonParser* dataToParse) {
-			JsonParser returnData{};
-			returnData.setValue(JsonType::Null);
-			dataToParse->tapeIter.advance();
+		nullptr_t parseJsonNull() {
+			nullptr_t returnData{};
 			return returnData;
-		}
-
-		void setValue(JsonType typeNew) const {
-			this->destroy();
-			this->type = typeNew;
-			switch (this->type) {
-				case JsonType::Object: {
-					AllocatorType<ObjectType> allocator{};
-					this->jsonValue.object = AllocatorTraits<ObjectType>::allocate(allocator, 1);
-					AllocatorTraits<ObjectType>::construct(allocator, this->jsonValue.object);
-					break;
-				}
-				case JsonType::Array: {
-					AllocatorType<ArrayType> allocator{};
-					this->jsonValue.array = AllocatorTraits<ArrayType>::allocate(allocator, 1);
-					AllocatorTraits<ArrayType>::construct(allocator, this->jsonValue.array);
-					break;
-				}
-				case JsonType::String: {
-					AllocatorType<StringType> allocator{};
-					this->jsonValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
-					AllocatorTraits<StringType>::construct(allocator, this->jsonValue.string);
-					break;
-				}
-			}
-		}
-
-		void setValue(JsonType typeNew) {
-			this->destroy();
-			this->type = typeNew;
-			switch (this->type) {
-				case JsonType::Object: {
-					AllocatorType<ObjectType> allocator{};
-					this->jsonValue.object = AllocatorTraits<ObjectType>::allocate(allocator, 1);
-					AllocatorTraits<ObjectType>::construct(allocator, this->jsonValue.object);
-					break;
-				}
-				case JsonType::Array: {
-					AllocatorType<ArrayType> allocator{};
-					this->jsonValue.array = AllocatorTraits<ArrayType>::allocate(allocator, 1);
-					AllocatorTraits<ArrayType>::construct(allocator, this->jsonValue.array);
-					break;
-				}
-				case JsonType::String: {
-					AllocatorType<StringType> allocator{};
-					this->jsonValue.string = AllocatorTraits<StringType>::allocate(allocator, 1);
-					AllocatorTraits<StringType>::construct(allocator, this->jsonValue.string);
-					break;
-				}
-			}
-		}
-
-		void destroy() const noexcept {
-			switch (this->type) {
-				case JsonType::Object: {
-					AllocatorType<ObjectType> allocator{};
-					AllocatorTraits<ObjectType>::destroy(allocator, this->jsonValue.object);
-					AllocatorTraits<ObjectType>::deallocate(allocator, this->jsonValue.object, 1);
-					break;
-				}
-				case JsonType::Array: {
-					AllocatorType<ArrayType> allocator{};
-					AllocatorTraits<ArrayType>::destroy(allocator, this->jsonValue.array);
-					AllocatorTraits<ArrayType>::deallocate(allocator, this->jsonValue.array, 1);
-					break;
-				}
-				case JsonType::String: {
-					AllocatorType<StringType> allocator{};
-					AllocatorTraits<StringType>::destroy(allocator, this->jsonValue.string);
-					AllocatorTraits<StringType>::deallocate(allocator, this->jsonValue.string, 1);
-					break;
-				}
-			}
-		}
-
-		void destroy() noexcept {
-			switch (this->type) {
-				case JsonType::Object: {
-					AllocatorType<ObjectType> allocator{};
-					AllocatorTraits<ObjectType>::destroy(allocator, this->jsonValue.object);
-					AllocatorTraits<ObjectType>::deallocate(allocator, this->jsonValue.object, 1);
-					break;
-				}
-				case JsonType::Array: {
-					AllocatorType<ArrayType> allocator{};
-					AllocatorTraits<ArrayType>::destroy(allocator, this->jsonValue.array);
-					AllocatorTraits<ArrayType>::deallocate(allocator, this->jsonValue.array, 1);
-					break;
-				}
-				case JsonType::String: {
-					AllocatorType<StringType> allocator{};
-					AllocatorTraits<StringType>::destroy(allocator, this->jsonValue.string);
-					AllocatorTraits<StringType>::deallocate(allocator, this->jsonValue.string, 1);
-					break;
-				}
-			}
 		}
 
 		size_t size() {
-			switch (this->type) {
-				case JsonType::Object: {
-					return this->jsonValue.object->size();
-				}
-				case JsonType::Array: {
-					return this->jsonValue.array->size();
-				}
-				case JsonType::String: {
-					return this->jsonValue.string->size();
-				}
-				default: {
-					return 1;
-				}
-			}
-		}
-
-		~JsonParser() noexcept {
-			this->destroy();
-		}
-
-		JsonParser& operator=(JsonParser&& other) noexcept {
-			this->setValue(other.type);
-			switch (this->type) {
-				case JsonType::Object: {
-					*this->jsonValue.object = std::move(*other.jsonValue.object);
-					break;
-				}
-				case JsonType::Array: {
-					*this->jsonValue.array = std::move(*other.jsonValue.array);
-					break;
-				}
-				case JsonType::String: {
-					*this->jsonValue.string = std::move(*other.jsonValue.string);
-					break;
-				}
-				case JsonType::Bool: {
-					this->jsonValue.boolean= other.jsonValue.boolean;
-					break;
-				}
-				case JsonType::Int64: {
-					this->jsonValue.numberInt = other.jsonValue.numberInt;
-					break;
-				}
-				case JsonType::Uint64: {
-					this->jsonValue.numberUint = other.jsonValue.numberUint;
-					break;
-				}
-				case JsonType::Float: {
-					this->jsonValue.numberDouble = other.jsonValue.numberDouble;
-					break;
-				}
-			}
-			this->tapeIter = other.tapeIter;
-			return *this;
-		}
-
-		JsonParser(JsonParser&& other) noexcept {
-			*this = std::move(other);
-		}
-
-		JsonParser& operator=(const JsonParser& other) noexcept {
-			this->setValue(other.type);
-			switch (this->type) {
-				case JsonType::Object: {
-					*this->jsonValue.object = *other.jsonValue.object;
-					break;
-				}
-				case JsonType::Array: {
-					*this->jsonValue.array = *other.jsonValue.array;
-					break;
-				}
-				case JsonType::String: {
-					*this->jsonValue.string = *other.jsonValue.string;
-					break;
-				}
-				case JsonType::Bool: {
-					this->jsonValue.boolean = other.jsonValue.boolean;
-					break;
-				}
-				case JsonType::Int64: {
-					this->jsonValue.numberInt = other.jsonValue.numberInt;
-					break;
-				}
-				case JsonType::Uint64: {
-					this->jsonValue.numberUint = other.jsonValue.numberUint;
-					break;
-				}
-				case JsonType::Float: {
-					this->jsonValue.numberDouble = other.jsonValue.numberDouble;
-					break;
-				}
-			}
-			this->tapeIter = other.tapeIter;
-			other.setValue(JsonType::Null);
-			return *this;
-		}
-
-		JsonType getType() noexcept {
-			return this->type;
-		}
-
-		JsonParser(const JsonParser& other) noexcept {
-			*this = other;
+			size_t returnValue{};
+			return returnValue;
 		}
 
 		JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew) {
 			this->tapeIter = TapeIterator{ stringBufferNew, tapePtrsNew, count };
-			*this = this->parseJson(this);
 		}
 
 		template<typename OTy> inline OTy getValue();
 
 		template<> inline double getValue() {
-			return this->jsonValue.numberDouble;
+			return this->parseJsonFloat();
 		}
 
 		template<> inline float getValue() {
-			return this->jsonValue.numberDouble;
+			return this->parseJsonFloat();
 		}
 
 		template<> inline bool getValue() {
-			if (this->type != JsonType::Bool) {
-				throw JsonifierException{ "Sorry, but this object's type is not Bool!" };
-			}
-			return this->jsonValue.boolean;
+			return this->parseJsonBool();
 		}
 
 		template<> inline uint64_t getValue() {
-			if (this->type != JsonType::Uint64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Uint!" };
-			}
-			return this->jsonValue.numberUint;
+			return this->parseJsonUint();
 		}
 
 		template<> inline uint32_t getValue() {
-			if (this->type != JsonType::Uint64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Uint!" };
-			}
-			return this->jsonValue.numberUint;
+			return this->parseJsonUint();
 		}
 
 		template<> inline uint16_t getValue() {
-			if (this->type != JsonType::Uint64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Uint!" };
-			}
-			return this->jsonValue.numberUint;
+			return this->parseJsonUint();
 		}
 
 		template<> inline uint8_t getValue() {
-			if (this->type != JsonType::Uint64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Uint!" };
-			}
-			return this->jsonValue.numberUint;
+			return this->parseJsonUint();
 		}
 
 		template<> inline int64_t getValue() {
-			if (this->type != JsonType::Int64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Int!" };
-			}
-			return this->jsonValue.numberInt;
+			return this->parseJsonInt();
 		}
 
 		template<> inline int32_t getValue() {
-			if (this->type != JsonType::Int64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Int!" };
-			}
-			return this->jsonValue.numberInt;
+			return this->parseJsonInt();
 		}
 
 		template<> inline int16_t getValue() {
-			if (this->type != JsonType::Int64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Int!" };
-			}
-			return this->jsonValue.numberInt;
+			return this->parseJsonInt();
 		}
 
 		template<> inline int8_t getValue() {
-			if (this->type != JsonType::Int64) {
-				throw JsonifierException{ "Sorry, but this object's type is not Int!" };
-			}
-			return this->jsonValue.numberInt;
+			return this->parseJsonInt();
 		}
 
 		template<> inline std::string getValue() {
-			if (this->type != JsonType::String) {
-				throw JsonifierException{ "Sorry, but this object's type is not String!" };
-			}
-			return static_cast<std::string>(*this->jsonValue.string);
+			return static_cast<std::string>(this->parseJsonString());
 		}
 
 		template<> inline std::string_view getValue() {
-			if (this->type != JsonType::String) {
-				throw JsonifierException{ "Sorry, but this object's type is not String!" };
-			}
-			return std::move(*this->jsonValue.string);
+			return this->parseJsonString();
 		}
 
 		bool getBool() {
@@ -1196,20 +877,17 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
+		JsonType getType() {
+			JsonType returnValue{};
+			return returnValue;
+		}
+
 		template<> inline JsonParser getValue() {
 			return std::move(*this);
 		}
 
-		template<> inline std::vector<JsonParser> getValue() {
-			return std::move(*this->jsonValue.array);
-		}
-
 		inline JsonParser& operator[](const std::string& key) {			
-			if (this->jsonValue.object->contains(key)) {
-				return this->jsonValue.object->at(static_cast<std::string_view>(key));
-			} else {
-				throw JsonifierException{ "Sorry, but that key does not exist!" };
-			}
+			return *this;
 		};
 
 		inline JsonParser(ErrorCode error) {
@@ -1217,9 +895,8 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		mutable JsonType type{ JsonType::Null };
-		mutable JsonValue jsonValue{};
 		TapeIterator tapeIter{};
+		size_t currentDepth{};
 	};
 
 	class SimdBase256;
@@ -4370,7 +4047,7 @@ class value {
 				this->nStructuralIndexes += indexCount;
 				
 				totalTimePassed += stopWatch.totalTimePassed().count();
-				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 			this->nStructuralIndexes -= 1;
 			
