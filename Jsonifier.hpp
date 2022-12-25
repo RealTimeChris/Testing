@@ -665,17 +665,14 @@ namespace Jsonifier {
 
 		inline size_t peekLengthOrSize() const noexcept {
 			if ( this->peek() == '[' || this->peek() == '{' || this->peek() == 'r') {
-				std::cout << "CURRENT SIZE: " << ((((*tapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 				return (((*tapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK;
 				
 			} else if (this->peek() == '"') {
 				size_t stringLength{};
 				std::memcpy(&stringLength, stringBuffer + ((*tapePosition) & JSON_VALUE_MASK), sizeof(uint32_t));
-				std::cout << "CURRENT SIZE: " << stringLength << std::endl;
 				return stringLength;
 			}
 			else {
-				std::cout << "CURRENT SIZE: " << 1 << std::endl;
 				return 1;
 			}
 		}
@@ -773,7 +770,6 @@ namespace Jsonifier {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Uint64);
 			returnData.jsonValue.numberDouble = dataToParse->getUint64();
-			std::cout << "VALUE: (PARSING UINT 0202) " << dataToParse->getUint64() << std::endl;
 			dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
 			return returnData;
@@ -783,7 +779,6 @@ namespace Jsonifier {
 			JsonParser returnData{};
 			returnData.setValue(JsonType::Int64);
 			returnData.jsonValue.numberDouble = dataToParse->getInt64();
-			std::cout << "VALUE: (PARSING INT 0202) " << dataToParse->getInt64() << std::endl;
 			dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
 			return returnData;
@@ -1809,7 +1804,6 @@ namespace Jsonifier {
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
 				totalTime += stopWatch.totalTimePassed().count();
-				//std::cout << "TOTAL TIME PASSED: " << totalTime / iterationCount << std::endl;
 			}
 			this->nStructuralIndexes -= 1;
 			
@@ -2119,7 +2113,6 @@ namespace Jsonifier {
 		if (dst02 == nullptr) {
 			return ErrorCode::StringError;
 		}
-		std::cout << "THE CURRENT STRING: " << std::string_view{ reinterpret_cast<char*>(dst01), static_cast<size_t>(dst02 - dst01) } << std::endl;
 		onEndString(dst02);
 		return ErrorCode::Success;
 	}

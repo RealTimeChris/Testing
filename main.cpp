@@ -9,27 +9,30 @@
 
 struct ActivitiesJson {
 	ActivitiesJson(Jsonifier::JsonParser&& value) {
-		std::cout << "THE TYPE: " << ( int32_t )value.getType() << std::endl;
-		this->TEST_VALUE_03 = value["TEST_VALUE_02"].getValue<std::string>();
-		std::cout << "THE TYPE: " << this->TEST_VALUE_03 << std::endl;
-		//this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<double>();
-		//this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<bool>();
-		//this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<int64_t>();
-		
+		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<int64_t>();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<int64_t>();
 	};
-	double TEST_VALUE_01{};
-	bool TEST_VALUE_02{};
-	std::string TEST_VALUE_03{};
-	int64_t TEST_VALUE_04{};
+	double TEST_VALUE_00{};
+	bool TEST_VALUE_01{};
+	std::string TEST_VALUE_02{};
+	int64_t TEST_VALUE_03{};
+	double TEST_VALUE_04{};
+	bool TEST_VALUE_05{};
+	std::string TEST_VALUE_06{};
+	int64_t TEST_VALUE_07{};
 };
 
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto theObject = std::move(value["d"]);
-		std::cout << "THE CURRENT SIZE: (REAL) " << theObject.size() << std::endl;
 		auto theArray = std::move(theObject["activitiess"]);
-		std::cout << "THE CURRENT SIZE: (REAL2) " << theArray.size() << std::endl;
 		for (auto& value: theArray.getValue<std::vector<Jsonifier::JsonParser>>()) {
 			
 			activities.emplace_back(std::move(value));
@@ -54,15 +57,23 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->TEST_VALUE_03 = DiscordCoreAPI::getString(value, "TEST_VALUE_03");
-		this->TEST_VALUE_01 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_01");
-		this->TEST_VALUE_02 = DiscordCoreAPI::getBool(value, "TEST_VALUE_02");
-		this->TEST_VALUE_04 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_04");
+		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_00");
+		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
+		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
+		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_04 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
+		this->TEST_VALUE_05 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
+		this->TEST_VALUE_06 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
+		this->TEST_VALUE_07 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_07");
 	};
-	double TEST_VALUE_01{};
-	bool TEST_VALUE_02{};
-	std::string TEST_VALUE_03{};
-	int64_t TEST_VALUE_04{};
+	double TEST_VALUE_00{};
+	bool TEST_VALUE_01{};
+	std::string TEST_VALUE_02{};
+	int64_t TEST_VALUE_03{};
+	double TEST_VALUE_04{};
+	bool TEST_VALUE_05{};
+	std::string TEST_VALUE_06{};
+	int64_t TEST_VALUE_07{};
 };
 
 struct TheD {
