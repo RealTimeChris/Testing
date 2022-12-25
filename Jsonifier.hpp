@@ -665,10 +665,19 @@ namespace Jsonifier {
 		}
 
 		inline size_t peekLengthOrSize() const noexcept {
-			if (((((*tapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) == 0) {
-				return 1;
-			} else {
+			if ( this->peek() == '[' || this->peek() == '{' || this->peek() == 'r') {
+				std::cout << "CURRENT SIZE: " << ((((*tapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 				return (((*tapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK;
+				
+			} else if (this->peek() == '"') {
+				size_t stringLength{};
+				std::memcpy(&stringLength, stringBuffer + ((*tapePosition) & JSON_VALUE_MASK), sizeof(uint32_t));
+				std::cout << "CURRENT SIZE: " << stringLength << std::endl;
+				return stringLength;
+			}
+			else {
+				std::cout << "CURRENT SIZE: " << 1 << std::endl;
+				return 1;
 			}
 		}
 
@@ -710,8 +719,25 @@ namespace Jsonifier {
 
 		union JsonValue {
 			JsonValue() noexcept = default;
-			JsonValue& operator=(JsonValue&&) noexcept = delete;
-			JsonValue(JsonValue&&) noexcept = delete;
+			JsonValue& operator=(JsonValue&&other) {
+				if (other.array) {
+					this->array = other.array;
+					other.array = nullptr;
+				}
+				if (other.object) {
+					this->object = other.object;
+					other.object = nullptr;
+				}
+				if (other.string) {
+					this->string = other.string;
+					other.string = nullptr;
+				}
+				return *this;
+			};
+			
+			JsonValue(JsonValue&& other) noexcept {
+				*this = std::move(other);
+			};
 			JsonValue& operator=(const JsonValue&) noexcept = delete;
 			JsonValue(const JsonValue&) noexcept = delete;
 			ObjectType* object;
@@ -727,7 +753,6 @@ namespace Jsonifier {
 			if (dataToParse->tapeIter.atEof()) {
 				return std::move(*dataToParse);
 			}
-			std::cout << "CURRENT STRUCTURAL (REAL): " << dataToParse->tapeIter.peek() << std::endl;
 			switch (dataToParse->tapeIter.peek()) {
 				case '{': {
 					return dataToParse->parseJsonObject(dataToParse);
@@ -788,13 +813,13 @@ namespace Jsonifier {
 			std::cout << "PARSING OBJECT-SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
 			if (currentSize > 0) {
 				for (size_t x = 0; x < currentSize; ++x) {
+					dataToParse->tapeIter.advance();
 					auto key = dataToParse->getKey();
 					std::cout << "PARSING OBJECT KEY: " << key << std::endl;
-					std::cout << "LENGTH OR SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
+					dataToParse->tapeIter.peekLengthOrSize();
 					dataToParse->jsonValue.object->emplace(key,
 						JsonParser{ dataToParse->tapeIter.getTapePosition(), dataToParse->tapeIter.peekLengthOrSize(),
 							dataToParse->tapeIter.getStringBuffer() });
-					dataToParse->tapeIter.advance();
 				}
 			}
 			return std::move(*dataToParse);
@@ -808,7 +833,7 @@ namespace Jsonifier {
 				dataToParse->tapeIter.advance();
 				for (size_t x = 0; x < currentSize; ++x) {
 					std::cout << "PARSING ARRAY 0202: " << dataToParse->tapeIter.peek() << std::endl;
-					std::cout << "LENGTH OR SIZE: " << dataToParse->tapeIter.peekLengthOrSize() << std::endl;
+					dataToParse->tapeIter.peekLengthOrSize();
 					dataToParse->jsonValue.array->emplace_back(JsonParser{ dataToParse->tapeIter.getTapePosition(),
 						dataToParse->tapeIter.peekLengthOrSize(), dataToParse->tapeIter.getStringBuffer() });
 					dataToParse->tapeIter.advance();
@@ -829,7 +854,6 @@ namespace Jsonifier {
 			std::cout << "VALUE: (PARSING FLOAT 0202) " << dataToParse->getFloat() << std::endl;
 			dataToParse->setValue(JsonType::Float);
 			dataToParse->jsonValue.numberDouble = dataToParse->getFloat();
-			//dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
 			dataToParse->tapeIter.advance();
 			return std::move(*dataToParse);
@@ -846,6 +870,7 @@ namespace Jsonifier {
 		JsonParser parseJsonNull(JsonParser* dataToParse) {
 			std::cout << "VALUE: (PARSING NULL 0202) " << dataToParse->tapeIter.peek() << std::endl;
 			dataToParse->setValue(JsonType::Null);
+			dataToParse->tapeIter.advance();
 			return std::move(*dataToParse);
 		}
 
@@ -922,7 +947,10 @@ namespace Jsonifier {
 		JsonValue jsonValue{};
 
 		JsonParser& operator=(JsonParser&& other) noexcept {
+			this->jsonValue = std::move(other.jsonValue);
 			this->tapeIter = other.tapeIter;
+			this->type = other.type;
+			other.type = JsonType::Null;
 			return *this;
 		}
 
@@ -1035,9 +1063,10 @@ namespace Jsonifier {
 		}
 
 		inline std::string_view getKey() {
-			this->tapeIter.advance();
 			std::cout << "CURRENT KEY: " << this->getString() << std::endl;
-			return this->getString();
+			auto returnValue = this->getString();
+			this->tapeIter.advance();
+			return returnValue;
 		}
 
 		template<> inline JsonParser getValue() {
@@ -1045,7 +1074,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline std::vector<JsonParser> getValue() {
-			std::cout << "CURRENT SIZE (VECTOR): " << (this->tapeIter.peekLengthOrSize()) << std::endl;
+			//std::cout << "CURRENT SIZE (VECTOR): " << (this->tapeIter.peekLengthOrSize()) << std::endl;
 			return std::move(*this->jsonValue.array);
 		}
 
@@ -1056,8 +1085,8 @@ namespace Jsonifier {
 					if (this->jsonValue.object->contains(key)) {
 						std::cout << "THE KEYS: " << this->jsonValue.object->begin().operator*().first << std::endl;
 						std::cout << "THE KEYS (SECOND): "
-								  << ( int32_t )this->jsonValue.object->begin().operator*().second.jsonValue.array->begin().operator*().type
-								  << std::endl;
+						<< ( int32_t )this->jsonValue.object->begin().operator*().second.jsonValue.array->begin().operator*().type
+						<< std::endl;
 						return this->jsonValue.object->at(static_cast<std::string_view>(key));
 					} else {
 						throw JsonifierException{ "Sorry, but that key does not exist!" };
@@ -2391,6 +2420,9 @@ namespace Jsonifier {
 		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		}
+		for (size_t x = 0; x < this->tapeLength; ++x) {
+			std::cout << "THE CURRENT INDEX: " << ( char )(this->tape.get()[x] >> 56) << std::endl;
 		}
 		return JsonParser{ this->getTape(), this->getTapeLength(), this->stringBuffer.get() };
 	}
