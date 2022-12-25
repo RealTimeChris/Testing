@@ -967,8 +967,9 @@ namespace Jsonifier {
 					break;
 				}
 			}
-			this->tapeIter = other.tapeIter;
-			other.type = JsonType::Null;
+			std::cout << "CURRENT TYPE: "<< (int32_t)this->type<< std::endl;
+			//this->tapeIter = other.tapeIter;
+			//other.type = JsonType::Null;
 			return *this;
 		}
 
@@ -1659,7 +1660,7 @@ namespace Jsonifier {
 			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
 			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
 			this->openContainers.reset(new (std::nothrow) OpenContainer[this->maxDepth]);
-			this->tapeLength = 0;
+			this->nStructuralIndexes = 0;
 			this->allocatedCapacity = stringCapacity;
 			this->tape.reset(new (std::nothrow) uint64_t[tapeCapacity]);
 			this->isArray.reset(new (std::nothrow) bool[tapeCapacity]);
@@ -1695,7 +1696,7 @@ namespace Jsonifier {
 				
 				iterationCount++;
 				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
-				this->tapeLength = 0;
+				this->nStructuralIndexes= 0;
 				size_t tapeCurrentIndex{ 0 };
 				SimdBase256 prevInScalar{};
 				SimdBase256 followsPotentialNonquoteScalar{};
@@ -1705,19 +1706,19 @@ namespace Jsonifier {
 					this->section.submitDataForProcessing(stringReader.fullBlock(), prevInString, prevInScalar, followsPotentialNonquoteScalar);
 					auto indexCount =
 						section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-					this->tapeLength += indexCount;
+					this->nStructuralIndexes += indexCount;
 					stringReader.advance();
 				}
 				uint8_t block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block, prevInString, prevInScalar, followsPotentialNonquoteScalar);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				this->tapeLength += indexCount;
+				this->nStructuralIndexes += indexCount;
 				totalTime += stopWatch.totalTimePassed().count();
 				//std::cout << "TOTAL TIME PASSED: " << totalTime / iterationCount << std::endl;
 			}
-			this->tapeLength -= 1;
-			for (size_t x = 0; x < this->tapeLength; ++x) {
+			this->nStructuralIndexes -= 1;
+			for (size_t x = 0; x < this->nStructuralIndexes; ++x) {
 				std::cout << "THE CURRENT INDEX: " << this->structuralIndexes[x]
 						  << ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
 			}
@@ -1752,8 +1753,12 @@ namespace Jsonifier {
 			return this->maxDepth;
 		}
 
-		inline size_t getTapeLength() {
+		inline size_t& getTapeLength() {
 			return this->tapeLength;
+		}
+
+		inline size_t getStructuralIndexCount() {
+			return this->nStructuralIndexes;
 		}
 
 		inline bool* getIsArray() {
@@ -1766,11 +1771,12 @@ namespace Jsonifier {
 		std::unique_ptr<uint64_t[]> tape{ nullptr };
 		std::unique_ptr<uint8_t[]> stringBuffer{};
 		std::unique_ptr<bool[]> isArray{};
+		size_t nStructuralIndexes{ 0 };
 		SimdStringSection section{};
 		size_t allocatedCapacity{};
 		size_t stringLengthRaw{};
-		uint32_t maxDepth{ 512 };
 		size_t tapeLength{ 0 };
+		uint32_t maxDepth{ 512 };
 		uint8_t* stringView{};
 	};
 
@@ -1830,11 +1836,11 @@ namespace Jsonifier {
 	}
 
 	inline size_t JsonIterator::remainingLen() const noexcept {
-		return this->masterParser->getTapeLength() - *this->nextStructural;
+		return this->masterParser->getStructuralIndexCount() - *this->nextStructural;
 	}
 
 	inline bool JsonIterator::atEof() const noexcept {
-		return this->nextStructural == &this->masterParser->getStructuralIndexes()[this->masterParser->getTapeLength() - 1];
+		return this->nextStructural == &this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1];
 	}
 
 	inline bool JsonIterator::atBeginning() const noexcept {
@@ -1842,7 +1848,7 @@ namespace Jsonifier {
 	}
 
 	inline uint8_t JsonIterator::lastStructural() const noexcept {
-		return this->stringView[this->masterParser->getStructuralIndexes()[this->masterParser->getTapeLength() - 1]];
+		return this->stringView[this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1]];
 	}
 
 	struct TapeWriter {
@@ -1946,6 +1952,7 @@ namespace Jsonifier {
 
 	  private:
 		uint8_t* currentStringBufferLocation{};
+		size_t& currentTapeLength;
 
 		inline TapeBuilder(SimdJsonValue& doc) noexcept;
 
@@ -2013,7 +2020,8 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept : tape{ doc.getTape() }, currentStringBufferLocation{ doc.getStringBuffer() } {};
+	inline TapeBuilder::TapeBuilder(SimdJsonValue& doc) noexcept
+		: tape{ doc.getTape() }, currentStringBufferLocation{ doc.getStringBuffer() }, currentTapeLength(doc.getTapeLength()){};
 
 	inline ErrorCode TapeBuilder::visitString(JsonIterator& iter, const uint8_t* value) noexcept {
 		uint8_t* dst01 = reinterpret_cast<uint8_t*>(onStartString(iter));
@@ -2187,6 +2195,7 @@ namespace Jsonifier {
 			return ErrorCode::Empty;
 		}
 		visitor.visitDocumentStart(*this);
+		this->masterParser->getTapeLength()++;
 		{
 			auto value = this->advance();
 
@@ -2214,6 +2223,7 @@ namespace Jsonifier {
 
 	Object_Begin:
 		this->depth++;
+		this->masterParser->getTapeLength()++;
 		if (this->depth >= masterParser->getMaxDepth()) {
 			return ErrorCode::DepthError;
 		}
@@ -2240,6 +2250,7 @@ namespace Jsonifier {
 		}
 		{
 			auto value = this->advance();
+			this->masterParser->getTapeLength()++;
 			switch (*value) {
 				case '{':
 					if (*this->peek() == '}') {
@@ -2268,6 +2279,7 @@ namespace Jsonifier {
 		
 	Object_Continue: {
 			auto newValue = *this->advance();
+		this->masterParser->getTapeLength()++;
 		switch (newValue) {
 			case ',':
 				visitor.incrementCount(*this);
@@ -2305,6 +2317,7 @@ namespace Jsonifier {
 
 	Array_Begin : {
 		this->depth++;
+		this->masterParser->getTapeLength()++;
 		if (this->depth >= masterParser->getMaxDepth()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::DepthError) } +
@@ -2318,6 +2331,7 @@ namespace Jsonifier {
 
 	Array_Value : {
 		auto value = this->advance();
+		this->masterParser->getTapeLength()++;
 		{
 			switch (*value) {
 				case '{':
@@ -2347,6 +2361,7 @@ namespace Jsonifier {
 
 	Array_Continue : {
 		auto newValue = *this->advance();
+		this->masterParser->getTapeLength()++;
 		{
 			switch (newValue) {
 				case ',':
@@ -2363,10 +2378,12 @@ namespace Jsonifier {
 
 	Document_End: {
 		visitor.visitDocumentEnd(*this);
+		this->masterParser->getTapeLength()++;
 
-		auto nextStructuralIndex = uint32_t(this->nextStructural - this->masterParser->getStructuralIndexes());
+		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
 
-		if (nextStructuralIndex != this->masterParser->getTapeLength()) {
+		// If we didn't make it to the end, it's an error
+		if (nextStructuralIndex != this->masterParser->getStructuralIndexCount()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
@@ -2439,7 +2456,7 @@ namespace Jsonifier {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
-		for (size_t x = 0; x < this->tapeLength; ++x) {
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
 			std::cout << "THE CURRENT INDEX: " << ( char )(this->tape.get()[x] >> 56) << std::endl;
 		}
 		return JsonParser{ this->getTape(), this->getTapeLength(), this->stringBuffer.get() };
