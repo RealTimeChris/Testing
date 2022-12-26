@@ -646,23 +646,23 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t advance() noexcept {
-			return (*(tapePosition++));
+			return (*(this->tapePosition++));
 		}
 
 		inline void rewind() noexcept {
-			tapePosition = this->initialTapePosition;
+			this->tapePosition = this->initialTapePosition;
 		}
 
 		inline uint32_t currentOffset() noexcept {
-			return *(tapePosition);
+			return *(this->tapePosition);
 		}
 
 		inline const uint8_t* returnCurrentAndAdvance() noexcept {
-			return &stringBuffer[*(tapePosition++)];
+			return &this->stringBuffer[*(this->tapePosition++)];
 		}
 
 		inline const uint8_t* peek(uint32_t* position) noexcept {
-			return &stringBuffer[*position];
+			return &this->stringBuffer[*position];
 		}
 
 		inline uint32_t peekIndex(uint32_t* position) noexcept {
@@ -674,25 +674,24 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t* peek(int32_t delta) noexcept {
-			return &stringBuffer[*(tapePosition + delta)];
+			return &this->stringBuffer[*(this->tapePosition + delta)];
 		}
 
 		inline uint32_t peekIndex(int32_t delta) noexcept {
-			return *(tapePosition + delta);
+			return *(this->tapePosition + delta);
 		}
 
 		inline uint32_t peekLength(int32_t delta) noexcept {
-			return *(tapePosition + delta + 1) - *(tapePosition + delta);
+			return *(this->tapePosition + delta + 1) - *(this->tapePosition + delta);
 		}
 
 		inline uint32_t* position() noexcept {
-			return tapePosition;
+			return this->tapePosition;
 		}
 
 		inline void setPosition(uint32_t* target_position) noexcept {
-			tapePosition = target_position;
+			this->tapePosition = target_position;
 		}
-
 
 		inline bool atEof() {
 			if((this->tapePosition - this->initialTapePosition) >= this->currentStructuralCount){
@@ -777,11 +776,11 @@ namespace Jsonifier {
 		}
 
 		inline JsonParser& operator=(JsonParser&& other) noexcept {
-			tapeIter = other.tapeIter;
-			parser = other.parser;
-			stringBufferLocation = other.stringBufferLocation;
-			currentDepth= other.currentDepth;
-			root= other.root;
+			this->tapeIter = other.tapeIter;
+			this->parser = other.parser;
+			this->stringBufferLocation = other.stringBufferLocation;
+			this->currentDepth = other.currentDepth;
+			this->root = other.root;
 			other.parser = nullptr;
 			return *this;
 		}
@@ -791,10 +790,10 @@ namespace Jsonifier {
 		inline void rewind() noexcept;
 
 		inline bool balanced() noexcept {
-			TapeIterator ti(tapeIter);
+			TapeIterator ti(this->tapeIter);
 			int32_t count{ 0 };
-			ti.setPosition(rootPosition());
-			while (ti.peek() <= peekLast()) {
+			ti.setPosition(this->rootPosition());
+			while (ti.peek() <= this->peekLast()) {
 				switch (*ti.returnCurrentAndAdvance()) {
 					case '[':
 					case '{':
@@ -812,10 +811,10 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode skipChild(size_t parent_depth) noexcept {
-			if (depth() <= parent_depth) {
+			if (this->depth() <= parent_depth) {
 				return ErrorCode::Success;
 			}
-			switch (*returnCurrentAndAdvance()) {
+			switch (*this->returnCurrentAndAdvance()) {
 				case '[':
 				case '{':
 				case ':':
@@ -824,35 +823,35 @@ namespace Jsonifier {
 					break;
 				case ']':
 				case '}':
-					currentDepth--;
-					if (depth() <= parent_depth) {
+					this->currentDepth--;
+					if (this->depth() <= parent_depth) {
 						return ErrorCode::Success;
 					}
 					break;
 				case '"':
-					if (*peek() == static_cast<uint8_t>(':')) {
-						returnCurrentAndAdvance();
+					if (*this->peek() == static_cast<uint8_t>(':')) {
+						this->returnCurrentAndAdvance();
 						break;
 					}
 					[[fallthrough]];
 				default:
-					currentDepth--;
-					if (depth() <= parent_depth) {
+					this->currentDepth--;
+					if (this->depth() <= parent_depth) {
 						return ErrorCode::Success;
 					}
 					break;
 			}
 
-			while (position() < endPosition()) {
-				switch (*returnCurrentAndAdvance()) {
+			while (this->position() < this->endPosition()) {
+				switch (*this->returnCurrentAndAdvance()) {
 					case '[':
 					case '{':
-						currentDepth++;
+						this->currentDepth++;
 						break;
 					case ']':
 					case '}':
-						currentDepth--;
-						if (depth() <= parent_depth) {
+						this->currentDepth--;
+						if (this->depth() <= parent_depth) {
 							return ErrorCode::Success;
 						}
 						break;
@@ -875,112 +874,112 @@ namespace Jsonifier {
 		inline uint32_t* rootPosition() noexcept;
 
 		inline void assertAtRoot() noexcept {
-			assert(tapeIter.position() == root);
+			assert(this->tapeIter.position() == this->root);
 		}
 
 		inline void assertMoreTokens(uint32_t required_tokens) noexcept {
-			assert(tapeIter.position() + required_tokens - 1);
+			assert(this->tapeIter.position() + required_tokens - 1);
 		}
 
 		inline bool atEnd() noexcept {
-			return position() == endPosition();
+			return this->position() == this->endPosition();
 		}
 
 		inline uint32_t* endPosition() noexcept {
-			size_t n_structural_indexes{ tapeIter.getStructuralCount() };
-			return &tapeIter.getTape()[n_structural_indexes];
+			size_t n_structural_indexes{ this->tapeIter.getStructuralCount() };
+			return &this->tapeIter.getTape()[n_structural_indexes];
 		}
 
 		inline std::string toString() noexcept {
-			if (!isAlive()) {
+			if (!this->isAlive()) {
 				return "dead JsonParser instance";
 			}
-			const char* current_structural = reinterpret_cast<const char*>(tapeIter.peek());
-			return std::string("JsonParser [ depth : ") + std::to_string(currentDepth) + std::string(", structural : '") +
-				std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(tapeIter.currentOffset()) +
+			const char* current_structural = reinterpret_cast<const char*>(this->tapeIter.peek());
+			return std::string("JsonParser [ depth : ") + std::to_string(this->currentDepth) + std::string(", structural : '") +
+				std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(this->tapeIter.currentOffset()) +
 				std::string("', error : ") + std::string(" ]");
 		}
 
 		inline const char* currentLocation() noexcept {
-			if (!isAlive()) {
-				if (!atRoot()) {
-					return reinterpret_cast<const char*>(tapeIter.peek(-1));
+			if (!this->isAlive()) {
+				if (!this->atRoot()) {
+					return reinterpret_cast<const char*>(this->tapeIter.peek(-1));
 				} else {
-					return reinterpret_cast<const char*>(tapeIter.peek());
+					return reinterpret_cast<const char*>(this->tapeIter.peek());
 				}
 			}
-			if (atEnd()) {
+			if (this->atEnd()) {
 				return nullptr;
 			}
-			return reinterpret_cast<const char*>(tapeIter.peek());
+			return reinterpret_cast<const char*>(this->tapeIter.peek());
 		}
 
 		inline void abandon() noexcept {
-			currentDepth = 0;
+			this->currentDepth = 0;
 		}
 
 		inline const uint8_t* returnCurrentAndAdvance() noexcept {
-			return tapeIter.returnCurrentAndAdvance();
+			return this->tapeIter.returnCurrentAndAdvance();
 		}
 
 		inline const uint8_t* unsafePointer() noexcept {
-			return tapeIter.peek(0);
+			return this->tapeIter.peek(0);
 		}
 
 		inline const uint8_t* peek(int32_t delta = 0) noexcept {
-			return tapeIter.peek(delta);
+			return this->tapeIter.peek(delta);
 		}
 
 		inline uint32_t peekLength(int32_t delta) noexcept {
-			return tapeIter.peekLength(delta);
+			return this->tapeIter.peekLength(delta);
 		}
 
 		inline const uint8_t* peek(uint32_t* position) noexcept {
-			return tapeIter.peek(position);
+			return this->tapeIter.peek(position);
 		}
 
 		inline uint32_t peekLength(uint32_t* position) noexcept {
-			return tapeIter.peekLength(position);
+			return this->tapeIter.peekLength(position);
 		}
 
 		inline uint32_t* lastPosition() noexcept {
-			size_t n_structural_indexes{ tapeIter.getStructuralCount() };
+			size_t n_structural_indexes{ this->tapeIter.getStructuralCount() };
 			assert(n_structural_indexes > 0);
-			return &tapeIter.getTape()[n_structural_indexes - 1];
+			return &this->tapeIter.getTape()[n_structural_indexes - 1];
 		}
 		inline const uint8_t* peekLast() noexcept {
-			return tapeIter.peek(lastPosition());
+			return this->tapeIter.peek(lastPosition());
 		}
 
 		inline void ascendTo(size_t parent_depth) noexcept {
-			currentDepth = parent_depth;
+			this->currentDepth = parent_depth;
 		}
 
 		inline void descendTo(size_t child_depth) noexcept {
 			child_depth >= 1 && child_depth < INT32_MAX;
-			assert(currentDepth == child_depth - 1);
-			currentDepth = child_depth;
+			assert(this->currentDepth == child_depth - 1);
+			this->currentDepth = child_depth;
 		}
 
 		inline bool isAlive() const noexcept {
-			return parser;
+			return this->parser;
 		}
 
 		inline size_t depth() const noexcept {
-			return currentDepth;
+			return this->currentDepth;
 		}
 
 		inline uint8_t*& stringBufLoc() noexcept {
-			return stringBufferLocation;
+			return this->stringBufferLocation;
 		}
 
 		inline uint32_t* position() noexcept {
-			return tapeIter.position();
+			return this->tapeIter.position();
 		}
 
 		inline void reenterChild(uint32_t* position, size_t child_depth) noexcept {
-			tapeIter.setPosition(position);
-			currentDepth = child_depth;
+			this->tapeIter.setPosition(position);
+			this->currentDepth = child_depth;
 		}
 
 		inline ErrorCode optionalError(ErrorCode _error, const char* message) noexcept {
