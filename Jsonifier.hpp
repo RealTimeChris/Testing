@@ -649,6 +649,18 @@ namespace Jsonifier {
 			return (*(this->tapePosition++));
 		}
 
+		inline void ascendTo(size_t parent_depth) noexcept {
+			assert(parent_depth >= 0 && parent_depth < INT32_MAX - 1);
+			assert(currentDepth == parent_depth + 1);
+			this->currentDepth = parent_depth;
+		}
+
+		inline void descendTo(size_t child_depth) noexcept {
+			assert(child_depth >= 1 && child_depth < INT32_MAX);
+			assert(currentDepth == child_depth - 1);
+			this->currentDepth = child_depth;
+		}
+
 		inline void rewind() noexcept {
 			this->tapePosition = this->initialTapePosition;
 		}
@@ -752,6 +764,7 @@ namespace Jsonifier {
 		uint32_t* initialTapePosition{};
 		uint32_t* tapePosition{};
 		uint8_t* stringBuffer{};
+		size_t currentDepth{};
 	};
 	
 	class SimdJsonValue;
@@ -770,19 +783,52 @@ namespace Jsonifier {
 		using BoolType = bool;
 
 		inline JsonParser(JsonParser&& other) noexcept
-			: tapeIter(std::forward<TapeIterator>(other.tapeIter)), parser{ other.parser }, stringBufferLocation{ other.stringBufferLocation },
-			  currentDepth{ other.currentDepth }, root{ other.root } {
-			other.parser = nullptr;
+			: tapeIter{
+				  other.stringBufferLocation,
+				  other.tapePosition,
+				  other.tapeIter.getStructuralCount(),
+			  } {
+			*this = std::move(other);
 		}
 
 		inline JsonParser& operator=(JsonParser&& other) noexcept {
+			this->stringBufferLocation = other.stringBufferLocation;
+			this->startPositionVal = other.startPositionVal;
+			this->tapePosition = other.tapePosition;
+			this->currentDepth = other.currentDepth;
 			this->tapeIter = other.tapeIter;
 			this->parser = other.parser;
-			this->stringBufferLocation = other.stringBufferLocation;
-			this->currentDepth = other.currentDepth;
-			this->root = other.root;
 			other.parser = nullptr;
 			return *this;
+		}
+
+		inline uint32_t* startPosition() noexcept {
+			return this->startPositionVal;
+		}
+
+		inline const uint8_t* peekStart() noexcept {
+			return tapeIter.peek(startPosition());
+		}
+
+		inline void advanceNonRootScalar(const char* type) noexcept {
+			if (!isAtStart()) {
+				return;
+			}
+			tapeIter.returnCurrentAndAdvance();
+			tapeIter.ascendTo(depth() - 1);
+		}
+
+		inline const uint8_t* peekNonRootScalar(const char* type) noexcept {
+			if (!isAtStart()) {
+				return peekStart();
+			}
+			return tapeIter.peek();
+		}
+
+		inline int64_t getInt64() noexcept {
+			auto result = NumberParser::parseInteger(peekNonRootScalar("int64"));
+			advanceNonRootScalar("int64");
+			return result;
 		}
 
 		inline JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept;
@@ -1050,6 +1096,8 @@ namespace Jsonifier {
 		inline JsonParser(uint32_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
 			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
 			this->stringBufferLocation = stringBufferNew;
+			this->startPositionVal = tapePtrsNew;
+			this->tapePosition = tapePtrsNew;
 			this->parser = parserNew;
 		};
 
@@ -1084,19 +1132,19 @@ namespace Jsonifier {
 		}
 
 		template<> inline int64_t getValue() {
-			return this->parseJsonInt();
+			return this->getInt64();
 		}
 
 		template<> inline int32_t getValue() {
-			return this->parseJsonInt();
+			return this->getInt64();
 		}
 
 		template<> inline int16_t getValue() {
-			return this->parseJsonInt();
+			return this->getInt64();
 		}
 
 		template<> inline int8_t getValue() {
-			return this->parseJsonInt();
+			return this->getInt64();
 		}
 
 		template<> inline std::string getValue() {
@@ -1117,13 +1165,6 @@ namespace Jsonifier {
 
 		inline uint64_t getUint64() {
 			uint64_t answer{};
-			auto ptr = this->tapeIter.getTapePosition();
-			std::memcpy(&answer, ++ptr, sizeof(answer));
-			return answer;
-		}
-
-		inline int64_t getInt64() {
-			int64_t answer{};
 			auto ptr = this->tapeIter.getTapePosition();
 			std::memcpy(&answer, ++ptr, sizeof(answer));
 			return answer;
@@ -1173,10 +1214,12 @@ namespace Jsonifier {
 
 	  protected:
 		uint8_t* stringBufferLocation{};
+		uint32_t* startPositionVal{};
+		uint32_t* tapePosition{};
 		SimdJsonValue* parser{};
 		TapeIterator tapeIter;
 		size_t currentDepth{};
-		uint32_t* root{};
+		
 	};
 
 	class SimdBase256;
@@ -2525,8 +2568,8 @@ namespace Jsonifier {
 	
 	inline JsonParser::JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept
 		: tapeIter(buf, _parser->getStructuralIndexes(), parser->getStructuralIndexCount()), parser{ _parser },
-		  stringBufferLocation{ parser->getStringBuffer() }, currentDepth{ 1 }, root{ reinterpret_cast<uint32_t*>(parser->getTape()) }
-	{};
+		  stringBufferLocation{ parser->getStringBuffer() }, currentDepth{ 1 }, tapePosition{ reinterpret_cast<uint32_t*>(parser->getTape()) },
+		  startPositionVal{ reinterpret_cast<uint32_t*>(parser->getTape()) } {};
 
 	inline void JsonParser::rewind() noexcept {
 		this->tapeIter.setPosition(this->rootPosition());

@@ -38,7 +38,8 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
-		auto theObject = std::move(value["d"]);
+		auto theObject = std::move(value["d"].getInt64());
+		std::cout << "THE OBJECT: " << theObject << std::endl;
 		auto theArray = std::move(theObject["activitiess"]);
 		//std::cout << "CURRENT SIZE: " << theArray.size() << std::endl;
 		iterationCount = 0;
@@ -139,13 +140,13 @@ int32_t main() noexcept {
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 2; ++x) {
-			serializer["d"]["activitiess"] = nullptr;
-			serializer["d"]["activitiess_TEST"] = false;
-			serializer["d"]["activitiess_TEST02"] = 0.0342;
-			serializer["d"]["activitiess_TEST03"] = 342;
-			serializer["d"]["activitiess_TEST04"] = "TESTING TESTINTG";
-			serializer["d"]["activitiess_TEST05"] = true;
-			serializer["TEST_02"].emplaceBack(serializer);
+			serializer["d"] = 234;
+			//serializer["d"]["activitiess_TEST"] = false;
+			//serializer["d"]["activitiess_TEST02"] = 0.0342;
+			//serializer["d"]["activitiess_TEST03"] = 342;
+			//serializer["d"]["activitiess_TEST04"] = "TESTING TESTINTG";
+			//serializer["d"]["activitiess_TEST05"] = true;
+			//serializer["TEST_02"].emplaceBack(serializer);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
