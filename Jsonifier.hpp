@@ -792,7 +792,7 @@ namespace Jsonifier {
 		size_t currentDepth{};
 
 	  public:
-		inline ValueIterator() noexcept = default;
+		ValueIterator() noexcept = default;
 		inline void advanceRootScalar(const char* type) noexcept;
 		inline const uint8_t* peekNonRootScalar(const char* type) noexcept;
 		inline void advanceNonRootScalar(const char* type) noexcept;
@@ -845,7 +845,7 @@ namespace Jsonifier {
 
 	class Value {
 	  public:
-		Value() noexcept = default;
+		Value() noexcept = default; 
 		template<typename T> inline T get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
@@ -907,7 +907,6 @@ namespace Jsonifier {
 
 	class Array {
 	  public:
-		inline Array() noexcept = default;
 		inline Array(const ValueIterator& iter) noexcept;
 		inline ArrayIterator begin() noexcept;
 		inline ArrayIterator end() noexcept;
@@ -2712,7 +2711,7 @@ namespace Jsonifier {
 			case '{':
 				return Value(getRootValueIterator());
 			default:
-				return Value{};
+				return Value(getRootValueIterator());
 		}
 	}
 
@@ -2730,12 +2729,12 @@ namespace Jsonifier {
 		this->jsonIter = json_iter;
 	}
 
-	inline Value::Value(const ValueIterator& iter) noexcept {
+	inline Value::Value(const ValueIterator& iter) noexcept : iter{ iter } {
 		this->iter = iter;
 	}
 
 	inline Value Value::operator[](const char* key) noexcept {
-		return startOrResumeValue()[key];
+		return Value::resume(resumeValueIterator());
 	}
 
 	inline Value Value::startOrResumeValue() noexcept {
@@ -2886,7 +2885,7 @@ namespace Jsonifier {
 
 	inline Value Value::findField(const char* key) noexcept {
 		if (!iter.findFieldRaw(key)) {
-			return Value{};
+			return Value(iter.child());
 		}
 		return Value(iter.child());
 	}
@@ -2985,6 +2984,39 @@ namespace Jsonifier {
 		return true;
 	}
 
+	inline JsonType Value::type() noexcept {
+		return this->iter.type();
+	}
+
+	inline JsonType ValueIterator::type() noexcept {
+		switch (*peekStart()) {
+			case '{':
+				return JsonType::Object;
+			case '[':
+				return JsonType::Array;
+			case '"':
+				return JsonType::String;
+			case 'n':
+				return JsonType::Null;
+			case 't':
+			case 'f':
+				return JsonType::Bool;
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return JsonType::Int64;
+			default:
+				return static_cast<JsonType>(ErrorCode::Incorrect_Type);
+		}
+	}
 
 	inline bool RawJsonString::unsafeIsEqual(const char* target) const noexcept {
 		const char* r{ raw() };
@@ -3101,7 +3133,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline Array::Array(const ValueIterator&iterator) noexcept {
+	inline Array::Array(const ValueIterator& iterator) noexcept : iter{ iterator } {
 		this->iter = iterator;
 	}
 
@@ -3110,8 +3142,6 @@ namespace Jsonifier {
 	}
 
 	inline Array Array::start(ValueIterator& iter) noexcept {
-		// We don't need to know if the array is empty to start iteration, but we do want to know if there
-		// is an error--thus `simdjson_unused`.
 		bool has_value{};
 		iter.startArray();
 		return Array(iter);
@@ -3203,6 +3233,90 @@ namespace Jsonifier {
 		} else {
 			return true;
 		}
+	}
+
+	 inline ArrayIterator::ArrayIterator(const ValueIterator& other) noexcept : iter{ other } {
+		this->iter = other;
+	 }
+
+	 inline ArrayIterator& ArrayIterator::operator++() noexcept {
+		ErrorCode error{};
+		// PERF NOTE this is a safety rail ... users should exit loops as soon as they receive an error, so we'll never get here.
+		// However, it does not seem to make a perf difference, so we add it out of an abundance of caution.
+		if (iter.error() != ErrorCode::Success) {
+			return *this;
+		}
+		if (iter.skipChild() != ErrorCode::Success) {
+			return *this;
+		}
+		if (iter.hasNextElement()) {
+			return *this;
+		}
+		return *this;
+	}
+
+	 inline bool ArrayIterator::operator!=(const ArrayIterator&) noexcept {
+		return iter.isOpen();
+	}
+
+	 inline ErrorCode ValueIterator::error() noexcept {
+		return ErrorCode{};
+	 }
+
+	 inline Value ArrayIterator::operator*() noexcept {
+		if (iter.error()!=ErrorCode::Success) {
+			iter.abandon();
+			return Value(iter.child());
+		}
+		return Value(iter.child());
+	}
+
+	 inline ArrayIterator Array::begin() noexcept {
+		return ArrayIterator(iter);
+	}
+	 inline ArrayIterator  Array::end() noexcept {
+		return ArrayIterator(iter);
+	}
+
+	 inline bool ValueIterator::hasNextElement() noexcept {
+
+		switch (*jsonIter->returnCurrentAndAdvance()) {
+			case ']':
+				endContainer();
+				return false;
+			case ',':
+				jsonIter->descendTo(depth() + 1);
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	 inline ArrayIterator Value::begin() & noexcept {
+		return getArray().begin();
+	}
+	inline ArrayIterator Value::end() & noexcept {
+		return {};
+	}
+
+	inline size_t Array::countElements() & noexcept {
+		size_t count{ 0 };
+		// Important: we do not consume any of the values.
+		for (Value v: *this) {
+			count++;
+		}
+		return count;
+	}
+
+	inline Value Array::at(size_t index) noexcept {
+		size_t i = 0;
+		for (auto value: *this) {
+			if (i == index) {
+				return value;
+			}
+			i++;
+		}
+		return Value{};
 	}
 
 };

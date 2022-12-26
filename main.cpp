@@ -36,17 +36,19 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::SimdJsonValue value) {
-		auto& theValue = value.getDocument();
-		//std::cout << "CURRENT SIZE: " << theArray.count_elements() << std::endl;
+		auto theValue = value.getDocument().getValue()["TEST_02"];
+		auto theArray = theValue.getArray();
+		std::cout << "CURRENT SIZE: " << ( int32_t )theArray.at(0).getValue().type() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		for (auto value:theValue.getValue().getArray()) {
-			iterationCount++;
-			activities.emplace_back(std::move(value));
-			totalTime += stopWatch.totalTimePassed().count();
-			activities.emplace_back(ActivitiesJson{});
-		}
+		iterationCount++;
+		//for (auto value:theValue.getValue()) {
+			
+			//activities.emplace_back(std::move(value));
+			//totalTime += stopWatch.totalTimePassed().count();
+			//activities.emplace_back(ActivitiesJson{});
+		//}
 		std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<ActivitiesJson> activities{};
