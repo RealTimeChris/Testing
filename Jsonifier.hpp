@@ -2989,6 +2989,7 @@ namespace Jsonifier {
 	}
 
 	inline JsonType ValueIterator::type() noexcept {
+		std::cout << "PEEK START: " << +*this->peekStart() << std::endl;
 		switch (*peekStart()) {
 			case '{':
 				return JsonType::Object;
