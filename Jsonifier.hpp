@@ -768,6 +768,214 @@ namespace Jsonifier {
 	};
 	
 	class SimdJsonValue;
+	class JsonParser;
+	class document;
+	class object;
+	class array;
+	class value;
+	class raw_json_string;
+	class parser;
+
+	enum class number_type {
+		floating_point_number = 1,
+		signed_integer,
+		unsigned_integer
+	};
+
+	struct number {
+		inline number_type get_number_type() const noexcept;
+		inline bool is_uint64() const noexcept;
+		inline uint64_t get_uint64() const noexcept;
+		inline operator uint64_t() const noexcept;
+		inline bool is_int64() const noexcept;
+		inline int64_t get_int64() const noexcept;
+		inline operator int64_t() const noexcept;
+		inline bool is_double() const noexcept;
+		inline double get_double() const noexcept;
+		inline operator double() const noexcept;
+		inline double as_double() const noexcept;
+
+
+	  protected:
+		friend class value_iterator;
+		template<typename W>
+		friend ErrorCode NumberParser::writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* start_digits,
+			size_t digit_count, int64_t exponent, W& writer);
+		template<typename W> friend ErrorCode NumberParser::parseNumber(const uint8_t* const src, W& writer);
+		template<typename W> friend ErrorCode NumberParser::slowFloatParsing(const uint8_t* src, W writer);
+		inline void append_s64(int64_t value) noexcept;
+		inline void append_u64(uint64_t value) noexcept;
+		inline void append_double(double value) noexcept;
+		inline void skip_double() noexcept;
+		union {
+			double floating_point_number;
+			int64_t signed_integer;
+			uint64_t unsigned_integer;
+		} payload{ 0 };
+		number_type type{ number_type::signed_integer };
+	};
+
+	class value_iterator {
+	  protected:
+		JsonParser* _json_iter{};
+		size_t _depth{};
+		uint32_t* _start_position{};
+
+	  public:
+		inline value_iterator() noexcept = default;
+		inline void start_document() noexcept;
+		inline ErrorCode skip_child() noexcept;
+		inline bool at_end() const noexcept;
+		inline bool at_start() const noexcept;
+		inline bool is_open() const noexcept;
+		inline bool at_first_field() const noexcept;
+		inline void abandon() noexcept;
+		inline value_iterator child_value() const noexcept;
+		inline int32_t depth() const noexcept;
+		inline JsonType type() const noexcept;
+		inline bool start_object() noexcept;
+		inline bool start_root_object() noexcept;
+		inline bool started_object() noexcept;
+		inline bool started_root_object() noexcept;
+		inline bool has_next_field() noexcept;
+		inline ErrorCode field_value() noexcept;
+		inline ErrorCode find_field(const std::string_view key) noexcept;
+		inline bool find_field_raw(const std::string_view key) noexcept;
+		inline bool find_field_unordered_raw(const std::string_view key) noexcept;
+		inline bool start_array() noexcept;
+		inline bool start_root_array() noexcept;
+		inline bool started_array() noexcept;
+		inline bool started_root_array() noexcept;
+		inline bool has_next_element() noexcept;
+		inline value_iterator child() const noexcept;
+
+		inline std::string_view get_string() noexcept;
+		inline raw_json_string get_raw_json_string() noexcept;
+		inline uint64_t get_uint64() noexcept;
+		inline uint64_t get_uint64_in_string() noexcept;
+		inline int64_t get_int64() noexcept;
+		inline int64_t get_int64_in_string() noexcept;
+		inline double get_double() noexcept;
+		inline double get_double_in_string() noexcept;
+		inline bool get_bool() noexcept;
+		inline bool is_null() noexcept;
+		inline bool is_negative() noexcept;
+		inline bool is_integer() noexcept;
+		inline number_type get_number_type() noexcept;
+		inline number get_number() noexcept;
+
+		inline std::string_view get_root_string() noexcept;
+		inline raw_json_string get_root_raw_json_string() noexcept;
+		inline uint64_t get_root_uint64() noexcept;
+		inline uint64_t get_root_uint64_in_string() noexcept;
+		inline int64_t get_root_int64() noexcept;
+		inline int64_t get_root_int64_in_string() noexcept;
+		inline double get_root_double() noexcept;
+		inline double get_root_double_in_string() noexcept;
+		inline bool get_root_bool() noexcept;
+		inline bool is_root_negative() noexcept;
+		inline bool is_root_integer() noexcept;
+		inline number_type get_root_number_type() noexcept;
+		inline number get_root_number() noexcept;
+		inline bool is_root_null() noexcept;
+
+		inline ErrorCode error() const noexcept;
+		inline uint8_t*& string_buf_loc() noexcept;
+		inline const JsonParser& json_iter() const noexcept;
+		inline JsonParser& json_iter() noexcept;
+
+		inline void assert_is_valid() const noexcept;
+		inline bool is_valid() const noexcept;
+	  protected:
+		inline bool reset_array() noexcept;
+		inline bool reset_object() noexcept;
+		inline void move_at_start() noexcept;
+		inline void move_at_container_start() noexcept;
+		inline std::string to_string() const noexcept;
+		inline value_iterator(JsonParser* json_iter, size_t depth, uint32_t* start_index) noexcept;
+
+		inline bool parse_null(const uint8_t* json) const noexcept;
+		inline bool parse_bool(const uint8_t* json) const noexcept;
+		inline const uint8_t* peek_start() const noexcept;
+		inline uint32_t peek_start_length() const noexcept;
+
+		inline void advance_scalar(const char* type) noexcept;
+		inline void advance_root_scalar(const char* type) noexcept;
+		inline void advance_non_root_scalar(const char* type) noexcept;
+
+		inline const uint8_t* peek_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
+
+
+		inline ErrorCode start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
+		inline ErrorCode end_container() noexcept;
+		inline const uint8_t* advance_to_value() noexcept;
+
+		inline ErrorCode incorrect_type_error(const char* message) const noexcept;
+		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
+		inline bool is_at_start() const noexcept;
+		inline bool is_at_iterator_start() const noexcept;
+		inline bool is_at_key() const noexcept;
+		inline void assert_at_start() const noexcept;
+		inline void assert_at_container_start() const noexcept;
+		inline void assert_at_root() const noexcept;
+		inline void assert_at_child() const noexcept;
+		inline void assert_at_next() const noexcept;
+		inline void assert_at_non_root_start() const noexcept;
+		inline uint32_t* start_position() const noexcept;
+		inline uint32_t* position() const noexcept;
+		inline uint32_t* last_position() const noexcept;
+		inline uint32_t* end_position() const noexcept;
+		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
+
+		friend class document;
+		friend class object;
+		friend class array;
+		friend class value;
+	};
+class array_iterator {
+	  public:
+		inline array_iterator() noexcept = default;
+		inline value operator*() noexcept;
+		inline bool operator==(const array_iterator&) const noexcept;
+		inline bool operator!=(const array_iterator&) const noexcept;
+		inline array_iterator& operator++() noexcept;
+
+	  private:
+		value_iterator iter{};
+
+		inline array_iterator(const value_iterator& iter) noexcept;
+
+		friend class array;
+		friend class value;
+		friend struct array_iterator;
+	};
+
+class array {
+	  public:
+		inline array() noexcept = default;
+		inline array_iterator  begin() noexcept;
+		inline array_iterator  end() noexcept;
+		inline size_t count_elements() & noexcept;
+		inline bool is_empty() & noexcept;
+		inline bool reset() & noexcept;
+		inline value at_pointer(std::string_view json_pointer) noexcept;
+		inline std::string_view raw_json() noexcept;
+		inline value at(size_t index) noexcept;
+		inline ErrorCode consume() noexcept;
+		static inline array start(value_iterator& iter) noexcept;
+		static inline array start_root(value_iterator& iter) noexcept;
+		static inline array started(value_iterator& iter) noexcept;
+		inline array(const value_iterator& iter) noexcept;
+		value_iterator iter{};
+
+		friend class value;
+		friend class document;
+		friend struct value;
+		friend struct array;
+		friend class array_iterator;
+	};
 
 	class JsonParser {
 	  public:
