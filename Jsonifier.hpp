@@ -13,8 +13,8 @@ namespace Jsonifier {
 		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
 
-	constexpr int64_t JSON_VALUE_MASK = 0x00FFFFFFFFFFFFFF;
-	constexpr uint32_t JSON_COUNT_MASK = 0xFFFFFF;
+	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
+	constexpr uint32_t JSON_COUNT_MASK{ 0xFFFFFF };
 
 	template<typename RTy> void reverseByteOrder(RTy& net) {
 		if constexpr (std::endian::native == std::endian::little) {
