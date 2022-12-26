@@ -1154,6 +1154,14 @@ class JsonParser {
 			*this = std::move(other);
 		}
 
+		inline bool atRoot() noexcept {
+			return position() == rootPosition();
+		}
+
+		inline uint32_t* rootPosition() noexcept {
+			return startPositionVal;
+		}
+
 		inline JsonParser& operator=(JsonParser&& other) noexcept {
 			this->stringBufferLocation = other.stringBufferLocation;
 			this->startPositionVal = other.startPositionVal;
@@ -1278,9 +1286,6 @@ class JsonParser {
 			return this->tapeIter.getTapePosition() == this->tapeIter.getTape();
 		}
 
-		inline bool atRoot() noexcept;
-
-		inline uint32_t* rootPosition() noexcept;
 
 		inline void assertAtRoot() noexcept {
 			assert(this->tapeIter.position() == this->root);
@@ -3833,5 +3838,13 @@ class JsonParser {
 	}
 
 	inline array::array(const value_iterator& _iter) noexcept : iter{ _iter } {
+	}
+
+	inline value document::operator[](const char* key) & noexcept {
+		return start_or_resume_object()[key];
+	}
+
+	inline bool value_iterator::started_root_object() noexcept {
+		return started_object();
 	}
 };
