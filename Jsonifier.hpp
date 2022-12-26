@@ -1288,7 +1288,7 @@ class JsonParser {
 
 
 		inline void assertAtRoot() noexcept {
-			assert(this->tapeIter.position() == this->root);
+			assert(this->tapeIter.position() == this->startPositionVal);
 		}
 
 		inline void assertMoreTokens(uint32_t required_tokens) noexcept {
@@ -3666,9 +3666,7 @@ class JsonParser {
 			assert(has_value);
 			assert(_json_iter->depth() == _depth);
 			raw_json_string actual_key{};
-			assert(!error);
 			error = field_value();
-			assert(!error);
 			if (actual_key.unsafe_is_equal(key)) {
 				return true;
 			}
@@ -3677,7 +3675,6 @@ class JsonParser {
 				return false;
 			}
 			has_value = has_next_field();
-			assert(!error);
 		}
 		return false;
 	}
