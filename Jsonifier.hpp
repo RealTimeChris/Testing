@@ -2529,12 +2529,12 @@ namespace Jsonifier {
 	{};
 
 	inline void JsonParser::rewind() noexcept {
-		tapeIter.setPosition(rootPosition());
-		stringBufferLocation = parser->getStringBuffer();
-		currentDepth = 1;
+		this->tapeIter.setPosition(this->rootPosition());
+		this->stringBufferLocation = this->parser->getStringBuffer();
+		this->currentDepth = 1;
 	}
 
 	inline bool JsonParser::isSingleToken() noexcept {
-		return parser->getStructuralIndexCount() == 1;
+		return this->parser->getStructuralIndexCount() == 1;
 	}
 };
