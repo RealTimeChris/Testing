@@ -132,9 +132,13 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_05"] = true;
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
+		arrayValueNew["TEST_VALUE_08"] = 0.00333423;
+		arrayValueNew["TEST_VALUE_09"] = true;
+		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 12; ++x) {
+		for (size_t x = 0; x < 15; ++x) {
 			serializer["d"]["activitiess"].emplaceBack(arrayValue);
 		}
 		

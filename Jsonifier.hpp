@@ -2268,7 +2268,6 @@ namespace Jsonifier {
 			return ErrorCode::Empty;
 		}
 		visitor.visitDocumentStart(*this);
-		this->masterParser->getTapeLength()++;
 		{
 			auto value = this->advance();
 
@@ -2276,7 +2275,6 @@ namespace Jsonifier {
 				case '{':
 					if (*this->peek() == '}') {
 						this->advance();
-						this->masterParser->getTapeLength()++;
 						visitor.visitEmptyObject(*this);
 						break;
 					}
@@ -2284,13 +2282,11 @@ namespace Jsonifier {
 				case '[':
 					if (*this->peek() == ']') {
 						this->advance();
-						this->masterParser->getTapeLength()++;
 						visitor.visitEmptyArray(*this);
 						break;
 					}
 					goto Array_Begin;
 				default:
-					this->masterParser->getTapeLength()++;
 					visitor.visitRootPrimitive(*this, value);
 					break;
 			}
@@ -2303,7 +2299,6 @@ namespace Jsonifier {
 			return ErrorCode::DepthError;
 		}
 		this->masterParser->getIsArray()[this->depth] = false;
-		this->masterParser->getTapeLength()++;
 		visitor.visitObjectStart(*this);
 		{
 			auto key = this->advance();
@@ -2312,7 +2307,6 @@ namespace Jsonifier {
 					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 			}
-			this->masterParser->getTapeLength()++;
 			visitor.visitKey(*this, key);
 			visitor.incrementCount(*this);
 		}
@@ -2330,7 +2324,6 @@ namespace Jsonifier {
 				case '{':
 					if (*this->peek() == '}') {
 						this->advance();
-						this->masterParser->getTapeLength()++;
 						visitor.visitEmptyObject(*this);
 						break;
 					}
@@ -2338,14 +2331,11 @@ namespace Jsonifier {
 				case '[':
 					if (*this->peek() == ']') {
 						this->advance();
-
-						this->masterParser->getTapeLength()++;
 						visitor.visitEmptyArray(*this);
 						break;
 					}
 					goto Array_Begin;
 				default:
-					this->masterParser->getTapeLength()++;
 					if (auto resultCode = visitor.visitPrimitive(*this, value); resultCode != ErrorCode::Success) {
 						throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 							std::string{ static_cast<EnumStringConverter>(resultCode) } +
@@ -2357,7 +2347,7 @@ namespace Jsonifier {
 	}
 		
 	Object_Continue: {
-			auto newValue = *this->advance();
+		auto newValue = *this->advance();
 		switch (newValue) {
 			case ',':
 				visitor.incrementCount(*this);
@@ -2368,12 +2358,10 @@ namespace Jsonifier {
 							std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 							", at the following index into the string: " + std::to_string(*this->nextStructural) };
 					}
-					this->masterParser->getTapeLength()++;
 					visitor.visitKey(*this, key);
 				}
 				goto Object_Field;
 			case '}':
-				this->masterParser->getTapeLength()++;
 				visitor.visitObjectEnd(*this);
 				goto Scope_End;
 			default:
@@ -2385,13 +2373,11 @@ namespace Jsonifier {
 	}
 	
 	Scope_End : {
-		this->masterParser->getTapeLength()++;
 		this->depth--;
 		if (this->depth == 0) {
-			this->masterParser->getTapeLength()++;
 			goto Document_End;
 		}
-		if (masterParser->getIsArray()[this->depth]) {
+		if (this->masterParser->getIsArray()[this->depth]) {
 			goto Array_Continue;
 		}
 		goto Object_Continue;
@@ -2405,7 +2391,6 @@ namespace Jsonifier {
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 		this->masterParser->getIsArray()[this->depth] = true;
-		this->masterParser->getTapeLength()++;
 		visitor.visitArrayStart(*this);
 		visitor.incrementCount(*this);
 	}
@@ -2417,23 +2402,18 @@ namespace Jsonifier {
 				case '{':
 					if (*this->peek() == '}') {
 						this->advance();
-						this->masterParser->getTapeLength()++;
 						visitor.visitEmptyObject(*this);
 						break;
 					}
-					this->masterParser->getTapeLength()++;
 					goto Object_Begin;
 				case '[':
 					if (*this->peek() == ']') {
 						this->advance();
-						this->masterParser->getTapeLength()++;
 						visitor.visitEmptyArray(*this);
 						break;
 					}
-					this->masterParser->getTapeLength()++;
 					goto Array_Begin;
 				default:
-					this->masterParser->getTapeLength()++;
 					if (auto resultCode = visitor.visitPrimitive(*this, value); resultCode != ErrorCode::Success) {
 						throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 							std::string{ static_cast<EnumStringConverter>(resultCode) } +
@@ -2452,7 +2432,6 @@ namespace Jsonifier {
 					visitor.incrementCount(*this);
 					goto Array_Value;
 				case ']':
-					this->masterParser->getTapeLength()++;
 					visitor.visitArrayEnd(*this);
 					goto Scope_End;
 				default:
@@ -2462,7 +2441,6 @@ namespace Jsonifier {
 	}
 
 	Document_End : {
-		this->masterParser->getTapeLength()++;
 		visitor.visitDocumentEnd(*this);
 		std::cout << "THE TAPE LENGTH: " << this->masterParser->getTapeLength() << std::endl;
 
