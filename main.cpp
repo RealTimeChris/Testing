@@ -38,19 +38,19 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::document&& value) {
-		auto theObject = value["d"].get_object();
-		auto theArray = theObject["activitiess"];
+		//auto theObject = value["d"].get_object();
+		//auto theArray = theObject["activitiess"];
 		//std::cout << "CURRENT SIZE: " << theArray.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		for (auto value:theArray.get_array()) {
-			iterationCount++;
+		//for (auto value:theArray.get_array()) {
+		//iterationCount++;
 			
-			activities.emplace_back(std::move(value));
-			totalTime += stopWatch.totalTimePassed().count();
-			activities.emplace_back(ActivitiesJson{});
-		}
+			//activities.emplace_back(std::move(value));
+		//totalTime += stopWatch.totalTimePassed().count();
+		//			activities.emplace_back(ActivitiesJson{});
+		//}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<ActivitiesJson> activities{};
@@ -132,14 +132,13 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 2; ++x) {
-			serializer["d"] = 234;
-			//serializer["d"]["activitiess_TEST"] = false;
-			//serializer["d"]["activitiess_TEST02"] = 0.0342;
-			//serializer["d"]["activitiess_TEST03"] = 342;
-			//serializer["d"]["activitiess_TEST04"] = "TESTING TESTINTG";
-			//serializer["d"]["activitiess_TEST05"] = true;
-			//serializer["TEST_02"].emplaceBack(serializer);
+		for (size_t x = 0; x < 5; ++x) {
+			serializer["d"]["activitiess_TEST"] = false;
+			serializer["d"]["activitiess_TEST02"] = 0.0342;
+			serializer["d"]["activitiess_TEST03"] = 342;
+			serializer["d"]["activitiess_TEST04"] = "TESTING TESTINTG";
+			serializer["d"]["activitiess_TEST05"] = true;
+			serializer["TEST_02"].emplaceBack(serializer);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -171,6 +170,7 @@ int32_t main() noexcept {
 
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+			
 			auto jsonData = theParser.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;

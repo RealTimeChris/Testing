@@ -650,14 +650,10 @@ namespace Jsonifier {
 		}
 
 		inline void ascendTo(size_t parent_depth) noexcept {
-			assert(parent_depth >= 0 && parent_depth < INT32_MAX - 1);
-			assert(currentDepth == parent_depth + 1);
 			this->currentDepth = parent_depth;
 		}
 
 		inline void descendTo(size_t child_depth) noexcept {
-			assert(child_depth >= 1 && child_depth < INT32_MAX);
-			assert(currentDepth == child_depth - 1);
 			this->currentDepth = child_depth;
 		}
 
@@ -686,6 +682,7 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t* peek(int32_t delta) noexcept {
+			std::cout << "THE PEEEKED VALUE: " << this->stringBuffer[*(this->tapePosition + delta)] << std::endl;
 			return &this->stringBuffer[*(this->tapePosition + delta)];
 		}
 
@@ -1089,7 +1086,7 @@ namespace Jsonifier {
 
 	
 
-class array_iterator {
+	class array_iterator {
 	  public:
 		inline array_iterator() noexcept = default;
 		inline value operator*() noexcept;
@@ -1107,7 +1104,7 @@ class array_iterator {
 		friend struct array_iterator;
 	};
 
-class array {
+	class array {
 	  public:
 		inline array() noexcept = default;
 		inline array_iterator  begin() noexcept;
@@ -1132,7 +1129,7 @@ class array {
 		friend class array_iterator;
 	};
 
-class JsonParser {
+	class JsonParser {
 	  public:
 		using MapAllocatorType = std::allocator<std::pair<const std::string_view, JsonParser>>;
 		template<typename OTy> using AllocatorType = std::allocator<OTy>;
@@ -3007,7 +3004,7 @@ class JsonParser {
 		}
 		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
 		//std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
-		//			}
+		//}
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		return document{ JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this } };
 	}
@@ -3020,7 +3017,7 @@ class JsonParser {
 	inline void JsonParser::rewind() noexcept {
 		this->tapeIter.setPosition(this->rootPosition());
 		this->stringBufferLocation = this->parser->getStringBuffer();
-		this->currentDepth = 1;
+		this->currentDepth = 0;
 	}
 
 	inline bool JsonParser::isSingleToken() noexcept {
@@ -3067,17 +3064,12 @@ class JsonParser {
 		}
 	}
 	inline value document::get_value() noexcept {
-		// Make sure we start any arrays or objects before returning, so that start_root_<object/array>()
-		// gets called.
 		switch (*iter.peek()) {
 			case '[':
 			case '{':
 				return value(get_root_value_iterator());
 			default:
-				// Unfortunately, scalar documents are a special case in simdjson and they cannot
-				// be safely converted to value instances.
 				return value{};
-				// return value(get_root_value_iterator());
 		}
 	}
 	inline array document::get_array() & noexcept {
@@ -3564,7 +3556,7 @@ class JsonParser {
 
 	inline void value_iterator::assert_at_start() const noexcept {
 		assert(_json_iter->getTapeIterator().position() == _start_position);
-		assert(_json_iter->depth() == _depth);
+		//assert(_json_iter->depth() == _depth);
 	}
 
 	inline void value_iterator::assert_at_container_start() const noexcept {
@@ -3843,5 +3835,20 @@ class JsonParser {
 
 	inline bool value_iterator::started_root_object() noexcept {
 		return started_object();
+	}
+
+	inline bool value_iterator::has_next_element() noexcept {
+		assert_at_next();
+
+		switch (*_json_iter->returnCurrentAndAdvance()) {
+			case ']':
+				end_container();
+				return false;
+			case ',':
+				_json_iter->descendTo(depth() + 1);
+				return true;
+			default:
+				return false;
+		}
 	}
 };
