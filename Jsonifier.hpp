@@ -3356,8 +3356,6 @@ namespace Jsonifier {
 	}
 
 	inline array array::start(value_iterator& iter) noexcept {
-		// We don't need to know if the array is empty to start iteration, but we do want to know if there
-		// is an error--thus `simdjson_unused`.
 		bool has_value{};
 		iter.start_array();
 		return array(iter);
