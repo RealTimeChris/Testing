@@ -37,9 +37,9 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Document&& value) {
+	TheDJson(Jsonifier::Document value) {
 		auto theValue = value.getValue();
-		//auto theArray = theValue["activitiess"];
+		auto theArray = theValue["activitiess"];
 		//std::cout << "CURRENT SIZE: " << theArray.count_elements() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -57,7 +57,7 @@ struct TheDJson {
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::Document&& value) {
+	TheValueJson(Jsonifier::Document value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
@@ -156,7 +156,7 @@ int32_t main() noexcept {
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			
 			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ jsonData };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
