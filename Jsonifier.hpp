@@ -3683,4 +3683,21 @@ class JsonParser {
 
 		return _json_iter->skipChild(depth());
 	}
+
+	inline bool value_iterator::is_open() const noexcept {
+		return _json_iter->depth() >= depth();
+	}
+
+	inline bool value_iterator::at_end() const noexcept {
+		return _json_iter->atEnd();
+	}
+
+	inline bool value_iterator::at_first_field() const noexcept {
+		assert(_json_iter->getTapeIterator().position() > _start_position);
+		return _json_iter->getTapeIterator().position() == start_position() + 1;
+	}
+
+	inline void value_iterator::abandon() noexcept {
+		_json_iter->abandon();
+	}
 };
