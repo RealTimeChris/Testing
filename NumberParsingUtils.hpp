@@ -673,11 +673,7 @@ namespace Jsonifier {
 				parseExponent(src, p, exponent);
 			}
 			if (isFloat) {
-				const bool dirtyEnd = StringParser::isNotStructuralOrWhiteSpace(*p);
 				writeFloat<TapeWriter>(src, negative, i, startDigits, digitCount, exponent, writer);
-				if (dirtyEnd) {
-					return ErrorCode::InvalidNumber;
-				}
 				return ErrorCode::Success;
 			}
 
@@ -691,9 +687,6 @@ namespace Jsonifier {
 						return ErrorCode::InvalidNumber;
 					}
 					writer.appendS64(~i + 1);
-					if (StringParser::isNotStructuralOrWhiteSpace(*p)) {
-						return ErrorCode::InvalidNumber;
-					}
 					return ErrorCode::Success;
 				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
 					return ErrorCode::InvalidNumber;
@@ -704,9 +697,6 @@ namespace Jsonifier {
 				writer.appendU64(std::move(i));
 			} else {
 				writer.appendS64(negative ? (~i + 1) : i);
-			}
-			if (StringParser::isNotStructuralOrWhiteSpace(*p)) {
-				return ErrorCode::InvalidNumber;
 			}
 			return ErrorCode::Success;
 		}
