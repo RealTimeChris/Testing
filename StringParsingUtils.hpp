@@ -188,7 +188,7 @@ namespace Jsonifier {
 			return offset > 0;
 		}
 
-		template<typename SimdBase256> inline static uint32_t copyAndFind(const char* src, char* dst) {
+		template<typename SimdBase256> inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
 			SimdBase256 values{ reinterpret_cast<const uint8_t*>(src) };
 
 			values.store(reinterpret_cast<uint8_t*>(dst));
@@ -202,10 +202,11 @@ namespace Jsonifier {
 			return 0;
 		}
 
-		inline static char* parseString(const char* src, char* dst, size_t length) {
+		inline static uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
 			int32_t index{};
 			while (length > 0) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
+					std::cout << "THE RESULT: " << result << std::endl;
 					return dst + result;
 				}
 				length -= 32;
