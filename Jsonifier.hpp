@@ -934,6 +934,7 @@ namespace Jsonifier {
 		friend class array;
 		friend class value;
 	};
+
 class array_iterator {
 	  public:
 		inline array_iterator() noexcept = default;
@@ -977,7 +978,7 @@ class array {
 		friend class array_iterator;
 	};
 
-	class JsonParser {
+class JsonParser {
 	  public:
 		using MapAllocatorType = std::allocator<std::pair<const std::string_view, JsonParser>>;
 		template<typename OTy> using AllocatorType = std::allocator<OTy>;
@@ -1240,9 +1241,7 @@ class array {
 			return _error;
 		}
 
-		template<int N>
-		inline bool copyToBuffer(const uint8_t* json, uint32_t max_len,
-			uint8_t (&tmpbuf)[N]) noexcept {
+		template<int N> inline bool copyToBuffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept {
 			if ((N < max_len) || (N == 0)) {
 				return false;
 			}
@@ -1277,7 +1276,7 @@ class array {
 		}
 
 		inline std::string_view parseJsonString() {
-			std::string_view  returnData{};
+			std::string_view returnData{};
 			return returnData;
 		}
 
@@ -1300,7 +1299,7 @@ class array {
 			size_t returnValue{};
 			return returnValue;
 		}
-		
+
 		inline JsonParser(uint32_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
 			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
 			this->stringBufferLocation = stringBufferNew;
@@ -1427,7 +1426,82 @@ class array {
 		SimdJsonValue* parser{};
 		TapeIterator tapeIter;
 		size_t currentDepth{};
-		
+	};
+
+	class document {
+	  public:
+		inline document() noexcept = default;
+		inline document(const document& other) noexcept = delete;
+		inline document(document&& other) noexcept = default;
+		inline document& operator=(const document& other) noexcept = delete;
+		inline document& operator=(document&& other) noexcept = default;
+
+		inline array get_array() & noexcept;
+		inline object get_object() & noexcept;
+		inline uint64_t get_uint64() noexcept;
+		inline uint64_t get_uint64_in_string() noexcept;
+		inline int64_t get_int64() noexcept;
+		inline int64_t get_int64_in_string() noexcept;
+		inline double get_double() noexcept;
+		inline double get_double_in_string() noexcept;
+		inline std::string_view get_string() noexcept;
+		inline raw_json_string get_raw_json_string() noexcept;
+		inline value get_value() noexcept;
+		inline bool is_null() noexcept;
+		template<typename T> inline T get() & noexcept {
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
+		}
+		template<typename T> inline T get() && noexcept {
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
+		}
+		template<typename T> inline ErrorCode get(T& out) & noexcept;
+		template<typename T> inline ErrorCode get(T& out) && noexcept;
+		inline size_t count_elements() & noexcept;
+		inline size_t count_fields() & noexcept;
+		inline value at(size_t index) & noexcept;
+		inline array_iterator begin() & noexcept;
+		inline array_iterator end() & noexcept;
+		inline value find_field(std::string_view key) & noexcept;
+		inline value find_field(const char* key) & noexcept;
+		inline value find_field_unordered(std::string_view key) & noexcept;
+		inline value find_field_unordered(const char* key) & noexcept;
+		inline value operator[](std::string_view key) & noexcept;
+		inline value operator[](const char* key) & noexcept;
+		inline JsonType type() noexcept;
+		inline bool is_scalar() noexcept;
+		inline bool is_negative() noexcept;
+		inline bool is_integer() noexcept;
+		inline number_type get_number_type() noexcept;
+		inline number get_number() noexcept;
+		inline std::string_view raw_json_token() noexcept;
+		inline void rewind() noexcept;
+		inline std::string to_debug_string() noexcept;
+		inline bool is_alive() noexcept;
+		inline const char* current_location() noexcept;
+		inline int32_t current_depth() const noexcept;
+		inline value at_pointer(std::string_view json_pointer) noexcept;
+		inline std::string_view raw_json() noexcept;
+
+	  protected:
+		inline ErrorCode consume() noexcept;
+
+		inline document(JsonParser&& iter) noexcept;
+		inline const uint8_t* text(uint32_t idx) const noexcept;
+
+		inline value_iterator resume_value_iterator() noexcept;
+		inline value_iterator get_root_value_iterator() noexcept;
+		inline object start_or_resume_object() noexcept;
+		static inline document start(JsonParser&& iter) noexcept;
+		JsonParser iter;
+		static constexpr size_t DOCUMENT_DEPTH = 0;
+
+		friend class array_iterator;
+		friend class value;
+		friend class object;
+		friend class array;
+		friend class field;
+		friend class token;
+		friend class document_stream;
 	};
 
 	class SimdBase256;
