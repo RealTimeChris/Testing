@@ -138,8 +138,11 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 15; ++x) {
-			serializer["d"]["activitiess"].emplaceBack(arrayValue);
+		for (size_t x = 0; x < 1; ++x) {
+			serializer["d"]["activitiess"] = nullptr;
+			serializer["d"]["activitiess_TEST"] = false;
+			serializer["d"]["activitiess_TEST02"] = 0.0342;
+			serializer["TEST"] = serializer;
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -159,14 +162,14 @@ int32_t main() noexcept {
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
-			std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
-			std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
-			std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
-			std::cout << "VALUE03: " << value.theD.activities.begin().operator*().TEST_VALUE_03 << std::endl;
-			std::cout << "VALUE04: " << value.theD.activities.begin().operator*().TEST_VALUE_04 << std::endl;
-			std::cout << "VALUE05: " << value.theD.activities.begin().operator*().TEST_VALUE_05 << std::endl;
-			std::cout << "VALUE06: " << value.theD.activities.begin().operator*().TEST_VALUE_06 << std::endl;
-			std::cout << "VALUE07: " << value.theD.activities.begin().operator*().TEST_VALUE_07 << std::endl;
+			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
+			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
+			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
+			//std::cout << "VALUE03: " << value.theD.activities.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE04: " << value.theD.activities.begin().operator*().TEST_VALUE_04 << std::endl;
+			////std::cout << "VALUE05: " << value.theD.activities.begin().operator*().TEST_VALUE_05 << std::endl;
+			//std::cout << "VALUE06: " << value.theD.activities.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE07: " << value.theD.activities.begin().operator*().TEST_VALUE_07 << std::endl;
 			totalSize += oldSize;
 		} 
 		totalTime += stopWatch.totalTimePassed().count();
