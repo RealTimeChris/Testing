@@ -132,7 +132,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 5; ++x) {
+		for (size_t x = 0; x < 4; ++x) {
 			serializer["d"]["activitiess_TEST"] = false;
 			serializer["d"]["activitiess_TEST02"] = 0.0342;
 			serializer["d"]["activitiess_TEST03"] = 342;
