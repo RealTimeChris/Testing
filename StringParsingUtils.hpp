@@ -206,7 +206,6 @@ namespace Jsonifier {
 			int32_t index{};
 			while (length > 0) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
-					std::cout << "THE RESULT: " << result << std::endl;
 					return dst + result;
 				}
 				length -= 32;

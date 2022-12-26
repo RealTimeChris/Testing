@@ -2677,12 +2677,12 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] & JSON_VALUE_MASK) << std::endl;
-			std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
-		}		
-		dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
-		std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
+		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			//			std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] & JSON_VALUE_MASK) << std::endl;
+			//std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
+		//}		
+		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
+		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		auto jsonParser =
 			JsonParser{ reinterpret_cast<uint32_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
 		return Document{ std::move(jsonParser) };
@@ -2692,7 +2692,7 @@ namespace Jsonifier {
 	}
 
 	inline Document Document::start(JsonParser&& iter) noexcept {
-		return Document(std::forward<JsonParser>(iter));
+		return Document(std::move(iter));
 	}
 
 	inline Value Document::getValue() noexcept {

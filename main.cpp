@@ -39,7 +39,7 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		auto theValue = value.getValue();
-		auto theArray = theValue["activitiess"];
+		//auto theArray = theValue["activitiess"];
 		//std::cout << "CURRENT SIZE: " << theArray.count_elements() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -134,7 +134,7 @@ int32_t main() noexcept {
 		for (size_t x = 0; x < 11; ++x) {
 			serializer["d"]["TEAST"] = "TEST";
 			serializer["d"]["TEST"] = false;
-			//serializer["TEST_02"].emplaceBack(serializer);
+			serializer["TEST_02"].emplaceBack(serializer);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
