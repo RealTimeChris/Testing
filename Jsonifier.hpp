@@ -3831,4 +3831,7 @@ class JsonParser {
 
 	inline array_iterator::array_iterator(const value_iterator& _iter) noexcept : iter{ _iter } {
 	}
+
+	inline array::array(const value_iterator& _iter) noexcept : iter{ _iter } {
+	}
 };
