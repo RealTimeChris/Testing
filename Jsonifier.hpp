@@ -767,17 +767,136 @@ namespace Jsonifier {
 		using IntType = int64_t;
 		using BoolType = bool;
 
+		inline JsonParser(JsonParser&& other) noexcept
+			: tapeIter(std::forward<TapeIterator>(other.tapeIter)), parser{ other.parser }, stringBufferLocation{ other.stringBufferLocation },
+			  currentDepth{ other.currentDepth }, root{ other.root } {
+			other.parser = nullptr;
+		}
+
+		inline JsonParser& operator=(JsonParser&& other) noexcept {
+			tapeIter = other.tapeIter;
+			parser = other.parser;
+			stringBufferLocation = other.stringBufferLocation;
+			currentDepth= other.currentDepth;
+			root= other.root;
+			other.parser = nullptr;
+			return *this;
+		}
+
+		inline JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept;
+
+		inline void rewind() noexcept;
+
+		inline bool balanced() noexcept {
+			TapeIterator ti(tapeIter);
+			int32_t count{ 0 };
+			ti.setPosition(rootPosition());
+			while (ti.peek() <= peekLast()) {
+				switch (*ti.returnCurrentAndAdvance()) {
+					case '[':
+					case '{':
+						count++;
+						break;
+					case ']':
+					case '}':
+						count--;
+						break;
+					default:
+						break;
+				}
+			}
+			return count == 0;
+		}
+
+
+		// GCC 7 warns when the first line of this function is inlined away into oblivion due to the caller
+		// relating depth and parent_depth, which is a desired effect. The warning does not show up if the
+		// skip_child() function is not marked inline).
+		inline ErrorCode skipChild(size_t parent_depth) noexcept {
+			if (depth() <= parent_depth) {
+				return ErrorCode::Success;
+			}
+			switch (*returnCurrentAndAdvance()) {
+				// TODO consider whether matching braces is a requirement: if non-matching braces indicates
+				// *missing* braces, then future lookups are not in the object/arrays they think they are,
+				// violating the rule "validate enough structure that the user can be confident they are
+				// looking at the right values."
+				// PERF TODO we can eliminate the switch here with a lookup of how much to add to depth
+
+				// For the first open array/object in a value, we've already incremented depth, so keep it the same
+				// We never stop at colon, but if we did, it wouldn't affect depth
+				case '[':
+				case '{':
+				case ':':
+					break;
+				// If there is a comma, we have just finished a value in an array/object, and need to get back in
+				case ',':
+					break;
+				// ] or } means we just finished a value and need to jump out of the array/object
+				case ']':
+				case '}':
+					currentDepth--;
+					if (depth() <= parent_depth) {
+						return ErrorCode::Success;
+					}
+					break;
+				case '"':
+					if (*peek() == static_cast<uint8_t>(':')) {
+						// We are at a key!!!
+						// This might happen if you just started an object and you skip it immediately.
+						// Performance note: it would be nice to get rid of this check as it is somewhat
+						// expensive.
+						// https://github.com/simdjson/simdjson/issues/1742
+						returnCurrentAndAdvance();// eat up the ':'
+						break;// important!!!
+					}
+					[[fallthrough]];
+				// Anything else must be a scalar value
+				default:
+					// For the first scalar, we will have incremented depth already, so we decrement it here.
+					currentDepth--;
+					if (depth() <= parent_depth) {
+						return ErrorCode::Success;
+					}
+					break;
+			}
+
+			// Now that we've considered the first value, we only increment/decrement for arrays/objects
+			while (position() < endPosition()) {
+				switch (*returnCurrentAndAdvance()) {
+					case '[':
+					case '{':
+						currentDepth++;
+						break;
+					// TODO consider whether matching braces is a requirement: if non-matching braces indicates
+					// *missing* braces, then future lookups are not in the object/arrays they think they are,
+					// violating the rule "validate enough structure that the user can be confident they are
+					// looking at the right values."
+					// PERF TODO we can eliminate the switch here with a lookup of how much to add to depth
+					case ']':
+					case '}':
+						currentDepth--;
+						if (depth() <= parent_depth) {
+							return ErrorCode::Success;
+						}
+						break;
+					default:
+						break;
+				}
+			}
+
+			return ErrorCode::TapeError;
+		}
+
+		inline bool isSingleToken() noexcept;
+
 		bool isAtStart() {
 			return this->tapeIter.getTapePosition() == this->tapeIter.getTape();
 		}
 
-		inline bool atRoot() noexcept {
-			return position() == rootPosition();
-		}
+		inline bool atRoot() noexcept;
 
-		inline uint32_t* rootPosition() noexcept {
-			return reinterpret_cast<uint32_t*>(root);
-		}
+		inline uint32_t* rootPosition() noexcept;
 
 		inline void assertAtRoot() noexcept {
 			assert(tapeIter.position() == root);
@@ -798,10 +917,10 @@ namespace Jsonifier {
 
 		inline std::string toString() noexcept {
 			if (!isAlive()) {
-				return "dead json_iterator instance";
+				return "dead JsonParser instance";
 			}
 			const char* current_structural = reinterpret_cast<const char*>(tapeIter.peek());
-			return std::string("json_iterator [ depth : ") + std::to_string(currentDepth) + std::string(", structural : '") +
+			return std::string("JsonParser [ depth : ") + std::to_string(currentDepth) + std::string(", structural : '") +
 				std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(tapeIter.currentOffset()) +
 				std::string("', error : ") + std::string(" ]");
 		}
@@ -832,7 +951,7 @@ namespace Jsonifier {
 			return tapeIter.peek(0);
 		}
 
-		inline const uint8_t* peek(int32_t delta) noexcept {
+		inline const uint8_t* peek(int32_t delta = 0) noexcept {
 			return tapeIter.peek(delta);
 		}
 
@@ -2415,5 +2534,19 @@ namespace Jsonifier {
 		}
 		return JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this };
 	}
+	
+	inline JsonParser::JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept
+		: tapeIter(buf, _parser->getStructuralIndexes(), parser->getStructuralIndexCount()), parser{ _parser },
+		  stringBufferLocation{ parser->getStringBuffer() }, currentDepth{ 1 }, root{ reinterpret_cast<uint32_t*>(parser->getTape()) }
+	{};
 
+	inline void JsonParser::rewind() noexcept {
+		tapeIter.setPosition(rootPosition());
+		stringBufferLocation = parser->getStringBuffer();
+		currentDepth = 1;
+	}
+
+	inline bool JsonParser::isSingleToken() noexcept {
+		return parser->getStructuralIndexCount() == 1;
+	}
 };
