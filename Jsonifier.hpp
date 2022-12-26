@@ -884,12 +884,12 @@ namespace Jsonifier {
 			return tapeIter.position();
 		}
 
-		inline void reenter_child(uint32_t* position, size_t child_depth) noexcept {
+		inline void reenterChild(uint32_t* position, size_t child_depth) noexcept {
 			tapeIter.setPosition(position);
 			currentDepth = child_depth;
 		}
 
-		inline ErrorCode optional_error(ErrorCode _error, const char* message) noexcept {
+		inline ErrorCode optionalError(ErrorCode _error, const char* message) noexcept {
 			return _error;
 		}
 
