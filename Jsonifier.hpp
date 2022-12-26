@@ -815,6 +815,8 @@ namespace Jsonifier {
 		number_type type{ number_type::signed_integer };
 	};
 
+	class array_iterator;
+
 	class value_iterator {
 	  protected:
 		JsonParser* _json_iter{};
@@ -886,6 +888,7 @@ namespace Jsonifier {
 
 		inline void assert_is_valid() const noexcept;
 		inline bool is_valid() const noexcept;
+
 	  protected:
 		inline bool reset_array() noexcept;
 		inline bool reset_object() noexcept;
@@ -934,6 +937,156 @@ namespace Jsonifier {
 		friend class array;
 		friend class value;
 	};
+
+	class value {
+	  public:
+		inline value() noexcept = default;
+		template<typename T> inline T get() noexcept {
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
+		}
+		template<typename T> inline ErrorCode get(T& out) noexcept;
+		inline array get_array() noexcept;
+		inline object get_object() noexcept;
+		inline uint64_t get_uint64() noexcept;
+		inline uint64_t get_uint64_in_string() noexcept;
+		inline int64_t get_int64() noexcept;
+		inline int64_t get_int64_in_string() noexcept;
+		inline double get_double() noexcept;
+		inline double get_double_in_string() noexcept;
+		inline std::string_view get_string() noexcept;
+		inline raw_json_string get_raw_json_string() noexcept;
+		inline bool get_bool() noexcept;
+		inline bool is_null() noexcept;
+		inline array_iterator begin() & noexcept;
+		inline array_iterator end() & noexcept;
+		inline size_t count_elements() & noexcept;
+		inline size_t count_fields() & noexcept;
+		inline value at(size_t index) noexcept;
+		inline value find_field(std::string_view key) noexcept;
+		inline value find_field(const char* key) noexcept;
+		inline value find_field_unordered(std::string_view key) noexcept;
+		inline value find_field_unordered(const char* key) noexcept;
+		inline value operator[](std::string_view key) noexcept;
+		inline value operator[](const char* key) noexcept;
+		inline JsonType type() noexcept;
+		inline bool is_scalar() noexcept;
+		inline bool is_negative() noexcept;
+		inline bool is_integer() noexcept;
+		inline number_type get_number_type() noexcept;
+		inline number get_number() noexcept;
+		inline std::string_view raw_json_token() noexcept;
+		inline const char* current_location() noexcept;
+		inline int32_t current_depth() const noexcept;
+		inline value at_pointer(std::string_view json_pointer) noexcept;
+
+	  protected:
+		inline value(const value_iterator& iter) noexcept;
+		inline void skip() noexcept;
+		static inline value start(const value_iterator& iter) noexcept;
+		static inline value resume(const value_iterator& iter) noexcept;
+		inline object start_or_resume_object() noexcept;
+		value_iterator iter{};
+
+		friend class document;
+		friend class array_iterator;
+		friend class field;
+		friend class object;
+		friend struct value;
+		friend struct field;
+	};
+
+	class raw_json_string {
+	  public:
+		inline raw_json_string() noexcept = default;
+		inline raw_json_string(const uint8_t* _buf) noexcept;
+		inline const char* raw() const noexcept;
+		inline bool unsafe_is_equal(size_t length, std::string_view target) const noexcept;
+		inline bool unsafe_is_equal(std::string_view target) const noexcept;
+		inline bool unsafe_is_equal(const char* target) const noexcept;
+		inline bool is_equal(std::string_view target) const noexcept;
+		inline bool is_equal(const char* target) const noexcept;
+		static inline bool is_free_from_unescaped_quote(std::string_view target) noexcept;
+		static inline bool is_free_from_unescaped_quote(const char* target) noexcept;
+
+	  private:
+		inline void consume() noexcept {
+			buf = nullptr;
+		}
+		inline bool alive() const noexcept {
+			return buf != nullptr;
+		}
+		inline std::string_view unescape(JsonParser& iter) const noexcept;
+
+		const uint8_t* buf{};
+		friend class object;
+		friend class field;
+		friend class parser;
+	};
+
+	class field : public std::pair<raw_json_string, value> {
+	  public:
+		inline field() noexcept;
+		inline std::string_view unescaped_key() noexcept;
+		inline value& value() & noexcept;
+
+	  protected:
+		static inline field start(value_iterator& parent_iter) noexcept;
+		static inline field start(const value_iterator& parent_iter, raw_json_string key) noexcept;
+		friend struct field;
+		friend class object_iterator;
+	};
+
+	class object_iterator {
+	  public:
+		inline object_iterator() noexcept = default;
+		inline field operator*() noexcept;
+		inline bool operator==(const object_iterator&) const noexcept;
+		inline bool operator!=(const object_iterator&) const noexcept;
+		inline object_iterator& operator++() noexcept;
+
+	  private:
+		value_iterator iter{};
+
+		inline object_iterator(const value_iterator& iter) noexcept;
+		friend class object;
+	};
+
+	class object {
+	  public:
+		inline object() noexcept = default;
+
+		inline object_iterator begin() noexcept;
+		inline object_iterator end() noexcept;
+		inline value find_field(std::string_view key) & noexcept;
+		inline value find_field(std::string_view key) && noexcept;
+		inline value find_field_unordered(std::string_view key) & noexcept;
+		inline value find_field_unordered(std::string_view key) && noexcept;
+		inline value operator[](std::string_view key) & noexcept;
+		inline value operator[](std::string_view key) && noexcept;
+		inline value at_pointer(std::string_view json_pointer) noexcept;
+		inline bool reset() & noexcept;
+		inline bool is_empty() & noexcept;
+		inline size_t count_fields() & noexcept;
+		inline std::string_view raw_json() noexcept;
+
+	  protected:
+		inline ErrorCode consume() noexcept;
+		static inline object start(value_iterator& iter) noexcept;
+		static inline object start_root(value_iterator& iter) noexcept;
+		static inline object started(value_iterator& iter) noexcept;
+		static inline object resume(const value_iterator& iter) noexcept;
+		inline object(const value_iterator& iter) noexcept;
+
+		inline ErrorCode find_field_raw(const std::string_view key) noexcept;
+
+		value_iterator iter{};
+
+		friend class value;
+		friend class document;
+		friend struct object;
+	};
+
+	
 
 class array_iterator {
 	  public:
@@ -1431,11 +1584,10 @@ class JsonParser {
 	class document {
 	  public:
 		inline document() noexcept = default;
-		inline document(const document& other) noexcept = delete;
+		inline document(const document& other) noexcept = delete;// pass your documents by reference, not by copy
 		inline document(document&& other) noexcept = default;
 		inline document& operator=(const document& other) noexcept = delete;
 		inline document& operator=(document&& other) noexcept = default;
-
 		inline array get_array() & noexcept;
 		inline object get_object() & noexcept;
 		inline uint64_t get_uint64() noexcept;
@@ -1446,6 +1598,7 @@ class JsonParser {
 		inline double get_double_in_string() noexcept;
 		inline std::string_view get_string() noexcept;
 		inline raw_json_string get_raw_json_string() noexcept;
+		inline bool get_bool() noexcept;
 		inline value get_value() noexcept;
 		inline bool is_null() noexcept;
 		template<typename T> inline T get() & noexcept {
@@ -1461,10 +1614,10 @@ class JsonParser {
 		inline value at(size_t index) & noexcept;
 		inline array_iterator begin() & noexcept;
 		inline array_iterator end() & noexcept;
-		inline value find_field(std::string_view key) & noexcept;
-		inline value find_field(const char* key) & noexcept;
-		inline value find_field_unordered(std::string_view key) & noexcept;
-		inline value find_field_unordered(const char* key) & noexcept;
+		inline value  find_field(std::string_view key) & noexcept;
+		inline value  find_field(const char* key) & noexcept;
+		inline value  find_field_unordered(std::string_view key) & noexcept;
+		inline value  find_field_unordered(const char* key) & noexcept;
 		inline value operator[](std::string_view key) & noexcept;
 		inline value operator[](const char* key) & noexcept;
 		inline JsonType type() noexcept;
@@ -2861,5 +3014,325 @@ class JsonParser {
 
 	inline bool JsonParser::isSingleToken() noexcept {
 		return this->parser->getStructuralIndexCount() == 1;
+	}
+
+	inline document::document(JsonParser&& _iter) noexcept : iter{ std::forward<JsonParser>(_iter) } {
+	}
+
+	inline document document::start(JsonParser&& iter) noexcept {
+		return document(std::forward<JsonParser>(iter));
+	}
+
+	inline void document::rewind() noexcept {
+		iter.rewind();
+	}
+
+	inline std::string document::to_debug_string() noexcept {
+		return iter.toString();
+	}
+
+	inline const char* document::current_location() noexcept {
+		return iter.currentLocation();
+	}
+
+	inline int32_t document::current_depth() const noexcept {
+		return iter.depth();
+	}
+
+	inline bool document::is_alive() noexcept {
+		return iter.isAlive();
+	}
+	inline value_iterator document::resume_value_iterator() noexcept {
+		return value_iterator(&iter, 1, iter.rootPosition());
+	}
+	inline value_iterator document::get_root_value_iterator() noexcept {
+		return resume_value_iterator();
+	}
+	inline object document::start_or_resume_object() noexcept {
+		if (iter.atRoot()) {
+			return get_object();
+		} else {
+			return object::resume(resume_value_iterator());
+		}
+	}
+	inline value document::get_value() noexcept {
+		// Make sure we start any arrays or objects before returning, so that start_root_<object/array>()
+		// gets called.
+		switch (*iter.peek()) {
+			case '[':
+			case '{':
+				return value(get_root_value_iterator());
+			default:
+				// Unfortunately, scalar documents are a special case in simdjson and they cannot
+				// be safely converted to value instances.
+				return value{};
+				// return value(get_root_value_iterator());
+		}
+	}
+	inline array document::get_array() & noexcept {
+		auto value = get_root_value_iterator();
+		return array::start_root(value);
+	}
+	inline object document::get_object() & noexcept {
+		auto value = get_root_value_iterator();
+		return object::start_root(value);
+	}
+	inline uint64_t document::get_uint64() noexcept {
+		return get_root_value_iterator().get_root_uint64();
+	}
+	inline uint64_t document::get_uint64_in_string() noexcept {
+		return get_root_value_iterator().get_root_uint64_in_string();
+	}
+	inline int64_t document::get_int64() noexcept {
+		return get_root_value_iterator().get_root_int64();
+	}
+	inline int64_t document::get_int64_in_string() noexcept {
+		return get_root_value_iterator().get_root_int64_in_string();
+	}
+	inline double document::get_double() noexcept {
+		return get_root_value_iterator().get_root_double();
+	}
+	inline double document::get_double_in_string() noexcept {
+		return get_root_value_iterator().get_root_double_in_string();
+	}
+	inline std::string_view document::get_string() noexcept {
+		return get_root_value_iterator().get_root_string();
+	}
+	inline bool document::get_bool() noexcept {
+		return get_root_value_iterator().get_root_bool();
+	}
+	inline bool document::is_null() noexcept {
+		return get_root_value_iterator().is_root_null();
+	}
+
+	template<> inline array document::get() & noexcept {
+		return get_array();
+	}
+	template<> inline object document::get() & noexcept {
+		return get_object();
+	}
+	template<> inline std::string_view document::get() & noexcept {
+		return get_string();
+	}
+	template<> inline double document::get() & noexcept {
+		return get_double();
+	}
+	template<> inline uint64_t document::get() & noexcept {
+		return get_uint64();
+	}
+	template<> inline int64_t document::get() & noexcept {
+		return get_int64();
+	}
+	template<> inline bool document::get() & noexcept {
+		return get_bool();
+	}
+	template<> inline value document::get() & noexcept {
+		return get_value();
+	}
+
+	template<> inline std::string_view document::get() && noexcept {
+		return get_string();
+	}
+	template<> inline double document::get() && noexcept {
+		return std::forward<document>(*this).get_double();
+	}
+	template<> inline uint64_t document::get() && noexcept {
+		return std::forward<document>(*this).get_uint64();
+	}
+	template<> inline int64_t document::get() && noexcept {
+		return std::forward<document>(*this).get_int64();
+	}
+	template<> inline bool document::get() && noexcept {
+		return std::forward<document>(*this).get_bool();
+	}
+	template<> inline value document::get() && noexcept {
+		return get_value();
+	}
+
+	template<typename T> inline ErrorCode document::get(T& out) & noexcept {
+		return get<T>().get(out);
+	}
+	template<typename T> inline ErrorCode document::get(T& out) && noexcept {
+		return std::forward<document>(*this).get<T>().get(out);
+	}
+
+	inline value::value(const value_iterator& _iter) noexcept : iter{ _iter } {
+	}
+	inline value value::start(const value_iterator& iter) noexcept {
+		return iter;
+	}
+	inline value value::resume(const value_iterator& iter) noexcept {
+		return iter;
+	}
+
+	inline array value::get_array() noexcept {
+		return array::start(iter);
+	}
+	inline object value::get_object() noexcept {
+		return object::start(iter);
+	}
+	inline object value::start_or_resume_object() noexcept {
+		if (iter.at_start()) {
+			return get_object();
+		} else {
+			return object::resume(iter);
+		}
+	}
+
+	inline std::string_view value::get_string() noexcept {
+		return iter.get_string();
+	}
+	inline double value::get_double() noexcept {
+		return iter.get_double();
+	}
+	inline double value::get_double_in_string() noexcept {
+		return iter.get_double_in_string();
+	}
+	inline uint64_t value::get_uint64() noexcept {
+		return iter.get_uint64();
+	}
+	inline uint64_t value::get_uint64_in_string() noexcept {
+		return iter.get_uint64_in_string();
+	}
+	inline int64_t value::get_int64() noexcept {
+		return iter.get_int64();
+	}
+	inline int64_t value::get_int64_in_string() noexcept {
+		return iter.get_int64_in_string();
+	}
+	inline bool value::get_bool() noexcept {
+		return iter.get_bool();
+	}
+	inline bool value::is_null() noexcept {
+		return iter.is_null();
+	}
+	template<> inline array value::get() noexcept {
+		return get_array();
+	}
+	template<> inline object value::get() noexcept {
+		return get_object();
+	}
+	template<> inline std::string_view value::get() noexcept {
+		return get_string();
+	}
+	template<> inline number value::get() noexcept {
+		return get_number();
+	}
+	template<> inline double value::get() noexcept {
+		return get_double();
+	}
+	template<> inline uint64_t value::get() noexcept {
+		return get_uint64();
+	}
+	template<> inline int64_t value::get() noexcept {
+		return get_int64();
+	}
+	template<> inline bool value::get() noexcept {
+		return get_bool();
+	}
+
+	template<typename T> inline ErrorCode value::get(T& out) noexcept {
+		return get<T>().get(out);
+	}
+
+	inline array_iterator value::begin() & noexcept {
+		return get_array().begin();
+	}
+	inline array_iterator value::end() & noexcept {
+		return {};
+	}
+	inline size_t value::count_elements() & noexcept {
+		size_t answer;
+		auto a = get_array();
+		answer = a.count_elements();
+		// count_elements leaves you pointing inside the array, at the first element.
+		// We need to move back so that the user can create a new array (which requires that
+		// we point at '[').
+		iter.move_at_start();
+		return answer;
+	}
+	inline size_t value::count_fields() & noexcept {
+		size_t answer;
+		auto a = get_object();
+		answer = a.count_fields();
+		iter.move_at_start();
+		return answer;
+	}
+	inline value value::at(size_t index) noexcept {
+		auto a = get_array();
+		return a.at(index);
+	}
+
+	inline value value::find_field(std::string_view key) noexcept {
+		return start_or_resume_object().find_field(key);
+	}
+	inline value value::find_field(const char* key) noexcept {
+		return start_or_resume_object().find_field(key);
+	}
+
+	inline value value::find_field_unordered(std::string_view key) noexcept {
+		return start_or_resume_object().find_field_unordered(key);
+	}
+	inline value value::find_field_unordered(const char* key) noexcept {
+		return start_or_resume_object().find_field_unordered(key);
+	}
+
+	inline value value::operator[](std::string_view key) noexcept {
+		return start_or_resume_object()[key];
+	}
+	inline value value::operator[](const char* key) noexcept {
+		return start_or_resume_object()[key];
+	}
+
+	inline JsonType value::type() noexcept {
+		return iter.type();
+	}
+
+	inline bool value::is_scalar() noexcept {
+		JsonType this_type;
+		auto error = type();
+		if (error!=JsonType::Null) {
+			return true;
+		}
+		return !((this_type == JsonType::Array) || (this_type == JsonType::Object));
+	}
+
+	inline bool value::is_negative() noexcept {
+		return iter.is_negative();
+	}
+
+	inline bool value::is_integer() noexcept {
+		return iter.is_integer();
+	}
+	 inline number_type value::get_number_type() noexcept {
+		return iter.get_number_type();
+	}
+	 inline number value::get_number() noexcept {
+		return iter.get_number();
+	}
+
+	inline std::string_view value::raw_json_token() noexcept {
+		return std::string_view(reinterpret_cast<const char*>(iter.peek_start()), iter.peek_start_length());
+	}
+
+	inline const char* value::current_location() noexcept {
+		return iter.json_iter().currentLocation();
+	}
+
+	inline int32_t value::current_depth() const noexcept {
+		return iter.json_iter().depth();
+	}
+
+	inline value value::at_pointer(std::string_view json_pointer) noexcept {
+		JsonType t{};
+		t = type();
+		switch (t) {
+			case JsonType::Array:
+				return (*this).get_array().at_pointer(json_pointer);
+			case JsonType::Object:
+				return (*this).get_object().at_pointer(json_pointer);
+			default:
+				return value{};
+		}
 	}
 };
