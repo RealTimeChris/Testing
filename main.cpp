@@ -37,9 +37,9 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Document value) {
-		auto theValue = value.getValue();
-		auto theArray = theValue.findField("activitiess");
+	TheDJson(Jsonifier::SimdJsonValue value) {
+		auto& theValue = value.getDocument();
+		auto theArray = theValue.isNull();
 		//std::cout << "CURRENT SIZE: " << theArray.count_elements() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -57,7 +57,7 @@ struct TheDJson {
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::Document value) {
+	TheValueJson(Jsonifier::SimdJsonValue value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
@@ -131,10 +131,10 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 11; ++x) {
+		for (size_t x = 0; x < 6; ++x) {
 			serializer["d"]["TEAST"] = "TEST";
 			serializer["d"]["TEST"] = false;
-			serializer["TEST_02"].emplaceBack(serializer);
+			serializer["TEST_02"].emplaceBack(arrayValueNew);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -155,8 +155,8 @@ int32_t main() noexcept {
 		
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			Jsonifier::SimdJsonValue theParser{};	
-			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			theParser.getJsonData(stringNew);
+			TheValueJson value{ std::move(theParser) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;

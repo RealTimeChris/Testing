@@ -637,6 +637,7 @@ namespace Jsonifier {
 
 	class TapeIterator {
 	  public:
+		TapeIterator() noexcept = default;
 
 		TapeIterator(uint8_t* stringBufferNew, uint32_t* tapePositionNew, size_t currentStructuralCountNew) {
 			this->currentStructuralCount = currentStructuralCountNew;
@@ -933,6 +934,8 @@ namespace Jsonifier {
 		using IntType = int64_t;
 		using BoolType = bool;
 
+		JsonParser() noexcept {};
+
 		inline bool atRoot() noexcept {
 			return position() == rootPosition();
 		}
@@ -1048,7 +1051,7 @@ namespace Jsonifier {
 			return ErrorCode::TapeError;
 		}
 
-		inline bool isSingleToken() noexcept;
+		inline bool isSingleToken() const noexcept;
 
 		inline bool isAtStart() {
 			return this->tapeIter.getTapePosition() == this->tapeIter.getTape();
@@ -1361,6 +1364,7 @@ namespace Jsonifier {
 
 	class Document {
 	  public:
+		inline Document() noexcept {};
 		inline Document(const Document& other) noexcept = delete;
 		inline Document(Document&& other) noexcept = default;
 		inline Document& operator=(const Document& other) noexcept = delete;
@@ -1870,11 +1874,17 @@ namespace Jsonifier {
 
 	class SimdJsonValue {
 	  public:
+		SimdJsonValue& operator=(SimdJsonValue&&) = default;
+		SimdJsonValue(SimdJsonValue&&) = default;
 		inline SimdJsonValue() {
 		}
 
 		int64_t round(int64_t a, int64_t n) {
 			return (((a) + (( n )-1)) & ~(( n )-1));
+		}
+
+		Document& getDocument() {
+			return this->document;
 		}
 
 		inline ErrorCode allocate(uint8_t* stringViewNew) noexcept {
@@ -1972,7 +1982,7 @@ namespace Jsonifier {
 			return this->tape.get();
 		}
 
-		inline Document getJsonData(std::string& string);
+		inline void getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2003,6 +2013,7 @@ namespace Jsonifier {
 		size_t stringLengthRaw{};
 		size_t tapeLength{ 0 };
 		uint8_t* stringView{};
+		Document document;
 	};
 
 	enum class TapeType : uint8_t {
@@ -2667,20 +2678,21 @@ namespace Jsonifier {
 		}
 	}
 	
-	Document SimdJsonValue::getJsonData(std::string& string) {
+	void SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			std::cout << "CURRENT INDEX (VALUE): " << this->stringBuffer[x] << std::endl;
-			std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
-		}		
+		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			//std::cout << "CURRENT INDEX (VALUE): " << this->stringBuffer[x] << std::endl;
+			//std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
+		//}		
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		return JsonParser{ reinterpret_cast<uint32_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
+		this->document =
+			JsonParser{ reinterpret_cast<uint32_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
 	}
 
 	inline Document::Document(JsonParser&& _iter) noexcept : iter{ _iter } {
@@ -2845,6 +2857,10 @@ namespace Jsonifier {
 		return result;
 	}
 
+	inline bool Value::isNull() noexcept {
+		return iter.isNull();
+	}
+
 	inline void ValueIterator::advanceRootScalar(const char* type) noexcept {
 		if (!isAtStart()) {
 			return;
@@ -2862,6 +2878,11 @@ namespace Jsonifier {
 			return Value{};
 		}
 		return Value(iter.child());
+	}
+
+	inline bool ValueIterator::isNull() noexcept {
+		bool is_null_value;
+		return is_null_value;
 	}
 
 	inline ErrorCode ValueIterator::skipChild() noexcept {
@@ -3079,6 +3100,10 @@ namespace Jsonifier {
 		}
 		jsonIter->descendTo(depth() + 1);
 		return ErrorCode::Success;
+	}
+
+	inline bool JsonParser::isSingleToken() const noexcept {
+		return parser->getStructuralIndexCount() == 1;
 	}
 
 };
