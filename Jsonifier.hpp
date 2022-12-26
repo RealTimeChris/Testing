@@ -3798,4 +3798,37 @@ class JsonParser {
 		}
 		return value(iter.child());
 	}
+
+	inline ErrorCode value_iterator::error() const noexcept {
+		return ErrorCode{};
+	}
+
+	inline bool array_iterator::operator!=(const array_iterator&) const noexcept {
+		return iter.is_open();
+	}
+
+	inline array_iterator& array_iterator::operator++() noexcept {
+		ErrorCode error{};
+		if (error == iter.error()) {
+			return *this;
+		}
+		if (error == iter.skip_child()) {
+			return *this;
+		}
+		if (iter.has_next_element()) {
+			return *this;
+		}
+		return *this;
+	}
+
+	inline array_iterator array::begin() noexcept {
+		return array_iterator(iter);
+	}
+
+	inline array_iterator array::end() noexcept {
+		return array_iterator(iter);
+	}
+
+	inline array_iterator::array_iterator(const value_iterator& _iter) noexcept : iter{ _iter } {
+	}
 };
