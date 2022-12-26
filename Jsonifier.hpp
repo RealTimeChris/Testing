@@ -1735,17 +1735,17 @@ namespace Jsonifier {
 				if (stringLength == 0) {
 					throw JsonifierException{ "Failed to parse as the string size is 0." };
 				}
-				
+
 				if (this->stringLengthRaw < stringLength) {
 					this->stringLengthRaw = stringLength;
 					if (this->allocate(stringNew) != ErrorCode::Success) {
 						throw JsonifierException{ "Failed to allocate properly!" };
 					}
 				}
-				
+
 				iterationCount++;
 				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
-				this->nStructuralIndexes= 0;
+				this->nStructuralIndexes = 0;
 				size_t tapeCurrentIndex{ 0 };
 				SimdBase256 prevInScalar{};
 				SimdBase256 followsPotentialNonquoteScalar{};
@@ -1753,8 +1753,7 @@ namespace Jsonifier {
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock(), prevInString, prevInScalar, followsPotentialNonquoteScalar);
-					auto indexCount =
-						section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 					this->nStructuralIndexes += indexCount;
 					stringReader.advance();
 				}
@@ -1763,12 +1762,11 @@ namespace Jsonifier {
 				this->section.submitDataForProcessing(block, prevInString, prevInScalar, followsPotentialNonquoteScalar);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
-				
+
 				totalTimePassed += stopWatch.totalTimePassed().count();
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
-			this->nStructuralIndexes -= 1;
-			
+			--this->nStructuralIndexes;
 		}
 
 		inline ~SimdJsonValue() noexcept {};
@@ -2521,10 +2519,10 @@ namespace Jsonifier {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
-		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
-		}
-		std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
+		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			//std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
+			//}
+		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		return JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this };
 	}
 	
