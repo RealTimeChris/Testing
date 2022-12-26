@@ -1929,14 +1929,14 @@ namespace Jsonifier {
 			this->nextTapeLocation = ptr;
 		}
 		uint64_t* nextTapeLocation;
-		inline void appendS64(int64_t&& value) noexcept;
-		inline void appendU64(uint64_t&& value) noexcept;
-		inline void appendDouble(double&& value) noexcept;
+		inline static void write(uint64_t& tape_loc, uint64_t&& val, TapeType t) noexcept;
 		inline void append(uint64_t&& val, TapeType t) noexcept;
-		inline void skip() noexcept;
+		inline void appendDouble(double&& value) noexcept;
+		inline void appendU64(uint64_t&& value) noexcept;
+		inline void appendS64(int64_t&& value) noexcept;
 		inline void skipLargeInteger() noexcept;
 		inline void skipDouble() noexcept;
-		inline static void write(uint64_t& tape_loc, uint64_t&& val, TapeType t) noexcept;
+		inline void skip() noexcept;
 
 	  private:
 		template<typename T> inline void append2(uint64_t&& val, T&& val2, TapeType t) noexcept;
