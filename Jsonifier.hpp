@@ -1902,28 +1902,28 @@ namespace Jsonifier {
 			this->nextTapeLocation = ptr;
 		}
 		uint64_t* nextTapeLocation;
-		inline static void write(uint64_t& tape_loc, uint64_t&& val, TapeType t) noexcept;
-		inline void append(uint64_t&& val, TapeType t) noexcept;
-		inline void appendDouble(double&& value) noexcept;
-		inline void appendU64(uint64_t&& value) noexcept;
-		inline void appendS64(int64_t&& value) noexcept;
+		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
+		inline void append(uint64_t val, TapeType t) noexcept;
+		inline void appendDouble(double value) noexcept;
+		inline void appendU64(uint64_t value) noexcept;
+		inline void appendS64(int64_t value) noexcept;
 		inline void skipLargeInteger() noexcept;
 		inline void skipDouble() noexcept;
 		inline void skip() noexcept;
 
 	  private:
-		template<typename T> inline void append2(uint64_t&& val, T&& val2, TapeType t) noexcept;
+		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
 	};
 
-	inline void TapeWriter::appendS64(int64_t&& value) noexcept {
+	inline void TapeWriter::appendS64(int64_t value) noexcept {
 		append2(0, value, TapeType::Int64);
 	}
 
-	inline void TapeWriter::appendU64(uint64_t&& value) noexcept {
+	inline void TapeWriter::appendU64(uint64_t value) noexcept {
 		append2(0, value, TapeType::Uint64);
 	}
 
-	inline void TapeWriter::appendDouble(double&& value) noexcept {
+	inline void TapeWriter::appendDouble(double value) noexcept {
 		append2(0, value, TapeType::Double);
 	}
 
@@ -1939,19 +1939,19 @@ namespace Jsonifier {
 		this->nextTapeLocation += 2;
 	}
 
-	inline void TapeWriter::append(uint64_t&& val, TapeType t) noexcept {
+	inline void TapeWriter::append(uint64_t val, TapeType t) noexcept {
 		*this->nextTapeLocation = val | ((uint64_t(uint8_t(t))) << 56);
 		this->nextTapeLocation++;
 	}
 
-	template<typename T> inline void TapeWriter::append2(uint64_t&& val, T&& val2, TapeType t) noexcept {
+	template<typename T> inline void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
 		append(std::move(val), std::move(t));
 		static_assert(sizeof(val2) == sizeof(*this->nextTapeLocation), "Type is not 64 *theBits!");
 		memcpy(this->nextTapeLocation, &val2, sizeof(val2));
 		this->nextTapeLocation++;
 	}
 
-	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t&& val, TapeType t) noexcept {
+	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(uint8_t(t))) << 56);
 	}
 
