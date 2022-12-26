@@ -705,7 +705,6 @@ namespace Jsonifier {
 
 		inline uint8_t* peek(uint32_t position = 0) noexcept {
 			if (position) {
-				std::cout << "POSITION: " << position << std::endl;
 				return &this->stringBuffer[position];
 			} else {
 				return this->stringBuffer;
