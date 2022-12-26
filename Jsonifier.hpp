@@ -2088,12 +2088,12 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::visitRootNumber(JsonIterator& iter, const uint8_t* value) noexcept {
-		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remainingLen() + 256]);
+		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remainingLen() + 64]);
 		if (copy.get() == nullptr) {
 			return ErrorCode::MemAlloc;
 		}
 		std::memcpy(copy.get(), value, iter.remainingLen());
-		std::memset(copy.get() + iter.remainingLen(), ' ', 256);
+		std::memset(copy.get() + iter.remainingLen(), ' ', 64);
 		return visitNumber(iter, copy.get());
 	}
 
@@ -2240,6 +2240,7 @@ namespace Jsonifier {
 		if (atEof()) {
 			return ErrorCode::Empty;
 		}
+		this->masterParser->getTapeLength()++;
 		visitor.visitDocumentStart(*this);
 		{
 			auto value = this->advance();
@@ -2252,7 +2253,6 @@ namespace Jsonifier {
 						this->masterParser->getTapeLength()++;
 						break;
 					}
-					this->masterParser->getTapeLength()++;
 					goto Object_Begin;
 				case '[':
 					if (*this->peek() == ']') {
@@ -2261,9 +2261,9 @@ namespace Jsonifier {
 						this->masterParser->getTapeLength()++;
 						break;
 					}
-					this->masterParser->getTapeLength()++;
 					goto Array_Begin;
 				default:
+					this->masterParser->getTapeLength()++;
 					visitor.visitRootPrimitive(*this, value);
 					break;
 			}
@@ -2291,7 +2291,6 @@ namespace Jsonifier {
 		}
 
 	Object_Field : {
-		this->masterParser->getTapeLength()++;
 		auto newValue = *this->advance();
 		if (newValue != ':') {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -2360,11 +2359,14 @@ namespace Jsonifier {
 		this->depth--;
 		if (this->depth == 0) {
 			this->masterParser->getTapeLength()++;
+			this->masterParser->getTapeLength()++;
 			goto Document_End;
 		}
 		if (this->masterParser->getIsArray()[this->depth]) {
+			this->masterParser->getTapeLength()++;
 			goto Array_Continue;
 		}
+		this->masterParser->getTapeLength()++;
 		goto Object_Continue;
 	}
 
@@ -2392,6 +2394,7 @@ namespace Jsonifier {
 						this->masterParser->getTapeLength()++;
 						break;
 					}
+					
 					goto Object_Begin;
 				case '[':
 					if (*this->peek() == ']') {
@@ -2417,6 +2420,7 @@ namespace Jsonifier {
 		{
 			switch (newValue) {
 				case ',':
+					this->masterParser->getTapeLength()++;
 					visitor.incrementCount(*this);
 					goto Array_Value;
 				case ']':
@@ -2429,6 +2433,7 @@ namespace Jsonifier {
 	}
 
 	Document_End : {
+		this->masterParser->getTapeLength()++;
 		visitor.visitDocumentEnd(*this);
 
 		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
@@ -2445,12 +2450,16 @@ namespace Jsonifier {
 	inline ErrorCode JsonIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* value) {
 		switch (*value) {
 			case '"':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitRootString(*this, value);
 			case 't':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitRootTrueAtom(*this, value);
 			case 'f':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitRootFalseAtom(*this, value);
 			case 'n':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitRootNullAtom(*this, value);
 			case '-':
 			case '0':
@@ -2463,6 +2472,7 @@ namespace Jsonifier {
 			case '7':
 			case '8':
 			case '9':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitRootNumber(*this, value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -2474,12 +2484,16 @@ namespace Jsonifier {
 	inline ErrorCode JsonIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* value) {
 		switch (*value) {
 			case '"':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitString(*this, value);
 			case 't':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitTrueAtom(*this, value);
 			case 'f':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitFalseAtom(*this, value);
 			case 'n':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitNullAtom(*this, value);
 			case '-':
 			case '0':
@@ -2492,6 +2506,7 @@ namespace Jsonifier {
 			case '7':
 			case '8':
 			case '9':
+				this->masterParser->getTapeLength()++;
 				return visitor.visitNumber(*this, value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
