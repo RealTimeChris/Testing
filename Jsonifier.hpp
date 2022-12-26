@@ -1694,7 +1694,7 @@ namespace Jsonifier {
 		inline SimdJsonValue() {
 		}
 
-		int32_t round(int32_t a, int32_t n) {
+		int64_t round(int64_t a, int64_t n) {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
@@ -1708,8 +1708,8 @@ namespace Jsonifier {
 				return ErrorCode::Success;
 			}
 
-			size_t tapeCapacity = round(this->stringLengthRaw + 3, 256);
-			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
+			size_t tapeCapacity = round(this->stringLengthRaw + 3, 64);
+			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 64, 64);
 			this->stringView = stringViewNew;
 			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
 			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
