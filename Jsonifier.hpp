@@ -3496,4 +3496,87 @@ class JsonParser {
 		_json_iter->ascendTo(depth() - 1);
 	}
 
+	inline const uint8_t* value_iterator::peek_scalar(const char* type) noexcept {
+		// If we're not at the position anymore, we don't want to advance the cursor.
+		if (!is_at_start()) {
+			return peek_start();
+		}
+
+		// Get the JSON and advance the cursor, decreasing depth to signify that we have retrieved the value.
+		assert_at_start();
+		return _json_iter->peek();
+	}
+
+	inline const uint8_t* value_iterator::peek_non_root_scalar(const char* type) noexcept {
+		if (!is_at_start()) {
+			return peek_start();
+		}
+
+		assert_at_non_root_start();
+		return _json_iter->peek();
+	}
+
+	inline const uint8_t* value_iterator::peek_start() const noexcept {
+		return _json_iter->peek(start_position());
+	}
+
+	inline uint32_t value_iterator::peek_start_length() const noexcept {
+		return _json_iter->peekLength(start_position());
+	}
+
+	inline ErrorCode value_iterator::start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept {
+		const uint8_t* json;
+		if (!is_at_start()) {
+			json = peek_start();
+			if (*json != start_char) {
+				return incorrect_type_error(incorrect_type_message);
+			}
+		} else {
+			assert_at_start();
+			json = _json_iter->peek();
+			if (*json != start_char) {
+				return incorrect_type_error(incorrect_type_message);
+			}
+			_json_iter->returnCurrentAndAdvance();
+		}
+
+
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode value_iterator::end_container() noexcept {
+		_json_iter->ascendTo(depth() - 1);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode value_iterator::incorrect_type_error(const char* message) const noexcept {
+		return ErrorCode::Incorrect_Type;
+	}
+
+	inline bool value_iterator::is_at_start() const noexcept {
+		return position() == start_position();
+	}
+
+	inline void value_iterator::assert_at_start() const noexcept {
+		assert(_json_iter->getTapeIterator().position() == _start_position);
+		assert(_json_iter->depth() == _depth);
+	}
+
+	inline void value_iterator::assert_at_container_start() const noexcept {
+	}
+
+	inline void value_iterator::assert_at_next() const noexcept {
+	}
+
+	inline void value_iterator::assert_at_root() const noexcept {
+		assert_at_start();
+	}
+
+	inline void value_iterator::assert_at_non_root_start() const noexcept {
+		assert_at_start();
+	}
+
+	inline uint32_t* value_iterator::start_position() const noexcept {
+		return _start_position;
+	}
 };

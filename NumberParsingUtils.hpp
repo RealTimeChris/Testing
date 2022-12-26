@@ -34,7 +34,8 @@ namespace Jsonifier {
 		FAtomError = 7,
 		NAtomError = 8,
 		MemAlloc = 9,
-		InvalidNumber = 10
+		InvalidNumber = 10,
+		Incorrect_Type = 11
 	};
 
 	struct AdjustedMantissa {
