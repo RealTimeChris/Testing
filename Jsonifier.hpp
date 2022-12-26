@@ -808,31 +808,17 @@ namespace Jsonifier {
 			return count == 0;
 		}
 
-
-		// GCC 7 warns when the first line of this function is inlined away into oblivion due to the caller
-		// relating depth and parent_depth, which is a desired effect. The warning does not show up if the
-		// skip_child() function is not marked inline).
 		inline ErrorCode skipChild(size_t parent_depth) noexcept {
 			if (depth() <= parent_depth) {
 				return ErrorCode::Success;
 			}
 			switch (*returnCurrentAndAdvance()) {
-				// TODO consider whether matching braces is a requirement: if non-matching braces indicates
-				// *missing* braces, then future lookups are not in the object/arrays they think they are,
-				// violating the rule "validate enough structure that the user can be confident they are
-				// looking at the right values."
-				// PERF TODO we can eliminate the switch here with a lookup of how much to add to depth
-
-				// For the first open array/object in a value, we've already incremented depth, so keep it the same
-				// We never stop at colon, but if we did, it wouldn't affect depth
 				case '[':
 				case '{':
 				case ':':
 					break;
-				// If there is a comma, we have just finished a value in an array/object, and need to get back in
 				case ',':
 					break;
-				// ] or } means we just finished a value and need to jump out of the array/object
 				case ']':
 				case '}':
 					currentDepth--;
@@ -842,18 +828,11 @@ namespace Jsonifier {
 					break;
 				case '"':
 					if (*peek() == static_cast<uint8_t>(':')) {
-						// We are at a key!!!
-						// This might happen if you just started an object and you skip it immediately.
-						// Performance note: it would be nice to get rid of this check as it is somewhat
-						// expensive.
-						// https://github.com/simdjson/simdjson/issues/1742
-						returnCurrentAndAdvance();// eat up the ':'
-						break;// important!!!
+						returnCurrentAndAdvance();
+						break;
 					}
 					[[fallthrough]];
-				// Anything else must be a scalar value
 				default:
-					// For the first scalar, we will have incremented depth already, so we decrement it here.
 					currentDepth--;
 					if (depth() <= parent_depth) {
 						return ErrorCode::Success;
@@ -861,18 +840,12 @@ namespace Jsonifier {
 					break;
 			}
 
-			// Now that we've considered the first value, we only increment/decrement for arrays/objects
 			while (position() < endPosition()) {
 				switch (*returnCurrentAndAdvance()) {
 					case '[':
 					case '{':
 						currentDepth++;
 						break;
-					// TODO consider whether matching braces is a requirement: if non-matching braces indicates
-					// *missing* braces, then future lookups are not in the object/arrays they think they are,
-					// violating the rule "validate enough structure that the user can be confident they are
-					// looking at the right values."
-					// PERF TODO we can eliminate the switch here with a lookup of how much to add to depth
 					case ']':
 					case '}':
 						currentDepth--;
@@ -890,7 +863,7 @@ namespace Jsonifier {
 
 		inline bool isSingleToken() noexcept;
 
-		bool isAtStart() {
+		inline bool isAtStart() {
 			return this->tapeIter.getTapePosition() == this->tapeIter.getTape();
 		}
 
@@ -1038,41 +1011,41 @@ namespace Jsonifier {
 			BoolType boolean;
 		};
 
-		uint64_t parseJsonUint() {
+		inline uint64_t parseJsonUint() {
 			return uint64_t{};
 		}
 
-		int64_t parseJsonInt() {
+		inline int64_t parseJsonInt() {
 			int64_t returnData{};
 			return returnData;
 		}
 
-		std::string_view parseJsonString() {
+		inline std::string_view parseJsonString() {
 			std::string_view  returnData{};
 			return returnData;
 		}
 
-		double parseJsonFloat() {
+		inline double parseJsonFloat() {
 			double returnData{};
 			return returnData;
 		}
 
-		bool parseJsonBool() {
+		inline bool parseJsonBool() {
 			bool returnData{};
 			return returnData;
 		}
 
-		nullptr_t parseJsonNull() {
+		inline nullptr_t parseJsonNull() {
 			nullptr_t returnData{};
 			return returnData;
 		}
 
-		size_t size() {
+		inline size_t size() {
 			size_t returnValue{};
 			return returnValue;
 		}
 		
-		JsonParser(uint32_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
+		inline JsonParser(uint32_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
 			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
 			this->stringBufferLocation = stringBufferNew;
 			this->parser = parserNew;
@@ -1132,7 +1105,7 @@ namespace Jsonifier {
 			return this->parseJsonString();
 		}
 
-		bool getBool() {
+		inline bool getBool() {
 			if (*this->tapeIter.peek() == 'f') {
 				return false;
 			} else {
@@ -1140,21 +1113,21 @@ namespace Jsonifier {
 			}
 		}
 
-		uint64_t getUint64() {
+		inline uint64_t getUint64() {
 			uint64_t answer{};
 			auto ptr = this->tapeIter.getTapePosition();
 			std::memcpy(&answer, ++ptr, sizeof(answer));
 			return answer;
 		}
 
-		int64_t getInt64() {
+		inline int64_t getInt64() {
 			int64_t answer{};
 			auto ptr = this->tapeIter.getTapePosition();
 			std::memcpy(&answer, ++ptr, sizeof(answer));
 			return answer;
 		}
 
-		float getFloat() {
+		inline float getFloat() {
 			double answer{};
 			auto ptr = this->tapeIter.getTapePosition();
 			std::memcpy(&answer, ++ptr, sizeof(answer));
@@ -1179,7 +1152,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		JsonType getType() {
+		inline JsonType getType() {
 			JsonType returnValue{};
 			return returnValue;
 		}
@@ -1233,7 +1206,7 @@ namespace Jsonifier {
 			this->value = _mm256_set1_epi8(0x00);
 		};
 
-		explicit operator bool() {
+		inline explicit operator bool() {
 			for (size_t x = 0; x < 4; ++x) {
 				if (this->getUint64(x) != 0) {
 					return true;
@@ -1382,7 +1355,7 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		SimdBase256 operator-(int32_t other) {
+		inline SimdBase256 operator-(int32_t other) {
 			auto currentValue = *this;
 			if (other == 1) {
 				currentValue = ~currentValue & 1;
@@ -2533,9 +2506,9 @@ namespace Jsonifier {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
-		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
-		//std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
-		//}
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
+		}
 		return JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this };
 	}
 	
