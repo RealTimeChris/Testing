@@ -816,7 +816,7 @@ namespace Jsonifier {
 
 	class value_iterator {
 	  protected:
-		JsonParser* _json_iter{};
+		JsonParser* jsonIter{};
 		size_t _depth{};
 		uint32_t* _start_position{};
 
@@ -885,6 +885,8 @@ namespace Jsonifier {
 
 		inline void assert_is_valid() const noexcept;
 		inline bool is_valid() const noexcept;
+		inline value_iterator(JsonParser* json_iter, size_t depth, uint32_t* start_position,
+			std::source_location location = std::source_location::current()) noexcept;
 
 	  protected:
 		inline bool reset_array() noexcept;
@@ -892,7 +894,7 @@ namespace Jsonifier {
 		inline void move_at_start() noexcept;
 		inline void move_at_container_start() noexcept;
 		inline std::string to_string() const noexcept;
-		inline value_iterator(JsonParser* json_iter, size_t depth, uint32_t* start_index) noexcept;
+		
 
 		inline bool parse_null(const uint8_t* json) const noexcept;
 		inline bool parse_bool(const uint8_t* json) const noexcept;
@@ -937,7 +939,7 @@ namespace Jsonifier {
 
 	class value {
 	  public:
-		inline value() noexcept = default;
+		value() noexcept = default;
 		template<typename T> inline T get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
@@ -976,13 +978,13 @@ namespace Jsonifier {
 		inline int32_t current_depth() noexcept;
 		inline value at_pointer(std::string_view json_pointer) noexcept;
 
-	  protected:
 		inline value(const value_iterator& iter) noexcept;
+	  protected:
 		inline void skip() noexcept;
 		static inline value start(const value_iterator& iter) noexcept;
 		static inline value resume(const value_iterator& iter) noexcept;
 		inline object start_or_resume_object() noexcept;
-		value_iterator iter{};
+		value_iterator iter;
 
 		friend class document;
 		friend class array_iterator;
@@ -1043,7 +1045,7 @@ namespace Jsonifier {
 		inline object_iterator& operator++() noexcept;
 
 	  private:
-		value_iterator iter{};
+		value_iterator iter;
 
 		inline object_iterator(const value_iterator& iter) noexcept;
 		friend class object;
@@ -1077,7 +1079,7 @@ namespace Jsonifier {
 
 		inline ErrorCode find_field_raw(const std::string_view key) noexcept;
 
-		value_iterator iter{};
+		value_iterator iter;
 
 		friend class value;
 		friend class document;
@@ -1095,7 +1097,7 @@ namespace Jsonifier {
 		inline array_iterator& operator++() noexcept;
 
 	  private:
-		value_iterator iter{};
+		value_iterator iter;
 
 		inline array_iterator(const value_iterator& iter) noexcept;
 
@@ -1120,7 +1122,7 @@ namespace Jsonifier {
 		static inline array start_root(value_iterator& iter) noexcept;
 		static inline array started(value_iterator& iter) noexcept;
 		inline array(const value_iterator& iter) noexcept;
-		value_iterator iter{};
+		value_iterator iter;
 
 		friend class value;
 		friend class document;
@@ -1142,12 +1144,7 @@ namespace Jsonifier {
 		using IntType = int64_t;
 		using BoolType = bool;
 
-		inline JsonParser(JsonParser&& other) noexcept
-			: tapeIter{
-				  other.stringBufferLocation,
-				  other.tapePosition,
-				  other.tapeIter.getStructuralCount(),
-			  } {
+		inline JsonParser(JsonParser&& other) noexcept{
 			*this = std::move(other);
 		}
 
@@ -1156,7 +1153,7 @@ namespace Jsonifier {
 		}
 
 		inline uint32_t* rootPosition() noexcept {
-			return startPositionVal;
+			return this->tapeIter.getTape();
 		}
 
 		inline JsonParser& operator=(JsonParser&& other) noexcept {
@@ -3051,7 +3048,7 @@ namespace Jsonifier {
 		return iter.isAlive();
 	}
 	inline value_iterator document::resume_value_iterator() noexcept {
-		return value_iterator(&iter, 1, iter.rootPosition());
+		return value_iterator(&iter, 0, iter.rootPosition());
 	}
 	inline value_iterator document::get_root_value_iterator() noexcept {
 		return resume_value_iterator();
@@ -3241,9 +3238,11 @@ namespace Jsonifier {
 	inline array_iterator value::begin() & noexcept {
 		return get_array().begin();
 	}
+	
 	inline array_iterator value::end() & noexcept {
-		return {};
+		return get_array().end();
 	}
+
 	inline size_t value::count_elements() & noexcept {
 		size_t answer;
 		auto a = get_array();
@@ -3365,7 +3364,7 @@ namespace Jsonifier {
 	}
 
 	inline bool value_iterator::at_start() const noexcept {
-		return _json_iter->getTapeIterator().position() == start_position();
+		return jsonIter->getTapeIterator().position() == start_position();
 	}
 
 	 inline bool value_iterator::start_object() noexcept {
@@ -3380,8 +3379,8 @@ namespace Jsonifier {
 
 	 inline bool value_iterator::started_object() noexcept {
 		assert_at_container_start();
-		if (*_json_iter->peek() == '}') {
-			_json_iter->returnCurrentAndAdvance();
+		if (*jsonIter->peek() == '}') {
+			jsonIter->returnCurrentAndAdvance();
 			end_container();
 			return false;
 		}
@@ -3400,8 +3399,8 @@ namespace Jsonifier {
 
 	inline std::string value_iterator::to_string() const noexcept {
 		auto answer = std::string("value_iterator [ depth : ") + std::to_string(_depth) + std::string(", ");
-		if (_json_iter != nullptr) {
-			answer += _json_iter->toString();
+		if (jsonIter != nullptr) {
+			answer += jsonIter->toString();
 		}
 		answer += std::string(" ]");
 		return answer;
@@ -3409,12 +3408,12 @@ namespace Jsonifier {
 
 	 inline bool value_iterator::started_array() noexcept {
 		assert_at_container_start();
-		if (*_json_iter->peek() == ']') {
-			_json_iter->returnCurrentAndAdvance();
+		if (*jsonIter->peek() == ']') {
+			jsonIter->returnCurrentAndAdvance();
 			end_container();
 			return false;
 		}
-		_json_iter->descendTo(depth() + 1);
+		jsonIter->descendTo(depth() + 1);
 		return true;
 	}
 
@@ -3454,11 +3453,11 @@ namespace Jsonifier {
 	}
 
 	inline const JsonParser& value_iterator::json_iter() const noexcept {
-		return *_json_iter;
+		return *jsonIter;
 	}
 
 	inline JsonParser& value_iterator::json_iter() noexcept {
-		return *_json_iter;
+		return *jsonIter;
 	}
 
 	inline bool value_iterator::parse_bool(const uint8_t* json) const noexcept {
@@ -3479,8 +3478,8 @@ namespace Jsonifier {
 
 		// Get the JSON and advance the cursor, decreasing depth to signify that we have retrieved the value.
 		assert_at_start();
-		_json_iter->returnCurrentAndAdvance();
-		_json_iter->ascendTo(depth() - 1);
+		jsonIter->returnCurrentAndAdvance();
+		jsonIter->ascendTo(depth() - 1);
 	}
 
 	inline void value_iterator::advance_non_root_scalar(const char* type) noexcept {
@@ -3489,8 +3488,8 @@ namespace Jsonifier {
 		}
 
 		assert_at_non_root_start();
-		_json_iter->returnCurrentAndAdvance();
-		_json_iter->ascendTo(depth() - 1);
+		jsonIter->returnCurrentAndAdvance();
+		jsonIter->ascendTo(depth() - 1);
 	}
 
 	inline const uint8_t* value_iterator::peek_scalar(const char* type) noexcept {
@@ -3501,7 +3500,7 @@ namespace Jsonifier {
 
 		// Get the JSON and advance the cursor, decreasing depth to signify that we have retrieved the value.
 		assert_at_start();
-		return _json_iter->peek();
+		return jsonIter->peek();
 	}
 
 	inline const uint8_t* value_iterator::peek_non_root_scalar(const char* type) noexcept {
@@ -3510,15 +3509,15 @@ namespace Jsonifier {
 		}
 
 		assert_at_non_root_start();
-		return _json_iter->peek();
+		return jsonIter->peek();
 	}
 
 	inline const uint8_t* value_iterator::peek_start() const noexcept {
-		return _json_iter->peek(start_position());
+		return jsonIter->peek(start_position());
 	}
 
 	inline uint32_t value_iterator::peek_start_length() const noexcept {
-		return _json_iter->peekLength(start_position());
+		return jsonIter->peekLength(start_position());
 	}
 
 	inline ErrorCode value_iterator::start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept {
@@ -3530,11 +3529,11 @@ namespace Jsonifier {
 			}
 		} else {
 			assert_at_start();
-			json = _json_iter->peek();
+			json = jsonIter->peek();
 			if (*json != start_char) {
 				return incorrect_type_error(incorrect_type_message);
 			}
-			_json_iter->returnCurrentAndAdvance();
+			jsonIter->returnCurrentAndAdvance();
 		}
 
 
@@ -3542,7 +3541,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode value_iterator::end_container() noexcept {
-		_json_iter->ascendTo(depth() - 1);
+		jsonIter->ascendTo(depth() - 1);
 		return ErrorCode::Success;
 	}
 
@@ -3555,8 +3554,8 @@ namespace Jsonifier {
 	}
 
 	inline void value_iterator::assert_at_start() const noexcept {
-		assert(_json_iter->getTapeIterator().position() == _start_position);
-		//assert(_json_iter->depth() == _depth);
+		assert(jsonIter->getTapeIterator().position() == _start_position);
+		//assert(jsonIter->depth() == _depth);
 	}
 
 	inline void value_iterator::assert_at_container_start() const noexcept {
@@ -3578,7 +3577,7 @@ namespace Jsonifier {
 	}
 
 	inline uint32_t* value_iterator::position() const noexcept {
-		return _json_iter->position();
+		return jsonIter->position();
 	}
 
 	inline raw_json_string::raw_json_string(const uint8_t* _buf) noexcept : buf{ _buf } {
@@ -3616,7 +3615,7 @@ namespace Jsonifier {
 	inline bool value_iterator::find_field_unordered_raw(const std::string_view key) noexcept {
 		ErrorCode error{};
 		bool has_value{};
-		uint32_t* search_start = _json_iter->position();
+		uint32_t* search_start = jsonIter->position();
 		bool at_first = at_first_field();
 		if (at_first) {
 			has_value = true;
@@ -3628,14 +3627,14 @@ namespace Jsonifier {
 				abandon();
 				return false;
 			}
-			search_start = _json_iter->position();
+			search_start = jsonIter->position();
 			if (has_value == has_next_field()) {
 				abandon();
 				return false;
 			}
 		}
 		while (has_value) {
-			assert(_json_iter->depth() == _depth);
+			assert(jsonIter->depth() == _depth);
 			raw_json_string actual_key{};
 			if ((error == field_value())) {
 				abandon();
@@ -3656,14 +3655,14 @@ namespace Jsonifier {
 		reset_object();
 		while (true) {
 			assert(has_value);
-			assert(_json_iter->depth() == _depth);
+			assert(jsonIter->depth() == _depth);
 			raw_json_string actual_key{};
 			error = field_value();
 			if (actual_key.unsafe_is_equal(key)) {
 				return true;
 			}
 			skip_child();
-			if (_json_iter->position() == search_start) {
+			if (jsonIter->position() == search_start) {
 				return false;
 			}
 			has_value = has_next_field();
@@ -3672,33 +3671,33 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode value_iterator::skip_child() noexcept {
-		assert(_json_iter->getTapeIterator().position() > _start_position);
-		assert(_json_iter->depth() >= _depth);
+		assert(jsonIter->getTapeIterator().position() > _start_position);
+		assert(jsonIter->depth() >= _depth);
 
-		return _json_iter->skipChild(depth());
+		return jsonIter->skipChild(depth());
 	}
 
 	inline bool value_iterator::is_open() const noexcept {
-		return _json_iter->depth() >= depth();
+		return jsonIter->depth() >= depth();
 	}
 
 	inline bool value_iterator::at_end() const noexcept {
-		return _json_iter->atEnd();
+		return jsonIter->atEnd();
 	}
 
 	inline bool value_iterator::at_first_field() const noexcept {
-		assert(_json_iter->getTapeIterator().position() > _start_position);
-		return _json_iter->getTapeIterator().position() == start_position() + 1;
+		assert(jsonIter->getTapeIterator().position() > _start_position);
+		return jsonIter->getTapeIterator().position() == start_position() + 1;
 	}
 
 	inline void value_iterator::abandon() noexcept {
-		_json_iter->abandon();
+		jsonIter->abandon();
 	}
 
 	inline bool value_iterator::has_next_field() noexcept {
 		assert_at_next();
 
-		switch (*_json_iter->returnCurrentAndAdvance()) {
+		switch (*jsonIter->returnCurrentAndAdvance()) {
 			case '}':
 				end_container();
 				return false;
@@ -3712,21 +3711,21 @@ namespace Jsonifier {
 	inline ErrorCode value_iterator::field_value() noexcept {
 		assert_at_next();
 
-		if (*_json_iter->returnCurrentAndAdvance() != ':') {
+		if (*jsonIter->returnCurrentAndAdvance() != ':') {
 			return report_error(ErrorCode::TapeError, "Missing colon in object field");
 		}
-		_json_iter->descendTo(depth() + 1);
+		jsonIter->descendTo(depth() + 1);
 		return ErrorCode::Success;
 	}
 
 	inline value_iterator value_iterator::child() const noexcept {
 		assert_at_child();
-		return { _json_iter, depth() + 1, _json_iter->getTapeIterator().position() };
+		return { jsonIter, depth() + 1, jsonIter->getTapeIterator().position() };
 	}
 
 	inline void value_iterator::move_at_start() noexcept {
-		_json_iter->depth() = _depth;
-		_json_iter->getTapeIterator().setPosition(_start_position);
+		jsonIter->depth() = _depth;
+		jsonIter->getTapeIterator().setPosition(_start_position);
 	}
 	inline bool value_iterator::reset_array() noexcept {
 		move_at_container_start();
@@ -3739,17 +3738,23 @@ namespace Jsonifier {
 	}
 
 	inline void value_iterator::move_at_container_start() noexcept {
-		_json_iter->depth() = _depth;
-		_json_iter->getTapeIterator().setPosition(_start_position + 1);
+		jsonIter->depth() = _depth;
+		jsonIter->getTapeIterator().setPosition(_start_position + 1);
 	}
 
-	inline value_iterator::value_iterator(JsonParser* json_iter, size_t depth, uint32_t* start_position) noexcept
-		: _json_iter{ json_iter }, _depth{ depth }, _start_position{ start_position } {
+	inline value_iterator::value_iterator(JsonParser* json_iter, size_t depth, uint32_t* start_position, std::source_location location) noexcept
+		: jsonIter{ json_iter }, _depth{ depth }, _start_position{ start_position } {
+		std::cout << "Error Report: \n"
+				  << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
+				  << ")"
+				  << "\nThe Error: \n"
+				  << std::endl
+				  << std::endl;
 	}
 
 	inline void value_iterator::assert_at_child() const noexcept {
-		assert(_json_iter->getTapeIterator().position() > _start_position);
-		assert(_json_iter->depth() == _depth + 1);
+		assert(jsonIter->getTapeIterator().position() > _start_position);
+		assert(jsonIter->depth() == _depth + 1);
 		assert(_depth > 0);
 	}
 
@@ -3840,15 +3845,27 @@ namespace Jsonifier {
 	inline bool value_iterator::has_next_element() noexcept {
 		assert_at_next();
 
-		switch (*_json_iter->returnCurrentAndAdvance()) {
+		switch (*jsonIter->returnCurrentAndAdvance()) {
 			case ']':
 				end_container();
 				return false;
 			case ',':
-				_json_iter->descendTo(depth() + 1);
+				jsonIter->descendTo(depth() + 1);
 				return true;
 			default:
 				return false;
 		}
+	}
+
+	inline size_t array::count_elements() & noexcept {
+		size_t count{ 0 };
+		for (auto v: *this) {
+			count++;
+		}
+		if (iter.error()!=ErrorCode::Success) {
+			return -1;
+		}
+		iter.reset_array();
+		return count;
 	}
 };
