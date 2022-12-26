@@ -637,7 +637,6 @@ namespace Jsonifier {
 
 	class TapeIterator {
 	  public:
-		TapeIterator() noexcept = default;
 
 		TapeIterator(uint8_t* stringBufferNew, uint32_t* tapePositionNew, size_t currentStructuralCountNew) {
 			this->currentStructuralCount = currentStructuralCountNew;
@@ -1145,7 +1144,7 @@ namespace Jsonifier {
 		using IntType = int64_t;
 		using BoolType = bool;
 
-		inline JsonParser(JsonParser&& other) noexcept{
+		inline JsonParser(JsonParser&& other) noexcept : tapeIter{ other.tapeIter } {
 			*this = std::move(other);
 		}
 
@@ -1164,7 +1163,6 @@ namespace Jsonifier {
 			this->currentDepth = other.currentDepth;
 			this->tapeIter = other.tapeIter;
 			this->parser = other.parser;
-			other.parser = nullptr;
 			return *this;
 		}
 
@@ -3004,7 +3002,9 @@ namespace Jsonifier {
 		//std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
 		//}
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		return document{ JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this } };
+		auto jsonParser =
+			JsonParser{ reinterpret_cast<uint32_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->stringBuffer.get(), this };
+		return document{ std::move(jsonParser) };
 	}
 	
 	inline JsonParser::JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept
@@ -3048,12 +3048,15 @@ namespace Jsonifier {
 	inline bool document::is_alive() noexcept {
 		return iter.isAlive();
 	}
+
 	inline value_iterator document::resume_value_iterator() noexcept {
 		return value_iterator(&iter, 0, iter.rootPosition());
 	}
+
 	inline value_iterator document::get_root_value_iterator() noexcept {
 		return resume_value_iterator();
 	}
+
 	inline object document::start_or_resume_object() noexcept {
 		if (iter.atRoot()) {
 			return get_object();
@@ -3061,6 +3064,7 @@ namespace Jsonifier {
 			return object::resume(resume_value_iterator());
 		}
 	}
+
 	inline value document::get_value() noexcept {
 		switch (*iter.peek()) {
 			case '[':
@@ -3070,6 +3074,7 @@ namespace Jsonifier {
 				return value{};
 		}
 	}
+
 	inline array document::get_array() & noexcept {
 		auto value = get_root_value_iterator();
 		return array::start_root(value);
@@ -3672,7 +3677,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode value_iterator::skip_child() noexcept {
-		assert(jsonIter->getTapeIterator().position() > _start_position);
+		assert(jsonIter->getTapeIterator().position() >= _start_position);
 		assert(jsonIter->depth() >= _depth);
 
 		return jsonIter->skipChild(depth());
@@ -3687,7 +3692,7 @@ namespace Jsonifier {
 	}
 
 	inline bool value_iterator::at_first_field() const noexcept {
-		assert(jsonIter->getTapeIterator().position() > _start_position);
+		assert(jsonIter->getTapeIterator().position() >= _start_position);
 		return jsonIter->getTapeIterator().position() == start_position() + 1;
 	}
 
