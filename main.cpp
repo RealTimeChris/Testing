@@ -39,7 +39,7 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
 		auto theValue = value.getValue();
-		auto theArray = theValue["activitiess"];
+		auto theArray = theValue.findField("activitiess");
 		//std::cout << "CURRENT SIZE: " << theArray.count_elements() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -152,9 +152,9 @@ int32_t main() noexcept {
 		
 		stopWatch.resetTimer();
 
-		Jsonifier::SimdJsonValue theParser{};
+		
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			
+			Jsonifier::SimdJsonValue theParser{};	
 			auto jsonData = theParser.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;

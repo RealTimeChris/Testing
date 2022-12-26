@@ -710,11 +710,7 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t* peek(uint32_t position = 0) noexcept {
-			if (position) {
-				return &this->stringBuffer[position];
-			} else {
-				return &this->stringBuffer[0];
-			}
+			return &this->stringBuffer[position];
 		}
 
 		inline uint32_t peekIndex() noexcept {
@@ -760,6 +756,34 @@ namespace Jsonifier {
 	class JsonParser;
 	class Array;
 
+	class RawJsonString {
+	  public:
+		inline RawJsonString() noexcept = default;
+		inline RawJsonString(const uint8_t* _buf) noexcept;
+		inline const char* raw() const noexcept;
+		inline bool unsafeIsEqual(size_t length, std::string_view target) const noexcept;
+		inline bool unsafeIsEqual(std::string_view target) const noexcept;
+		inline bool unsafeIsEqual(const char* target) const noexcept;
+		inline bool isEqual(std::string_view target) const noexcept;
+		inline bool isEqual(const char* target) const noexcept;
+		static inline bool isFreeFromUnescapedQuote(std::string_view target) noexcept;
+		static inline bool isFreeFromUnescapedQuote(const char* target) noexcept;
+
+	  private:
+		inline void consume() noexcept {
+			buf = nullptr;
+		}
+		inline bool alive() const noexcept {
+			return buf != nullptr;
+		}
+		inline std::string_view unescape(JsonParser& iter) const noexcept;
+
+		const uint8_t* buf{};
+		friend class object;
+		friend class field;
+		friend class parser;
+	};
+
 	class ValueIterator {
 	  protected:
 		uint32_t* rootPosition{};
@@ -778,9 +802,13 @@ namespace Jsonifier {
 		inline void abandon() noexcept;
 		inline size_t depth() noexcept;
 		inline JsonType type() noexcept;
+		inline ValueIterator child() noexcept;
 		inline uint32_t peekStartLength() noexcept;
 		inline bool startValue() noexcept;
+		inline RawJsonString fieldKey() noexcept;
 		inline const uint8_t* peekStart() noexcept;
+		inline bool findFieldRaw(const std::string_view key) noexcept;
+		inline ErrorCode skipChild() noexcept;
 		inline bool startedValue() noexcept;
 		inline bool hasNextField() noexcept;
 		inline ErrorCode fieldValue() noexcept;
@@ -2646,10 +2674,10 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			//			std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] & JSON_VALUE_MASK) << std::endl;
-			//std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
-		//}		
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "CURRENT INDEX (VALUE): " << this->stringBuffer[x] << std::endl;
+			std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
+		}		
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		return JsonParser{ reinterpret_cast<uint32_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
@@ -2823,6 +2851,234 @@ namespace Jsonifier {
 		}
 		jsonIter->returnCurrentAndAdvance();
 		jsonIter->ascendTo(depth() - 1);
+	}
+
+	inline ValueIterator ValueIterator ::child() noexcept {
+		return { jsonIter, depth() + 1, jsonIter->getTapeIterator().position() };
+	}
+
+	inline Value Value::findField(const char* key) noexcept {
+		if (!iter.findFieldRaw(key)) {
+			return Value{};
+		}
+		return Value(iter.child());
+	}
+
+	inline ErrorCode ValueIterator::skipChild() noexcept {
+		assert(jsonIter->getTapeIterator().position() > rootPosition);
+		assert(jsonIter->depth() >= currentDepth);
+		return jsonIter->skipChild(depth());
+	}
+
+	inline RawJsonString::RawJsonString(const uint8_t* _buf) noexcept : buf{ _buf } {
+	}
+
+	inline const char* RawJsonString::raw() const noexcept {
+		return reinterpret_cast<const char*>(buf);
+	}
+
+
+	inline bool RawJsonString::isFreeFromUnescapedQuote(std::string_view target) noexcept {
+		size_t pos{ 0 };
+		for (; pos < target.size() && target[pos] != '\\'; pos++) {}
+		bool escaping{ false };
+		for (; pos < target.size(); pos++) {
+			if ((target[pos] == '"') && !escaping) {
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::isFreeFromUnescapedQuote(const char* target) noexcept {
+		size_t pos{ 0 };
+		for (; target[pos] && target[pos] != '\\'; pos++) {}
+		bool escaping{ false };
+		for (; target[pos]; pos++) {
+			if ((target[pos] == '"') && !escaping) {
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::unsafeIsEqual(size_t length, std::string_view target) const noexcept {
+		return (length >= target.size()) && (raw()[target.size()] == '"') && !memcmp(raw(), target.data(), target.size());
+	}
+
+	inline bool RawJsonString::unsafeIsEqual(std::string_view target) const noexcept {
+		if (target.size() <= 256) {
+			return (raw()[target.size()] == '"') && !memcmp(raw(), target.data(), target.size());
+		}
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		for (; pos < target.size(); pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::isEqual(std::string_view target) const noexcept {
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		bool escaping{ false };
+		for (; pos < target.size(); pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+			if ((target[pos] == '"') && !escaping) {
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+
+	inline bool RawJsonString::unsafeIsEqual(const char* target) const noexcept {
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		for (; target[pos]; pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::isEqual(const char* target) const noexcept {
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		bool escaping{ false };
+		for (; target[pos]; pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+			if ((target[pos] == '"') && !escaping) {
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline std::string_view RawJsonString::unescape(JsonParser& iter) const noexcept {
+		return std::string_view{};
+	}
+
+	inline RawJsonString ValueIterator::fieldKey() noexcept {
+
+		const uint8_t* key = jsonIter->returnCurrentAndAdvance();
+		if (*(key++) != '"') {
+			return RawJsonString{};
+			
+		}
+		return RawJsonString(key);
+	}
+
+	inline bool ValueIterator::findFieldRaw(const std::string_view key) noexcept {
+		ErrorCode error{};
+		bool has_value{};
+		if (atFirstField()) {
+			has_value = true;
+
+		} else if (!isOpen()) {
+			return false;
+		} else {
+			if (skipChild() != ErrorCode::Success) {
+				abandon();
+				return false;
+			}
+			if (!hasNextField()) {
+				abandon();
+				return false;
+			}
+		}
+		while (has_value) {
+			RawJsonString actual_key{};
+			if (fieldKey().isEqual("")) {
+				abandon();
+				return false;
+			};
+			if (fieldValue() != ErrorCode::Success) {
+				abandon();
+				return false;
+			}
+			if (actual_key.unsafeIsEqual(key)) {
+				return true;
+			}
+			skipChild();
+			if (!hasNextField()) {
+				abandon();
+				return false;
+			}
+		}
+		return false;
+	}
+
+	inline void ValueIterator::abandon() noexcept {
+		jsonIter->abandon();
+	}
+
+	inline bool ValueIterator::isOpen()  noexcept {
+		return jsonIter->depth() >= depth();
+	}
+
+	inline bool ValueIterator::atFirstField() noexcept {
+		assert(jsonIter->getTapeIterator().position()  > rootPosition);
+		return jsonIter->getTapeIterator().position() == startPosition() + 1;
+	}
+
+	inline bool ValueIterator::hasNextField() noexcept {
+
+		// It's illegal to call this unless there are more tokens: anything that ends in } or ] is
+		// obligated to verify there are more tokens if they are not the top level.
+		switch (*jsonIter->returnCurrentAndAdvance()) {
+			case '}':
+				endContainer();
+				return false;
+			case ',':
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	inline ErrorCode ValueIterator::fieldValue() noexcept {
+
+		if (*jsonIter->returnCurrentAndAdvance() != ':') {
+			return ErrorCode::TapeError;
+		}
+		jsonIter->descendTo(depth() + 1);
+		return ErrorCode::Success;
 	}
 
 };
