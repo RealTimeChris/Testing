@@ -138,7 +138,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 1; ++x) {
+		for (size_t x = 0; x < 3; ++x) {
 			serializer["d"]["activitiess"] = nullptr;
 			serializer["d"]["activitiess_TEST"] = false;
 			serializer["d"]["activitiess_TEST02"] = 0.0342;
@@ -160,6 +160,19 @@ int32_t main() noexcept {
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
+		
+		stopWatch.resetTimer();
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
+		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
+			TheValue value{ newDocument };
+			totalSize += oldSize;
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		totalSize = 0;
+		totalTime = 0;
 		stopWatch.resetTimer();
 
 		Jsonifier::SimdJsonValue theParser{};
@@ -171,24 +184,8 @@ int32_t main() noexcept {
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
 			//std::cout << "VALUE03: " << value.theD.activities.begin().operator*().TEST_VALUE_03 << std::endl;
 			//std::cout << "VALUE04: " << value.theD.activities.begin().operator*().TEST_VALUE_04 << std::endl;
-			////std::cout << "VALUE05: " << value.theD.activities.begin().operator*().TEST_VALUE_05 << std::endl;
 			//std::cout << "VALUE06: " << value.theD.activities.begin().operator*().TEST_VALUE_06 << std::endl;
 			//std::cout << "VALUE07: " << value.theD.activities.begin().operator*().TEST_VALUE_07 << std::endl;
-			totalSize += oldSize;
-		} 
-		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-
-		totalSize = 0;
-		totalTime = 0;
-
-		stopWatch.resetTimer();
-
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();

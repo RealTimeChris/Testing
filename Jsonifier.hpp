@@ -1685,6 +1685,10 @@ namespace Jsonifier {
 		uint32_t count{};
 	};
 
+	inline int64_t totalTimePassed{};
+	inline int64_t totalTimePassed02{};
+	inline int64_t iterationCount{};
+
 	class SimdJsonValue {
 	  public:
 		inline SimdJsonValue() {
@@ -1727,9 +1731,7 @@ namespace Jsonifier {
 			
 			return ErrorCode::Success;
 		}
-		int64_t totalTimePassed{};
-		int64_t totalTimePassed02{};
-		int64_t iterationCount{};			
+		
 		inline void generateJsonEvents(uint8_t* stringNew, size_t stringLength) {
 			if (stringNew) {
 				if (stringLength == 0) {
@@ -2519,10 +2521,10 @@ namespace Jsonifier {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
-		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			//std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
-			//}
-		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
+			}
+		std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		return JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this };
 	}
 	
