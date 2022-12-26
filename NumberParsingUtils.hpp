@@ -781,6 +781,120 @@ namespace Jsonifier {
 			}
 			return negative ? (~i + 1) : i;
 		}
+
+		inline static const bool structural_or_whitespace_negated[256] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1,
+
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1,
+
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+			1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+
+		inline static uint32_t isNotStructuralOrWhitespace(uint8_t c) {
+			return structural_or_whitespace_negated[c];
+		}
+
+		inline static double parseDouble(const uint8_t* src) noexcept {
+			//
+			// Check for minus sign
+			//
+			bool negative = (*src == '-');
+			src += uint8_t(negative);
+
+			//
+			// Parse the integer part.
+			//
+			uint64_t i = 0;
+			const uint8_t* p = src;
+			p += parseDigit(*p, i);
+			bool leading_zero = (i == 0);
+			while (parseDigit(*p, i)) {
+				p++;
+			}
+			// no integer digits, or 0123 (zero must be solo)
+			if (p == src) {
+				return INCORRECT_TYPE;
+			}
+			if ((leading_zero && p != src + 1)) {
+				return NUMBER_ERROR;
+			}
+
+			//
+			// Parse the decimal part.
+			//
+			int64_t exponent = 0;
+			bool overflow;
+			if (*p == '.') {
+				p++;
+				const uint8_t* start_decimal_digits = p;
+				if (!parseDigit(*p, i)) {
+					return NUMBER_ERROR;
+				}// no decimal digits
+				p++;
+				while (parseDigit(*p, i)) {
+					p++;
+				}
+				exponent = -(p - start_decimal_digits);
+
+				// Overflow check. More than 19 digits (minus the decimal) may be overflow.
+				overflow = p - src - 1 > 19;
+				if (overflow && leading_zero) {
+					// Skip leading 0.00000 and see if it still overflows
+					const uint8_t* start_digits = src + 2;
+					while (*start_digits == '0') {
+						start_digits++;
+					}
+					overflow = start_digits - src > 19;
+				}
+			} else {
+				overflow = p - src > 19;
+			}
+
+			//
+			// Parse the exponent
+			//
+			if (*p == 'e' || *p == 'E') {
+				p++;
+				bool exp_neg = *p == '-';
+				p += exp_neg || *p == '+';
+
+				uint64_t exp = 0;
+				const uint8_t* start_exp_digits = p;
+				while (parseDigit(*p, exp)) {
+					p++;
+				}
+				// no exp digits, or 20+ exp digits
+				if (p - start_exp_digits == 0 || p - start_exp_digits > 19) {
+					return NUMBER_ERROR;
+				}
+
+				exponent += exp_neg ? 0 - exp : exp;
+			}
+
+			if (isNotStructuralOrWhitespace(*p)) {
+				return NUMBER_ERROR;
+			}
+
+			overflow = overflow || exponent < smallestPower || exponent > largestPower;
+
+			//
+			// Assemble (or slow-parse) the float
+			//
+			double d;
+			if (!overflow) {
+				if (computeFloat64(exponent, i, negative, d)) {
+					return d;
+				}
+			}
+			if (!parseFloatFallback(src - uint8_t(negative), &d)) {
+				return NUMBER_ERROR;
+			}
+			return d;
+		}
 	};
 
 

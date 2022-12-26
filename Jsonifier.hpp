@@ -833,7 +833,7 @@ namespace Jsonifier {
 		inline bool at_first_field() const noexcept;
 		inline void abandon() noexcept;
 		inline value_iterator child_value() const noexcept;
-		inline int32_t depth() const noexcept;
+		inline size_t depth() const noexcept;
 		inline JsonType type() const noexcept;
 		inline bool start_object() noexcept;
 		inline bool start_root_object() noexcept;
@@ -1020,6 +1020,7 @@ namespace Jsonifier {
 		const uint8_t* buf{};
 		friend class object;
 		friend class field;
+		friend class value_iterator;
 		friend class parser;
 	};
 
@@ -1564,6 +1565,10 @@ class JsonParser {
 			return std::move(*this);
 		}
 
+		TapeIterator& getTapeIterator() {
+			return this->tapeIter;
+		}
+
 		inline JsonParser& operator[](const std::string& key) {
 			return *this;
 		};
@@ -1649,6 +1654,7 @@ class JsonParser {
 		static constexpr size_t DOCUMENT_DEPTH = 0;
 
 		friend class array_iterator;
+		friend class SimdJsonValue;
 		friend class value;
 		friend class object;
 		friend class array;
@@ -2273,7 +2279,7 @@ class JsonParser {
 			return this->tape.get();
 		}
 
-		inline JsonParser getJsonData(std::string& string);
+		inline document getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2988,7 +2994,7 @@ class JsonParser {
 		}
 	}
 	
-	JsonParser SimdJsonValue::getJsonData(std::string& string) {
+	document SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -2998,7 +3004,7 @@ class JsonParser {
 		//std::cout << "CURRENT INDEX: " << (this->getTape()[x] >> 56) << std::endl;
 		//			}
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		return JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this };
+		return document{ JsonParser{ reinterpret_cast<uint32_t*>(this->getTape()), this->getTapeLength(), this->stringBuffer.get(), this } };
 	}
 	
 	inline JsonParser::JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept
@@ -3245,9 +3251,6 @@ class JsonParser {
 		size_t answer;
 		auto a = get_array();
 		answer = a.count_elements();
-		// count_elements leaves you pointing inside the array, at the first element.
-		// We need to move back so that the user can create a new array (which requires that
-		// we point at '[').
 		iter.move_at_start();
 		return answer;
 	}
@@ -3335,4 +3338,120 @@ class JsonParser {
 				return value{};
 		}
 	}
+
+	inline object object::start(value_iterator& iter) noexcept {
+		iter.start_object();
+		return object(iter);
+	}
+
+	inline object object::start_root(value_iterator& iter) noexcept {
+		iter.start_root_object();
+		return object(iter);
+	}
+
+	inline object object::resume(const value_iterator& iter) noexcept {
+		return iter;
+	}
+
+	inline array array::start(value_iterator& iter) noexcept {
+		// We don't need to know if the array is empty to start iteration, but we do want to know if there
+		// is an error--thus `simdjson_unused`.
+		bool has_value{};
+		iter.start_array();
+		return array(iter);
+	}
+
+	inline array array::start_root(value_iterator& iter) noexcept {
+		bool has_value{};
+		iter.start_root_array();
+		return array(iter);
+	}
+
+	inline bool value_iterator::at_start() const noexcept {
+		return _json_iter->getTapeIterator().position() == start_position();
+	}
+
+	 inline bool value_iterator::start_object() noexcept {
+		start_container('{', "Not an object", "object");
+		return started_object();
+	}
+
+	 inline bool value_iterator::start_root_object() noexcept {
+		start_container('{', "Not an object", "object");
+		return started_root_object();
+	}
+
+	 inline bool value_iterator::started_object() noexcept {
+		assert_at_container_start();
+		if (*_json_iter->peek() == '}') {
+			_json_iter->returnCurrentAndAdvance();
+			end_container();
+			return false;
+		}
+		return true;
+	}
+
+	 inline bool value_iterator::start_array() noexcept {
+		start_container('[', "Not an array", "array");
+		return started_array();
+	}
+
+	 inline bool value_iterator::start_root_array() noexcept {
+		start_container('[', "Not an array", "array");
+		return started_root_array();
+	}
+
+	inline std::string value_iterator::to_string() const noexcept {
+		auto answer = std::string("value_iterator [ depth : ") + std::to_string(_depth) + std::string(", ");
+		if (_json_iter != nullptr) {
+			answer += _json_iter->toString();
+		}
+		answer += std::string(" ]");
+		return answer;
+	}
+
+	 inline bool value_iterator::started_array() noexcept {
+		assert_at_container_start();
+		if (*_json_iter->peek() == ']') {
+			_json_iter->returnCurrentAndAdvance();
+			end_container();
+			return false;
+		}
+		_json_iter->descendTo(depth() + 1);
+		return true;
+	}
+
+	 inline size_t value_iterator::depth() const noexcept {
+		return _depth;
+	}
+
+	inline std::string_view value_iterator::get_string() noexcept {
+		return get_raw_json_string().unescape(json_iter());
+	}
+
+	inline raw_json_string value_iterator::get_raw_json_string() noexcept {
+		auto json = peek_scalar("string");
+		if (*json != '"') {
+			return raw_json_string{};
+		}
+		advance_scalar("string");
+		return raw_json_string(json + 1);
+	}
+
+	 inline int64_t value_iterator::get_int64() noexcept {
+		auto result = NumberParser::parseInteger(peek_non_root_scalar("int64"));
+		 advance_non_root_scalar("int64");
+		return result;
+	}
+	 inline double value_iterator::get_double() noexcept {
+		auto result = NumberParser::parseDouble(peek_non_root_scalar("double"));
+		 advance_non_root_scalar("double");
+		return result;
+	}
+	 inline bool value_iterator::get_bool() noexcept {
+		auto result = parse_bool(peek_non_root_scalar("bool"));
+		 advance_non_root_scalar("bool");
+		return result;
+	}
+
 };

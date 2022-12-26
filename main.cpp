@@ -13,17 +13,17 @@ int64_t totalTime{};
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
-	ActivitiesJson(Jsonifier::JsonParser&& value) {
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
+	ActivitiesJson(Jsonifier::value&& value) {
+		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get_double();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
-		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<uint64_t>();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get_bool();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].get_string();
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"].get_int64();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get_double();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_05"].getType() << std::endl;
-		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
-		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<uint64_t>();
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get_bool();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get_string();
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get_int64();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -37,15 +37,14 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::JsonParser&& value) {
-		auto theObject = std::move(value["d"].getInt64());
-		std::cout << "THE OBJECT: " << theObject << std::endl;
-		auto theArray = std::move(theObject["activitiess"]);
+	TheDJson(Jsonifier::document&& value) {
+		auto theObject = value["d"].get_object();
+		auto theArray = theObject["activitiess"];
 		//std::cout << "CURRENT SIZE: " << theArray.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		for (size_t x = 0; x < 12; ++x) {
+		for (auto value:theArray.get_array()) {
 			iterationCount++;
 			
 			activities.emplace_back(std::move(value));
@@ -57,15 +56,9 @@ struct TheDJson {
 	std::vector<ActivitiesJson> activities{};
 };
 
-namespace Jsonifier {
-	template<> TheDJson JsonParser::getValue() {
-		return TheDJson{ std::move(*this) };
-	}
-
-}
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonParser&& value) {
+	TheValueJson(Jsonifier::document&& value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
