@@ -1812,17 +1812,17 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		std::unique_ptr<uint32_t[]> structuralIndexes{};
 		std::unique_ptr<OpenContainer[]> openContainers{};
-		std::unique_ptr<uint64_t[]> tape{};
+		std::unique_ptr<uint32_t[]> structuralIndexes{};
 		std::unique_ptr<uint8_t[]> stringBuffer{};
+		std::unique_ptr<uint64_t[]> tape{};
 		std::unique_ptr<bool[]> isArray{};
 		size_t nStructuralIndexes{ 0 };
 		SimdStringSection section{};
 		size_t allocatedCapacity{};
+		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
 		size_t tapeLength{ 0 };
-		uint32_t maxDepth{ 512 };
 		uint8_t* stringView{};
 	};
 
