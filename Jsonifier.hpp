@@ -3579,4 +3579,108 @@ class JsonParser {
 	inline uint32_t* value_iterator::start_position() const noexcept {
 		return _start_position;
 	}
+
+	inline uint32_t* value_iterator::position() const noexcept {
+		return _json_iter->position();
+	}
+
+	inline raw_json_string::raw_json_string(const uint8_t* _buf) noexcept : buf{ _buf } {
+	}
+
+	inline std::string_view raw_json_string::unescape(JsonParser& iter) const noexcept {
+		return std::string_view{};
+	}
+
+	inline value object::operator[](const std::string_view key) & noexcept {
+		return find_field_unordered(key);
+	}
+
+	inline value object::operator[](const std::string_view key) && noexcept {
+		return std::forward<object>(*this).find_field_unordered(key);
+	}
+
+	inline value object::find_field_unordered(const std::string_view key) & noexcept {
+		bool has_value;
+		has_value = iter.find_field_unordered_raw(key);
+		if (!has_value) {
+			return value{};
+		}
+		return value(iter.child());
+	}
+	inline value object::find_field_unordered(const std::string_view key) && noexcept {
+		bool has_value;
+		has_value = iter.find_field_unordered_raw(key);
+		if (!has_value) {
+			return value{};
+		}
+		return value(iter.child());
+	}
+
+	inline bool value_iterator::find_field_unordered_raw(const std::string_view key) noexcept {
+		ErrorCode error{};
+		bool has_value{};
+		uint32_t* search_start = _json_iter->position();
+		bool at_first = at_first_field();
+		if (at_first) {
+			has_value = true;
+		} else if (!is_open()) {
+			has_value = reset_object();
+			at_first = true;
+		} else {
+			if (error == skip_child()) {
+				abandon();
+				return false;
+			}
+			search_start = _json_iter->position();
+			if (has_value == has_next_field()) {
+				abandon();
+				return false;
+			}
+		}
+		while (has_value) {
+			assert(_json_iter->depth() == _depth);
+			raw_json_string actual_key{};
+			if ((error == field_value())) {
+				abandon();
+				return false;
+			}
+			if (actual_key.unsafe_is_equal(key)) {
+				return true;
+			}
+			skip_child();
+			if (has_value == has_next_field()) {
+				abandon();
+				return false;
+			}
+		}
+		if (at_first) {
+			return false;
+		}
+		reset_object();
+		while (true) {
+			assert(has_value);
+			assert(_json_iter->depth() == _depth);
+			raw_json_string actual_key{};
+			assert(!error);
+			error = field_value();
+			assert(!error);
+			if (actual_key.unsafe_is_equal(key)) {
+				return true;
+			}
+			skip_child();
+			if (_json_iter->position() == search_start) {
+				return false;
+			}
+			has_value = has_next_field();
+			assert(!error);
+		}
+		return false;
+	}
+
+	inline ErrorCode value_iterator::skip_child() noexcept {
+		assert(_json_iter->getTapeIterator().position() > _start_position);
+		assert(_json_iter->depth() >= _depth);
+
+		return _json_iter->skipChild(depth());
+	}
 };
