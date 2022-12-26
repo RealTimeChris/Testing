@@ -976,7 +976,7 @@ namespace Jsonifier {
 		inline number get_number() noexcept;
 		inline std::string_view raw_json_token() noexcept;
 		inline const char* current_location() noexcept;
-		inline int32_t current_depth() const noexcept;
+		inline int32_t current_depth() noexcept;
 		inline value at_pointer(std::string_view json_pointer) noexcept;
 
 	  protected:
@@ -1374,7 +1374,7 @@ class JsonParser {
 			return this->parser;
 		}
 
-		inline size_t depth() const noexcept {
+		inline size_t& depth() noexcept {
 			return this->currentDepth;
 		}
 
@@ -1636,7 +1636,7 @@ class JsonParser {
 		inline std::string to_debug_string() noexcept;
 		inline bool is_alive() noexcept;
 		inline const char* current_location() noexcept;
-		inline int32_t current_depth() const noexcept;
+		inline int32_t current_depth() noexcept;
 		inline value at_pointer(std::string_view json_pointer) noexcept;
 		inline std::string_view raw_json() noexcept;
 
@@ -3041,7 +3041,7 @@ class JsonParser {
 		return iter.currentLocation();
 	}
 
-	inline int32_t document::current_depth() const noexcept {
+	inline int32_t document::current_depth() noexcept {
 		return iter.depth();
 	}
 
@@ -3322,7 +3322,7 @@ class JsonParser {
 		return iter.json_iter().currentLocation();
 	}
 
-	inline int32_t value::current_depth() const noexcept {
+	inline int32_t value::current_depth() noexcept {
 		return iter.json_iter().depth();
 	}
 
@@ -3699,5 +3699,103 @@ class JsonParser {
 
 	inline void value_iterator::abandon() noexcept {
 		_json_iter->abandon();
+	}
+
+	inline bool value_iterator::has_next_field() noexcept {
+		assert_at_next();
+
+		switch (*_json_iter->returnCurrentAndAdvance()) {
+			case '}':
+				end_container();
+				return false;
+			case ',':
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	inline ErrorCode value_iterator::field_value() noexcept {
+		assert_at_next();
+
+		if (*_json_iter->returnCurrentAndAdvance() != ':') {
+			return report_error(ErrorCode::TapeError, "Missing colon in object field");
+		}
+		_json_iter->descendTo(depth() + 1);
+		return ErrorCode::Success;
+	}
+
+	inline value_iterator value_iterator::child() const noexcept {
+		assert_at_child();
+		return { _json_iter, depth() + 1, _json_iter->getTapeIterator().position() };
+	}
+
+	inline void value_iterator::move_at_start() noexcept {
+		_json_iter->depth() = _depth;
+		_json_iter->getTapeIterator().setPosition(_start_position);
+	}
+	inline bool value_iterator::reset_array() noexcept {
+		move_at_container_start();
+		return started_array();
+	}
+
+	inline bool value_iterator::reset_object() noexcept {
+		move_at_container_start();
+		return started_object();
+	}
+
+	inline void value_iterator::move_at_container_start() noexcept {
+		_json_iter->depth() = _depth;
+		_json_iter->getTapeIterator().setPosition(_start_position + 1);
+	}
+
+	inline value_iterator::value_iterator(JsonParser* json_iter, size_t depth, uint32_t* start_position) noexcept
+		: _json_iter{ json_iter }, _depth{ depth }, _start_position{ start_position } {
+	}
+
+	inline void value_iterator::assert_at_child() const noexcept {
+		assert(_json_iter->getTapeIterator().position() > _start_position);
+		assert(_json_iter->depth() == _depth + 1);
+		assert(_depth > 0);
+	}
+
+	inline ErrorCode value_iterator::report_error(ErrorCode error, const char* message) noexcept {
+		return ErrorCode{};		
+	}
+
+	inline bool raw_json_string::unsafe_is_equal(size_t length, std::string_view target) const noexcept {
+		return (length >= target.size()) && (raw()[target.size()] == '"') && !memcmp(raw(), target.data(), target.size());
+	}
+
+	inline bool raw_json_string::unsafe_is_equal(std::string_view target) const noexcept {
+		if (target.size() <=256) {
+			return (raw()[target.size()] == '"') && !memcmp(raw(), target.data(), target.size());
+		}
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		for (; pos < target.size(); pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline const char* raw_json_string::raw() const noexcept {
+		return reinterpret_cast<const char*>(buf);
+	}
+
+	inline object::object(const value_iterator& _iter) noexcept : iter{ _iter } {
+	}
+
+	inline value array_iterator::operator*() noexcept {
+		if (iter.error()!=ErrorCode::Success) {
+			iter.abandon();
+			return value{};			
+		}
+		return value(iter.child());
 	}
 };
