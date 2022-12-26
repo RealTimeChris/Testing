@@ -3438,20 +3438,62 @@ class JsonParser {
 		return raw_json_string(json + 1);
 	}
 
-	 inline int64_t value_iterator::get_int64() noexcept {
+	inline int64_t value_iterator::get_int64() noexcept {
 		auto result = NumberParser::parseInteger(peek_non_root_scalar("int64"));
 		 advance_non_root_scalar("int64");
 		return result;
 	}
-	 inline double value_iterator::get_double() noexcept {
+
+	inline double value_iterator::get_double() noexcept {
 		auto result = NumberParser::parseDouble(peek_non_root_scalar("double"));
 		 advance_non_root_scalar("double");
 		return result;
 	}
-	 inline bool value_iterator::get_bool() noexcept {
+
+	inline bool value_iterator::get_bool() noexcept {
 		auto result = parse_bool(peek_non_root_scalar("bool"));
 		 advance_non_root_scalar("bool");
 		return result;
+	}
+
+	inline const JsonParser& value_iterator::json_iter() const noexcept {
+		return *_json_iter;
+	}
+
+	inline JsonParser& value_iterator::json_iter() noexcept {
+		return *_json_iter;
+	}
+
+	inline bool value_iterator::parse_bool(const uint8_t* json) const noexcept {
+		auto not_true = StringParser::str4ncmp(json, "true");
+		auto not_false = StringParser::str4ncmp(json, "fals") | (json[4] ^ 'e');
+		bool error = (not_true && not_false) || NumberParser::isNotStructuralOrWhitespace(json[not_true ? 5 : 4]);
+		if (error) {
+			return false;
+		}
+		return bool(!not_true);
+	}
+
+	inline void value_iterator::advance_scalar(const char* type) noexcept {
+		// If we're not at the position anymore, we don't want to advance the cursor.
+		if (!is_at_start()) {
+			return;
+		}
+
+		// Get the JSON and advance the cursor, decreasing depth to signify that we have retrieved the value.
+		assert_at_start();
+		_json_iter->returnCurrentAndAdvance();
+		_json_iter->ascendTo(depth() - 1);
+	}
+
+	inline void value_iterator::advance_non_root_scalar(const char* type) noexcept {
+		if (!is_at_start()) {
+			return;
+		}
+
+		assert_at_non_root_start();
+		_json_iter->returnCurrentAndAdvance();
+		_json_iter->ascendTo(depth() - 1);
 	}
 
 };
