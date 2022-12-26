@@ -794,6 +794,9 @@ namespace Jsonifier {
 	  public:
 		inline ValueIterator() noexcept = default;
 		inline void advanceRootScalar(const char* type) noexcept;
+		inline const uint8_t* peekNonRootScalar(const char* type) noexcept;
+		inline void advanceNonRootScalar(const char* type) noexcept;
+		inline bool startedArray() noexcept;
 		inline bool atEnd() noexcept;
 		inline bool atStart() noexcept;
 		inline bool isAtStart() noexcept;
@@ -910,6 +913,7 @@ namespace Jsonifier {
 		inline ArrayIterator end() noexcept;
 		inline size_t countElements() & noexcept;
 		inline bool isEmpty() & noexcept;
+		inline static Array start(ValueIterator&) noexcept;
 		inline bool reset() & noexcept;
 		inline Value at(size_t index) noexcept;
 		ArrayIterator iter;
@@ -2832,6 +2836,13 @@ namespace Jsonifier {
 		return getRootValueIterator().isRootNull();
 	}
 
+	inline const uint8_t* ValueIterator::peekNonRootScalar(const char* type) noexcept {
+		if (!isAtStart()) {
+			return peekStart();
+		}
+		return jsonIter->peek();
+	}
+
 	inline const uint8_t* ValueIterator::peekRootScalar(const char* type) noexcept {
 		if (!isAtStart()) {
 			return peekStart();
@@ -3079,9 +3090,6 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::hasNextField() noexcept {
-
-		// It's illegal to call this unless there are more tokens: anything that ends in } or ] is
-		// obligated to verify there are more tokens if they are not the top level.
 		switch (*jsonIter->returnCurrentAndAdvance()) {
 			case '}':
 				endContainer();
@@ -3091,6 +3099,57 @@ namespace Jsonifier {
 			default:
 				return false;
 		}
+	}
+
+	inline Array::Array(const ValueIterator&iterator) noexcept {
+		this->iter = iterator;
+	}
+
+	inline Array Value::getArray() noexcept {
+		return Array::start(iter);
+	}
+
+	inline Array Array::start(ValueIterator& iter) noexcept {
+		// We don't need to know if the array is empty to start iteration, but we do want to know if there
+		// is an error--thus `simdjson_unused`.
+		bool has_value{};
+		iter.startArray();
+		return Array(iter);
+	}
+
+	inline bool ValueIterator::startedArray() noexcept {
+		if (*jsonIter->peek() == ']') {
+			jsonIter->returnCurrentAndAdvance();
+			endContainer();
+			return false;
+		}
+		jsonIter->descendTo(depth() + 1);
+		return true;
+	}
+
+	inline std::string_view Value::getString() noexcept {
+		return iter.getString();
+	}
+
+	inline double Value::getDouble() noexcept {
+		return iter.getDouble();
+	}
+
+	inline uint64_t Value::getUint64() noexcept {
+		return iter.getUint64();
+	}
+
+	inline int64_t Value::getInt64() noexcept {
+		return iter.getInt64();
+	}
+
+	inline bool Value::getBool() noexcept {
+		return iter.getBool();
+	}
+
+	inline bool ValueIterator::startArray() noexcept {
+		startContainer('[', "Not an array", "array");
+		return startedArray();
 	}
 
 	inline ErrorCode ValueIterator::fieldValue() noexcept {
@@ -3104,6 +3163,46 @@ namespace Jsonifier {
 
 	inline bool JsonParser::isSingleToken() const noexcept {
 		return parser->getStructuralIndexCount() == 1;
+	}
+
+	inline void ValueIterator::advanceNonRootScalar(const char* type) noexcept {
+		if (!isAtStart()) {
+			return;
+		}
+
+		jsonIter->returnCurrentAndAdvance();
+		jsonIter->ascendTo(depth() - 1);
+	}
+
+	inline std::string_view ValueIterator::getString() noexcept {
+		return std::string_view{};
+		//get_raw_json_string().unescape(json_iter());
+	}
+	inline uint64_t ValueIterator::getUint64() noexcept {
+		auto result = NumberParser::parseNumber<uint64_t>(peekNonRootScalar("uint64"));
+		 advanceNonRootScalar("uint64");
+		return result;
+	}
+	 inline int64_t ValueIterator::getInt64() noexcept {
+		auto result = NumberParser::parseNumber<int64_t>(peekNonRootScalar("int64"));
+		 advanceNonRootScalar("int64");
+		return result;
+	}
+	 inline double ValueIterator::getDouble() noexcept {
+		auto result = NumberParser ::parseDouble(peekNonRootScalar("double"));
+		 advanceNonRootScalar("double");
+		return result;
+	}
+
+	 inline bool ValueIterator::getBool() noexcept {
+		auto result = *peekNonRootScalar("bool");
+		if (result == 'f') {
+			advanceNonRootScalar("bool");
+			return false;
+
+		} else {
+			return true;
+		}
 	}
 
 };

@@ -702,6 +702,43 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
+		template<typename NumberType> inline static NumberType parseNumber(const uint8_t* src) {
+			bool negative = (*src == '-');
+			const uint8_t* p = src + uint8_t(negative);
+			const uint8_t* const startDigits = p;
+			uint64_t i = 0;
+			while (parseDigit(*p, i)) {
+				p++;
+			}
+			size_t digitCount = size_t(p - startDigits);
+			if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
+				return static_cast<NumberType>(ErrorCode::InvalidNumber);
+			}
+			int64_t exponent = 0;
+
+			size_t longestDigitCount = negative ? 19 : 20;
+			if (digitCount > longestDigitCount) {
+				return static_cast<NumberType>(ErrorCode::InvalidNumber);
+			}
+			if (digitCount == longestDigitCount) {
+				if (negative) {
+					if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1) {
+						return static_cast<NumberType>(ErrorCode::InvalidNumber);
+					}
+					return (~i + 1);
+				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+					return static_cast<NumberType>(ErrorCode::InvalidNumber);
+				}
+			}
+
+			if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
+				return i;
+			} else {
+				return negative ? (~i + 1) : i;
+			}
+			return static_cast<NumberType>(ErrorCode::Success);
+		}
+
 		enum NumberError { NUMBER_ERROR, SUCCESS, INCORRECT_TYPE };
 
 		inline static const uint8_t integerStringFinisher[256] = { NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,

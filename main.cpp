@@ -14,16 +14,14 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Value&& value) {
-		//this->TEST_VALUE_00 = value["TEST_VALUE_00"].get_double();
-		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		//this->TEST_VALUE_01 = value["TEST_VALUE_01"].get_bool();
-		//this->TEST_VALUE_02 = value["TEST_VALUE_02"].get_string();
-		//this->TEST_VALUE_03 = value["TEST_VALUE_03"].get_int64();
-		//this->TEST_VALUE_04 = value["TEST_VALUE_04"].get_double();
-		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_05"].getType() << std::endl;
-		//this->TEST_VALUE_05 = value["TEST_VALUE_05"].get_bool();
-		//this->TEST_VALUE_06 = value["TEST_VALUE_06"].get_string();
-		//this->TEST_VALUE_07 = value["TEST_VALUE_07"].get_int64();
+		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getDouble();
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getBool();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getString();
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getInt64();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getDouble();
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getBool();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getString();
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getInt64();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -39,18 +37,17 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::SimdJsonValue value) {
 		auto& theValue = value.getDocument();
-		auto theArray = theValue.isNull();
 		//std::cout << "CURRENT SIZE: " << theArray.count_elements() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		//for (auto value:theArray.get_array()) {
-		//iterationCount++;
-		//			activities.emplace_back(std::move(value));
-		//	totalTime += stopWatch.totalTimePassed().count();
-		//			activities.emplace_back(ActivitiesJson{});
-		//}
-		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
+		for (auto value:theValue.getValue().getArray()) {
+			iterationCount++;
+			activities.emplace_back(std::move(value));
+			totalTime += stopWatch.totalTimePassed().count();
+			activities.emplace_back(ActivitiesJson{});
+		}
+		std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<ActivitiesJson> activities{};
 };
@@ -131,7 +128,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 6; ++x) {
+		for (size_t x = 0; x < 12; ++x) {
 			serializer["d"]["TEAST"] = "TEST";
 			serializer["d"]["TEST"] = false;
 			serializer["TEST_02"].emplaceBack(arrayValueNew);
