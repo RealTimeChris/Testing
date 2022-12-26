@@ -637,6 +637,7 @@ namespace Jsonifier {
 
 	class TapeIterator {
 	  public:
+		TapeIterator() noexcept = default;
 
 		TapeIterator(uint8_t* stringBufferNew, uint32_t* tapePositionNew, size_t currentStructuralCountNew) {
 			this->currentStructuralCount = currentStructuralCountNew;
