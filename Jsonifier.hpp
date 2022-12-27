@@ -1568,28 +1568,32 @@ namespace Jsonifier {
 			return _mm256_cmpeq_epi8(this->Value, _mm256_set1_epi8(other));
 		}
 
-		template<size_t amount>
-		inline SimdBase256 shl(SimdBase256 previousValue) {
+		template<size_t amount> inline SimdBase256 shl(SimdBase256 previousValue) {
+			SimdBase256 returnValue{};
 			this->printBits("PRE-SHIFT(LEFT): ");
-			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount % 64) };
+			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this,  amount % 64) };
 			newValue01.printBits("POST-SHIFT 01(LEFT): ");
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 1), 64 - amount) };
+			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(previousValue, 7), 64 - amount) };
+			auto newValue03 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), 64 - amount) };
 			newValue02.printBits("POST-SHIFT 02(LEFT): ");
-			*this = newValue01 | newValue02;
-			this->printBits("POST-SHIFT(LEFT): ");
-			return *this;
+			returnValue = (newValue01 | newValue02) | newValue03;
+			returnValue.printBits("POST-SHIFT(LEFT): ");
+			return returnValue;
 		}
 
 		template<size_t amount> inline SimdBase256 shr(SimdBase256 previousValue) {
+			SimdBase256 returnValue{};
 			this->printBits("PRE-SHIFT(RIGHT): ");
-			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount % 64) };
+
+			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, 64 - amount % 64) };
 			newValue01.printBits("POST-SHIFT 01(RIGHT): ");
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(previousValue, 1), amount) };
+			auto newValue03 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 1), amount) };
 			
 			newValue02.printBits("POST-SHIFT 02(RIGHT): ");
-			*this = newValue01 | newValue02;
-			this->printBits("POST-SHIFT(RIGHT): ");
-			return *this;
+			returnValue = (newValue01 | newValue02) | newValue03;
+			returnValue.printBits("POST-SHIFT(RIGHT): ");
+			return returnValue;
 		}
 
 		inline SimdBase256 operator~() {
@@ -1752,9 +1756,10 @@ namespace Jsonifier {
 
 		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
 			auto newMatch = match.shl<1>(this->previousMatch);
-			this->previousMatch = newMatch;
 			SimdBase256 result = newMatch | overflow;
-			overflow = match.shr<63>(this->previousMatch);
+			overflow = newMatch.shr<63>(this->previousMatch);
+			this->previousMatch = newMatch;
+			this->previousMatch.printBits("PREVIOUS MATCH: ");
 			return result;
 		}
 
@@ -1830,8 +1835,9 @@ namespace Jsonifier {
 		inline SimdBase256 collectFinalStructurals(SimdBase256& prevScalar, SimdBase256& followsPotentialNonQuoteScalar) {
 			auto scalar = ~this->S256 | this->W256;
 			auto stringTail = this->R256 ^ this->Q256;
-			SimdBase256 nonquote_scalar = scalar.bitAndNot(this->Q256);
-			followsPotentialNonQuoteScalar = follows(nonquote_scalar, prevScalar);
+			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
+			followsPotentialNonQuoteScalar = follows(nonquoteScalar, prevScalar);
+			followsPotentialNonQuoteScalar.printBits("NONQUOTE SCALAR: ");
 			return this->S256 | (~S256 | this->W256).bitAndNot(followsPotentialNonQuoteScalar).bitAndNot(stringTail);
 		}
 
@@ -1850,6 +1856,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals(prevScalar, followsPotentialNonQuoteScalar);
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
