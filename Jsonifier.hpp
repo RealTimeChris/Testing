@@ -1275,7 +1275,7 @@ namespace Jsonifier {
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
 			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this,  amount) };
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 0), 64-amount) };
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 0), 64 - amount) };
 			returnValue = newValue01 | newValue02;
 			return returnValue;
 		}
@@ -1290,7 +1290,7 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = _mm256_xor_si256(*this, _mm256_set1_epi8(-1));
+			newValues = _mm256_xor_si256(*this, _mm256_set1_epi64x(-1));
 			return newValues;
 		}
 
