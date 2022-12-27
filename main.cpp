@@ -42,12 +42,12 @@ struct TheDJson {
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document["TEST_02"];
 		int32_t index{};
-		for (auto& value : object) {
+		//for (auto& value : object) {
 			index++;
 			//auto newObject = value.getObject();
-			std::cout << "NEW SIZE: " << value.size() << std::endl;
-		}
-		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
+			//std::cout << "NEW SIZE: " << value.size() << std::endl;
+			//}
+			//std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -65,7 +65,7 @@ struct TheDJson {
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonParser  value) {
+	TheValueJson(Jsonifier::JsonParser&&  value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
@@ -184,7 +184,7 @@ int32_t main() noexcept {
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
-			//TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
