@@ -745,6 +745,7 @@ namespace Jsonifier {
 			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek() == 'd');
 			this->advance();
+			this->advance();
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -754,6 +755,7 @@ namespace Jsonifier {
 			assert(this->peek() == '"');
 			std::string_view returnValue{};
 			if (this->peek() == '"') {
+				this->advance();
 				size_t stringLength{};
 				std::memcpy(&stringLength, this->getStringBuffer() + (*this->getTapePosition() & JSON_VALUE_MASK), sizeof(uint32_t));
 				returnValue =
@@ -766,6 +768,7 @@ namespace Jsonifier {
 			std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
 			this->advance();
+			this->advance();
 			uint64_t returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -775,6 +778,7 @@ namespace Jsonifier {
 			std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
 			this->advance();
+			this->advance();
 			int64_t returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -783,16 +787,18 @@ namespace Jsonifier {
 		inline bool parseJsonBool() {
 			assert(this->peek() == 'f' || this->peek() == 't');
 			if (this->peek() == 'f') {
+				this->advance();
 				return false;
 			} else {
+				this->advance();
 				return true;
 			}
 		}
 
 		inline nullptr_t parseJsonNull() {
 			assert(this->peek() == 'n');
-			nullptr_t returnData{};
-			return returnData;
+			this->advance();
+			return nullptr_t{};
 		}
 		
 		inline void advanceValue() {
@@ -915,22 +921,18 @@ namespace Jsonifier {
 			using ValueType = Array;
 			using Pointer = Array*;
 
-			ArrayIterator(Pointer ptr) noexcept : ptr(ptr) {
-				this->ptr->advance();
-			};
+			ArrayIterator(Pointer ptr) noexcept : ptr(ptr) {};
 
 			Reference operator*() noexcept {
-				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return *ptr;
 			}
 
 			Pointer operator->() noexcept {
-				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return ptr;
 			}
 
 			ArrayIterator& operator++() noexcept { 
-				ptr->advanceValue();
+				this->ptr->advance();
 				return *this;
 			}
 
@@ -970,17 +972,15 @@ namespace Jsonifier {
 			ObjectIterator(Pointer ptr) : ptr(ptr) {}
 
 			Reference operator*() const {
-				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return *ptr;
 			}
 
 			Pointer operator->() {
-				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return ptr;
 			}
 
 			ObjectIterator& operator++() {
-				ptr->advanceValue();
+				this->ptr->advance();
 				return *this;
 			}
 
