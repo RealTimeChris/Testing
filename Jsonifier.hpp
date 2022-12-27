@@ -709,23 +709,6 @@ namespace Jsonifier {
 		uint8_t* stringBuffer{};
 	};
 
-	enum class JsonParseState {
-		Starting_Document = 0,
-		Starting_Object = 1,
-		Continuing_Object = 2,
-		Ending_Object = 3,
-		Starting_Array = 4,
-		Continuing_Array = 5,
-		Ending_Array = 6,
-		Parsing_String = 7,
-		Parsing_Float = 8,
-		Parsing_Int64 = 9,
-		Parsing_Uint64 = 10,
-		Parsing_Bool = 11,
-		Parsing_Null = 12,
-		Parsing_Key = 13
-	};
-
 	class SimdJsonValue;
 
 	class JsonParser {
