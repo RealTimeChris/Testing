@@ -663,6 +663,18 @@ namespace Jsonifier {
 			return *(tapePosition);
 		}
 
+		inline void assertAtObjectStart() {
+			assert(this->peek() == '{');
+		}
+
+		inline void assertAtArrayStart() {
+			assert(this->peek() == '[');
+		}
+
+		inline void assertAtStringStart() {
+			assert(this->peek() == '"');
+		}
+
 		inline const uint8_t* returnCurrentAndAdvance() noexcept {
 			return &stringBuffer[*(tapePosition++)];
 		}
@@ -705,7 +717,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return this->currentStructuralCount;
+			return size_t((this->getTapePosition()[0] & JSON_VALUE_MASK));
 		}
 
 		inline uint32_t peekIndex() noexcept {
@@ -783,20 +795,8 @@ namespace Jsonifier {
 			}
 
 			JsonIterator& operator++() {
-				if (ptr->tapeIter.peek() == '[' || ptr->tapeIter.peek() == '{' || ptr->tapeIter.peek() == 'r') {
-					ptr->tapeIter.advance();
-				}
 				ptr->tapeIter.advance();
 				return *this;
-			}
-
-			JsonIterator operator++(int) {
-				if (ptr->tapeIter.peek() == '[' || ptr->tapeIter.peek() == '{' || ptr->tapeIter.peek() == 'r') {
-					ptr->tapeIter.advance();
-				}
-				ptr->tapeIter.advance();
-				JsonIterator tmp = std::move(*this);
-				return tmp;
 			}
 
 			bool operator!=(const JsonIterator& b) {
@@ -857,24 +857,30 @@ namespace Jsonifier {
 		inline size_t size() {
 			switch (this->type) {
 				case JsonType::Document: {
-					return (((*(this->tapeIter.getTape()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					return (((this->tapeIter.getTapePosition()[1] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+				}
+				case JsonType::Array: {
+					[[fallthrough]];
 				}
 				case JsonType::Object: {
-					return (((*(this->tapeIter.getTape()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					return (((this->tapeIter.getTapePosition()[1] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case JsonType::String: {
 					size_t stringLength{};
-					std::memcpy(&stringLength, this->tapeIter.getStringBuffer() + (*this->tapeIter.getTape() & JSON_VALUE_MASK), sizeof(uint32_t));
+					std::memcpy(&stringLength, this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK),
+						sizeof(uint32_t));
 					return stringLength;
 				}
 				default: {
-					return 0;
+					return (((this->tapeIter.getTapePosition()[1] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 			}
 		}
 
-		inline JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew, JsonType typeNew)
-			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
+		inline JsonParser(uint64_t* tapePtrsNew, size_t structuralCount, uint8_t* stringBufferNew, SimdJsonValue* parserNew, JsonType typeNew,
+			size_t currentSizeNew)
+			: tapeIter{ stringBufferNew, tapePtrsNew, structuralCount } {
+			this->currentSize = currentSizeNew;
 			this->parser = parserNew;
 			this->type = typeNew;
 		};
@@ -990,31 +996,12 @@ namespace Jsonifier {
 		JsonParser getObject(const char* keyNew = nullptr) {
 			std::cout << "THE TYPE IS: " << ( int32_t )this->type << std::endl;
 			std::cout << "THE TYPE IS: " << this->tapeIter.peek() << std::endl;
-			if (keyNew == nullptr) {
-				if (this->tapeIter.peek() == '{') {
-					this->tapeIter.advance();
-					JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
-						this->parser, JsonType::Object };
-					return returnValue;
-
-				} else {
-					throw JsonifierException{ "Sorry, but this item's type is not Object." };
-				}
-			}
-			if (this->tapeIter.peek() == '"') {
-				auto key = this->getString();
+			this->tapeIter.assertAtObjectStart();
+			if (this->tapeIter.peek() == '{') {
 				this->tapeIter.advance();
-				if (key == keyNew) {
-					if (this->tapeIter.peek() == '{') {
-						this->tapeIter.advance();
-						JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(), this->parser,
-							JsonType::Object };
-						return returnValue;
-
-					} else {
-						throw JsonifierException{ "Sorry, but this item's type is not Object." };
-					}
-				}
+				JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
+					this->parser, JsonType::Object, this->size() };
+				return returnValue;
 
 			} else {
 				throw JsonifierException{ "Sorry, but this item's type is not Object." };
@@ -1022,23 +1009,12 @@ namespace Jsonifier {
 		}
 
 		JsonParser getArray(const char* keyNew = nullptr) {
-			if (this->tapeIter.peek() == '"') {
-				auto key = this->getString();
+			this->tapeIter.assertAtArrayStart();
+			if (this->tapeIter.peek() == '[') {
 				this->tapeIter.advance();
-				if (key == keyNew) {
-					if (this->tapeIter.peek() == '[') {
-						this->tapeIter.advance();
-						JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(),
-							this->tapeIter.getStringBuffer(), this->parser,
-							JsonType::Object };
-						return returnValue;
-
-					} else {
-						throw JsonifierException{ "Sorry, but this item's type is not Array." };
-					}
-				} else {
-					throw JsonifierException{ "Sorry, but this item's type is not Array." };
-				}
+				JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
+					this->parser, JsonType::Array, this->size() };
+				return returnValue;
 
 			} else {
 				throw JsonifierException{ "Sorry, but this item's type is not Array." };
@@ -1049,16 +1025,9 @@ namespace Jsonifier {
 			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 			if (this->tapeIter.peek() == 'r') {
 				this->tapeIter.advance();
-				std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
-				if (this->tapeIter.peek() == '{') {
-					this->tapeIter.advance();
-					JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
-						this->parser, JsonType::Object };
-					this->tapeIter.advance(uint32_t((*this->tapeIter.getTapePosition()) & JSON_VALUE_MASK));
-					return returnValue;
-				} else {
-					throw JsonifierException{ "Sorry, but this item's type is not Document." };
-				}
+				JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
+					this->parser, JsonType::Document, this->size() };
+				return returnValue;
 
 			} else {
 				throw JsonifierException{ "Sorry, but this item's type is not Document." };
@@ -1076,7 +1045,11 @@ namespace Jsonifier {
 		inline JsonParser& operator[](const std::string& key) {
 			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 			std::cout << "THE TYPE: " << this->tapeIter.peek(1) << std::endl;
-			if (this->tapeIter.peek() == '"' && (this->tapeIter.peek(1) == '{' || this->tapeIter.peek(1) == '[')) {
+			if (this->tapeIter.peek() == '{'){
+				this->tapeIter.advance();
+				return *this;
+			}
+			if (this->tapeIter.peek() == '"' || (this->tapeIter.peek(1) == '{' || this->tapeIter.peek(1) == '[')) {
 				if (this->getKey() == key) {
 					this->tapeIter.advance();
 					return *this;
@@ -1096,6 +1069,7 @@ namespace Jsonifier {
 	  protected:
 		SimdJsonValue* parser{};
 		TapeIterator tapeIter;
+		size_t currentSize{};
 		JsonType type{};
 	};
 
@@ -2398,7 +2372,7 @@ namespace Jsonifier {
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		
-		return JsonParser{ this->getTape(), this->getTapeLength(), this->getStringBuffer(), this, JsonType::Document };
+		return JsonParser{ this->getTape(), this->getTapeLength(), this->getStringBuffer(), this, JsonType::Document, 0 };
 	}
 
 };

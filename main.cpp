@@ -45,7 +45,7 @@ struct TheDJson {
 		for (auto& value : object) {
 			index++;
 			//auto newObject = value.getObject();
-			std::cout << "NEW SIZE: " << index << std::endl;
+			std::cout << "NEW SIZE: " << value.size() << std::endl;
 		}
 		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
