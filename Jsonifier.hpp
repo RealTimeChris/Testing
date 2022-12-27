@@ -975,8 +975,15 @@ namespace Jsonifier {
 		}
 
 		inline std::string_view getKey() {
-			auto returnValue = this->getString();
-			this->tapeIter.advance();
+			std::string_view returnValue{};
+			if (this->tapeIter.peek() == '"') {
+				size_t stringLength{};
+				std::memcpy(&stringLength, this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK),
+					sizeof(uint32_t));
+				returnValue = reinterpret_cast<const char*>(
+					this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK) + sizeof(uint32_t));
+				this->tapeIter.advance();
+			}
 			return returnValue;
 		}
 
@@ -1065,6 +1072,13 @@ namespace Jsonifier {
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
+			if (this->tapeIter.peek() == '"' && (this->tapeIter.peek(1) == '{' || this->tapeIter.peek(1) == '[')) {
+				if (this->getKey() == key) {
+					return *this;
+				}
+			} else {
+				throw JsonifierException{ "Sorry, but this object's type is not Object." };
+			}
 			return *this;
 		};
 
