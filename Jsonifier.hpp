@@ -1136,7 +1136,6 @@ namespace Jsonifier {
 		inline bool findField(const char* keyToField) {
 			for (size_t x = 0; x < this->tapeIter.getStructuralCount(); ++x) {
 				if (this->tapeIter.advance() == '"') {
-					std::cout << "THE STRING: " << this->getString() << std::endl;
 					if (this->getString() == keyToField) {
 						return true;
 					}
