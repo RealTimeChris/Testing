@@ -798,27 +798,27 @@ namespace Jsonifier {
 		inline void advanceValue() {
 			switch (this->peek()) {
 				case '{': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+					std::cout << "CURRENT STRUCTURAL COUNT:(OBJECT) " << this->getStructuralCount() << std::endl;
 					this->advance(this->getStructuralCount());
 					break;
 				}
 				case '[': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+					std::cout << "CURRENT STRUCTURAL COUNT:(ARRAY)" << this->getStructuralCount() << std::endl;
 					this->advance(this->getStructuralCount());
 					break;
 				}
 				case '"': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+					std::cout << "CURRENT STRUCTURAL COUNT:(STRING) " << this->getStructuralCount() << std::endl;
 					this->advance();
 					break;
 				}
 				case 'l': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+					std::cout << "CURRENT STRUCTURAL COUNT:(LONG) " << this->getStructuralCount() << std::endl;
 					this->advance();
 					break;
 				}
 				case 'd': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+					std::cout << "CURRENT STRUCTURAL COUNT:(DOUBLE) " << this->getStructuralCount() << std::endl;
 					this->advance();
 					break;
 				}
@@ -925,7 +925,7 @@ namespace Jsonifier {
 				return ptr;
 			}
 
-			ArrayIterator& operator++() noexcept {
+			ArrayIterator& operator++() noexcept { 
 				ptr->advanceValue();
 				return *this;
 			}
