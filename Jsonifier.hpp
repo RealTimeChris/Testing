@@ -918,10 +918,12 @@ namespace Jsonifier {
 			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){};
 
 			Reference operator*() noexcept {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return *ptr;
 			}
 
 			Pointer operator->() noexcept {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return ptr;
 			}
 
@@ -963,10 +965,12 @@ namespace Jsonifier {
 			ObjectIterator(Pointer ptr) : ptr(ptr) {}
 
 			Reference operator*() const {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return *ptr;
 			}
 
 			Pointer operator->() {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return ptr;
 			}
 
