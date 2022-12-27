@@ -2267,7 +2267,7 @@ namespace Jsonifier {
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		
-		return JsonParser{ this->getTape(), this->getTapeLength(), this->getStringBuffer(), this };
+		return JsonParser{ this->getTape(), this->getTapeLength(), this->getStringBuffer(), this, JsonType::Document };
 	}
 
 };
