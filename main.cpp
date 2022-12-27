@@ -38,9 +38,11 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::JsonParser&& value) {
-		auto theObject = std::move(value["d"]);
-		auto theArray = std::move(theObject["activitiess"]);
-		//std::cout << "CURRENT SIZE: " << theArray.size() << std::endl;
+		auto document = value.getDocument();
+		//auto theArray = std::move(theObject["activitiess"]);
+		std::cout << "CURRENT SIZE: " << document.size() << std::endl;
+		auto object = document.getObject();
+		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -133,9 +135,9 @@ int32_t main() noexcept {
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 12; ++x) {
-			//serializer["d"]["TEAST"] = "TEST";
-			//serializer["d"]["TEST"] = arrayValueNew;
-			serializer["d"]["TEST_02"].emplaceBack(arrayValueNew);
+			serializer["d"]["TEAST"] = "TEST";
+			serializer["d"]["TEST"] = arrayValueNew;
+			serializer["TEST_02"].emplaceBack(arrayValueNew);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
