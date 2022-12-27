@@ -703,6 +703,7 @@ namespace Jsonifier {
 			this->initialTapePosition = other.tapePosition;
 			this->tapePosition = this->initialTapePosition;
 			this->stringBuffer = other.stringBuffer;
+			std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
 		}
 
@@ -742,7 +743,7 @@ namespace Jsonifier {
 
 		inline double parseJsonFloat() {
 			std::cout << "THE KEY: " << this->peek() << std::endl;
-			assert(this->peek() == 'l');
+			assert(this->peek() == 'd');
 			this->advance();
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
@@ -807,14 +808,17 @@ namespace Jsonifier {
 					break;
 				}
 				case '"': {
+					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
 					this->advance();
 					break;
 				}
 				case 'l': {
+					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
 					this->advance();
 					break;
 				}
 				case 'd': {
+					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
 					this->advance();
 					break;
 				}
@@ -822,6 +826,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* advance(uint32_t value = 1) noexcept {
+			std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
 			auto returnValue = this->tapePosition;
 			this->tapePosition += value;
 			return returnValue;
@@ -843,8 +848,8 @@ namespace Jsonifier {
 			assert(this->peek() == '"');
 		}
 
-		inline const uint8_t peek(size_t additionalIndex = 0) noexcept {
-			return (*(tapePosition + additionalIndex)) >> 56;
+		inline const uint8_t peek() noexcept {
+			return (*tapePosition) >> 56;
 		}
 
 		inline size_t getStructuralCount() {
@@ -855,18 +860,27 @@ namespace Jsonifier {
 			return this->stringBuffer;
 		}
 
+		inline uint8_t getRootKey() {
+			return (*initialTapePosition) >> 56;
+		}
+
 		inline size_t size() {
-			switch (this->peek()) {
+			std::cout << "CURRENT ROOT KEY: " << this->getRootKey()<< std::endl;
+			switch (this->getRootKey()) {
 				case 'r': {
+					std::cout << "ROOT SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '[': {
+					std::cout << "ARRAY SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '{': {
+					std::cout << "OBJECT SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					return (((this->getTapeRoot()[1] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
+					std::cout << "STRING SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					size_t stringLength{};
 					std::memcpy(&stringLength, this->getStringBuffer() + ((*this->getTapeRoot()) & JSON_VALUE_MASK), sizeof(uint32_t));
 					return stringLength;
@@ -900,24 +914,22 @@ namespace Jsonifier {
 			using ValueType = Array;
 			using Pointer = Array*;
 
-			ArrayIterator(Pointer ptr) : ptr(ptr) {
-				ptr->advance();
-			}
+			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){};
 
-			Reference operator*() const {
+			Reference operator*() noexcept {
 				return *ptr;
 			}
 
-			Pointer operator->() {
+			Pointer operator->() noexcept {
 				return ptr;
 			}
 
-			ArrayIterator& operator++() {
+			ArrayIterator& operator++() noexcept {
 				ptr->advanceValue();
 				return *this;
 			}
 
-			bool operator!=(const ArrayIterator& b) {
+			bool operator!=(const ArrayIterator& b) noexcept {
 				return this->ptr->getTapePosition() != this->ptr->getTapeRoot() + this->ptr->getStructuralCount();
 			};
 
@@ -926,7 +938,6 @@ namespace Jsonifier {
 		};
 
 		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			this->advance();
 		}
 
 		inline auto begin() noexcept {
@@ -947,9 +958,7 @@ namespace Jsonifier {
 			using ValueType = Object;
 			using Pointer = Object*;
 
-			ObjectIterator(Pointer ptr) : ptr(ptr) {
-				ptr->advance();
-			}
+			ObjectIterator(Pointer ptr) : ptr(ptr) {}
 
 			Reference operator*() const {
 				return *ptr;
@@ -973,6 +982,7 @@ namespace Jsonifier {
 		};
 
 		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+			this->advance();
 			this->advance();
 		};
 
@@ -1209,7 +1219,7 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = _mm256_xor_si256(*this, _mm256_set1_epi64x(-1));
+			newValues = *this ^ _mm256_set1_epi64x(-1);
 			return newValues;
 		}
 
@@ -1453,7 +1463,6 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			//this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -2299,18 +2308,18 @@ namespace Jsonifier {
 
 	Object TapeIterator::getObject(const char* keyNew) {
 		std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
-		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
+			std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 			auto key = this->peek();
 			auto ptr = this->advance();
 			if (key == '{') {
-				Array returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
+				Object returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
 				this->advance();
 				return returnValue;
 			}
 		}
 		this->rewind();
-		return Array{ TapeIterator{ std::move(*this) } };
+		return Object{ TapeIterator{ std::move(*this) } };
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
@@ -2318,7 +2327,7 @@ namespace Jsonifier {
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->peek();
-			auto ptr = this->advance();
+			auto ptr = this->getTapePosition();
 			if (key == '[') {
 				std::cout << "THE CURRENT OFFSET(ARRAY): " << this->getOffset() << std::endl;
 				Array returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };

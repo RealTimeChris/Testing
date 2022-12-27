@@ -41,15 +41,18 @@ struct TheDJson {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document.getObject("TEST_VALUE_11");
-		std::cout << "THE VALUE: " << object.getValue<int64_t>() << std::endl;
+		auto array = object.getArray();
 		//auto array = object.getArray();
+		std::cout << "CURRENT SIZE: " << array.size() << std::endl;
 		int32_t index{};
-		//for (auto& value: array) {
+		for (auto iter = array.begin(); iter != array.end();++iter) {
 			index++;
-			auto newObject = value.getObject();
-			//std::cout << "NEW SIZE: " << array.size() << std::endl;
-			//}
-		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
+			auto newObject = iter->getValue<double>();
+			std::cout << "NEW SIZE: " << array.size() << std::endl;
+			std::cout << "NEW INDEX: " << index << std::endl;
+			std::cout << "NEW VALUE: " << newObject<< std::endl;
+		}
+			
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -141,8 +144,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x <1; ++x) {
-			serializer["TEST_VALUE_11"] = double{ 4325454.00434 };
+		for (size_t x = 0; x <2; ++x) {
+			serializer["TEST_VALUE_11"].emplaceBack(double{ 4325454.00434 });
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
