@@ -760,41 +760,8 @@ namespace Jsonifier {
 
 		inline JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept;
 
-		inline bool isSingleToken() const noexcept;
-
-		inline void rewind() noexcept;
-
-		inline uint8_t*& stringBufLoc() noexcept {
-			return stringBufferLocation;
-		}
-
 		inline TapeIterator& getTapeIterator() {
 			return this->tapeIter;
-		}
-
-		inline uint64_t* position() noexcept {
-			return tapeIter.position();
-		}
-
-		inline void reenterChild(uint64_t* position, size_t child_depth) noexcept {
-			tapeIter.setPosition(position);
-			currentDepth = child_depth;
-		}
-
-		inline ErrorCode optionalError(ErrorCode _error, const char* message) noexcept {
-			return _error;
-		}
-
-		template<int N> inline bool copyToBuffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept {
-			if ((N < max_len) || (N == 0)) {
-				return false;
-			}
-			if (max_len > N - 1) {
-				max_len = N - 1;
-			}
-			std::memcpy(tmpbuf, json, max_len);
-			tmpbuf[max_len] = ' ';
-			return true;
 		}
 
 		inline uint64_t parseJsonUint() {
@@ -840,7 +807,6 @@ namespace Jsonifier {
 
 		inline JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
 			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
-			this->stringBufferLocation = stringBufferNew;
 			this->parser = parserNew;
 		};
 
@@ -997,11 +963,9 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		uint8_t* stringBufferLocation{};
 		SimdJsonValue* parser{};
 		TapeIterator tapeIter;
-		size_t currentDepth{};
-		uint64_t* root{};
+		JsonType type{};
 	};
 
 	class SimdBase256;
