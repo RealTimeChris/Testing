@@ -1591,25 +1591,12 @@ namespace Jsonifier {
 			newValue01.printBits("POST-SHIFT 01(RIGHT): ");
 			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(previousValue, 1), amount) };
 			auto newValue03 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 1), amount) };
-
+			
 			newValue02.printBits("POST-SHIFT 02(RIGHT): ");
 			newValue03.printBits("POST-SHIFT 03(RIGHT): ");
 			returnValue = newValue01 | newValue02 | newValue03;
 			returnValue.printBits("POST-SHIFT(RIGHT): ");
 			return returnValue;
-		}
-		inline SimdBase256 operator<<(size_t amount) {
-			uint64_t values[4]{};
-			values[0] = _mm256_extract_epi64(this->Value, 0);
-			values[1] = _mm256_extract_epi64(this->Value, 1);
-			values[2] = _mm256_extract_epi64(this->Value, 2);
-			values[3] = _mm256_extract_epi64(this->Value, 3);
-			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, (values[0] << (amount % 64)), 0);
-			newValues = _mm256_insert_epi64(newValues, (values[1] << (amount % 64)) | ((values[0]) >> 64 - amount % 64), 1);
-			newValues = _mm256_insert_epi64(newValues, (values[2] << (amount % 64)) | ((values[1]) >> 64 - amount % 64), 2);
-			newValues = _mm256_insert_epi64(newValues, (values[3] << (amount % 64)) | ((values[2]) >> 64 - amount % 64), 3);
-			return newValues;
 		}
 
 		inline SimdBase256 operator~() {
@@ -1823,7 +1810,7 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256 << 1);
+			this->S256 = B256.bitAndNot(B256.shl<1>(B256));
 			auto ES = E & this->S256;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
@@ -1851,15 +1838,10 @@ namespace Jsonifier {
 		inline SimdBase256 collectFinalStructurals() {
 			auto scalar = ~this->S256 | this->W256;
 			auto stringTail = this->R256 ^ this->Q256;
-			SimdBase256 nonquote_scalar = scalar.bitAndNot(this->Q256);
-			for (size_t x = 0; x < 4; ++x) {
-				int64_t prevScalarValue{ prevInScalar.getInt64(0) };
-				followsPotentialNonquoteScalar.insertInt64(follows(nonquote_scalar.getInt64(x), prevScalarValue), x);
-				prevInScalar.insertInt64(prevScalarValue, 0);
-			}
-			prevInScalar.printBits("PREV IN SCALAR: ");
-			followsPotentialNonquoteScalar.printBits("NONQUOTE SCALAR: ");
-			return this->S256 | (~S256 | this->W256).bitAndNot(followsPotentialNonquoteScalar).bitAndNot(stringTail);
+			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
+			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			this->followsPotentialNonquoteScalar.printBits("NONQUOTE SCALAR: ");
+			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(stringTail);
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {
