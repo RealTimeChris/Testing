@@ -743,8 +743,7 @@ namespace Jsonifier {
 
 		inline double parseJsonFloat() {
 			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
-			assert(this->peek(1) == 'd');
-			this->advance();
+			assert(this->peek() == 'd');
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -819,7 +818,7 @@ namespace Jsonifier {
 				}
 				case 'd': {
 					std::cout << "CURRENT STRUCTURAL COUNT:(DOUBLE) " << this->getStructuralCount() << std::endl;
-					this->advance();
+					this->advance(2);
 					break;
 				}
 			}
@@ -880,9 +879,9 @@ namespace Jsonifier {
 					return (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
-					std::cout << "STRING SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					size_t stringLength{};
 					std::memcpy(&stringLength, this->getStringBuffer() + ((*this->getTapeRoot()) & JSON_VALUE_MASK), sizeof(uint32_t));
+					std::cout << "STRING SIZE: " << stringLength << std::endl;
 					return stringLength;
 				}
 				default: {
@@ -941,6 +940,7 @@ namespace Jsonifier {
 		};
 
 		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+			this->advance();
 		}
 
 		inline auto begin() noexcept {
@@ -948,7 +948,7 @@ namespace Jsonifier {
 		}
 
 		inline auto end() noexcept {
-			return ArrayIterator{ this };
+			return ArrayIterator{ this }; 
 		}
 	};
 
@@ -988,7 +988,6 @@ namespace Jsonifier {
 		};
 
 		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			this->advance();
 			this->advance();
 		};
 
@@ -2317,7 +2316,6 @@ namespace Jsonifier {
 			auto ptr = this->advance();
 			if (key == '{') {
 				Object returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
-				this->advance();
 				return returnValue;
 			}
 		}
@@ -2330,11 +2328,10 @@ namespace Jsonifier {
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->peek();
-			auto ptr = this->getTapePosition();
+			auto ptr = this->advance();
 			if (key == '[') {
 				std::cout << "THE CURRENT OFFSET(ARRAY): " << this->getOffset() << std::endl;
 				Array returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
-				this->advance();
 				return returnValue;
 			}
 		}
