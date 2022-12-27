@@ -1274,21 +1274,21 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			this->printBits("PRE LEFT SHIFT: ");
+			//this->printBits("PRE LEFT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount) };
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 0), 64 - amount) };
 			returnValue = newValue01 | newValue02;
-			returnValue.printBits("POST LEFT SHIFT: ");
+			//returnValue.printBits("POST LEFT SHIFT: ");
 			return returnValue;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
+			//this->printBits("PRE RIGHT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 8), 64 - amount) };
-			this->printBits("PRE RIGHT SHIFT: ");
+			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
 			returnValue = newValue01 | newValue02;
-			returnValue.printBits("POST RIGHT SHIFT: ");
+			//returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
 
@@ -1517,9 +1517,11 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			SimdBase256 nonquoteScalar = (~this->S256 | this->W256).bitAndNot(this->Q256);
+			auto scalar = ~this->S256 | this->W256;
+			auto stringTail = this->R256 ^ this->Q256;
+			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
-			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(this->R256 ^ this->Q256);
+			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(stringTail);
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {
@@ -1536,7 +1538,6 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
