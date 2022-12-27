@@ -1272,11 +1272,11 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			//this->printBits("PRE LEFT SHIFT: ");
+			this->printBits("PRE LEFT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
 			auto newValue02 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount) };
 			returnValue = newValue01 | newValue02;
-			//returnValue.printBits("POST LEFT SHIFT: ");
+			returnValue.printBits("POST LEFT SHIFT: ");
 			return returnValue;
 		}
 
@@ -1284,9 +1284,9 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
 			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
-			//this->printBits("PRE RIGHT SHIFT: ");
+			this->printBits("PRE RIGHT SHIFT: ");
 			returnValue = newValue01 | newValue02;
-			//returnValue.printBits("POST RIGHT SHIFT: ");
+			returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
 
@@ -1536,6 +1536,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -2207,9 +2208,10 @@ namespace Jsonifier {
 				{
 					auto key = this->advance();
 					if (*key != '"') {
-						throw JsonifierException{ "Sorry, but you've encountered the following error: " + 
+						throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 							std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
-							", at the following index into the string: " + std::to_string(*this->nextStructural) };
+							", at the following index into the string: " + std::to_string(*this->nextStructural) +
+							", and the key was: " + std::string{ *reinterpret_cast<const char*>(this->peek() - 1) } };
 					}
 					visitor.visitKey(*this, key);
 				}

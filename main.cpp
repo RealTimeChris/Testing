@@ -139,9 +139,11 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x <20; ++x) {
+		for (size_t x = 0; x < 1; ++x) {
 			serializer["d"]["TEAST"] = "TEST";
 			serializer["d"]["TEST"] = arrayValueNew;
+			serializer["d"]["TEST"] = serializer;
+			serializer["d"]["TEST"]["TEST_92"] = serializer;
 			serializer["TEST_02"].emplaceBack(arrayValueNew);
 		}
 		
@@ -200,3 +202,4 @@ int32_t main() noexcept {
 
 	return 0;
 };
+
