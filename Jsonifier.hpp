@@ -1103,9 +1103,7 @@ namespace Jsonifier {
 
 	class SimdBase256 {
 	  public:
-		inline SimdBase256() noexcept {
-			this->Value = _mm256_set1_epi8(0x00);
-		};
+		inline SimdBase256() noexcept {};
 
 		inline explicit operator bool() {
 			for (size_t x = 0; x < 4; ++x) {
@@ -1276,7 +1274,7 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			//this->printBits("PRE LEFT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 0), 64 - amount) };
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount) };
 			returnValue = newValue01 | newValue02;
 			//returnValue.printBits("POST LEFT SHIFT: ");
 			return returnValue;
@@ -1284,9 +1282,9 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
-			//this->printBits("PRE RIGHT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
 			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
+			//this->printBits("PRE RIGHT SHIFT: ");
 			returnValue = newValue01 | newValue02;
 			//returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
