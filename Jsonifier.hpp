@@ -795,14 +795,11 @@ namespace Jsonifier {
 			}
 
 			JsonIterator& operator++() {
-				ptr->tapeIter.advance();
+				ptr->advanceValue();
 				return *this;
 			}
 
 			bool operator!=(const JsonIterator& b) {
-				std::cout << "CURRENT STRUCTURAL COUNT: " << b.ptr->getTapeIterator().getStructuralCount() << std::endl;
-				std::cout << "CURRENT STRING: " << b.ptr->getString() << std::endl;
-				std::cout << "CURRENT INDEX: " << b.ptr->getTapeIterator().getTapePosition() - b.ptr->getTapeIterator().getTape() << std::endl;
 				return b.ptr->getTapeIterator().getTapePosition() !=
 					b.ptr->getTapeIterator().getTape() + b.ptr->getTapeIterator().getStructuralCount();
 			};
@@ -827,6 +824,36 @@ namespace Jsonifier {
 
 		inline uint64_t parseJsonUint() {
 			return uint64_t{};
+		}
+
+		inline void advanceValue() {
+			switch (this->tapeIter.peek()) {
+				case '{': {
+					this->type = JsonType::Object;
+					this->tapeIter.advance();
+					break;
+				}
+				case '[': {
+					this->type = JsonType::Array;
+					this->tapeIter.advance();
+					break;
+				}
+				case '"': {
+					this->type = JsonType::String;
+					this->tapeIter.advance();
+					break;
+				}
+				case 'l': {
+					this->type = JsonType::Int64;
+					this->tapeIter.advance();
+					break;
+				}
+				case 'd': {
+					this->type = JsonType::Float;
+					this->tapeIter.advance();
+					break;
+				}
+			}
 		}
 
 		inline int64_t parseJsonInt() {
@@ -872,7 +899,7 @@ namespace Jsonifier {
 					return stringLength;
 				}
 				default: {
-					return (((this->tapeIter.getTapePosition()[1] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					1;
 				}
 			}
 		}
@@ -994,8 +1021,6 @@ namespace Jsonifier {
 		}
 
 		JsonParser getObject(const char* keyNew = nullptr) {
-			std::cout << "THE TYPE IS: " << ( int32_t )this->type << std::endl;
-			std::cout << "THE TYPE IS: " << this->tapeIter.peek() << std::endl;
 			this->tapeIter.assertAtObjectStart();
 			if (this->tapeIter.peek() == '{') {
 				this->tapeIter.advance();
@@ -1022,7 +1047,6 @@ namespace Jsonifier {
 		}
 
 		JsonParser getDocument() {
-			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 			if (this->tapeIter.peek() == 'r') {
 				this->tapeIter.advance();
 				JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
@@ -1043,8 +1067,6 @@ namespace Jsonifier {
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
-			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
-			std::cout << "THE TYPE: " << this->tapeIter.peek(1) << std::endl;
 			if (this->tapeIter.peek() == '{'){
 				this->tapeIter.advance();
 				return *this;
@@ -1405,7 +1427,6 @@ namespace Jsonifier {
 		index += stepSize;
 	}
 
-
 	class SimdStringSection {
 	  public:
 		inline SimdStringSection() noexcept = default;
@@ -1419,7 +1440,7 @@ namespace Jsonifier {
 			int cnt = static_cast<int>(__popcnt64(*theBits));
 			int64_t newValue{};
 			for (int i = 0; i < cnt; i++) {
-				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
+				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndexIntoString;
 
 				if (newValue >= stringLength) {
 					currentIndexIntoTape += cnt;
@@ -1577,8 +1598,8 @@ namespace Jsonifier {
 				return ErrorCode::Success;
 			}
 
-			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 64, 64);
-			size_t tapeCapacity = round(this->stringLengthRaw + 3, 64);
+			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
+			size_t tapeCapacity = round(this->stringLengthRaw + 3, 256);
 			this->openContainers.reset(new (std::nothrow) OpenContainer[this->maxDepth]);
 			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
 			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
