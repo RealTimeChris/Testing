@@ -1571,12 +1571,14 @@ namespace Jsonifier {
 		template<size_t amount> inline SimdBase256 shl(SimdBase256 previousValue) {
 			SimdBase256 returnValue{};
 			this->printBits("PRE-SHIFT(LEFT): ");
-			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this,  amount % 64) };
+			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
 			newValue01.printBits("POST-SHIFT 01(LEFT): ");
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(previousValue, 7), 64 - amount) };
+
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(previousValue, 7), 64 - amount) };
 			auto newValue03 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), 64 - amount) };
 			newValue02.printBits("POST-SHIFT 02(LEFT): ");
-			returnValue = (newValue01 | newValue02) | newValue03;
+			newValue03.printBits("POST-SHIFT 03(LEFT): ");
+			returnValue = newValue01 | newValue02 | newValue03;
 			returnValue.printBits("POST-SHIFT(LEFT): ");
 			return returnValue;
 		}
@@ -1585,13 +1587,14 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			this->printBits("PRE-SHIFT(RIGHT): ");
 
-			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, 64 - amount % 64) };
+			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, 64 - amount) };
 			newValue01.printBits("POST-SHIFT 01(RIGHT): ");
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(previousValue, 1), amount) };
+			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(previousValue, 1), amount) };
 			auto newValue03 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 1), amount) };
 			
 			newValue02.printBits("POST-SHIFT 02(RIGHT): ");
-			returnValue = (newValue01 | newValue02) | newValue03;
+			newValue03.printBits("POST-SHIFT 03(RIGHT): ");
+			returnValue = newValue01 | newValue02 | newValue03;
 			returnValue.printBits("POST-SHIFT(RIGHT): ");
 			return returnValue;
 		}
@@ -1796,7 +1799,7 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(structural);
 		}
 
-		inline SimdBase256 collectQuotedRange(int64_t& prevInString) {
+		inline SimdBase256 collectQuotedRange() {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
 			SimdBase256 backslashesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
@@ -1819,7 +1822,7 @@ namespace Jsonifier {
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(prevInString);
+			return this->Q256.carrylessMultiplication(this->prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1832,17 +1835,16 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(quotesReal);
 		}
 
-		inline SimdBase256 collectFinalStructurals(SimdBase256& prevScalar, SimdBase256& followsPotentialNonQuoteScalar) {
+		inline SimdBase256 collectFinalStructurals() {
 			auto scalar = ~this->S256 | this->W256;
 			auto stringTail = this->R256 ^ this->Q256;
 			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
-			followsPotentialNonQuoteScalar = follows(nonquoteScalar, prevScalar);
-			followsPotentialNonQuoteScalar.printBits("NONQUOTE SCALAR: ");
-			return this->S256 | (~S256 | this->W256).bitAndNot(followsPotentialNonQuoteScalar).bitAndNot(stringTail);
+			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			this->followsPotentialNonquoteScalar.printBits("NONQUOTE SCALAR: ");
+			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(stringTail);
 		}
 
-		void submitDataForProcessing(const uint8_t* valueNew, int64_t& prevInString, SimdBase256& prevScalar,
-			SimdBase256& followsPotentialNonQuoteScalar) {
+		void submitDataForProcessing(const uint8_t* valueNew) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);
@@ -1852,17 +1854,20 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->Q256 = this->collectQuotes();
-			this->R256 = this->collectQuotedRange(prevInString);
+			this->R256 = this->collectQuotedRange();
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
-			this->S256 = this->collectFinalStructurals(prevScalar, followsPotentialNonQuoteScalar);
+			this->S256 = this->collectFinalStructurals();
 			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
+		SimdBase256 followsPotentialNonquoteScalar{};
 		size_t currentIndexIntoString{};
 		SimdBase256 previousMatch{};
+		SimdBase256 prevInScalar{};
 		SimdBase256 values[8]{};
+		int64_t prevInString{};
 		SimdBase256 Q256{};
 		SimdBase256 W256{};
 		SimdBase256 R256{};
@@ -1944,19 +1949,16 @@ namespace Jsonifier {
 				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				this->nStructuralIndexes = 0;
 				size_t tapeCurrentIndex{ 0 };
-				SimdBase256 prevInScalar{};
-				SimdBase256 followsPotentialNonquoteScalar{};
-				int64_t prevInString{};
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
 				while (stringReader.hasFullBlock()) {
-					this->section.submitDataForProcessing(stringReader.fullBlock(), prevInString, prevInScalar, followsPotentialNonquoteScalar);
+					this->section.submitDataForProcessing(stringReader.fullBlock());
 					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 					this->nStructuralIndexes += indexCount;
 					stringReader.advance();
 				}
 				uint8_t block[256];
 				stringReader.getRemainder(block);
-				this->section.submitDataForProcessing(block, prevInString, prevInScalar, followsPotentialNonquoteScalar);
+				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
 
