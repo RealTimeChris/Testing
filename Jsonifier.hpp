@@ -647,10 +647,6 @@ namespace Jsonifier {
 
 		inline uint8_t advance() noexcept {
 			auto returnValue = (*(tapePosition++));
-			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
-				std::cout << "RETURN VALUE: " << (tapePosition[x]>>56)<< std::endl;
-			}
-			this->rewind();
 			return (returnValue >> 56);
 		}
 
@@ -1568,34 +1564,19 @@ namespace Jsonifier {
 			return _mm256_cmpeq_epi8(this->Value, _mm256_set1_epi8(other));
 		}
 
-		template<size_t amount> inline SimdBase256 shl(SimdBase256 previousValue) {
+		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			this->printBits("PRE-SHIFT(LEFT): ");
-			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
-			newValue01.printBits("POST-SHIFT 01(LEFT): ");
-
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(previousValue, 7), 64 - amount) };
-			auto newValue03 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), 64 - amount) };
-			newValue02.printBits("POST-SHIFT 02(LEFT): ");
-			newValue03.printBits("POST-SHIFT 03(LEFT): ");
-			returnValue = newValue01 | newValue02 | newValue03;
-			returnValue.printBits("POST-SHIFT(LEFT): ");
+			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this,  amount) };
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 0), 64-amount) };
+			returnValue = newValue01 | newValue02;
 			return returnValue;
 		}
 
-		template<size_t amount> inline SimdBase256 shr(SimdBase256 previousValue) {
+		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
-			this->printBits("PRE-SHIFT(RIGHT): ");
-
-			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, 64 - amount) };
-			newValue01.printBits("POST-SHIFT 01(RIGHT): ");
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(previousValue, 1), amount) };
-			auto newValue03 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 1), amount) };
-			
-			newValue02.printBits("POST-SHIFT 02(RIGHT): ");
-			newValue03.printBits("POST-SHIFT 03(RIGHT): ");
-			returnValue = newValue01 | newValue02 | newValue03;
-			returnValue.printBits("POST-SHIFT(RIGHT): ");
+			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
+			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
+			returnValue = newValue01 | newValue02;
 			return returnValue;
 		}
 
@@ -1751,18 +1732,9 @@ namespace Jsonifier {
 			return cnt;
 		}
 
-		inline uint64_t follows(const uint64_t match, int64_t& overflow) {
-			const uint64_t result = match << 1 | overflow;
-			overflow = match >> 63;
-			return result;
-		}
-
 		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			auto newMatch = match.shl<1>(this->previousMatch);
-			SimdBase256 result = newMatch | overflow;
-			overflow = newMatch.shr<63>(this->previousMatch);
-			this->previousMatch = newMatch;
-			this->previousMatch.printBits("PREVIOUS MATCH: ");
+			SimdBase256 result = match.shl<1>() | overflow;
+			overflow = match.shr<63>();
 			return result;
 		}
 
@@ -1810,7 +1782,7 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256.shl<1>(B256));
+			this->S256 = B256.bitAndNot(B256.shl<1>());
 			auto ES = E & this->S256;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
@@ -1840,7 +1812,6 @@ namespace Jsonifier {
 			auto stringTail = this->R256 ^ this->Q256;
 			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
-			this->followsPotentialNonquoteScalar.printBits("NONQUOTE SCALAR: ");
 			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(stringTail);
 		}
 
@@ -1858,7 +1829,6 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -2693,10 +2663,10 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] >> 56) << std::endl;
-			std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
-		}		
+		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			//std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] >> 56) << std::endl;
+			//std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
+		//}		
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		
@@ -3247,8 +3217,6 @@ namespace Jsonifier {
 
 	 inline ArrayIterator& ArrayIterator::operator++() noexcept {
 		ErrorCode error{};
-		// PERF NOTE this is a safety rail ... users should exit loops as soon as they receive an error, so we'll never get here.
-		// However, it does not seem to make a perf difference, so we add it out of an abundance of caution.
 		if (iter.error() != ErrorCode::Success) {
 			return *this;
 		}
@@ -3311,7 +3279,6 @@ namespace Jsonifier {
 
 	inline size_t Array::countElements() & noexcept {
 		size_t count{ 0 };
-		// Important: we do not consume any of the values.
 		for (Value v: *this) {
 			count++;
 		}
