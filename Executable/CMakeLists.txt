@@ -1,8 +1,6 @@
-﻿#file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp")
-
+﻿
 add_executable(
 	"${PROJECT_NAME}"
-	#"${SOURCES}"
 	"../main.cpp"
 	"../Jsonifier.cpp"
 	"../DataParsingFunctionc.cpp"
@@ -21,11 +19,7 @@ endif()
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	simdjson::simdjson
-	#Jsonifier::Jsonifier
 )
-
-#target_include_directories("${PROJECT_NAME}" PUBLIC "../src/generic/" "../src/" "../include/simdjson")
-
 
 target_compile_options(
 	"${PROJECT_NAME}" PUBLIC

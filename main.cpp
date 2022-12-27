@@ -40,8 +40,13 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
-		std::cout << "CURRENT SIZE: " << document.size() << std::endl;
-		auto object = document.getObject();
+		auto object = document.getArray("TEST_02");
+		int32_t index{};
+		for (auto& value : object) {
+			//index++;
+			//auto newObject = value.getObject();
+			//std::cout << "NEW SIZE: " << newObject.size() << std::endl;
+		}
 		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -157,7 +162,7 @@ int32_t main() noexcept {
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
+			//TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -176,7 +181,7 @@ int32_t main() noexcept {
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			//TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
