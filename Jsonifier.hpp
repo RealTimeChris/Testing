@@ -648,7 +648,7 @@ namespace Jsonifier {
 		inline uint8_t advance() noexcept {
 			auto returnValue = (*(tapePosition++));
 			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
-				std::cout << "RETURN VALUE: " << (tapePosition[x] >> 56) << std::endl;
+				std::cout << "RETURN VALUE: " << (tapePosition[x]>>56)<< std::endl;
 			}
 			this->rewind();
 			return (returnValue >> 56);
@@ -2676,7 +2676,7 @@ namespace Jsonifier {
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		
-		return JsonParser{ reinterpret_cast<uint64_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
+		return JsonParser{ this->getTape(), this->getTapeLength(), this->getStringBuffer(), this };
 	}
 
 	inline Document::Document(JsonParser&& _iter) noexcept : iter{ _iter } {
