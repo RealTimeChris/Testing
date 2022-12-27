@@ -153,7 +153,7 @@ namespace Jsonifier {
 		uint64_t integer{};
 	};
 
-	enum class JsonType : uint8_t { Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
+	enum class JsonType : uint8_t { Document = 0, Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
 
 	enum class JsonifierSerializeType { Etf = 0, Json = 1 };
 
@@ -758,8 +758,6 @@ namespace Jsonifier {
 
 		JsonParser() noexcept = default;
 
-		inline JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept;
-
 		inline TapeIterator& getTapeIterator() {
 			return this->tapeIter;
 		}
@@ -805,9 +803,10 @@ namespace Jsonifier {
 			}
 		}
 
-		inline JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
+		inline JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew, JsonType typeNew)
 			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
 			this->parser = parserNew;
+			this->type = typeNew;
 		};
 
 		template<typename OTy> inline OTy getValue();
@@ -915,7 +914,8 @@ namespace Jsonifier {
 			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 			if (this->tapeIter.peek() == '{') {
 				this->tapeIter.advance();
-				return { this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(), this->parser };
+				return { this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(), this->parser,
+					JsonType::Object };
 
 			} else {
 				throw JsonifierException{ "Sorry, but this object's type is not Object." };
@@ -926,7 +926,8 @@ namespace Jsonifier {
 			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 			if (this->tapeIter.peek() == 'r') {
 				this->tapeIter.advance();
-				return { this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(), this->parser };
+				return { this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(), this->parser,
+					JsonType::Document };
 
 			} else {
 				throw JsonifierException{ "Sorry, but this object's type is not Document." };
@@ -945,8 +946,7 @@ namespace Jsonifier {
 		}
 
 		inline JsonType getType() {
-			JsonType returnValue{};
-			return returnValue;
+			return this->type;
 		}
 
 		template<> inline JsonParser getValue() {
