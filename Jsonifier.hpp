@@ -510,7 +510,7 @@ namespace Jsonifier {
 			return s.str();
 		}
 
-	  private:
+	  protected:
 		std::string_view str;
 		friend std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped);
 	};
@@ -743,7 +743,7 @@ namespace Jsonifier {
 
 		inline double parseJsonFloat() {
 			std::cout << "THE KEY: " << this->peek() << std::endl;
-			assert(this->peek() == 'd');
+			assert(this->peek(1) == 'd');
 			this->advance();
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
@@ -848,8 +848,8 @@ namespace Jsonifier {
 			assert(this->peek() == '"');
 		}
 
-		inline const uint8_t peek() noexcept {
-			return (*tapePosition) >> 56;
+		inline const uint8_t peek(uint32_t index = 0) noexcept {
+			return (*(tapePosition + index)) >> 56;
 		}
 
 		inline size_t getStructuralCount() {
@@ -877,7 +877,7 @@ namespace Jsonifier {
 				}
 				case '{': {
 					std::cout << "OBJECT SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
-					return (((this->getTapeRoot()[1] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					return (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
 					std::cout << "STRING SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
@@ -907,7 +907,8 @@ namespace Jsonifier {
 
 	class Array : public TapeIterator {
 	  public:
-		struct ArrayIterator {
+		class ArrayIterator {
+		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
 			using Reference = Array &;
@@ -933,7 +934,7 @@ namespace Jsonifier {
 				return this->ptr->getTapePosition() != this->ptr->getTapeRoot() + this->ptr->getStructuralCount();
 			};
 
-		  private:
+		  protected:
 			Pointer ptr{};
 		};
 
@@ -951,7 +952,8 @@ namespace Jsonifier {
 
 	class Object : public TapeIterator {
 	  public:
-		struct ObjectIterator {
+		class ObjectIterator {
+		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
 			using Reference = Object&;
@@ -977,7 +979,7 @@ namespace Jsonifier {
 				return this->ptr->getTapePosition() != this->ptr->getTapeRoot() + this->ptr->getStructuralCount();
 			};
 
-		  private:
+		  protected:
 			Pointer ptr{};
 		};
 
@@ -1002,7 +1004,6 @@ namespace Jsonifier {
 		};
 	};
 
-	class SimdJsonValue;
 	class JsonParser : public TapeIterator {
 	  public:
 
@@ -1016,8 +1017,6 @@ namespace Jsonifier {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
 		}
 	};
-
-	class SimdBase256;
 
 	class SimdBase128 {
 	  public:
@@ -1300,7 +1299,7 @@ namespace Jsonifier {
 		inline size_t blockIndex();
 		inline void advance();
 
-	  private:
+	  protected:
 		const uint8_t* stringBuffer;
 		const size_t len;
 		const size_t lenminusstep;
@@ -1710,7 +1709,7 @@ namespace Jsonifier {
 		inline void skipDouble() noexcept;
 		inline void skip() noexcept;
 
-	  private:
+	  protected:
 		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
 	};
 
@@ -1795,7 +1794,7 @@ namespace Jsonifier {
 
 		TapeWriter tape;
 
-	  private:
+	  protected:
 		uint8_t* currentStringBufferLocation{};
 		size_t& currentTapeLength;
 
