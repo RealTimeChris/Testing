@@ -741,11 +741,12 @@ namespace Jsonifier {
 		}
 
 		inline double parseJsonFloat() {
-			assert(this->peek() == 'd');
-			double answer{};
-			auto ptr = this->getTapePosition();
-			std::memcpy(&answer, ++ptr, sizeof(answer));
-			return answer;
+			std::cout << "THE KEY: " << this->peek() << std::endl;
+			assert(this->peek() == 'l');
+			this->advance();
+			double returnValue{};
+			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
+			return returnValue;
 		}
 
 		inline std::string_view parseJsonString() {
@@ -761,14 +762,18 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t parseJsonUint() {
+			std::cout << "THE KEY: " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
+			this->advance();
 			uint64_t returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
 		}
 
 		inline int64_t parseJsonInt() {
+			std::cout << "THE KEY: " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
+			this->advance();
 			int64_t returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -863,7 +868,7 @@ namespace Jsonifier {
 				}
 				case '"': {
 					size_t stringLength{};
-					std::memcpy(&stringLength, this->getStringBuffer() + (*this->getTapeRoot() & JSON_VALUE_MASK), sizeof(uint32_t));
+					std::memcpy(&stringLength, this->getStringBuffer() + ((*this->getTapeRoot()) & JSON_VALUE_MASK), sizeof(uint32_t));
 					return stringLength;
 				}
 				default: {
@@ -920,7 +925,9 @@ namespace Jsonifier {
 			Pointer ptr{};
 		};
 
-		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {}
+		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+			this->advance();
+		}
 
 		inline auto begin() noexcept {
 			return ArrayIterator{ this };
@@ -965,7 +972,9 @@ namespace Jsonifier {
 			Pointer ptr{};
 		};
 
-		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {};
+		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+			this->advance();
+		};
 
 		inline auto begin() noexcept {
 			return ObjectIterator{ this };
@@ -978,11 +987,9 @@ namespace Jsonifier {
 
 	class Document : public TapeIterator {
 	  public:
-		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {};
-
-		inline Object getObject() {
-			return Object{ TapeIterator{ this->getStringBuffer(), this->getTapePosition() } };
-		}
+		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+			dumpRawTape(std::cout, this->getTapeRoot(), this->getStringBuffer());
+		};
 	};
 
 	class SimdJsonValue;
@@ -991,7 +998,9 @@ namespace Jsonifier {
 
 		JsonParser() noexcept = default;
 
-		inline JsonParser(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew } {};
+		inline JsonParser(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew } {
+			dumpRawTape(std::cout, this->getTapeRoot(), this->getStringBuffer());
+		};
 
 		inline JsonParser(ErrorCode error) : TapeIterator{ nullptr, nullptr } {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
@@ -2289,7 +2298,7 @@ namespace Jsonifier {
 	}
 
 	Object TapeIterator::getObject(const char* keyNew) {
-		std::cout << "THE CURRENT KEY: " << this->peek() << std::endl;
+		std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->peek();
@@ -2305,7 +2314,7 @@ namespace Jsonifier {
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
-		std::cout << "THE CURRENT KEY: " << this->peek() << std::endl;
+		std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->peek();

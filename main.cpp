@@ -40,14 +40,15 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
-		auto object = document.getObject();
-		auto array = object.getArray();
+		auto object = document.getObject("TEST_VALUE_11");
+		std::cout << "THE VALUE: " << object.getValue<int64_t>() << std::endl;
+		//auto array = object.getArray();
 		int32_t index{};
-		for (auto& value: array) {
+		//for (auto& value: array) {
 			index++;
 			auto newObject = value.getObject();
-			std::cout << "NEW SIZE: " << array.size() << std::endl;
-		}
+			//std::cout << "NEW SIZE: " << array.size() << std::endl;
+			//}
 		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -140,13 +141,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x <5; ++x) {
-			serializer["d"]["TEAST"] = "TEST";
-			serializer["d"]["TEST"] = arrayValueNew;
-			serializer["TEST_VALUE_09"] = true;
-			serializer["TEST_VALUE_10"] = "TESTING_VALUE0101";
-			serializer["TEST_VALUE_11"] = 4325454;
-			serializer["TEST_02"].emplaceBack(arrayValueNew);
+		for (size_t x = 0; x <1; ++x) {
+			serializer["TEST_VALUE_11"] = double{ 4325454.00434 };
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -161,12 +157,12 @@ int32_t main() noexcept {
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
 		
+		
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
+		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
+			auto jsonData = theParser.getJsonData(stringNew);
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -182,10 +178,11 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		Jsonifier::SimdJsonValue theParser{};
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
+			TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
