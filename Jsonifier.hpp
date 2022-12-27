@@ -638,8 +638,7 @@ namespace Jsonifier {
 	class TapeIterator {
 	  public:
 		TapeIterator() noexcept = default;
-
-		TapeIterator(uint8_t* stringBufferNew, uint32_t* tapePositionNew, size_t currentStructuralCountNew) {
+		TapeIterator(uint8_t* stringBufferNew, uint64_t* tapePositionNew, size_t currentStructuralCountNew) {
 			this->currentStructuralCount = currentStructuralCountNew;
 			this->initialTapePosition = tapePositionNew;
 			this->tapePosition = tapePositionNew;
@@ -647,59 +646,61 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t advance() noexcept {
-			return (*(this->tapePosition++));
-		}
-
-		inline void ascendTo(size_t parent_depth) noexcept {
-			this->currentDepth = parent_depth;
-		}
-
-		inline void descendTo(size_t child_depth) noexcept {
-			this->currentDepth = child_depth;
+			auto returnValue = (*(tapePosition++));
+			for (size_t x = 0; x < this->currentStructuralCount; ++x) {
+				std::cout << "RETURN VALUE: " << (tapePosition[x] >> 56) << std::endl;
+			}
+			this->rewind();
+			return (returnValue >> 56);
 		}
 
 		inline void rewind() noexcept {
-			this->tapePosition = this->initialTapePosition;
+			tapePosition = this->initialTapePosition;
 		}
 
 		inline uint32_t currentOffset() noexcept {
-			return *(this->tapePosition);
+			return *(tapePosition);
 		}
 
 		inline const uint8_t* returnCurrentAndAdvance() noexcept {
-			return &this->stringBuffer[*(this->tapePosition++)];
+			return &stringBuffer[*(tapePosition++)];
 		}
 
-		inline const uint8_t* peek(uint32_t* position) noexcept {
-			return &this->stringBuffer[*position];
+		inline const uint8_t* peek(uint64_t* position) noexcept {
+			return &stringBuffer[*position];
 		}
 
 		inline uint32_t peekIndex(uint32_t* position) noexcept {
 			return *position;
 		}
 
-		inline uint32_t peekLength(uint32_t* position) noexcept {
+		inline uint32_t peekLength(uint64_t* position) noexcept {
 			return *(position + 1) - *position;
 		}
 
+		inline const uint8_t* peek(int32_t delta) noexcept {
+			return &stringBuffer[*(tapePosition + delta)];
+		}
+
 		inline uint32_t peekIndex(int32_t delta) noexcept {
-			return *(this->tapePosition + delta);
+			return *(tapePosition + delta);
 		}
 
 		inline uint32_t peekLength(int32_t delta) noexcept {
-			return *(this->tapePosition + delta + 1) - *(this->tapePosition + delta);
+			return *(tapePosition + delta + 1) - *(tapePosition + delta);
 		}
 
-		inline uint32_t* position() noexcept {
-			return this->tapePosition;
+		inline uint64_t* position() noexcept {
+			return tapePosition;
 		}
 
-		inline void setPosition(uint32_t* target_position) noexcept {
-			this->tapePosition = target_position;
+		inline void setPosition(uint64_t* target_position) noexcept {
+			tapePosition = target_position;
 		}
+
 
 		inline bool atEof() {
-			if((this->tapePosition - this->initialTapePosition) >= this->currentStructuralCount){
+			if ((this->tapePosition - this->initialTapePosition) >= this->currentStructuralCount) {
 				return true;
 			} else {
 				return false;
@@ -711,7 +712,11 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t* peek(uint32_t position = 0) noexcept {
-			return &this->stringBuffer[position];
+			if (position) {
+				return &this->stringBuffer[position];
+			} else {
+				return this->stringBuffer;
+			}
 		}
 
 		inline uint32_t peekIndex() noexcept {
@@ -719,15 +724,14 @@ namespace Jsonifier {
 		}
 
 		inline size_t peekLengthOrSize() noexcept {
-			if ( *this->peek() == '[' || *this->peek() == '{' || *this->peek() == 'r') {
+			if (*this->peek() == '[' || *this->peek() == '{' || *this->peek() == 'r') {
 				return (((*tapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK;
-				
+
 			} else if (*this->peek() == '"') {
 				size_t stringLength{};
 				std::memcpy(&stringLength, stringBuffer + ((*tapePosition) & JSON_VALUE_MASK), sizeof(uint32_t));
 				return stringLength;
-			}
-			else {
+			} else {
 				return 1;
 			}
 		}
@@ -736,20 +740,439 @@ namespace Jsonifier {
 			return this->stringBuffer;
 		}
 
-		inline uint32_t* getTapePosition() {
+		inline char* getStringBufferAtCurrentPosition() {
+			return reinterpret_cast<char*>(&this->stringBuffer[(*this->tapePosition) & JSON_VALUE_MASK]);
+		}
+
+		inline uint64_t* getTapePosition() {
 			return this->tapePosition;
 		}
 
-		inline uint32_t* getTape() {
+		inline uint64_t* getTape() {
 			return this->initialTapePosition;
 		}
 
 	  protected:
 		size_t currentStructuralCount{};
-		uint32_t* initialTapePosition{};
-		uint32_t* tapePosition{};
+		uint64_t* initialTapePosition{};
+		uint64_t* tapePosition{};
 		uint8_t* stringBuffer{};
+	};
+
+	class SimdJsonValue;
+
+	class JsonParser {
+	  public:
+		using MapAllocatorType = std::allocator<std::pair<const std::string_view, JsonParser>>;
+		template<typename OTy> using AllocatorType = std::allocator<OTy>;
+		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
+		using ObjectType = std::map<std::string_view, JsonParser, std::less<>, MapAllocatorType>;
+		using ArrayType = std::vector<JsonParser>;
+		using StringType = std::string_view;
+		using FloatType = double;
+		using UintType = uint64_t;
+		using IntType = int64_t;
+		using BoolType = bool;
+
+		JsonParser() noexcept = default;
+
+		inline JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept;
+
+		inline bool isSingleToken() const noexcept;
+
+		inline void rewind() noexcept;
+
+		inline bool balanced() noexcept {
+			TapeIterator ti(tapeIter);
+			int32_t count{ 0 };
+			ti.setPosition(rootPosition());
+			while (ti.peek() <= peekLast()) {
+				switch (*ti.returnCurrentAndAdvance()) {
+					case '[':
+					case '{':
+						count++;
+						break;
+					case ']':
+					case '}':
+						count--;
+						break;
+					default:
+						break;
+				}
+			}
+			return count == 0;
+		}
+
+		inline ErrorCode skipChild(size_t parent_depth) noexcept {
+			if (depth() <= parent_depth) {
+				return ErrorCode::Success;
+			}
+			switch (*returnCurrentAndAdvance()) {
+				case '[':
+				case '{':
+				case ':':
+					break;
+				case ',':
+					break;
+				case ']':
+				case '}':
+					currentDepth--;
+					if (depth() <= parent_depth) {
+						return ErrorCode::Success;
+					}
+					break;
+				case '"':
+					if (*peek() == static_cast<uint8_t>(':')) {
+						returnCurrentAndAdvance();
+						break;
+					}
+					[[fallthrough]];
+				default:
+					currentDepth--;
+					if (depth() <= parent_depth) {
+						return ErrorCode::Success;
+					}
+					break;
+			}
+
+			while (position() < endPosition()) {
+				switch (*returnCurrentAndAdvance()) {
+					case '[':
+					case '{':
+						currentDepth++;
+						break;
+					case ']':
+					case '}':
+						currentDepth--;
+						if (depth() <= parent_depth) {
+							return ErrorCode::Success;
+						}
+						break;
+					default:
+						break;
+				}
+			}
+
+			return ErrorCode::TapeError;
+		}
+
+		inline bool isSingleToken() noexcept;
+
+		inline bool isAtStart() {
+			return this->tapeIter.getTapePosition() == this->tapeIter.getTape();
+		}
+
+		inline bool atRoot() noexcept;
+
+		inline uint64_t* rootPosition() noexcept;
+
+		inline void assertAtRoot() noexcept {
+			assert(tapeIter.position() == root);
+		}
+
+		inline void assertMoreTokens(uint32_t required_tokens) noexcept {
+			assert(tapeIter.position() + required_tokens - 1);
+		}
+
+		inline bool atEnd() noexcept {
+			return position() == endPosition();
+		}
+
+		inline uint64_t* endPosition() noexcept {
+			size_t n_structural_indexes{ tapeIter.getStructuralCount() };
+			return &tapeIter.getTape()[n_structural_indexes];
+		}
+
+		inline std::string toString() noexcept {
+			if (!isAlive()) {
+				return "dead JsonParser instance";
+			}
+			const char* current_structural = reinterpret_cast<const char*>(tapeIter.peek());
+			return std::string("JsonParser [ depth : ") + std::to_string(currentDepth) + std::string(", structural : '") +
+				std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(tapeIter.currentOffset()) +
+				std::string("', error : ") + std::string(" ]");
+		}
+
+		inline const char* currentLocation() noexcept {
+			if (!isAlive()) {
+				if (!atRoot()) {
+					return reinterpret_cast<const char*>(tapeIter.peek(-1));
+				} else {
+					return reinterpret_cast<const char*>(tapeIter.peek());
+				}
+			}
+			if (atEnd()) {
+				return nullptr;
+			}
+			return reinterpret_cast<const char*>(tapeIter.peek());
+		}
+
+		inline void abandon() noexcept {
+			currentDepth = 0;
+		}
+
+		inline const uint8_t* returnCurrentAndAdvance() noexcept {
+			return tapeIter.returnCurrentAndAdvance();
+		}
+
+		inline const uint8_t* unsafePointer() noexcept {
+			return tapeIter.peek(0);
+		}
+
+		inline const uint8_t* peek(int32_t delta = 0) noexcept {
+			return tapeIter.peek(delta);
+		}
+
+		inline uint32_t peekLength(int32_t delta) noexcept {
+			return tapeIter.peekLength(delta);
+		}
+
+		inline const uint8_t* peek(uint64_t* position) noexcept {
+			return tapeIter.peek(position);
+		}
+
+		inline uint32_t peekLength(uint64_t* position) noexcept {
+			return tapeIter.peekLength(position);
+		}
+
+		inline uint64_t* lastPosition() noexcept {
+			size_t n_structural_indexes{ tapeIter.getStructuralCount() };
+			assert(n_structural_indexes > 0);
+			return &tapeIter.getTape()[n_structural_indexes - 1];
+		}
+
+		inline const uint8_t* peekLast() noexcept {
+			return tapeIter.peek(lastPosition());
+		}
+
+		inline void ascendTo(size_t parent_depth) noexcept {
+			currentDepth = parent_depth;
+		}
+
+		inline void descendTo(size_t child_depth) noexcept {
+			child_depth >= 1 && child_depth < INT32_MAX;
+			//assert(currentDepth == child_depth - 1);
+			currentDepth = child_depth;
+		}
+
+		inline bool isAlive() const noexcept {
+			return parser;
+		}
+
+		inline size_t depth() const noexcept {
+			return currentDepth;
+		}
+
+		inline uint8_t*& stringBufLoc() noexcept {
+			return stringBufferLocation;
+		}
+
+		inline TapeIterator& getTapeIterator() {
+			return this->tapeIter;
+		}
+
+		inline uint64_t* position() noexcept {
+			return tapeIter.position();
+		}
+
+		inline void reenterChild(uint64_t* position, size_t child_depth) noexcept {
+			tapeIter.setPosition(position);
+			currentDepth = child_depth;
+		}
+
+		inline ErrorCode optionalError(ErrorCode _error, const char* message) noexcept {
+			return _error;
+		}
+
+		template<int N> inline bool copyToBuffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept {
+			if ((N < max_len) || (N == 0)) {
+				return false;
+			}
+			if (max_len > N - 1) {
+				max_len = N - 1;
+			}
+			std::memcpy(tmpbuf, json, max_len);
+			tmpbuf[max_len] = ' ';
+			return true;
+		}
+
+		inline uint64_t parseJsonUint() {
+			return uint64_t{};
+		}
+
+		inline int64_t parseJsonInt() {
+			int64_t returnData{};
+			return returnData;
+		}
+
+		inline std::string_view parseJsonString() {
+			std::string_view returnData{};
+			return returnData;
+		}
+
+		inline double parseJsonFloat() {
+			double returnData{};
+			return returnData;
+		}
+
+		inline bool parseJsonBool() {
+			bool returnData{};
+			return returnData;
+		}
+
+		inline nullptr_t parseJsonNull() {
+			nullptr_t returnData{};
+			return returnData;
+		}
+
+		inline size_t size() {
+			size_t returnValue{};
+			return returnValue;
+		}
+
+		inline JsonParser(uint64_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
+			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
+			this->stringBufferLocation = stringBufferNew;
+			this->parser = parserNew;
+		};
+
+		template<typename OTy> inline OTy getValue();
+
+		template<> inline double getValue() {
+			return this->parseJsonFloat();
+		}
+
+		template<> inline float getValue() {
+			return this->parseJsonFloat();
+		}
+
+		template<> inline bool getValue() {
+			return this->parseJsonBool();
+		}
+
+		template<> inline uint64_t getValue() {
+			return this->parseJsonUint();
+		}
+
+		template<> inline uint32_t getValue() {
+			return this->parseJsonUint();
+		}
+
+		template<> inline uint16_t getValue() {
+			return this->parseJsonUint();
+		}
+
+		template<> inline uint8_t getValue() {
+			return this->parseJsonUint();
+		}
+
+		template<> inline int64_t getValue() {
+			return this->parseJsonInt();
+		}
+
+		template<> inline int32_t getValue() {
+			return this->parseJsonInt();
+		}
+
+		template<> inline int16_t getValue() {
+			return this->parseJsonInt();
+		}
+
+		template<> inline int8_t getValue() {
+			return this->parseJsonInt();
+		}
+
+		template<> inline std::string getValue() {
+			return static_cast<std::string>(this->parseJsonString());
+		}
+
+		template<> inline std::string_view getValue() {
+			return this->parseJsonString();
+		}
+
+		inline bool getBool() {
+			if (*this->tapeIter.peek() == 'f') {
+				return false;
+			} else {
+				return true;
+			}
+		}
+
+		inline uint64_t getUint64() {
+			uint64_t answer{};
+			auto ptr = this->tapeIter.getTapePosition();
+			std::memcpy(&answer, ++ptr, sizeof(answer));
+			return answer;
+		}
+
+		inline int64_t getInt64() {
+			int64_t answer{};
+			auto ptr = this->tapeIter.getTapePosition();
+			std::memcpy(&answer, ++ptr, sizeof(answer));
+			return answer;
+		}
+
+		inline float getFloat() {
+			double answer{};
+			auto ptr = this->tapeIter.getTapePosition();
+			std::memcpy(&answer, ++ptr, sizeof(answer));
+			return answer;
+		}
+
+		inline std::string_view getString() {
+			std::string_view returnValue{};
+			if (*this->tapeIter.peek() == '"') {
+				size_t stringLength{};
+				std::memcpy(&stringLength, this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK),
+					sizeof(uint32_t));
+				returnValue = reinterpret_cast<const char*>(
+					this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK) + sizeof(uint32_t));
+			}
+			return returnValue;
+		}
+
+		inline std::string_view getKey() {
+			auto returnValue = this->getString();
+			this->tapeIter.advance();
+			return returnValue;
+		}
+
+		inline bool findField(const char* keyToField) {
+			for (size_t x = 0; x < this->tapeIter.getStructuralCount(); ++x) {
+				if (this->tapeIter.advance() == '"') {
+					std::cout << "THE STRING: " << this->getString() << std::endl;
+					if (this->getString() == keyToField) {
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		inline JsonType getType() {
+			JsonType returnValue{};
+			return returnValue;
+		}
+
+		template<> inline JsonParser getValue() {
+			return std::move(*this);
+		}
+
+		inline JsonParser& operator[](const std::string& key) {
+			this->findField(key.data());
+			return *this;
+		};
+
+		inline JsonParser(ErrorCode error) : tapeIter{ nullptr, nullptr, 0 } {
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
+		}
+
+	  protected:
+		uint8_t* stringBufferLocation{};
+		SimdJsonValue* parser{};
+		TapeIterator tapeIter;
 		size_t currentDepth{};
+		uint64_t* root{};
 	};
 	
 	class ArrayIterator;
@@ -787,7 +1210,7 @@ namespace Jsonifier {
 
 	class ValueIterator {
 	  protected:
-		uint32_t* rootPosition{};
+		uint64_t* rootPosition{};
 		JsonParser* jsonIter{};
 		size_t currentDepth{};
 
@@ -833,14 +1256,13 @@ namespace Jsonifier {
 		inline ErrorCode error() noexcept;
 		inline uint8_t*& stringBufLoc() noexcept;
 
-		inline ValueIterator(JsonParser* json_iter, size_t depth, uint32_t* start_position) noexcept;
+		inline ValueIterator(JsonParser* json_iter, size_t depth, uint64_t* start_position) noexcept;
 
 	  protected:
-		inline uint32_t* startPosition() noexcept;
-		inline uint32_t* position() noexcept;
-		inline uint32_t* endPosition() noexcept;
-		inline uint32_t* lastPosition() noexcept;
-		
+		inline uint64_t* startPosition() noexcept;
+		inline uint64_t* lastPosition() noexcept;
+		inline uint64_t* endPosition() noexcept;
+		inline uint64_t* position() noexcept;
 	};
 
 	class Value {
@@ -922,447 +1344,6 @@ namespace Jsonifier {
 		friend struct Value;
 		friend struct Array;
 		friend class ArrayIterator;
-	};
-
-	class JsonParser {
-	  public:
-		using MapAllocatorType = std::allocator<std::pair<const std::string_view, JsonParser>>;
-		template<typename OTy> using AllocatorType = std::allocator<OTy>;
-		template<typename OTy> using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
-		using ObjectType = std::map<std::string_view, JsonParser, std::less<>, MapAllocatorType>;
-		using ArrayType = std::vector<JsonParser>;
-		using StringType = std::string_view;
-		using FloatType = double;
-		using UintType = uint64_t;
-		using IntType = int64_t;
-		using BoolType = bool;
-
-		JsonParser() noexcept {};
-
-		inline bool atRoot() noexcept {
-			return position() == rootPosition();
-		}
-
-		inline uint32_t* rootPosition() noexcept {
-			return this->tapeIter.getTape();
-		}
-
-		inline uint32_t* startPosition() noexcept {
-			return this->startPositionVal;
-		}
-
-		inline const uint8_t* peekStart() noexcept {
-			return tapeIter.peek(startPosition());
-		}
-
-		inline void advanceNonRootScalar(const char* type) noexcept {
-			if (!isAtStart()) {
-				return;
-			}
-			tapeIter.returnCurrentAndAdvance();
-			tapeIter.ascendTo(depth() - 1);
-		}
-
-		inline const uint8_t* peekNonRootScalar(const char* type) noexcept {
-			if (!isAtStart()) {
-				return peekStart();
-			}
-			return tapeIter.peek();
-		}
-
-		inline int64_t getInt64() noexcept {
-			auto result = NumberParser::parseInteger(peekNonRootScalar("int64"));
-			advanceNonRootScalar("int64");
-			return result;
-		}
-
-		inline JsonParser(uint8_t* buf, SimdJsonValue* _parser) noexcept;
-
-		inline void rewind() noexcept;
-
-		inline bool balanced() noexcept {
-			TapeIterator ti{ this->tapeIter };
-			int32_t count{ 0 };
-			ti.setPosition(this->rootPosition());
-			while (ti.peek() <= this->peekLast()) {
-				switch (*ti.returnCurrentAndAdvance()) {
-					case '[':
-					case '{':
-						count++;
-						break;
-					case ']':
-					case '}':
-						count--;
-						break;
-					default:
-						break;
-				}
-			}
-			return count == 0;
-		}
-
-		inline ErrorCode skipChild(size_t parent_depth) noexcept {
-			if (this->depth() <= parent_depth) {
-				return ErrorCode::Success;
-			}
-			switch (*this->returnCurrentAndAdvance()) {
-				case '[':
-				case '{':
-				case ':':
-					break;
-				case ',':
-					break;
-				case ']':
-				case '}':
-					this->currentDepth--;
-					if (this->depth() <= parent_depth) {
-						return ErrorCode::Success;
-					}
-					break;
-				case '"':
-					if (*this->peek() == static_cast<uint8_t>(':')) {
-						this->returnCurrentAndAdvance();
-						break;
-					}
-					[[fallthrough]];
-				default:
-					this->currentDepth--;
-					if (this->depth() <= parent_depth) {
-						return ErrorCode::Success;
-					}
-					break;
-			}
-
-			while (this->position() < this->endPosition()) {
-				switch (*this->returnCurrentAndAdvance()) {
-					case '[':
-					case '{':
-						this->currentDepth++;
-						break;
-					case ']':
-					case '}':
-						this->currentDepth--;
-						if (this->depth() <= parent_depth) {
-							return ErrorCode::Success;
-						}
-						break;
-					default:
-						break;
-				}
-			}
-
-			return ErrorCode::TapeError;
-		}
-
-		inline bool isSingleToken() const noexcept;
-
-		inline bool isAtStart() {
-			return this->tapeIter.getTapePosition() == this->tapeIter.getTape();
-		}
-
-
-		inline void assertAtRoot() noexcept {
-			assert(this->tapeIter.position() == this->startPositionVal);
-		}
-
-		inline void assertMoreTokens(uint32_t required_tokens) noexcept {
-			assert(this->tapeIter.position() + required_tokens - 1);
-		}
-
-		inline bool atEnd() noexcept {
-			return this->position() == this->endPosition();
-		}
-
-		inline uint32_t* endPosition() noexcept {
-			size_t n_structural_indexes{ this->tapeIter.getStructuralCount() };
-			return &this->tapeIter.getTape()[n_structural_indexes];
-		}
-
-		inline std::string toString() noexcept {
-			if (!this->isAlive()) {
-				return "dead JsonParser instance";
-			}
-			const char* current_structural = reinterpret_cast<const char*>(this->tapeIter.peek());
-			return std::string("JsonParser [ depth : ") + std::to_string(this->currentDepth) + std::string(", structural : '") +
-				std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(this->tapeIter.currentOffset()) +
-				std::string("', error : ") + std::string(" ]");
-		}
-
-		inline const char* currentLocation() noexcept {
-			if (!this->isAlive()) {
-				if (!this->atRoot()) {
-					return reinterpret_cast<const char*>(this->tapeIter.peek(-1));
-				} else {
-					return reinterpret_cast<const char*>(this->tapeIter.peek());
-				}
-			}
-			if (this->atEnd()) {
-				return nullptr;
-			}
-			return reinterpret_cast<const char*>(this->tapeIter.peek());
-		}
-
-		inline void abandon() noexcept {
-			this->currentDepth = 0;
-		}
-
-		inline const uint8_t* returnCurrentAndAdvance() noexcept {
-			return this->tapeIter.returnCurrentAndAdvance();
-		}
-
-		inline const uint8_t* unsafePointer() noexcept {
-			return this->tapeIter.peek(uint32_t{ 0 });
-		}
-
-		inline const uint8_t* peek(int32_t delta = 0) noexcept {
-			return this->tapeIter.peek(delta);
-		}
-
-		inline uint32_t peekLength(int32_t delta) noexcept {
-			return this->tapeIter.peekLength(delta);
-		}
-
-		inline const uint8_t* peek(uint32_t* position) noexcept {
-			return this->tapeIter.peek(position);
-		}
-
-		inline uint32_t peekLength(uint32_t* position) noexcept {
-			return this->tapeIter.peekLength(position);
-		}
-
-		inline uint32_t* lastPosition() noexcept {
-			size_t n_structural_indexes{ this->tapeIter.getStructuralCount() };
-			assert(n_structural_indexes > 0);
-			return &this->tapeIter.getTape()[n_structural_indexes - 1];
-		}
-		inline const uint8_t* peekLast() noexcept {
-			return this->tapeIter.peek(lastPosition());
-		}
-
-		inline void ascendTo(size_t parent_depth) noexcept {
-			this->currentDepth = parent_depth;
-		}
-
-		inline void descendTo(size_t child_depth) noexcept {
-			child_depth >= 1 && child_depth < INT32_MAX;
-			assert(this->currentDepth == child_depth - 1);
-			this->currentDepth = child_depth;
-		}
-
-		inline bool isAlive() noexcept {
-			return this->parser;
-		}
-
-		inline size_t& depth() noexcept {
-			return this->currentDepth;
-		}
-
-		inline uint8_t*& stringBufLoc() noexcept {
-			return this->stringBufferLocation;
-		}
-
-		inline uint32_t* position() noexcept {
-			return this->tapeIter.position();
-		}
-
-		inline void reenterChild(uint32_t* position, size_t child_depth) noexcept {
-			this->tapeIter.setPosition(position);
-			this->currentDepth = child_depth;
-		}
-
-		inline ErrorCode optionalError(ErrorCode _error, const char* message) noexcept {
-			return _error;
-		}
-
-		template<int N> inline bool copyToBuffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept {
-			if ((N < max_len) || (N == 0)) {
-				return false;
-			}
-			if (max_len > N - 1) {
-				max_len = N - 1;
-			}
-			std::memcpy(tmpbuf, json, max_len);
-			tmpbuf[max_len] = ' ';
-			return true;
-		}
-
-		union JsonValue {
-			JsonValue() noexcept = default;
-			JsonValue& operator=(const JsonValue&) noexcept = delete;
-			JsonValue(const JsonValue&) noexcept = delete;
-			ObjectType* Object;
-			StringType* string;
-			ArrayType* Array;
-			FloatType numberDouble;
-			UintType numberUint;
-			IntType numberInt;
-			BoolType boolean;
-		};
-
-		inline uint64_t parseJsonUint() {
-			return uint64_t{};
-		}
-
-		inline int64_t parseJsonInt() {
-			int64_t returnData{};
-			return returnData;
-		}
-
-		inline std::string_view parseJsonString() {
-			std::string_view returnData{};
-			return returnData;
-		}
-
-		inline double parseJsonFloat() {
-			double returnData{};
-			return returnData;
-		}
-
-		inline bool parseJsonBool() {
-			bool returnData{};
-			return returnData;
-		}
-
-		inline nullptr_t parseJsonNull() {
-			nullptr_t returnData{};
-			return returnData;
-		}
-
-		inline size_t size() {
-			size_t returnValue{};
-			return returnValue;
-		}
-
-		inline JsonParser(uint32_t* tapePtrsNew, size_t count, uint8_t* stringBufferNew, SimdJsonValue* parserNew)
-			: tapeIter{ stringBufferNew, tapePtrsNew, count } {
-			this->stringBufferLocation = stringBufferNew;
-			this->startPositionVal = tapePtrsNew;
-			this->tapePosition = tapePtrsNew;
-			this->parser = parserNew;
-		};
-
-		template<typename OTy> inline OTy getValue();
-
-		template<> inline double getValue() {
-			return this->parseJsonFloat();
-		}
-
-		template<> inline float getValue() {
-			return this->parseJsonFloat();
-		}
-
-		template<> inline bool getValue() {
-			return this->parseJsonBool();
-		}
-
-		template<> inline uint64_t getValue() {
-			return this->parseJsonUint();
-		}
-
-		template<> inline uint32_t getValue() {
-			return this->parseJsonUint();
-		}
-
-		template<> inline uint16_t getValue() {
-			return this->parseJsonUint();
-		}
-
-		template<> inline uint8_t getValue() {
-			return this->parseJsonUint();
-		}
-
-		template<> inline int64_t getValue() {
-			return this->getInt64();
-		}
-
-		template<> inline int32_t getValue() {
-			return this->getInt64();
-		}
-
-		template<> inline int16_t getValue() {
-			return this->getInt64();
-		}
-
-		template<> inline int8_t getValue() {
-			return this->getInt64();
-		}
-
-		template<> inline std::string getValue() {
-			return static_cast<std::string>(this->parseJsonString());
-		}
-
-		template<> inline std::string_view getValue() {
-			return this->parseJsonString();
-		}
-
-		inline bool getBool() {
-			if (*this->tapeIter.peek() == 'f') {
-				return false;
-			} else {
-				return true;
-			}
-		}
-
-		inline uint64_t getUint64() {
-			uint64_t answer{};
-			auto ptr = this->tapeIter.getTapePosition();
-			std::memcpy(&answer, ++ptr, sizeof(answer));
-			return answer;
-		}
-
-		inline float getFloat() {
-			double answer{};
-			auto ptr = this->tapeIter.getTapePosition();
-			std::memcpy(&answer, ++ptr, sizeof(answer));
-			return answer;
-		}
-
-		inline const char* getString() {
-			const char* returnValue{};
-			if (*this->tapeIter.peek() == '"') {
-				size_t stringLength{};
-				std::memcpy(&stringLength, this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK),
-					sizeof(uint32_t));
-				returnValue = reinterpret_cast<const char*>(
-					this->tapeIter.getStringBuffer() + (*this->tapeIter.getTapePosition() & JSON_VALUE_MASK) + sizeof(uint32_t));
-			}
-			return returnValue;
-		}
-
-		inline std::string_view getKey() {
-			auto returnValue = this->getString();
-			this->tapeIter.advance();
-			return returnValue;
-		}
-
-		inline JsonType getType() {
-			JsonType returnValue{};
-			return returnValue;
-		}
-
-		template<> inline JsonParser getValue() {
-			return std::move(*this);
-		}
-
-		TapeIterator& getTapeIterator() {
-			return this->tapeIter;
-		}
-
-		inline JsonParser& operator[](const std::string& key) {
-			return *this;
-		};
-
-		inline JsonParser(ErrorCode error) : tapeIter{ nullptr, nullptr, 0 } {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
-		}
-
-	  protected:
-		uint8_t* stringBufferLocation{};
-		uint32_t* startPositionVal{};
-		uint32_t* tapePosition{};
-		SimdJsonValue* parser{};
-		TapeIterator tapeIter;
-		size_t currentDepth{};
 	};
 
 	class Document {
@@ -1985,7 +1966,7 @@ namespace Jsonifier {
 			return this->tape.get();
 		}
 
-		inline void getJsonData(std::string& string);
+		inline JsonParser getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2681,21 +2662,21 @@ namespace Jsonifier {
 		}
 	}
 	
-	void SimdJsonValue::getJsonData(std::string& string) {
+	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			//std::cout << "CURRENT INDEX (VALUE): " << this->stringBuffer[x] << std::endl;
-			//std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
-		//}		
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] >> 56) << std::endl;
+			std::cout << "CURRENT INDEX (COUNT): " << (this->getTape()[x] & JSON_COUNT_MASK) << std::endl;
+		}		
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		this->document =
-			JsonParser{ reinterpret_cast<uint32_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
+		
+		return JsonParser{ reinterpret_cast<uint64_t*>(this->getStructuralIndexes()), this->getTapeLength(), this->getStringBuffer(), this };
 	}
 
 	inline Document::Document(JsonParser&& _iter) noexcept : iter{ _iter } {
@@ -2723,7 +2704,7 @@ namespace Jsonifier {
 		return resumeValueIterator();
 	}
 
-	inline ValueIterator::ValueIterator(JsonParser* json_iter, size_t depth, uint32_t* start_position) noexcept {
+	inline ValueIterator::ValueIterator(JsonParser* json_iter, size_t depth, uint64_t* start_position) noexcept {
 		this->rootPosition = start_position;
 		this->currentDepth = depth;
 		this->jsonIter = json_iter;
@@ -2803,19 +2784,19 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline uint32_t* ValueIterator::startPosition() noexcept {
+	inline uint64_t* ValueIterator::startPosition() noexcept {
 		return rootPosition;
 	}
 
-	inline uint32_t* ValueIterator::position() noexcept {
+	inline uint64_t* ValueIterator::position() noexcept {
 		return this->rootPosition;
 	}
 
-	inline uint32_t* ValueIterator::endPosition() noexcept {
+	inline uint64_t* ValueIterator::endPosition() noexcept {
 		return jsonIter->endPosition();
 	}
 
-	inline uint32_t* ValueIterator::lastPosition() noexcept {
+	inline uint64_t* ValueIterator::lastPosition() noexcept {
 		return jsonIter->lastPosition();
 	}
 
@@ -3291,6 +3272,10 @@ namespace Jsonifier {
 			default:
 				return false;
 		}
+	}
+
+	 inline uint64_t* JsonParser::rootPosition() noexcept {
+		return this->tapeIter.getTape();
 	}
 
 	 inline ArrayIterator Value::begin() & noexcept {
