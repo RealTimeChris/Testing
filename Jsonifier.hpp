@@ -1274,17 +1274,21 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this,  amount) };
+			//this->printBits("PRE LEFT SHIFT: ");
+			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
 			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, 0), 64 - amount) };
 			returnValue = newValue01 | newValue02;
+			//returnValue.printBits("POST LEFT SHIFT: ");
 			return returnValue;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
+			//this->printBits("PRE RIGHT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
 			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
 			returnValue = newValue01 | newValue02;
+			//returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
 
