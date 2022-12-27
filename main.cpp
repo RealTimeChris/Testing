@@ -42,12 +42,12 @@ struct TheDJson {
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document["TEST_02"];
 		int32_t index{};
-		//for (auto& value : object) {
+		for (auto& value: object) {
 			index++;
-			//auto newObject = value.getObject();
-			//std::cout << "NEW SIZE: " << value.size() << std::endl;
-			//}
-			//std::cout << "CURRENT SIZE: " << object.size() << std::endl;
+			auto newObject = value.getObject();
+			std::cout << "NEW SIZE: " << value.size() << std::endl;
+		}
+		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
