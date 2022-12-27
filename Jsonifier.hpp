@@ -1135,11 +1135,11 @@ namespace Jsonifier {
 
 		inline bool findField(const char* keyToField) {
 			for (size_t x = 0; x < this->tapeIter.getStructuralCount(); ++x) {
-				if (this->tapeIter.advance() == '"') {
-					if (this->getString() == keyToField) {
-						return true;
-					}
-				}
+				//if (this->tapeIter.advance() == '"') {
+				//if (this->getString() == keyToField) {
+				//return true;
+				//					}
+				//}
 			}
 			return false;
 		}
@@ -1914,11 +1914,11 @@ namespace Jsonifier {
 					}
 				}
 
-				iterationCount++;
-				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				//iterationCount++;
+				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
+				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				this->nStructuralIndexes = 0;
 				size_t tapeCurrentIndex{ 0 };
-				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
 					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
@@ -1931,8 +1931,8 @@ namespace Jsonifier {
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
 
-				totalTimePassed += stopWatch.totalTimePassed().count();
-				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				//totalTimePassed += stopWatch.totalTimePassed().count();
+				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 			--this->nStructuralIndexes;
 		}
@@ -2657,10 +2657,10 @@ namespace Jsonifier {
 	
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
-		}
+		//if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
+		//throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+		//std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		//}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
 		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
 			//std::cout << "CURRENT INDEX (VALUE): " << (this->getTape()[x] >> 56) << std::endl;

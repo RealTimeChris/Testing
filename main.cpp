@@ -90,7 +90,7 @@ struct TheD {
 	TheD(simdjson::ondemand::value value) {
 		simdjson::ondemand::value valueNew{};
 		value["d"].get(valueNew);
-		auto theArray = DiscordCoreAPI::getArray(valueNew, "activitiess");
+		auto theArray = DiscordCoreAPI::getArray(valueNew, "TEST_02");
 		if (theArray.didItSucceed) {
 			iterationCount = 0;
 			totalTime = 0;
@@ -133,9 +133,9 @@ int32_t main() noexcept {
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 12; ++x) {
-			serializer["d"]["TEAST"] = "TEST";
-			serializer["d"]["TEST"] = false;
-			serializer["TEST_02"].emplaceBack(arrayValueNew);
+			//serializer["d"]["TEAST"] = "TEST";
+			//serializer["d"]["TEST"] = arrayValueNew;
+			serializer["d"]["TEST_02"].emplaceBack(arrayValueNew);
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -146,18 +146,16 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		size_t oldSize = stringNew.size();
 
-
 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
 		
 		stopWatch.resetTimer();
-
-		
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			Jsonifier::SimdJsonValue theParser{};	
-			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
+			TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -170,16 +168,20 @@ int32_t main() noexcept {
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 
-
 		totalSize = 0;
 		totalTime = 0;
-
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
+		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
+			auto jsonData = theParser.getJsonData(stringNew);
+			TheValueJson value{ std::move(jsonData) };
+			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
+			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
+			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
+			//std::cout << "VALUE03: " << value.theD.activities.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE04: " << value.theD.activities.begin().operator*().TEST_VALUE_04 << std::endl;
+			//std::cout << "VALUE06: " << value.theD.activities.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE07: " << value.theD.activities.begin().operator*().TEST_VALUE_07 << std::endl;
 			totalSize += oldSize;
 		}
 		totalTime += stopWatch.totalTimePassed().count();
