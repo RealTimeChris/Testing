@@ -1582,17 +1582,16 @@ namespace Jsonifier {
 				return ErrorCode::Success;
 			}
 
-			size_t tapeCapacity = round(this->stringLengthRaw + 3, 64);
 			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 64, 64);
-			this->stringView = stringViewNew;
-			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
-			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
+			size_t tapeCapacity = round(this->stringLengthRaw + 3, 64);
 			this->openContainers.reset(new (std::nothrow) OpenContainer[this->maxDepth]);
-			this->nStructuralIndexes = 0;
-			this->allocatedCapacity = stringCapacity;
+			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
+			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
 			this->tape.reset(new (std::nothrow) uint64_t[tapeCapacity]);
 			this->isArray.reset(new (std::nothrow) bool[tapeCapacity]);
-
+			this->allocatedCapacity = stringCapacity;
+			this->stringView = stringViewNew;
+			this->nStructuralIndexes = 0;
 			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
 					this->openContainers.get())) {
 				this->structuralIndexes.reset(nullptr);
@@ -1619,9 +1618,9 @@ namespace Jsonifier {
 					}
 				}
 
-				iterationCount++;
+				//iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				this->nStructuralIndexes = 0;
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
@@ -1639,8 +1638,8 @@ namespace Jsonifier {
 				//std::cout << "CURRENT INDEX (VALUE): " << (this->structuralIndexes.get()[x] >> 56) << std::endl;
 				//					std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes.get()[x] & JSON_COUNT_MASK) << std::endl;
 				//}
-				totalTimePassed += stopWatch.totalTimePassed().count();
-				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				//totalTimePassed += stopWatch.totalTimePassed().count();
+				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 			--this->nStructuralIndexes;
 		}
@@ -1691,13 +1690,13 @@ namespace Jsonifier {
 		std::unique_ptr<uint8_t[]> stringBuffer{};
 		std::unique_ptr<uint64_t[]> tape{};
 		std::unique_ptr<bool[]> isArray{};
-		size_t nStructuralIndexes{ 0 };
+		size_t nStructuralIndexes{};
 		SimdStringSection section{};
 		size_t allocatedCapacity{};
 		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
-		size_t tapeLength{ 0 };
 		uint8_t* stringView{};
+		size_t tapeLength{};
 	};
 
 	enum class TapeType : uint8_t {
@@ -2370,10 +2369,10 @@ namespace Jsonifier {
 	
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
-		}
+		//if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
+		//throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+		//			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		//}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
