@@ -1272,21 +1272,21 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			this->printBits("PRE LEFT SHIFT: ");
+			//this->printBits("PRE LEFT SHIFT: ");
 			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
 			auto newValue02 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount) };
 			returnValue = newValue01 | newValue02;
-			returnValue.printBits("POST LEFT SHIFT: ");
+			//returnValue.printBits("POST LEFT SHIFT: ");
 			return returnValue;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
 			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, 7), amount) };
-			this->printBits("PRE RIGHT SHIFT: ");
+			auto newValue02 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
+			//this->printBits("PRE RIGHT SHIFT: ");
 			returnValue = newValue01 | newValue02;
-			returnValue.printBits("POST RIGHT SHIFT: ");
+			//returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
 
@@ -1484,17 +1484,17 @@ namespace Jsonifier {
 			for (size_t x = 0; x < 8; ++x) {
 				backslashesReal[x] = this->values[x] == backslashes;
 			}
-
 			auto B256 = convertSimdBytesToBits(backslashesReal);
-
+			B256 &= ~this->prevEscaped;
+			SimdBase256 followsEscape = B256.shl<1>() | this->prevEscaped;
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
+			SimdBase256 oddSequenceStarts = B256.bitAndNot(E).bitAndNot(followsEscape);
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 			this->S256 = B256.bitAndNot(B256.shl<1>());
-			auto ES = E & this->S256;
 			SimdBase256 EC{};
-			B256.collectCarries(ES, &EC);
+			this->prevEscaped = B256.collectCarries(oddSequenceStarts, &EC);
 			auto ECE = EC.bitAndNot(B256);
-			auto OD1 = ECE.bitAndNot(E);
+			auto OD1 = ECE.bitAndNot(E).bitAndNot(followsEscape);
 			auto OS = this->S256 & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
@@ -1536,14 +1536,14 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
+			//this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
 		SimdBase256 followsPotentialNonquoteScalar{};
 		size_t currentIndexIntoString{};
-		SimdBase256 previousMatch{};
 		SimdBase256 prevInScalar{};
+		SimdBase256 prevEscaped{};
 		SimdBase256 values[8]{};
 		int64_t prevInString{};
 		SimdBase256 Q256{};
