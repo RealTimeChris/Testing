@@ -51,13 +51,13 @@ struct TheDJson {
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		for (size_t x = 0; x < 12; ++x) {
-			iterationCount++;
+		//for (size_t x = 0; x < 12; ++x) {
+			//iterationCount++;
 
-			activities.emplace_back(std::move(value));
-			totalTime += stopWatch.totalTimePassed().count();
-			activities.emplace_back(ActivitiesJson{});
-		}
+			//activities.emplace_back(std::move(value));
+			//totalTime += stopWatch.totalTimePassed().count();
+			//activities.emplace_back(ActivitiesJson{});
+			//}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<ActivitiesJson> activities{};
@@ -139,7 +139,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x <50; ++x) {
+		for (size_t x = 0; x <5; ++x) {
 			serializer["d"]["TEAST"] = "TEST";
 			serializer["d"]["TEST"] = arrayValueNew;
 			serializer["TEST_VALUE_09"] = true;

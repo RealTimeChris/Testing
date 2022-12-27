@@ -676,7 +676,7 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t peek(size_t additionalIndex = 0) noexcept {
-			return (*tapePosition + additionalIndex) >> 56;
+			return (*(tapePosition + additionalIndex)) >> 56;
 		}
 
 		inline uint32_t peekIndex(int32_t delta) noexcept {
@@ -998,7 +998,7 @@ namespace Jsonifier {
 					return returnValue;
 
 				} else {
-					throw JsonifierException{ "Sorry, but this object's type is not Object." };
+					throw JsonifierException{ "Sorry, but this item's type is not Object." };
 				}
 			}
 			if (this->tapeIter.peek() == '"') {
@@ -1012,12 +1012,12 @@ namespace Jsonifier {
 						return returnValue;
 
 					} else {
-						throw JsonifierException{ "Sorry, but this object's type is not Object." };
+						throw JsonifierException{ "Sorry, but this item's type is not Object." };
 					}
 				}
 
 			} else {
-				throw JsonifierException{ "Sorry, but this object's type is not Object." };
+				throw JsonifierException{ "Sorry, but this item's type is not Object." };
 			}
 		}
 
@@ -1034,20 +1034,22 @@ namespace Jsonifier {
 						return returnValue;
 
 					} else {
-						throw JsonifierException{ "Sorry, but this object's type is not Array." };
+						throw JsonifierException{ "Sorry, but this item's type is not Array." };
 					}
 				} else {
-					throw JsonifierException{ "Sorry, but this object's type is not Array." };
+					throw JsonifierException{ "Sorry, but this item's type is not Array." };
 				}
 
 			} else {
-				throw JsonifierException{ "Sorry, but this object's type is not Array." };
+				throw JsonifierException{ "Sorry, but this item's type is not Array." };
 			}
 		}
 
 		JsonParser getDocument() {
+			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 			if (this->tapeIter.peek() == 'r') {
 				this->tapeIter.advance();
+				std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
 				if (this->tapeIter.peek() == '{') {
 					this->tapeIter.advance();
 					JsonParser returnValue{ this->tapeIter.getTapePosition(), this->tapeIter.getStructuralCount(), this->tapeIter.getStringBuffer(),
@@ -1055,11 +1057,11 @@ namespace Jsonifier {
 					this->tapeIter.advance(uint32_t((*this->tapeIter.getTapePosition()) & JSON_VALUE_MASK));
 					return returnValue;
 				} else {
-					throw JsonifierException{ "Sorry, but this object's type is not Document." };
+					throw JsonifierException{ "Sorry, but this item's type is not Document." };
 				}
 
 			} else {
-				throw JsonifierException{ "Sorry, but this object's type is not Document." };
+				throw JsonifierException{ "Sorry, but this item's type is not Document." };
 			}
 		}
 
@@ -1072,12 +1074,17 @@ namespace Jsonifier {
 		}
 
 		inline JsonParser& operator[](const std::string& key) {
+			std::cout << "THE TYPE: " << this->tapeIter.peek() << std::endl;
+			std::cout << "THE TYPE: " << this->tapeIter.peek(1) << std::endl;
 			if (this->tapeIter.peek() == '"' && (this->tapeIter.peek(1) == '{' || this->tapeIter.peek(1) == '[')) {
 				if (this->getKey() == key) {
+					this->tapeIter.advance();
 					return *this;
+				} else {
+					throw JsonifierException{ "Sorry, but that key is incorrect." };
 				}
 			} else {
-				throw JsonifierException{ "Sorry, but this object's type is not Object." };
+				throw JsonifierException{ "Sorry, but this item's type is not Object." };
 			}
 			return *this;
 		};
@@ -2383,10 +2390,10 @@ namespace Jsonifier {
 	
 	JsonParser SimdJsonValue::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		//if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
-		//throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-		//			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
-		//}
+		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
+		}
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
