@@ -744,6 +744,7 @@ namespace Jsonifier {
 		inline double parseJsonFloat() {
 			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek() == 'd');
+			this->advance();
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -802,7 +803,7 @@ namespace Jsonifier {
 					break;
 				}
 				case '[': {
-					std::cout << "CURRENT STRUCTURAL COUNT:(ARRAY)" << this->getStructuralCount() << std::endl;
+					std::cout << "CURRENT SIZE:(ARRAY)" << this->size() << std::endl;
 					this->advance(this->getStructuralCount());
 					break;
 				}
@@ -852,7 +853,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return uint32_t((this->getTapeRoot()[0] & JSON_VALUE_MASK));
+			return size_t((this->getTapeRoot()[0] & JSON_VALUE_MASK));
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -914,7 +915,9 @@ namespace Jsonifier {
 			using ValueType = Array;
 			using Pointer = Array*;
 
-			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){};
+			ArrayIterator(Pointer ptr) noexcept : ptr(ptr) {
+				this->ptr->advance();
+			};
 
 			Reference operator*() noexcept {
 				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
@@ -932,7 +935,9 @@ namespace Jsonifier {
 			}
 
 			bool operator!=(const ArrayIterator& b) noexcept {
-				return this->ptr->getTapePosition() != this->ptr->getTapeRoot() + this->ptr->getStructuralCount();
+				std::cout << "STRUCTURAL COUNT (ARRAY): " << this->ptr->size() << std::endl;
+				std::cout << "CURRENT INDEX (ARRAY): " << this->ptr->getTapePosition() - this->ptr->getTapeRoot() << std::endl;
+				return this->ptr->getTapePosition() - this->ptr->getTapeRoot() <= this->ptr->getStructuralCount();
 			};
 
 		  protected:
@@ -980,7 +985,7 @@ namespace Jsonifier {
 			}
 
 			bool operator!=(const ObjectIterator& b) {
-				return this->ptr->getTapePosition() != this->ptr->getTapeRoot() + this->ptr->getStructuralCount();
+				return this->ptr->getTapePosition() - this->ptr->getTapeRoot() <= this->ptr->getStructuralCount();
 			};
 
 		  protected:
