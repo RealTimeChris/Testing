@@ -1381,7 +1381,7 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	template<size_t stepSize> struct StringBlockReader {
+	template<size_t StepSize> struct StringBlockReader {
 	  public:
 		inline StringBlockReader(const uint8_t* _buf, size_t _len);
 		inline size_t getRemainder(uint8_t* dst) const;
@@ -1391,41 +1391,42 @@ namespace Jsonifier {
 		inline void advance();
 
 	  private:
-		const uint8_t* stringBuffer{};
-		const size_t lenminusstep{};
-		const size_t length{};
-		size_t index{};
+		const uint8_t* stringBuffer;
+		const size_t len;
+		const size_t lenminusstep;
+		size_t idx;
 	};
 
-	template<size_t stepSize>
-	inline StringBlockReader<stepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: stringBuffer{ _buf }, length{ _len }, lenminusstep{ length < stepSize ? 0 : length - stepSize }, index{ 0 } {
+	template<size_t StepSize>
+	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
+		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
 	}
 
-	template<size_t stepSize> inline size_t StringBlockReader<stepSize>::blockIndex() {
-		return index;
+	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
+		return idx;
 	}
 
-	template<size_t stepSize> inline bool StringBlockReader<stepSize>::hasFullBlock() const {
-		return index < lenminusstep;
+	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
+		return idx < lenminusstep;
 	}
 
-	template<size_t stepSize> inline const uint8_t* StringBlockReader<stepSize>::fullBlock() const {
-		return &stringBuffer[index];
+	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
+		return &stringBuffer[idx];
 	}
 
-	template<size_t stepSize> inline size_t StringBlockReader<stepSize>::getRemainder(uint8_t* dst) const {
-		if (length == index) {
+	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
+		if (len == idx) {
 			return 0;
 		}
-		std::memset(dst, 0x20, stepSize);
-		std::memcpy(dst, stringBuffer + index, length - index);
-		return length - index;
+		std::memset(dst, 0x20, StepSize);
+		std::memcpy(dst, stringBuffer + idx, len - idx);
+		return len - idx;
 	}
 
-	template<size_t stepSize> inline void StringBlockReader<stepSize>::advance() {
-		index += stepSize;
+	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
+		idx += StepSize;
 	}
+
 
 	class SimdStringSection {
 	  public:
