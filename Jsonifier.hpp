@@ -742,7 +742,7 @@ namespace Jsonifier {
 		}
 
 		inline double parseJsonFloat() {
-			std::cout << "THE KEY: " << this->peek() << std::endl;
+			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek(1) == 'd');
 			this->advance();
 			double returnValue{};
@@ -763,7 +763,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t parseJsonUint() {
-			std::cout << "THE KEY: " << this->peek() << std::endl;
+			std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
 			this->advance();
 			uint64_t returnValue{};
@@ -772,7 +772,7 @@ namespace Jsonifier {
 		}
 
 		inline int64_t parseJsonInt() {
-			std::cout << "THE KEY: " << this->peek() << std::endl;
+			std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
 			this->advance();
 			int64_t returnValue{};
