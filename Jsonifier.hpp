@@ -816,8 +816,8 @@ namespace Jsonifier {
 			}
 		}
 
-		inline uint8_t advance(uint32_t value = 1) noexcept {
-			auto returnValue = (*(this->tapePosition) >> 56);
+		inline uint64_t* advance(uint32_t value = 1) noexcept {
+			auto returnValue = this->tapePosition;
 			this->tapePosition += value;
 			return returnValue;
 		}
@@ -920,9 +920,7 @@ namespace Jsonifier {
 			Pointer ptr{};
 		};
 
-		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			this->advance();
-		}
+		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {}
 
 		inline auto begin() noexcept {
 			return ArrayIterator{ this };
@@ -967,9 +965,7 @@ namespace Jsonifier {
 			Pointer ptr{};
 		};
 
-		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			this->advance();
-		};
+		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {};
 
 		inline auto begin() noexcept {
 			return ObjectIterator{ this };
@@ -994,39 +990,6 @@ namespace Jsonifier {
 	  public:
 
 		JsonParser() noexcept = default;
-
-		inline uint64_t parseJsonUint() {
-			return uint64_t{};
-		}
-
-		inline void advanceValue() {
-			switch (this->peek()) {
-				case '{': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
-					this->advance(this->getStructuralCount());
-					std::cout << "CURRENT KEY: " << this->findField().size() << std::endl;
-					break;
-				}
-				case '[': {
-					std::cout << "CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
-					this->advance(this->getStructuralCount());
-					std::cout << "CURRENT KEY: " << this->findField().size() << std::endl;
-					break;
-				}
-				case '"': {
-					this->advance();
-					break;
-				}
-				case 'l': {
-					this->advance();
-					break;
-				}
-				case 'd': {
-					this->advance();
-					break;
-				}
-			}
-		}
 
 		inline JsonParser(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew } {};
 
@@ -2326,34 +2289,42 @@ namespace Jsonifier {
 	}
 
 	Object TapeIterator::getObject(const char* keyNew) {
-		this->assertAtObjectStart();
-		if (this->peek() == '{') {
-			Object returnValue{ TapeIterator{ this->getStringBuffer(), this->getTapePosition() } };
-			this->advance();
-			return returnValue;
-
-		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Object." };
+		std::cout << "THE CURRENT KEY: " << this->peek() << std::endl;
+		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		while (this->getOffset() <= this->getStructuralCount()) {
+			auto key = this->peek();
+			auto ptr = this->advance();
+			if (key == '{') {
+				Array returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
+				this->advance();
+				return returnValue;
+			}
 		}
+		this->rewind();
+		return Array{ TapeIterator{ std::move(*this) } };
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
 		std::cout << "THE CURRENT KEY: " << this->peek() << std::endl;
-		this->assertAtArrayStart();
-		if (this->peek() == '[') {
-			Array returnValue{ TapeIterator{ this->getStringBuffer(), this->getTapePosition() } };
-			this->advance();
-			return returnValue;
-
-		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Array." };
+		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		while (this->getOffset() <= this->getStructuralCount()) {
+			auto key = this->peek();
+			auto ptr = this->advance();
+			if (key == '[') {
+				std::cout << "THE CURRENT OFFSET(ARRAY): " << this->getOffset() << std::endl;
+				Array returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
+				this->advance();
+				return returnValue;
+			}
 		}
+		this->rewind();
+		return Array{ TapeIterator{ std::move(*this) } };
 	}
 
 	Document TapeIterator::getDocument() {
 		if (this->peek() == 'r') {
-			Document returnValue{ TapeIterator{ this->getStringBuffer(), this->getTapePosition() } };
 			this->advance();
+			Document returnValue{ TapeIterator{ this->getStringBuffer(), this->getTapePosition() } };
 			return returnValue;
 
 		} else {
