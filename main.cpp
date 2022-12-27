@@ -40,7 +40,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::JsonParser&& value) {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
-		auto object = document["TEST_02"];
+		auto object = document.getObject();
 		int32_t index{};
 		for (auto& value: object) {
 			index++;
