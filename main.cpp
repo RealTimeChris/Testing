@@ -13,7 +13,7 @@ int64_t totalTime{};
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
-	ActivitiesJson(Jsonifier::JsonParser&& value) {
+	ActivitiesJson(Jsonifier::Array&& value) {
 		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
 		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
@@ -41,11 +41,12 @@ struct TheDJson {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document.getObject();
+		auto array = object.getArray();
 		int32_t index{};
-		for (auto& value: object) {
+		for (auto& value: array) {
 			index++;
 			auto newObject = value.getObject();
-			std::cout << "NEW SIZE: " << value.size() << std::endl;
+			std::cout << "NEW SIZE: " << array.size() << std::endl;
 		}
 		std::cout << "CURRENT SIZE: " << object.size() << std::endl;
 		iterationCount = 0;
