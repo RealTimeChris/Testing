@@ -1199,14 +1199,6 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		inline SimdBase256 operator-(int32_t other) {
-			auto currentValue = *this;
-			if (other == 1) {
-				currentValue = ~currentValue & 1;
-			}
-			return currentValue;
-		}
-
 		inline SimdBase256 operator==(SimdBase256 other) {
 			return _mm256_cmpeq_epi8(this->Value, other);
 		}
