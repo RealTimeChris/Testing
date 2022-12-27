@@ -690,7 +690,7 @@ namespace Jsonifier {
 					return stringLength;
 				}
 				default: {
-					1;
+					return 1;
 				}
 			}
 		}
