@@ -2372,7 +2372,7 @@ namespace Jsonifier {
 		if (this->peek() == '{') {
 			return Object{ this->collectNextIterator() };
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Object." };
+			throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually of type: " + this->peek() };
 		}
 	}
 
@@ -2382,7 +2382,7 @@ namespace Jsonifier {
 			
 			return Object{ this->collectNextIterator() };
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Array." };
+			throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually of type: " + this->peek() };
 		}
 	}
 
@@ -2392,7 +2392,7 @@ namespace Jsonifier {
 			return returnValue;
 
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Document." };
+			throw JsonifierException{ "Sorry, but this item's type is not Document, it is actually of type: " + this->peek() };
 		}
 	}
 
