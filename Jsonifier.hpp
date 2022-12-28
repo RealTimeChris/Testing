@@ -739,19 +739,19 @@ namespace Jsonifier {
 				}
 				case '{': {
 					auto startPtr = this->getTapePosition();
-					auto key = this->peek();
-					if (key == '}') {
-						key = ((*this->advance()) >> 56);
-						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
+					if (this->peek() == '}') {
+						return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 					}
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+					throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually of type: " +
+						std::string{ static_cast<char>(this->peek()) } }; 
 				}
 				case '[': {
 					auto startPtr = this->getTapePosition();
-					auto key = this->peek();
-					if (key == ']') {
+					if (this->peek() == ']') {
 						return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 					}
+					throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually of type: " +
+						std::string{ static_cast<char>(this->peek()) } }; 
 				}
 				case 'l' : {
 					[[fallthrough]];
