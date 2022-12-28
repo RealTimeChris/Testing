@@ -45,13 +45,13 @@ struct TheDJson {
 		auto sizeNew = array.size();
 		std::cout << "CURRENT SIZE: " << sizeNew << std::endl;
 		int32_t index{};
-		//for (auto iter = array.begin(); iter != array.end();++iter) {
-		//index++;
-		//			auto newObject = iter->getValue<double>();
-		//std::cout << "NEW SIZE: " << array.size() << std::endl;
-		//			std::cout << "NEW INDEX: " << index << std::endl;
-		//			std::cout << "NEW VALUE: " << newObject<< std::endl;
-		//}
+		for (auto iter = array.begin(); iter != array.end();++iter) {
+			index++;
+			auto newObject = iter->getValue<double>();
+			std::cout << "NEW SIZE: " << array.size() << std::endl;
+			std::cout << "NEW INDEX: " << index << std::endl;
+			std::cout << "NEW VALUE: " << newObject<< std::endl;
+		}
 			
 		iterationCount = 0;
 		totalTime = 0;

@@ -710,10 +710,9 @@ namespace Jsonifier {
 			switch (this->peek()) {
 				case 'r': {
 					this->advance();
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, &this->currentTapePosition[this->currentIndex] };
 				}
 				case '{': {
-					this->advance();
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != '}') {
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
@@ -721,7 +720,6 @@ namespace Jsonifier {
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 				}
 				case '[': {
-					this->advance();
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != ']') {
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
@@ -737,7 +735,7 @@ namespace Jsonifier {
 				case 'd': {
 					this->advance();
 					this->advance();
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, &this->currentTapePosition[this->currentIndex] };
 				}
 				case '"': {
 					[[fallthrough]];
@@ -750,10 +748,10 @@ namespace Jsonifier {
 				}
 				case 'n': {
 					this->advance();
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, &this->currentTapePosition[this->currentIndex] };
 				}
 				default: {
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, &this->currentTapePosition[this->currentIndex] };
 				}
 			}
 		}
@@ -768,6 +766,7 @@ namespace Jsonifier {
 			this->currentTapePosition = currentTapePositionNew;
 			this->rootTapePosition = rootTapePositionNew;
 			this->stringBuffer = stringBufferNew;
+			dumpRawTape(std::cout, rootTapePosition, stringBuffer);
 		}
 
 		inline Object getObject(const char* keyNew = nullptr);
@@ -860,7 +859,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getOffset() {
-			return this->currentTapePosition - this->rootTapePosition - this->currentIndex;
+			return this->currentTapePosition - this->rootTapePosition + this->currentIndex;
 		}
 
 		inline void assertAtObjectStart() {
@@ -880,7 +879,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return uint32_t((this->getTapeRoot()[0] & JSON_VALUE_MASK));
+			return uint32_t(*(this->currentTapePosition) & JSON_VALUE_MASK);
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -895,7 +894,8 @@ namespace Jsonifier {
 			std::cout << "CURRENT ROOT KEY: " << this->getRootKey()<< std::endl;
 			switch (this->getRootKey()) {
 				case 'r': {
-					std::cout << "ROOT SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					std::cout << "ROOT SIZE: " << (((*(this->getTapePosition() - this->currentIndex) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK)
+							  << std::endl;
 					[[fallthrough]];
 				}
 				case '[': {
@@ -904,7 +904,7 @@ namespace Jsonifier {
 				}
 				case '{': {
 					std::cout << "OBJECT SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
-					return (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					return (((*(this->getTapePosition() - this->currentIndex) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
 					size_t stringLength{};
@@ -943,7 +943,7 @@ namespace Jsonifier {
 			using ValueType = Array;
 			using Pointer = Array*;
 
-			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){};
+			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){}
 
 			Reference operator*() noexcept {
 				this->ptr->advance();
@@ -972,7 +972,6 @@ namespace Jsonifier {
 		};
 
 		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			this->advance();
 		}
 
 		inline auto begin() noexcept {
@@ -994,7 +993,7 @@ namespace Jsonifier {
 			using ValueType = Object;
 			using Pointer = Object*;
 
-			ObjectIterator(Pointer ptr) : ptr(ptr) {}
+			ObjectIterator(Pointer ptr) : ptr(ptr){}
 
 			Reference operator*() const {
 				return *this->ptr;
@@ -1032,7 +1031,9 @@ namespace Jsonifier {
 
 	class Document : public TapeIterator {
 	  public:
-		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {};
+		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+			this->advance();
+		};
 	};
 
 	class SimdBase128 {
@@ -1518,7 +1519,7 @@ namespace Jsonifier {
 		};
 
 		Document getDocument() {
-			return JsonIterator{ this->getTape(), this->getStringBuffer() }.getDocument();
+			return JsonIterator{ this->getTape(), this->getStringBuffer() };
 		}
 
 		SimdJsonValue& operator=(SimdJsonValue&&) = default;
@@ -2343,9 +2344,12 @@ namespace Jsonifier {
 	Object TapeIterator::getObject(const char* keyNew) {
 		this->assertAtObjectStart();
 		std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
+
+		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		std::cout << "THE CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
-			std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 			auto key = this->advance();
+			std::cout << "THE CURRENT KEY(OBJECT): " << ((*key) >> 56) << std::endl;
 			if (((*key) >> 56) == '{') {
 				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
 				Object returnValue{ this->collectNextIterator() };
@@ -2353,13 +2357,13 @@ namespace Jsonifier {
 			}
 		}
 		this->rewind();
-		return Object{ this->collectNextIterator() };
+		throw JsonifierException{ "Sorry, but this item's type is not Object." };
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
-		this->assertAtArrayStart();
 		std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		this->assertAtArrayStart();
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->advance();
 			if (((*key) >> 56) == '[') {
@@ -2369,12 +2373,11 @@ namespace Jsonifier {
 			}
 		}
 		this->rewind();
-		return Array{ this->collectNextIterator() };
+		throw JsonifierException{ "Sorry, but this item's type is not Array." };
 	}
 
 	Document TapeIterator::getDocument() {
 		if (this->peek() == 'r') {
-			this->advance();
 			Document returnValue{ this->collectNextIterator() };
 			return returnValue;
 
