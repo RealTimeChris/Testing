@@ -557,7 +557,7 @@ namespace Jsonifier {
 		size_t tape_idx{ 0 };
 		uint64_t tape_val{ tape[tape_idx] };
 		uint8_t type{ uint8_t(tape_val >> 56) };
-		std::cout  << tape_idx << " : " << type;
+		//std::cout  << tape_idx << " : " << type;
 		tape_idx++;
 		size_t how_many{ 0 };
 		if (type == 'r') {
@@ -565,63 +565,63 @@ namespace Jsonifier {
 		} else {
 			return false;
 		}
-		std::cout  << "\t// pointing to " << how_many << " (right after last node)\n";
+		//std::cout  << "\t// pointing to " << how_many << " (right after last node)\n";
 		for (; tape_idx < how_many; tape_idx++) {
-			std::cout  << tape_idx << " : ";
+			//std::cout  << tape_idx << " : ";
 			tape_val = tape[tape_idx];
 			type = uint8_t(tape_val >> 56);
 			switch (type) {
 				case '"':
-					std::cout  << "string \"";
+					//std::cout  << "string \"";
 					std::memcpy(&string_length, stringBuffer + (tape_val & JSON_VALUE_MASK), sizeof(uint32_t));
-					std::cout << EscapeJsonString(std::string_view(
-						reinterpret_cast<const char*>(stringBuffer + (tape_val & JSON_VALUE_MASK) + sizeof(uint32_t)), string_length));
-					std::cout  << '"';
-					std::cout  << '\n';
+					//std::cout << EscapeJsonString(std::string_view(
+					//reinterpret_cast<const char*>(stringBuffer + (tape_val & JSON_VALUE_MASK) + sizeof(uint32_t)), string_length));
+					//std::cout  << '"';
+					//std::cout  << '\n';
 					break;
 				case 'l':
 					if (tape_idx + 1 >= how_many) {
 						return false;
 					}
-					std::cout  << "integer " << static_cast<int64_t>(tape[++tape_idx]) << "\n";
+					//std::cout  << "integer " << static_cast<int64_t>(tape[++tape_idx]) << "\n";
 					break;
 				case 'u':
 					if (tape_idx + 1 >= how_many) {
 						return false;
 					}
-					std::cout  << "unsigned integer " << tape[++tape_idx] << "\n";
+					//std::cout  << "unsigned integer " << tape[++tape_idx] << "\n";
 					break;
 				case 'd':
-					std::cout  << "float ";
+					//std::cout  << "float ";
 					if (tape_idx + 1 >= how_many) {
 						return false;
 					}
 					double answer;
 					std::memcpy(&answer, &tape[++tape_idx], sizeof(answer));
-					std::cout  << answer << '\n';
+					//std::cout  << answer << '\n';
 					break;
 				case 'n':
-					std::cout  << "null\n";
+					//std::cout  << "null\n";
 					break;
 				case 't':
-					std::cout  << "true\n";
+					//std::cout  << "true\n";
 					break;
 				case 'f':
-					std::cout  << "false\n";
+					//std::cout  << "false\n";
 					break;
 				case '{':
-					std::cout  << "{\t// pointing to next tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (first node after the scope), "
-					   << " saturated count " << ((( tape_val & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << "\n";
+					//std::cout  << "{\t// pointing to next tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (first node after the scope), "
+					   //<< " saturated count " << ((( tape_val & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << "\n";
 					break;
 				case '}':
-					std::cout  << "}\t// pointing to previous tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
+					//std::cout  << "}\t// pointing to previous tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
 					break;
 				case '[':
-					std::cout  << "[\t// pointing to next tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (first node after the scope), "
-					   << " saturated count " << ((( tape_val & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << "\n";
+					//std::cout  << "[\t// pointing to next tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (first node after the scope), "
+					//<< " saturated count " << ((( tape_val & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << "\n";
 					break;
 				case ']':
-					std::cout  << "]\t// pointing to previous tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
+					//std::cout  << "]\t// pointing to previous tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
 					break;
 				case 'r':
 					return false;
@@ -631,7 +631,7 @@ namespace Jsonifier {
 		}
 		tape_val = tape[tape_idx];
 		type = uint8_t(tape_val >> 56);
-		std::cout  << tape_idx << " : " << type << "\t// pointing to " << (tape_val & JSON_VALUE_MASK) << " (start root)\n";
+		//std::cout  << tape_idx << " : " << type << "\t// pointing to " << (tape_val & JSON_VALUE_MASK) << " (start root)\n";
 		return true;
 	}
 
@@ -642,13 +642,29 @@ namespace Jsonifier {
 	class ValueIterator;
 
 	template<typename OTy> struct JsonifierResult : protected std::pair<OTy, ErrorCode> {
-		inline JsonifierResult() noexcept;
-		inline JsonifierResult(ErrorCode error) noexcept;
-		inline JsonifierResult(OTy&& value) noexcept;
-		inline JsonifierResult(OTy&& value, ErrorCode error) noexcept;
-		inline ErrorCode get(OTy& value) && noexcept;
-	};
+		inline JsonifierResult() noexcept = default;
 
+		inline void tie(OTy& value, ErrorCode& error) && noexcept {
+			error = this->second;
+			if (!error) {
+				value = std::forward<JsonifierResult<OTy>>(*this).first;
+			}
+		}
+
+		template<typename OTy>  inline ErrorCode get(OTy& value) && noexcept {
+			ErrorCode error{};
+			std::forward<JsonifierResult<OTy>>(*this).tie(value, error);
+			return error;
+		}
+
+		template<typename OTy>
+		inline JsonifierResult(OTy&& value, ErrorCode error) noexcept
+			: std::pair<OTy, ErrorCode>(std::forward<OTy>(value), error){};
+		template<typename OTy> inline JsonifierResult(ErrorCode error) noexcept : JsonifierResult(OTy{}, error){};
+		template<typename OTy>
+		inline JsonifierResult(OTy&& value) noexcept : JsonifierResult(std::forward<OTy>(value), ErrorCode::Success){};
+		template<typename OTy> inline JsonifierResult() noexcept : JsonifierResult(OTy{}, ErrorCode::Uninitialized){};
+	};
 
 	class TapeIterator {
 	  public:
@@ -712,7 +728,7 @@ namespace Jsonifier {
 			this->currentTapePosition = other.currentTapePosition;
 			this->rootTapePosition = other.rootTapePosition;
 			this->stringBuffer = other.stringBuffer;
-			std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
+			//std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
 		}
 
@@ -778,7 +794,7 @@ namespace Jsonifier {
 			this->currentTapePosition = currentTapePositionNew;
 			this->rootTapePosition = rootTapePositionNew;
 			this->stringBuffer = stringBufferNew;
-			dumpRawTape(std::cout, rootTapePosition, stringBuffer);
+			//dumpRawTape(//std::cout, rootTapePosition, stringBuffer);
 		}
 
 		inline Object getObject(const char* keyNew = nullptr);
@@ -804,7 +820,7 @@ namespace Jsonifier {
 		}
 
 		inline double parseJsonFloat() {
-			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
+			//std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek(1) == 'd' || this->peek(0) == 'd');
 			double returnValue{};
 			this->advance();
@@ -827,7 +843,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t parseJsonUint() {
-			std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
+			//std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
 			this->advance();
 			this->advance();
@@ -837,7 +853,7 @@ namespace Jsonifier {
 		}
 
 		inline int64_t parseJsonInt() {
-			std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
+			//std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
 			this->advance();
 			this->advance();
@@ -864,7 +880,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* advance(uint32_t value = 1) noexcept {
-			std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
+			//std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
 			auto returnValue = &this->currentTapePosition[this->currentIndex];
 			++this->currentIndex;
 			return returnValue;
@@ -903,24 +919,24 @@ namespace Jsonifier {
 		}
 
 		inline size_t size() {
-			std::cout << "CURRENT ROOT KEY: " << this->getRootKey()<< std::endl;
+			//std::cout << "CURRENT ROOT KEY: " << this->getRootKey()<< std::endl;
 			switch (this->getRootKey()) {
 				case 'r': {
-					std::cout << "ROOT SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					//std::cout << "ROOT SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '[': {
-					std::cout << "ARRAY SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					//std::cout << "ARRAY SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '{': {
-					std::cout << "OBJECT SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					//std::cout << "OBJECT SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					return (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
 					size_t stringLength{};
 					std::memcpy(&stringLength, this->getStringBuffer() + ((*this->getTapeRoot()) & JSON_VALUE_MASK), sizeof(uint32_t));
-					std::cout << "STRING SIZE: " << stringLength << std::endl;
+					//std::cout << "STRING SIZE: " << stringLength << std::endl;
 					return stringLength;
 				}
 				default: {
@@ -962,12 +978,12 @@ namespace Jsonifier {
 			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){}
 
 			Reference operator*() noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
+				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
 				return *ptr;
 			}
 
 			Pointer operator->() noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
+				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
 				return ptr;
 			}
 
@@ -976,8 +992,8 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(const ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
-				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
+				//std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
+				//std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
 				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
 			};
 
@@ -1605,11 +1621,11 @@ namespace Jsonifier {
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
 				//for (size_t x = 0; x < this->nStructuralIndexes; ++x) {
-				//std::cout << "CURRENT INDEX (VALUE): " << (this->structuralIndexes.get()[x] >> 56) << std::endl;
-				//					std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes.get()[x] & JSON_COUNT_MASK) << std::endl;
+				////std::cout << "CURRENT INDEX (VALUE): " << (this->structuralIndexes.get()[x] >> 56) << std::endl;
+				//					//std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes.get()[x] & JSON_COUNT_MASK) << std::endl;
 				//}
 				//totalTimePassed += stopWatch.totalTimePassed().count();
-				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				////std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 			--this->nStructuralIndexes;
 		}
@@ -2346,23 +2362,23 @@ namespace Jsonifier {
 			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
 		returnValue.getTapeLength() = (returnValue.getTape()[0] & JSON_VALUE_MASK);
-		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
-		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
+		//dumpRawTape(//std::cout, this->getTape(), this->getStringBuffer());
+		////std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		
 		return returnValue;
 	}
 
 	Object TapeIterator::getObject(const char* keyNew) {
-		std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
+		//std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
 
-		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
-		std::cout << "THE CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+		//std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		//std::cout << "THE CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->peek();
-			std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
+			//std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
 			if (key == '{') {
 				this->assertAtObjectStart();
-				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
+				//std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
 				Object returnValue{ this->collectNextIterator() };
 				return returnValue;
 			} else {
@@ -2374,15 +2390,15 @@ namespace Jsonifier {
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
-		std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
-		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		//std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
+		//std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		
 		while (this->getOffset() <= this->getStructuralCount()) {
 			auto key = this->peek();
-			std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
+			//std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
 			if (key == '[') {
 				this->assertAtArrayStart();
-				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
+				//std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
 				Array returnValue{ this->collectNextIterator() };
 				return returnValue;
 			} else {
