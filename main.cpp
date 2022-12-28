@@ -41,10 +41,9 @@ struct TheDJson {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document.getObject("TEST_VALUE_11");
-		//auto array = object.getArray();
-		//auto array = object.getArray();
-		//auto sizeNew = array.size();
-		//std::cout << "CURRENT SIZE: " << sizeNew << std::endl;
+		auto array = object.getArray();
+		auto sizeNew = array.size();
+		std::cout << "CURRENT SIZE: " << sizeNew << std::endl;
 		int32_t index{};
 		//for (auto iter = array.begin(); iter != array.end();++iter) {
 		//index++;
