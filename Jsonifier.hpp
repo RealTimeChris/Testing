@@ -872,7 +872,7 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t peek(uint32_t index = 0) noexcept {
-			return (*(this->currentTapePosition + this->currentIndex + index)) >> 56;
+			return (*(currentTapePosition + this->currentIndex + index)) >> 56;
 		}
 
 		inline size_t getStructuralCount() {
@@ -1325,40 +1325,40 @@ namespace Jsonifier {
 		inline void advance();
 
 	  protected:
-		const uint8_t* stringBuffer{};
-		const size_t lenminusstep{};
-		const size_t len{};
-		size_t idx{};
+		const uint8_t* stringBuffer;
+		const size_t len;
+		const size_t lenminusstep;
+		size_t idx;
 	};
 
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ this->len < StepSize ? 0 : this->len - StepSize }, idx{ 0 } {
+		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
-		return this->idx;
+		return idx;
 	}
 
 	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
-		return this->idx < this->lenminusstep;
+		return idx < lenminusstep;
 	}
 
 	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
-		return &this->stringBuffer[this->idx];
+		return &stringBuffer[idx];
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
-		if (this->len == this->idx) {
+		if (len == idx) {
 			return 0;
 		}
 		std::memset(dst, 0x20, StepSize);
-		std::memcpy(dst, this->stringBuffer + this->idx, this->len - this->idx);
-		return this->len - this->idx;
+		std::memcpy(dst, stringBuffer + idx, len - idx);
+		return len - idx;
 	}
 
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
-		this->idx += StepSize;
+		idx += StepSize;
 	}
 
 
