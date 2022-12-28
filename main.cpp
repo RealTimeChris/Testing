@@ -37,7 +37,7 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::JsonParser&& value) {
+	TheDJson(Jsonifier::JsonIterator&& value) {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document.getObject("TEST_VALUE_11");
@@ -71,7 +71,7 @@ struct TheDJson {
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonParser&&  value) {
+	TheValueJson(Jsonifier::JsonIterator&&  value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
