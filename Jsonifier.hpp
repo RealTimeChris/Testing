@@ -752,7 +752,6 @@ namespace Jsonifier {
 					if (key == ']') {
 						return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 					}
-					
 				}
 				case 'l' : {
 					[[fallthrough]];
@@ -2372,7 +2371,8 @@ namespace Jsonifier {
 		if (this->peek() == '{') {
 			return Object{ this->collectNextIterator() };
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually of type: " + this->peek() };
+			throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually of type: " +
+				std::string{ static_cast<char>(this->peek()) } };
 		}
 	}
 
@@ -2382,17 +2382,20 @@ namespace Jsonifier {
 			
 			return Object{ this->collectNextIterator() };
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually of type: " + this->peek() };
+			throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually of type: " +
+				std::string{ static_cast<char>(this->peek()) } };
 		}
 	}
 
 	Document TapeIterator::getDocument() {
 		if (this->peek() == 'r') {
+			this->advance();
 			Document returnValue{ this->collectNextIterator() };
 			return returnValue;
 
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Document, it is actually of type: " + this->peek() };
+			throw JsonifierException{ "Sorry, but this item's type is not Document, it is actually of type: " +
+				std::string{ static_cast<char>(this->peek()) } };
 		}
 	}
 
