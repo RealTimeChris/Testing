@@ -37,7 +37,7 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::JsonIterator&& value) {
+	TheDJson(Jsonifier::SimdJsonValue&& value) {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
 		auto object = document.getObject("TEST_VALUE_11");
@@ -70,7 +70,7 @@ struct TheDJson {
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonIterator&&  value) {
+	TheValueJson(Jsonifier::SimdJsonValue&&  value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
@@ -164,7 +164,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		Jsonifier::SimdJsonValue theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = theParser.getJsonData(stringNew);
+			auto jsonData = Jsonifier::SimdJsonValue::getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;

@@ -753,6 +753,9 @@ namespace Jsonifier {
 					this->advance();
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
 				}
+				default: {
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
+				}
 			}
 		}
 
@@ -1031,18 +1034,6 @@ namespace Jsonifier {
 	class Document : public TapeIterator {
 	  public:
 		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {};
-	};
-
-	class JsonIterator : public TapeIterator {
-	  public:
-
-		JsonIterator() noexcept = default;
-
-		inline JsonIterator(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew, tapePtrsNew } {};
-
-		inline JsonIterator(ErrorCode error) : TapeIterator{ nullptr, nullptr, nullptr } {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
-		}
 	};
 
 	class SimdBase128 {
@@ -1515,6 +1506,22 @@ namespace Jsonifier {
 
 	class SimdJsonValue {
 	  public:
+
+		class JsonIterator : public TapeIterator {
+		  public:
+			JsonIterator() noexcept = default;
+
+			inline JsonIterator(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew, tapePtrsNew } {};
+
+			inline JsonIterator(ErrorCode error) : TapeIterator{ nullptr, nullptr, nullptr } {
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
+			}
+		};
+
+		Document getDocument() {
+			return JsonIterator{ this->getTape(), this->getStringBuffer() };
+		}
+
 		SimdJsonValue& operator=(SimdJsonValue&&) = default;
 		SimdJsonValue(SimdJsonValue&&) = default;
 		inline SimdJsonValue() {
@@ -1618,7 +1625,7 @@ namespace Jsonifier {
 			return this->tape.get();
 		}
 
-		inline JsonIterator getJsonData(std::string& string);
+		static inline SimdJsonValue getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2320,17 +2327,18 @@ namespace Jsonifier {
 		}
 	}
 	
-	JsonIterator SimdJsonValue::getJsonData(std::string& string) {
-		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		if (TapeBuilder::parseDocument(*this) != ErrorCode::Success) {
+	SimdJsonValue SimdJsonValue::getJsonData(std::string& string) {
+		SimdJsonValue returnValue{};
+		returnValue.generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
+		if (TapeBuilder::parseDocument(returnValue) != ErrorCode::Success) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
 		}
-		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
+		returnValue.getTapeLength() = (returnValue.getTape()[0] & JSON_VALUE_MASK);
 		//dumpRawTape(std::cout, this->getTape(), this->getStringBuffer());
 		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		
-		return JsonIterator{ this->getTape(), this->getStringBuffer() };
+		return returnValue;
 	}
 
 	Object TapeIterator::getObject(const char* keyNew) {
