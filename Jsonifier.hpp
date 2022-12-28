@@ -700,6 +700,7 @@ namespace Jsonifier {
 
 		inline TapeIterator& operator=(TapeIterator&& other) noexcept {
 			this->currentTapePosition = other.currentTapePosition;
+			this->localRootTapePosition = this->currentTapePosition;
 			this->rootTapePosition = other.rootTapePosition;
 			this->stringBuffer = other.stringBuffer;
 			std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
@@ -763,6 +764,7 @@ namespace Jsonifier {
 		inline Object operator[](const char* keyNew);
 		
 		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* rootTapePositionNew, uint64_t* currentTapePositionNew) {
+			this->localRootTapePosition = currentTapePositionNew;
 			this->currentTapePosition = currentTapePositionNew;
 			this->rootTapePosition = rootTapePositionNew;
 			this->stringBuffer = stringBufferNew;
@@ -794,8 +796,6 @@ namespace Jsonifier {
 		inline double parseJsonFloat() {
 			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek() == 'd');
-			this->advance();
-			this->advance();
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -879,7 +879,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return uint32_t(*(this->currentTapePosition) & JSON_VALUE_MASK);
+			return uint32_t(*(this->localRootTapePosition) & JSON_VALUE_MASK);
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -894,17 +894,16 @@ namespace Jsonifier {
 			std::cout << "CURRENT ROOT KEY: " << this->getRootKey()<< std::endl;
 			switch (this->getRootKey()) {
 				case 'r': {
-					std::cout << "ROOT SIZE: " << (((*(this->getTapePosition() - this->currentIndex) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK)
-							  << std::endl;
+					std::cout << "ROOT SIZE: " << (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '[': {
-					std::cout << "ARRAY SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					std::cout << "ARRAY SIZE: " << (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '{': {
-					std::cout << "OBJECT SIZE: " << (((this->getTapeRoot()[0] & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
-					return (((*(this->getTapePosition() - this->currentIndex) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					std::cout << "OBJECT SIZE: " << (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					return (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
 					size_t stringLength{};
@@ -927,6 +926,7 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		uint64_t* localRootTapePosition{};
 		uint64_t* currentTapePosition{};
 		uint64_t* rootTapePosition{};
 		uint8_t* stringBuffer{};
@@ -946,13 +946,11 @@ namespace Jsonifier {
 			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){}
 
 			Reference operator*() noexcept {
-				this->ptr->advance();
 				std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
 				return *ptr;
 			}
 
 			Pointer operator->() noexcept {
-				this->ptr->advance();
 				std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
 				return ptr;
 			}
@@ -964,7 +962,7 @@ namespace Jsonifier {
 			friend inline bool operator==(const ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
 				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
 				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() == lhs.ptr->getStructuralCount();
+				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
 			};
 
 		  protected:
