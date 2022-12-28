@@ -872,7 +872,7 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t peek(uint32_t index = 0) noexcept {
-			return (*(currentTapePosition + this->currentIndex + index)) >> 56;
+			return (*(this->currentTapePosition + this->currentIndex + index)) >> 56;
 		}
 
 		inline size_t getStructuralCount() {
@@ -993,11 +993,11 @@ namespace Jsonifier {
 			ObjectIterator(Pointer ptr) : ptr(ptr) {}
 
 			Reference operator*() const {
-				return *ptr;
+				return *this->ptr;
 			}
 
 			Pointer operator->() {
-				return ptr;
+				return this->ptr;
 			}
 
 			ObjectIterator& operator++() {
@@ -1325,36 +1325,36 @@ namespace Jsonifier {
 		inline void advance();
 
 	  protected:
-		const uint8_t* stringBuffer;
-		const size_t len;
-		const size_t lenminusstep;
-		size_t idx;
+		const uint8_t* stringBuffer{};
+		const size_t lenminusstep{};
+		const size_t len{};
+		size_t idx{};
 	};
 
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
+		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ this->len < StepSize ? 0 : this->len - StepSize }, idx{ 0 } {
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
-		return idx;
+		return this->idx;
 	}
 
 	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
-		return idx < lenminusstep;
+		return this->idx < this->lenminusstep;
 	}
 
 	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
-		return &stringBuffer[idx];
+		return &this->stringBuffer[this->idx];
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
-		if (len == idx) {
+		if (this->len == this->idx) {
 			return 0;
 		}
 		std::memset(dst, 0x20, StepSize);
-		std::memcpy(dst, stringBuffer + idx, len - idx);
-		return len - idx;
+		std::memcpy(dst, this->stringBuffer + this->idx, this->len - this->idx);
+		return this->len - this->idx;
 	}
 
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
