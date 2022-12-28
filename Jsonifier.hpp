@@ -6,6 +6,7 @@
 
 #include "NumberParsingUtils.hpp"
 #include "StringParsingUtils.hpp"
+#include <iterator>
 
 namespace Jsonifier {
 
@@ -635,35 +636,25 @@ namespace Jsonifier {
 		return true;
 	}
 
+	class Document;
 	class Object;
 	class Array;
-	class Document;
+	class Object;
 
-	class ValueIterator;
-
-	template<typename OTy> struct JsonifierResult : protected std::pair<OTy, ErrorCode> {
-		inline JsonifierResult() noexcept = default;
-
-		inline void tie(OTy& value, ErrorCode& error) && noexcept {
-			error = this->second;
-			if (!error) {
-				value = std::forward<JsonifierResult<OTy>>(*this).first;
-			}
-		}
-
-		template<typename OTy>  inline ErrorCode get(OTy& value) && noexcept {
-			ErrorCode error{};
-			std::forward<JsonifierResult<OTy>>(*this).tie(value, error);
-			return error;
-		}
-
-		template<typename OTy>
-		inline JsonifierResult(OTy&& value, ErrorCode error) noexcept
-			: std::pair<OTy, ErrorCode>(std::forward<OTy>(value), error){};
-		template<typename OTy> inline JsonifierResult(ErrorCode error) noexcept : JsonifierResult(OTy{}, error){};
-		template<typename OTy>
-		inline JsonifierResult(OTy&& value) noexcept : JsonifierResult(std::forward<OTy>(value), ErrorCode::Success){};
-		template<typename OTy> inline JsonifierResult() noexcept : JsonifierResult(OTy{}, ErrorCode::Uninitialized){};
+	template<typename OTy> class JsonifierResult : protected std::pair<OTy, JsonifierError> {
+	  public:
+		inline JsonifierResult() noexcept;
+		inline JsonifierResult<OTy>& operator=(JsonifierResult<OTy>&&) noexcept = default;
+		inline JsonifierResult<OTy>(JsonifierResult<OTy>&&) noexcept = default;
+		inline JsonifierResult(OTy&& value, JsonifierError&& error) noexcept;
+		inline JsonifierResult(JsonifierError&& value) noexcept;
+		inline JsonifierResult(OTy&& value) noexcept;
+		
+		inline void tie(OTy& value, JsonifierError& error) noexcept;
+		
+		inline JsonifierError get(OTy& value) noexcept;
+		
+		inline ~JsonifierResult() noexcept;
 	};
 
 	class TapeIterator {
@@ -732,7 +723,7 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		TapeIterator collectNextIterator() {
+		inline TapeIterator collectNextIterator() {
 			switch (this->peek()) {
 				case 'r': {
 					this->advance();
@@ -798,11 +789,13 @@ namespace Jsonifier {
 			//dumpRawTape(//std::cout, rootTapePosition, stringBuffer);
 		}
 
-		inline Object getObject();
+		inline JsonifierResult<Object> getObject() noexcept;
 
-		inline Array getArray();
+		inline JsonifierResult<Object> getField(const char* fieldKey) noexcept;
 
-		inline Document getDocument();
+		inline JsonifierResult<Array> getArray() noexcept;
+
+		inline JsonifierResult<Document> getDocument() noexcept;
 
 		inline void rewind() noexcept {
 			this->currentTapePosition = this->currentTapePosition - (this->currentTapePosition - this->localTapeRootPosition);
@@ -966,33 +959,35 @@ namespace Jsonifier {
 		size_t currentIndex{};
 	};
 
-	class Array : public TapeIterator {
+	class Field : public TapeIterator, protected std::pair<std::string_view, TapeIterator> {
 	  public:
-		class ArrayIterator {
+		class FieldIterator {
 		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
-			using Reference = Array&;
-			using ValueType = Array;
-			using Pointer = Array*;
+			using Reference = TapeIterator&;
+			using ValueType = TapeIterator;
+			using Pointer = TapeIterator*;
 
-			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){}
+			inline FieldIterator(Pointer ptr) noexcept : ptr(ptr) {
+			}
 
-			Reference operator*() noexcept {
+			inline Reference operator*() noexcept {
 				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
 				return *ptr;
 			}
 
-			Pointer operator->() noexcept {
+			inline Pointer operator->() noexcept {
 				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
 				return ptr;
 			}
 
-			ArrayIterator& operator++() noexcept {
+			inline FieldIterator& operator++() noexcept {
+				this->ptr->advance();
 				return *this;
 			}
 
-			friend inline bool operator==(const ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
+			friend inline bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
 				//std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
 				//std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
 				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
@@ -1002,51 +997,145 @@ namespace Jsonifier {
 			Pointer ptr{};
 		};
 
-		inline Array(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-		}
+		inline Field() noexcept
+			: TapeIterator{ nullptr, nullptr, nullptr }, std::pair<std::string_view, TapeIterator>{ std::string_view{},
+				  TapeIterator{ nullptr, nullptr, nullptr } } {};
 
 		inline auto begin() noexcept {
-			return ArrayIterator{ this };
+			return FieldIterator{ this };
 		}
 
 		inline auto end() noexcept {
-			return ArrayIterator{ this }; 
+			return FieldIterator{ this };
 		}
+
+		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
+
+		template<> inline JsonifierResult<Array> get<Array>() noexcept;
+
+		template<> inline JsonifierResult<Object> get<Object>() noexcept;
+
+		template<> inline JsonifierResult<const char*> get<const char*>() noexcept;
+
+		template<> inline JsonifierResult<std::string_view> get<std::string_view>() noexcept;
+
+		template<> inline JsonifierResult<int64_t> get<int64_t>() noexcept;
+
+		template<> inline JsonifierResult<uint64_t> get<uint64_t>() noexcept;
+
+		template<> inline JsonifierResult<double> get<double>() noexcept;
+
+		template<> inline JsonifierResult<bool> get<bool>() noexcept;
+
+		inline Field(std::string_view&& key, TapeIterator&& value) noexcept
+			: TapeIterator{ this->collectNextIterator() }, std::pair<std::string_view, TapeIterator>{ std::move(key), std::move(value) } {};
 	};
 
-	class Object : public TapeIterator {
+	class Array : public TapeIterator {
 	  public:
-		class ObjectIterator {
+		class ArrayIterator {
 		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
-			using Reference = Object&;
-			using ValueType = Object;
-			using Pointer = Object*;
+			using Reference = TapeIterator&;
+			using ValueType = TapeIterator;
+			using Pointer = TapeIterator*;
 
-			ObjectIterator(Pointer ptr) : ptr(ptr){}
-
-			Reference operator*() const {
-				return *this->ptr;
+			inline ArrayIterator(Pointer ptr) noexcept : ptr(ptr) {
 			}
 
-			Pointer operator->() {
-				return this->ptr;
+			inline Reference operator*() noexcept {
+				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
+				return *ptr;
 			}
 
-			ObjectIterator& operator++() {
+			inline Pointer operator->() noexcept {
+				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
+				return ptr;
+			}
+
+			inline ArrayIterator& operator++() noexcept {
+				this->ptr->advance();
 				return *this;
 			}
 
-			bool operator!=(const ObjectIterator& b) {
-				return this->ptr->getTapePosition() - this->ptr->getTapeRoot() <= this->ptr->getStructuralCount();
+			friend inline bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
+				//std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
+				//std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
+				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
 			};
 
 		  protected:
 			Pointer ptr{};
 		};
 
-		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
+		inline auto begin() noexcept {
+			return ArrayIterator{ this };
+		}
+
+		inline auto end() noexcept {
+			return ArrayIterator{ this };
+		}
+
+		inline Array() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
+
+		inline Array(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {};
+
+		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
+
+		template<> inline JsonifierResult<Array> get<Array>() noexcept;
+
+		template<> inline JsonifierResult<Object> get<Object>() noexcept;
+
+		template<> inline JsonifierResult<const char*> get<const char*>() noexcept;
+
+		template<> inline JsonifierResult<std::string_view> get<std::string_view>() noexcept;
+
+		template<> inline JsonifierResult<int64_t> get<int64_t>() noexcept;
+
+		template<> inline JsonifierResult<uint64_t> get<uint64_t>() noexcept;
+
+		template<> inline JsonifierResult<double> get<double>() noexcept;
+
+		template<> inline JsonifierResult<bool> get<bool>() noexcept;
+	};
+	
+	class Object : public TapeIterator {
+	  public:
+		class ObjectIterator {
+		  public:
+			using IteratorCategory = std::forward_iterator_tag;
+			using DifferenceType = std::ptrdiff_t;
+			using Reference = TapeIterator&;
+			using ValueType = TapeIterator;
+			using Pointer = TapeIterator*;
+
+			inline ObjectIterator(Pointer ptr) noexcept : ptr(ptr) {
+			}
+
+			inline Reference operator*() noexcept {
+				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
+				return *ptr;
+			}
+
+			inline Pointer operator->() noexcept {
+				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
+				return ptr;
+			}
+
+			inline ObjectIterator& operator++() noexcept {
+				this->ptr->advance();
+				return *this;
+			}
+
+			friend inline bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
+				//std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
+				//std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
+				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
+			};
+
+		  protected:
+			Pointer ptr{};
 		};
 
 		inline auto begin() noexcept {
@@ -1056,10 +1145,37 @@ namespace Jsonifier {
 		inline auto end() noexcept {
 			return ObjectIterator{ this };
 		}
+
+		inline Object() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
+
+		inline Object& operator=(Object&& other) noexcept = default;
+		inline Object(Object&& other) noexcept : TapeIterator{ other.stringBuffer, other.rootTapePosition, other.currentTapePosition } {};
+		inline Object& operator=(const Object& other) noexcept {};
+		inline Object(const Object& other) noexcept : TapeIterator{ other.stringBuffer, other.rootTapePosition, other.currentTapePosition } {};
+		inline Object(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {};
+
+		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
+
+		template<> inline JsonifierResult<Array> get<Array>() noexcept;
+
+		template<> inline JsonifierResult<Object> get<Object>() noexcept;
+
+		template<> inline JsonifierResult<const char*> get<const char*>() noexcept;
+
+		template<> inline JsonifierResult<std::string_view> get<std::string_view>() noexcept;
+
+		template<> inline JsonifierResult<int64_t> get<int64_t>() noexcept;
+
+		template<> inline JsonifierResult<uint64_t> get<uint64_t>() noexcept;
+
+		template<> inline JsonifierResult<double> get<double>() noexcept;
+
+		template<> inline JsonifierResult<bool> get<bool>() noexcept;
 	};
 
 	class Document : public TapeIterator {
 	  public:
+		inline Document() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
 		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
 		};
 	};
@@ -2369,40 +2485,134 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	inline Object TapeIterator::getObject() {
+	inline JsonifierResult<Object> TapeIterator::getObject() noexcept {
 		this->advance();
 		this->assertAtObjectStart();
 		if (this->peek() == '{') {
 			return Object{ this->collectNextIterator() };
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually: " +
-				std::string{ static_cast<char>(this->peek()) } };
+			JsonifierResult<Object> returnValue{ JsonifierError{ "", ErrorCode::Incorrect_Type } };
+			return returnValue;
 		}
 	}
 
-	inline Array TapeIterator::getArray() {
+	inline JsonifierResult<Array> TapeIterator::getArray() noexcept {
 		this->advance();
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
 			return Array{ this->collectNextIterator() };
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually: " +
-				std::string{ static_cast<char>(this->peek()) } };
+			JsonifierResult<Array> returnValue{ JsonifierError{ "", ErrorCode::Incorrect_Type } };
+			return returnValue;
 		}
 	}
 
-	inline Document TapeIterator::getDocument() {
+	template<>
+	inline JsonifierResult<Object>::JsonifierResult(Object&& other) noexcept
+		: std::pair<Object, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {
+		this->first = std::move(other);
+	}
+
+	template<>
+	inline JsonifierResult<Object>::JsonifierResult(JsonifierError&& other) noexcept
+		: std::pair<Object, JsonifierError>{ Object{}, std::move(other) } {
+		this->second = std::move(other);
+	};
+
+	inline JsonifierResult<Document> TapeIterator::getDocument() noexcept {
 		if (this->peek() == 'r') {
 			this->advance();
 			return Document{ this->collectNextIterator() };
 
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Document." };
+			JsonifierResult<Document> returnValue{ JsonifierError{ "", ErrorCode::Incorrect_Type } };
+			return returnValue;
 		}
 	}
 
 	inline Object TapeIterator::operator[](const char* keyNew) {
 		return this->findField(keyNew);
+	}
+	template<typename OTy> inline JsonifierResult<OTy>::JsonifierResult() noexcept : JsonifierResult(OTy{}, ErrorCode::Uninitialized){};
+
+
+	template<typename OTy> inline void JsonifierResult<OTy>::tie(OTy& value, JsonifierError& error) noexcept {
+		error = this->second;
+		if (error.getError() == ErrorCode::Success) {
+			value = std::forward<JsonifierResult<OTy>>(*this).first;
+		}
+	}
+
+	template<typename OTy> JsonifierResult<OTy>::~JsonifierResult()noexcept {};
+
+	template<typename OTy> inline JsonifierError JsonifierResult<OTy>::get(OTy& value) noexcept {
+		JsonifierError error{ "", ErrorCode::Success };
+		std::forward<JsonifierResult<OTy>>(*this).tie(value, error);
+		return error;
+	}
+
+	template<> inline JsonifierResult<Array> Object::get<Array>() noexcept {
+		return this->getArray();
+	}
+
+	template<> inline JsonifierResult<Object> Object::get<Object>() noexcept {
+		return this->getObject();
+	}
+
+	template<> inline JsonifierResult<const char*> Object::get<const char*>() noexcept {
+		return this->parseJsonString().data();
+	}
+
+	template<> inline JsonifierResult<std::string_view> Object::get<std::string_view>() noexcept {
+		return this->parseJsonString();
+	}
+
+	template<> inline JsonifierResult<int64_t> Object::get<int64_t>() noexcept {
+		return this->parseJsonInt();
+	}
+
+	template<> inline JsonifierResult<uint64_t> Object::get<uint64_t>() noexcept {
+		return this->parseJsonUint();
+	}
+
+	template<> inline JsonifierResult<double> Object::get<double>() noexcept {
+		return this->parseJsonFloat();
+	}
+
+	template<> inline JsonifierResult<bool> Object::get<bool>() noexcept {
+		return this->parseJsonBool();
+	}
+
+	template<> inline JsonifierResult<Array> Field::get<Array>() noexcept {
+		return this->getArray();
+	}
+
+	template<> inline JsonifierResult<Object> Field::get<Object>() noexcept {
+		return this->getObject();
+	}
+
+	template<> inline JsonifierResult<const char*> Field::get<const char*>() noexcept {
+		return this->parseJsonString().data();
+	}
+
+	template<> inline JsonifierResult<std::string_view> Field::get<std::string_view>() noexcept {
+		return this->parseJsonString();
+	}
+
+	template<> inline JsonifierResult<int64_t> Field::get<int64_t>() noexcept {
+		return this->parseJsonInt();
+	}
+
+	template<> inline JsonifierResult<uint64_t> Field::get<uint64_t>() noexcept {
+		return this->parseJsonUint();
+	}
+
+	template<> inline JsonifierResult<double> Field::get<double>() noexcept {
+		return this->parseJsonFloat();
+	}
+
+	template<> inline JsonifierResult<bool> Field::get<bool>() noexcept {
+		return this->parseJsonBool();
 	}
 
 };

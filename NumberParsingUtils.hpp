@@ -39,6 +39,19 @@ namespace Jsonifier {
 		Uninitialized = 12
 	};
 
+	class JsonifierError : public std::runtime_error {
+	  public:
+		JsonifierError(std::string&& errorString, ErrorCode errorNew)
+			: error{ errorNew }, std::runtime_error{ std::forward<std::string>(errorString) } {};
+
+		ErrorCode getError() {
+			return this->error;
+		}
+
+	  protected:
+		ErrorCode error{};
+	};
+
 	struct AdjustedMantissa {
 		uint64_t mantissa;
 		int power2;
