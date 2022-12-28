@@ -699,7 +699,7 @@ namespace Jsonifier {
 		}
 
 		inline TapeIterator& operator=(TapeIterator&& other) noexcept {
-			this->localRootTapePosition = other.localRootTapePosition;
+			this->localTapeRootPosition = other.localTapeRootPosition;
 			this->currentTapePosition = other.currentTapePosition;
 			this->rootTapePosition = other.rootTapePosition;
 			this->stringBuffer = other.stringBuffer;
@@ -715,14 +715,18 @@ namespace Jsonifier {
 				}
 				case '{': {
 					auto startPtr = this->getTapePosition();
-					while (((*this->advance()) >> 56) != '}') {
+					auto key = this->peek(1);
+					while (key!= '}') {
+						key = ((*this->advance()) >> 56);
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 				}
 				case '[': {
 					auto startPtr = this->getTapePosition();
-					while (((*this->advance()) >> 56) != ']') {
+					auto key = this->peek(1);
+					while (key != ']') {
+						key = ((*this->advance()) >> 56);
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
@@ -764,7 +768,7 @@ namespace Jsonifier {
 		inline Object operator[](const char* keyNew);
 		
 		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* rootTapePositionNew, uint64_t* currentTapePositionNew) {
-			this->localRootTapePosition = currentTapePositionNew;
+			this->localTapeRootPosition = currentTapePositionNew;
 			this->currentTapePosition = currentTapePositionNew;
 			this->rootTapePosition = rootTapePositionNew;
 			this->stringBuffer = stringBufferNew;
@@ -778,7 +782,7 @@ namespace Jsonifier {
 		inline Document getDocument();
 
 		inline void rewind() noexcept {
-			this->currentTapePosition = this->rootTapePosition + this->currentIndex;
+			this->currentTapePosition = this->currentTapePosition - (this->currentTapePosition - this->localTapeRootPosition);
 		}
 
 		inline TapeIterator findField(const char* keyNew = nullptr) {
@@ -879,7 +883,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return uint32_t(*(this->localRootTapePosition) & JSON_VALUE_MASK);
+			return uint32_t(*(this->localTapeRootPosition) & JSON_VALUE_MASK);
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -887,23 +891,23 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t getRootKey() {
-			return (*(this->currentTapePosition - this->currentIndex)) >> 56;
+			return (*(this->currentTapePosition - (this->currentTapePosition - this->localTapeRootPosition))) >> 56;
 		}
 
 		inline size_t size() {
 			std::cout << "CURRENT ROOT KEY: " << this->getRootKey()<< std::endl;
 			switch (this->getRootKey()) {
 				case 'r': {
-					std::cout << "ROOT SIZE: " << (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					std::cout << "ROOT SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '[': {
-					std::cout << "ARRAY SIZE: " << (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					std::cout << "ARRAY SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
 					[[fallthrough]];
 				}
 				case '{': {
-					std::cout << "OBJECT SIZE: " << (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
-					return (((*(this->localRootTapePosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					std::cout << "OBJECT SIZE: " << (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK) << std::endl;
+					return (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
 					size_t stringLength{};
@@ -917,6 +921,10 @@ namespace Jsonifier {
 			}
 		}
 
+		inline uint64_t* getLocalTapeRootPosition() {
+			return (this->currentTapePosition - (this->currentTapePosition - this->localTapeRootPosition));
+		}
+
 		inline uint64_t* getTapePosition() {
 			return &this->currentTapePosition[this->currentIndex];
 		}
@@ -926,7 +934,7 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		uint64_t* localRootTapePosition{};
+		uint64_t* localTapeRootPosition{};
 		uint64_t* currentTapePosition{};
 		uint64_t* rootTapePosition{};
 		uint8_t* stringBuffer{};
@@ -1015,7 +1023,6 @@ namespace Jsonifier {
 		};
 
 		inline Object(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			this->advance();
 		};
 
 		inline auto begin() noexcept {
@@ -2345,13 +2352,15 @@ namespace Jsonifier {
 
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		std::cout << "THE CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+		auto key = this->peek(1);
 		while (this->getOffset() <= this->getStructuralCount()) {
-			auto key = this->advance();
-			std::cout << "THE CURRENT KEY(OBJECT): " << ((*key) >> 56) << std::endl;
-			if (((*key) >> 56) == '{') {
+			std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
+			if (key == '{') {
 				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
 				Object returnValue{ this->collectNextIterator() };
 				return returnValue;
+			} else {
+				key = (*this->advance()) >> 56;
 			}
 		}
 		this->rewind();
@@ -2362,12 +2371,15 @@ namespace Jsonifier {
 		std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		this->assertAtArrayStart();
+		auto key = this->peek(1);
 		while (this->getOffset() <= this->getStructuralCount()) {
-			auto key = this->advance();
-			if (((*key) >> 56) == '[') {
-				std::cout << "THE CURRENT OFFSET(ARRAY): " << this->getOffset() << std::endl;
-				Array returnValue{ this->collectNextIterator() };
+			std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
+			if (key == '[') {
+				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
+				Object returnValue{ this->collectNextIterator() };
 				return returnValue;
+			} else {
+				key = (*this->advance()) >> 56;
 			}
 		}
 		this->rewind();
