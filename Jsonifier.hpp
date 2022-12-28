@@ -1518,7 +1518,7 @@ namespace Jsonifier {
 		};
 
 		Document getDocument() {
-			return JsonIterator{ this->getTape(), this->getStringBuffer() };
+			return JsonIterator{ this->getTape(), this->getStringBuffer() }.getDocument();
 		}
 
 		SimdJsonValue& operator=(SimdJsonValue&&) = default;
@@ -2341,6 +2341,7 @@ namespace Jsonifier {
 	}
 
 	Object TapeIterator::getObject(const char* keyNew) {
+		this->assertAtObjectStart();
 		std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
@@ -2356,6 +2357,7 @@ namespace Jsonifier {
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
+		this->assertAtArrayStart();
 		std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
