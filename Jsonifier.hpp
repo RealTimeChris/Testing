@@ -714,6 +714,7 @@ namespace Jsonifier {
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
 				}
 				case '{': {
+					this->advance();
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != '}') {
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
@@ -721,6 +722,7 @@ namespace Jsonifier {
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 				}
 				case '[': {
+					this->advance();
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != ']') {
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
