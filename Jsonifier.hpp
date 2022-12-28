@@ -699,8 +699,8 @@ namespace Jsonifier {
 		}
 
 		inline TapeIterator& operator=(TapeIterator&& other) noexcept {
+			this->localRootTapePosition = other.localRootTapePosition;
 			this->currentTapePosition = other.currentTapePosition;
-			this->localRootTapePosition = this->currentTapePosition;
 			this->rootTapePosition = other.rootTapePosition;
 			this->stringBuffer = other.stringBuffer;
 			std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
