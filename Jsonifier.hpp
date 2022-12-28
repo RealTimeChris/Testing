@@ -709,6 +709,10 @@ namespace Jsonifier {
 
 		TapeIterator collectNextIterator() {
 			switch (this->peek()) {
+				case 'r': {
+					this->advance();
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
+				}
 				case '{': {
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != '}') {
@@ -732,7 +736,7 @@ namespace Jsonifier {
 				case 'd': {
 					this->advance();
 					this->advance();
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->getTapePosition() };
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
 				}
 				case '"': {
 					[[fallthrough]];
@@ -745,7 +749,7 @@ namespace Jsonifier {
 				}
 				case 'n': {
 					this->advance();
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->getTapePosition() };
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->currentTapePosition };
 				}
 			}
 		}
@@ -843,41 +847,10 @@ namespace Jsonifier {
 			this->advance();
 			return nullptr_t{};
 		}
-		
-		inline void advanceValue() {
-			std::cout << "ADVANCE VALUE KEY: " << this->peek() << std::endl;
-			switch (this->peek()) {
-				case '{': {
-					std::cout << "CURRENT STRUCTURAL COUNT:(OBJECT) " << this->getStructuralCount() << std::endl;
-					this->advance(this->getStructuralCount());
-					break;
-				}
-				case '[': {
-					std::cout << "CURRENT SIZE:(ARRAY)" << this->size() << std::endl;
-					this->advance(this->getStructuralCount());
-					break;
-				}
-				case '"': {
-					std::cout << "CURRENT STRUCTURAL COUNT:(STRING) " << this->getStructuralCount() << std::endl;
-					this->advance();
-					break;
-				}
-				case 'l': {
-					std::cout << "CURRENT STRUCTURAL COUNT:(LONG) " << this->getStructuralCount() << std::endl;
-					this->advance(2);
-					break;
-				}
-				case 'd': {
-					std::cout << "CURRENT STRUCTURAL COUNT:(DOUBLE) " << this->getStructuralCount() << std::endl;
-					this->advance(2);
-					break;
-				}
-			}
-		}
 
 		inline uint64_t* advance(uint32_t value = 1) noexcept {
 			std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
-			auto returnValue = this->currentTapePosition;
+			auto returnValue = &this->currentTapePosition[this->currentIndex];
 			++this->currentIndex;
 			return returnValue;
 		}
@@ -2369,7 +2342,7 @@ namespace Jsonifier {
 			}
 		}
 		this->rewind();
-		return Object{ TapeIterator{ std::move(*this) } };
+		return Object{ this->collectNextIterator() };
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
@@ -2384,7 +2357,7 @@ namespace Jsonifier {
 			}
 		}
 		this->rewind();
-		return Array{ TapeIterator{ std::move(*this) } };
+		return Array{ this->collectNextIterator() };
 	}
 
 	Document TapeIterator::getDocument() {
