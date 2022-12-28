@@ -872,7 +872,7 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t peek(uint32_t index = 0) noexcept {
-			return (*(currentTapePosition + index)) >> 56;
+			return (*(currentTapePosition + this->currentIndex + index)) >> 56;
 		}
 
 		inline size_t getStructuralCount() {
