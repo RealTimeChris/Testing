@@ -739,19 +739,21 @@ namespace Jsonifier {
 				}
 				case '{': {
 					auto startPtr = this->getTapePosition();
-					if (this->peek() == '}') {
-						return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+					auto key = this->peek();
+					while (key!= '}') {
+						key = ((*this->advance()) >> 56);
+						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually of type: " +
-						std::string{ static_cast<char>(this->peek()) } }; 
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 				}
 				case '[': {
 					auto startPtr = this->getTapePosition();
-					if (this->peek() == ']') {
-						return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+					auto key = this->peek();
+					while (key != ']') {
+						key = ((*this->advance()) >> 56);
+						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually of type: " +
-						std::string{ static_cast<char>(this->peek()) } }; 
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 				}
 				case 'l' : {
 					[[fallthrough]];
@@ -2367,35 +2369,53 @@ namespace Jsonifier {
 	}
 
 	Object TapeIterator::getObject(const char* keyNew) {
-		this->assertAtObjectStart();
-		if (this->peek() == '{') {
-			return Object{ this->collectNextIterator() };
-		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually of type: " +
-				std::string{ static_cast<char>(this->peek()) } };
+		//std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
+
+		//std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		//std::cout << "THE CURRENT STRUCTURAL COUNT: " << this->getStructuralCount() << std::endl;
+		while (this->getOffset() <= this->getStructuralCount()) {
+			auto key = this->peek();
+			//std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
+			if (key == '{') {
+				this->assertAtObjectStart();
+				//std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
+				Object returnValue{ this->collectNextIterator() };
+				return returnValue;
+			} else {
+				this->advance();
+			}
 		}
+		this->rewind();
+		throw JsonifierException{ "Sorry, but this item's type is not Object." };
 	}
 
 	Array TapeIterator::getArray(const char* keyNew) {
-		this->assertAtArrayStart();
-		if (this->peek() == '[') {
-			
-			return Object{ this->collectNextIterator() };
-		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually of type: " +
-				std::string{ static_cast<char>(this->peek()) } };
+		//std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
+		//std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
+		
+		while (this->getOffset() <= this->getStructuralCount()) {
+			auto key = this->peek();
+			//std::cout << "THE CURRENT KEY(OBJECT): " << key << std::endl;
+			if (key == '[') {
+				this->assertAtArrayStart();
+				//std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
+				Array returnValue{ this->collectNextIterator() };
+				return returnValue;
+			} else {
+				this->advance();
+			}
 		}
+		this->rewind();
+		throw JsonifierException{ "Sorry, but this item's type is not Array." };
 	}
 
 	Document TapeIterator::getDocument() {
 		if (this->peek() == 'r') {
-			this->advance();
 			Document returnValue{ this->collectNextIterator() };
 			return returnValue;
 
 		} else {
-			throw JsonifierException{ "Sorry, but this item's type is not Document, it is actually of type: " +
-				std::string{ static_cast<char>(this->peek()) } };
+			throw JsonifierException{ "Sorry, but this item's type is not Document." };
 		}
 	}
 
