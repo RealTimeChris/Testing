@@ -641,6 +641,15 @@ namespace Jsonifier {
 
 	class ValueIterator;
 
+	template<typename OTy> struct JsonifierResult : protected std::pair<OTy, ErrorCode> {
+		inline JsonifierResult() noexcept;
+		inline JsonifierResult(ErrorCode error) noexcept;
+		inline JsonifierResult(OTy&& value) noexcept;
+		inline JsonifierResult(OTy&& value, ErrorCode error) noexcept;
+		inline ErrorCode get(OTy& value) && noexcept;
+	};
+
+
 	class TapeIterator {
 	  public:
 
@@ -1747,7 +1756,7 @@ namespace Jsonifier {
 		inline void skip() noexcept;
 
 	  protected:
-		template<typename T> inline void append2(uint64_t val, T val2, TapeType t) noexcept;
+		template<typename OTy> inline void append2(uint64_t val, OTy val2, TapeType t) noexcept;
 	};
 
 	inline void TapeWriter::appendS64(int64_t Value) noexcept {
@@ -1779,7 +1788,7 @@ namespace Jsonifier {
 		this->nextTapeLocation++;
 	}
 
-	template<typename T> inline void TapeWriter::append2(uint64_t val, T val2, TapeType t) noexcept {
+	template<typename OTy> inline void TapeWriter::append2(uint64_t val, OTy val2, TapeType t) noexcept {
 		append(std::move(val), std::move(t));
 		static_assert(sizeof(val2) == sizeof(*this->nextTapeLocation), "Type is not 64 *theBits!");
 		memcpy(this->nextTapeLocation, &val2, sizeof(val2));
