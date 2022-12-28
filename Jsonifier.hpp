@@ -797,9 +797,9 @@ namespace Jsonifier {
 			//dumpRawTape(//std::cout, rootTapePosition, stringBuffer);
 		}
 
-		inline Object getObject(const char* keyNew = nullptr);
+		inline Object getObject();
 
-		inline Array getArray(const char* keyNew = nullptr);
+		inline Array getArray();
 
 		inline Document getDocument();
 
@@ -2368,11 +2368,10 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	Object TapeIterator::getObject(const char* keyNew) {
+	inline Object TapeIterator::getObject() {
+		this->assertAtObjectStart();
+		this->advance();
 		if (this->peek() == '{') {
-			this->assertAtObjectStart();
-			//std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
-
 			return Object{ this->collectNextIterator() };
 		} else {
 			throw JsonifierException{ "Sorry, but this item's type is not Object, it is actually: " +
@@ -2380,11 +2379,10 @@ namespace Jsonifier {
 		}
 	}
 
-	Array TapeIterator::getArray(const char* keyNew) {
+	inline Array TapeIterator::getArray() {
+		this->assertAtArrayStart();
+		this->advance();
 		if (this->peek() == '[') {
-			this->assertAtArrayStart();
-			//std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
-
 			return Array{ this->collectNextIterator() };
 		} else {
 			throw JsonifierException{ "Sorry, but this item's type is not Array, it is actually: " +
@@ -2392,10 +2390,10 @@ namespace Jsonifier {
 		}
 	}
 
-	Document TapeIterator::getDocument() {
+	inline Document TapeIterator::getDocument() {
 		if (this->peek() == 'r') {
-			Document returnValue{ this->collectNextIterator() };
-			return returnValue;
+			this->advance();
+			return Document{ this->collectNextIterator() };
 
 		} else {
 			throw JsonifierException{ "Sorry, but this item's type is not Document." };

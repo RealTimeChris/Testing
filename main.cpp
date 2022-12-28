@@ -40,7 +40,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::SimdJsonValue&& value) {
 		auto document = value.getDocument();
 		//auto theArray = std::move(theObject["activitiess"]);
-		auto object = document.getObject("TEST_VALUE_11");
+		auto object = document.getObject();
 		auto array = object.getArray();
 		auto sizeNew = object.size();
 		//std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
