@@ -745,7 +745,6 @@ namespace Jsonifier {
 			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek() == 'd');
 			this->advance();
-			this->advance();
 			double returnValue{};
 			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
 			return returnValue;
@@ -802,6 +801,7 @@ namespace Jsonifier {
 		}
 		
 		inline void advanceValue() {
+			std::cout << "ADVANCE VALUE KEY: " << this->peek() << std::endl;
 			switch (this->peek()) {
 				case '{': {
 					std::cout << "CURRENT STRUCTURAL COUNT:(OBJECT) " << this->getStructuralCount() << std::endl;
@@ -820,7 +820,7 @@ namespace Jsonifier {
 				}
 				case 'l': {
 					std::cout << "CURRENT STRUCTURAL COUNT:(LONG) " << this->getStructuralCount() << std::endl;
-					this->advance();
+					this->advance(2);
 					break;
 				}
 				case 'd': {
@@ -859,7 +859,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return size_t((this->getTapeRoot()[0] & JSON_VALUE_MASK));
+			return uint32_t((this->getTapeRoot()[0] & JSON_VALUE_MASK));
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -921,13 +921,14 @@ namespace Jsonifier {
 			using ValueType = Array;
 			using Pointer = Array*;
 
-			ArrayIterator(Pointer ptr) noexcept : ptr(ptr) {};
+			ArrayIterator(Pointer ptr) noexcept : ptr(ptr){};
 
 			Reference operator*() noexcept {
 				return *ptr;
 			}
 
 			Pointer operator->() noexcept {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return ptr;
 			}
 
@@ -936,10 +937,10 @@ namespace Jsonifier {
 				return *this;
 			}
 
-			bool operator!=(const ArrayIterator& b) noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY): " << this->ptr->size() << std::endl;
-				std::cout << "CURRENT INDEX (ARRAY): " << this->ptr->getTapePosition() - this->ptr->getTapeRoot() << std::endl;
-				return this->ptr->getTapePosition() - this->ptr->getTapeRoot() <= this->ptr->getStructuralCount();
+			friend inline bool operator==(const ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
+				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
+				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getTapePosition() - lhs.ptr->getTapeRoot() << std::endl;
+				return lhs.ptr->getTapePosition() - lhs.ptr->getTapeRoot() > lhs.ptr->getStructuralCount();
 			};
 
 		  protected:
@@ -972,10 +973,12 @@ namespace Jsonifier {
 			ObjectIterator(Pointer ptr) : ptr(ptr) {}
 
 			Reference operator*() const {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return *ptr;
 			}
 
 			Pointer operator->() {
+				*ptr = TapeIterator{ ptr->getStringBuffer(), ptr->getTapePosition() };
 				return ptr;
 			}
 
@@ -2317,10 +2320,11 @@ namespace Jsonifier {
 		std::cout << "THE CURRENT KEY (GET OBJECT): " << this->peek() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
 			std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
-			auto key = this->peek();
-			auto ptr = this->advance();
-			if (key == '{') {
-				Object returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
+			auto keyNew = this->peek();
+			auto key = this->advance() - 1;
+			if (keyNew == '{') {
+				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
+				Object returnValue{ TapeIterator{ this->getStringBuffer(), key } };
 				return returnValue;
 			}
 		}
@@ -2332,11 +2336,11 @@ namespace Jsonifier {
 		std::cout << "THE CURRENT KEY (GET ARRAY): " << this->peek() << std::endl;
 		std::cout << "THE CURRENT OFFSET: " << this->getOffset() << std::endl;
 		while (this->getOffset() <= this->getStructuralCount()) {
-			auto key = this->peek();
-			auto ptr = this->advance();
-			if (key == '[') {
+			auto keyNew = this->peek();
+			auto key = this->advance() - 1;
+			if (keyNew == '[') {
 				std::cout << "THE CURRENT OFFSET(ARRAY): " << this->getOffset() << std::endl;
-				Array returnValue{ TapeIterator{ this->getStringBuffer(), ptr } };
+				Array returnValue{ TapeIterator{ this->getStringBuffer(), key} };
 				return returnValue;
 			}
 		}
