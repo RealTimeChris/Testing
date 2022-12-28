@@ -735,6 +735,7 @@ namespace Jsonifier {
 		TapeIterator collectNextIterator() {
 			switch (this->peek()) {
 				case 'r': {
+					this->advance();
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, &this->currentTapePosition[this->currentIndex] };
 				}
 				case '{': {
@@ -2369,8 +2370,8 @@ namespace Jsonifier {
 	}
 
 	inline Object TapeIterator::getObject() {
-		this->assertAtObjectStart();
 		this->advance();
+		this->assertAtObjectStart();
 		if (this->peek() == '{') {
 			return Object{ this->collectNextIterator() };
 		} else {
@@ -2380,8 +2381,8 @@ namespace Jsonifier {
 	}
 
 	inline Array TapeIterator::getArray() {
-		this->assertAtArrayStart();
 		this->advance();
+		this->assertAtArrayStart();
 		if (this->peek() == '[') {
 			return Array{ this->collectNextIterator() };
 		} else {
