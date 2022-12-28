@@ -707,6 +707,54 @@ namespace Jsonifier {
 			return *this;
 		}
 
+		TapeIterator collectNextIterator() {
+			switch (this->peek()) {
+				case '{': {
+					this->currentIndex++;
+					auto startPtr = this->getTapePosition();
+					while (((*this->advance()) >> 56) != '}') {
+						this->currentIndex++;
+						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
+					}
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+				}
+				case '[': {
+					this->currentIndex++;
+					auto startPtr = this->getTapePosition();
+					while (((*this->advance()) >> 56) != ']') {
+						this->currentIndex++;
+						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
+					}
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+				}
+				case 'l' : {
+					[[fallthrough]];
+				}
+				case 'u': {
+					[[fallthrough]];
+				}
+				case 'd': {
+					[[fallthrough]];
+					this->currentIndex++;
+					this->currentIndex++;
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->getTapePosition() };
+				}
+				case '"': {
+					[[fallthrough]];
+				}
+				case 't': {
+					[[fallthrough]];
+				}
+				case 'f': {
+					[[fallthrough]];
+				}
+				case 'n': {
+					this->currentIndex++;
+					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->getTapePosition() };
+				}
+			}
+		}
+
 		inline TapeIterator(TapeIterator&& other) noexcept {
 			*this = std::move(other);
 		}
