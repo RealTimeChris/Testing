@@ -624,7 +624,6 @@ namespace Jsonifier {
 					std::cout  << "]\t// pointing to previous tape location " << uint32_t(( tape_val & JSON_VALUE_MASK)) << " (start of the scope)\n";
 					break;
 				case 'r':
-					std::cout << "WERE LEAVING LEAVING " << std::endl;
 					return false;
 				default:
 					return false;
