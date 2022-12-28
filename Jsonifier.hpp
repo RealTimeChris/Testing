@@ -645,8 +645,8 @@ namespace Jsonifier {
 	class TapeIterator {
 	  public:
 
-		  template<typename OTy> inline OTy getValue();
-
+		template<typename OTy> inline OTy getValue();
+		
 		template<> inline double getValue() {
 			return this->parseJsonFloat();
 		}
@@ -700,8 +700,8 @@ namespace Jsonifier {
 		}
 
 		inline TapeIterator& operator=(TapeIterator&& other) noexcept {
+			this->currentTapePosition = other.currentTapePosition;
 			this->rootTapePosition = other.rootTapePosition;
-			this->tapePosition = other.tapePosition;
 			this->stringBuffer = other.stringBuffer;
 			std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
@@ -710,19 +710,15 @@ namespace Jsonifier {
 		TapeIterator collectNextIterator() {
 			switch (this->peek()) {
 				case '{': {
-					this->currentIndex++;
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != '}') {
-						this->currentIndex++;
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
 				}
 				case '[': {
-					this->currentIndex++;
 					auto startPtr = this->getTapePosition();
 					while (((*this->advance()) >> 56) != ']') {
-						this->currentIndex++;
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
@@ -734,9 +730,8 @@ namespace Jsonifier {
 					[[fallthrough]];
 				}
 				case 'd': {
-					[[fallthrough]];
-					this->currentIndex++;
-					this->currentIndex++;
+					this->advance();
+					this->advance();
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->getTapePosition() };
 				}
 				case '"': {
@@ -749,7 +744,7 @@ namespace Jsonifier {
 					[[fallthrough]];
 				}
 				case 'n': {
-					this->currentIndex++;
+					this->advance();
 					return TapeIterator{ this->stringBuffer, this->rootTapePosition, this->getTapePosition() };
 				}
 			}
@@ -762,8 +757,8 @@ namespace Jsonifier {
 		inline Object operator[](const char* keyNew);
 		
 		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* rootTapePositionNew, uint64_t* currentTapePositionNew) {
+			this->currentTapePosition = currentTapePositionNew;
 			this->rootTapePosition = rootTapePositionNew;
-			this->tapePosition = currentTapePositionNew;
 			this->stringBuffer = stringBufferNew;
 		}
 
@@ -774,7 +769,7 @@ namespace Jsonifier {
 		inline Document getDocument();
 
 		inline void rewind() noexcept {
-			this->tapePosition = this->rootTapePosition;
+			this->currentTapePosition = this->rootTapePosition + this->currentIndex;
 		}
 
 		inline TapeIterator findField(const char* keyNew = nullptr) {
@@ -882,13 +877,13 @@ namespace Jsonifier {
 
 		inline uint64_t* advance(uint32_t value = 1) noexcept {
 			std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
-			auto returnValue = this->tapePosition;
-			++this->tapePosition;
+			auto returnValue = this->currentTapePosition;
+			++this->currentIndex;
 			return returnValue;
 		}
 
 		inline size_t getOffset() {
-			return this->tapePosition - this->rootTapePosition - this->currentIndex;
+			return this->currentTapePosition - this->rootTapePosition - this->currentIndex;
 		}
 
 		inline void assertAtObjectStart() {
@@ -904,7 +899,7 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t peek(uint32_t index = 0) noexcept {
-			return (*(tapePosition + index)) >> 56;
+			return (*(currentTapePosition + index)) >> 56;
 		}
 
 		inline size_t getStructuralCount() {
@@ -916,7 +911,7 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t getRootKey() {
-			return (*(this->tapePosition - this->currentIndex)) >> 56;
+			return (*(this->currentTapePosition - this->currentIndex)) >> 56;
 		}
 
 		inline size_t size() {
@@ -947,7 +942,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* getTapePosition() {
-			return this->tapePosition;
+			return &this->currentTapePosition[this->currentIndex];
 		}
 
 		inline uint64_t* getTapeRoot() {
@@ -955,8 +950,8 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		uint64_t* currentTapePosition{};
 		uint64_t* rootTapePosition{};
-		uint64_t* tapePosition{};
 		uint8_t* stringBuffer{};
 		size_t currentIndex{};
 	};
@@ -1060,9 +1055,7 @@ namespace Jsonifier {
 
 	class Document : public TapeIterator {
 	  public:
-		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-			dumpRawTape(std::cout, this->getTapeRoot(), this->getStringBuffer());
-		};
+		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {};
 	};
 
 	class JsonParser : public TapeIterator {
@@ -1070,9 +1063,7 @@ namespace Jsonifier {
 
 		JsonParser() noexcept = default;
 
-		inline JsonParser(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew, tapePtrsNew } {
-			dumpRawTape(std::cout, this->getTapeRoot(), this->getStringBuffer());
-		};
+		inline JsonParser(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew, tapePtrsNew } {};
 
 		inline JsonParser(ErrorCode error) : TapeIterator{ nullptr, nullptr, nullptr } {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
@@ -2373,7 +2364,7 @@ namespace Jsonifier {
 			auto key = this->advance();
 			if (((*key) >> 56) == '{') {
 				std::cout << "THE CURRENT OFFSET(OBJECT): " << this->getOffset() << std::endl;
-				Object returnValue{ TapeIterator{ this->getStringBuffer(), key, this->getTapePosition() } };
+				Object returnValue{ this->collectNextIterator() };
 				return returnValue;
 			}
 		}
@@ -2388,7 +2379,7 @@ namespace Jsonifier {
 			auto key = this->advance();
 			if (((*key) >> 56) == '[') {
 				std::cout << "THE CURRENT OFFSET(ARRAY): " << this->getOffset() << std::endl;
-				Array returnValue{ TapeIterator{ this->getStringBuffer(), key, this->getTapePosition() } };
+				Array returnValue{ this->collectNextIterator() };
 				return returnValue;
 			}
 		}
@@ -2399,7 +2390,7 @@ namespace Jsonifier {
 	Document TapeIterator::getDocument() {
 		if (this->peek() == 'r') {
 			this->advance();
-			Document returnValue{ TapeIterator{ this->getStringBuffer(), this->getTapeRoot(), this->getTapePosition() } };
+			Document returnValue{ this->collectNextIterator() };
 			return returnValue;
 
 		} else {
