@@ -795,8 +795,6 @@ namespace Jsonifier {
 
 		inline JsonifierResult<Array> getArray() noexcept;
 
-		inline JsonifierResult<Document> getDocument() noexcept;
-
 		inline void rewind() noexcept {
 			this->currentTapePosition = this->currentTapePosition - (this->currentTapePosition - this->localTapeRootPosition);
 		}
@@ -1176,8 +1174,13 @@ namespace Jsonifier {
 	class Document : public TapeIterator {
 	  public:
 		inline Document() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
-		inline Document(TapeIterator&& data) noexcept : TapeIterator{ std::move(data) } {
-		};
+		inline Document(std::unique_ptr<uint8_t[]>&& stringBufferNew, std::unique_ptr<uint64_t[]>&& tapeNew, TapeIterator&& data) noexcept
+			: TapeIterator{ std::move(data) }, stringBuffer(std::forward<std::unique_ptr<uint8_t[]>>(stringBufferNew)),
+			  tape(std::forward<std::unique_ptr<uint64_t[]>>(tapeNew)){};
+
+	  protected:
+		std::unique_ptr<uint8_t[]> stringBuffer{};
+		std::unique_ptr<uint64_t[]> tape{};
 	};
 
 	class SimdBase128 {
@@ -1651,19 +1654,9 @@ namespace Jsonifier {
 	class SimdJsonValue {
 	  public:
 
-		class JsonIterator : public TapeIterator {
-		  public:
-			JsonIterator() noexcept = default;
-
-			inline JsonIterator(uint64_t* tapePtrsNew, uint8_t* stringBufferNew) : TapeIterator{ stringBufferNew, tapePtrsNew, tapePtrsNew } {};
-
-			inline JsonIterator(ErrorCode error) : TapeIterator{ nullptr, nullptr, nullptr } {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " + std::to_string(( int32_t )error) };
-			}
-		};
-
-		Document getDocument() {
-			return JsonIterator{ this->getTape(), this->getStringBuffer() };
+		JsonifierResult<Document> getDocument() {
+			return JsonifierResult<Document>{ Document{ std::move(this->stringBuffer), std::move(this->tape),
+				TapeIterator{ this->getStringBuffer(), this->getTape(), this->getTape() } } };
 		}
 
 		SimdJsonValue& operator=(SimdJsonValue&&) = default;
@@ -1769,7 +1762,7 @@ namespace Jsonifier {
 			return this->tape.get();
 		}
 
-		static inline SimdJsonValue getJsonData(std::string& string);
+		static inline JsonifierResult<Document> getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2471,17 +2464,20 @@ namespace Jsonifier {
 		}
 	}
 	
-	SimdJsonValue SimdJsonValue::getJsonData(std::string& string) {
-		SimdJsonValue returnValue{};
-		returnValue.generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		if (TapeBuilder::parseDocument(returnValue) != ErrorCode::Success) {
-			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-			std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } + ", at the following index into the string: " };
-		}
-		returnValue.getTapeLength() = (returnValue.getTape()[0] & JSON_VALUE_MASK);
+	JsonifierResult<Document> SimdJsonValue::getJsonData(std::string& string) {
+		SimdJsonValue returnValueFirst{};
+		returnValueFirst.generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
+		auto errorCode = TapeBuilder::parseDocument(returnValueFirst);
+		returnValueFirst.getTapeLength() = (returnValueFirst.getTape()[0] & JSON_VALUE_MASK);
 		//dumpRawTape(//std::cout, this->getTape(), this->getStringBuffer());
 		////std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		
+		JsonifierResult<Document> returnValue{ Document{ std::move(returnValueFirst.stringBuffer), std::move(returnValueFirst.tape),
+												   TapeIterator{ returnValueFirst.stringBuffer.get(), returnValueFirst.tape.get(),
+													   returnValueFirst.tape.get() } },
+
+			JsonifierError{ "Sorry, but you've encountered the following error: " +
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) },
+				errorCode } };
 		return returnValue;
 	}
 
@@ -2508,27 +2504,22 @@ namespace Jsonifier {
 	}
 
 	template<>
-	inline JsonifierResult<Object>::JsonifierResult(Object&& other) noexcept
-		: std::pair<Object, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {
-		this->first = std::move(other);
+	inline JsonifierResult<Document>::JsonifierResult(Document&& other) noexcept
+		: std::pair<Document, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {
 	}
 
 	template<>
+	inline JsonifierResult<Object>::JsonifierResult(Object&& other) noexcept
+		: std::pair<Object, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {}
+
+	template<>
 	inline JsonifierResult<Object>::JsonifierResult(JsonifierError&& other) noexcept
-		: std::pair<Object, JsonifierError>{ Object{}, std::move(other) } {
-		this->second = std::move(other);
-	};
+		: std::pair<Object, JsonifierError>{ Object{}, std::move(other) } {};
 
-	inline JsonifierResult<Document> TapeIterator::getDocument() noexcept {
-		if (this->peek() == 'r') {
-			this->advance();
-			return Document{ this->collectNextIterator() };
+	template<>
+	inline JsonifierResult<Document>::JsonifierResult(Document&& other, JsonifierError&& error) noexcept
+		: std::pair<Document, JsonifierError>{ std::move(other), std::move(error) } {};
 
-		} else {
-			JsonifierResult<Document> returnValue{ JsonifierError{ "", ErrorCode::Incorrect_Type } };
-			return returnValue;
-		}
-	}
 
 	inline Object TapeIterator::operator[](const char* keyNew) {
 		return this->findField(keyNew);

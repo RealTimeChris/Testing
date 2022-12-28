@@ -37,14 +37,12 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::SimdJsonValue&& value) {
-		auto document = value.getDocument();
+	TheDJson(Jsonifier::Document&& value) {
+		auto document = value.getObject();
 		//auto theArray = std::move(theObject["activitiess"]);
 		Jsonifier::Field fieldNew{};
 		Jsonifier::Array arrayNew{};
 		Jsonifier::Object objectNew{};
-		auto object = document["TESTING"].getObject();
-		object.get(objectNew);
 		//auto array = object.get(valueDouble);
 		//std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
 		//std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
@@ -73,8 +71,12 @@ struct TheDJson {
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::SimdJsonValue&&  value) {
-		this->theD = TheDJson{ std::move(value) };
+	TheValueJson(Jsonifier::JsonifierResult<Jsonifier::Document>&&  value) {
+		Jsonifier::Document documentNew{};
+		if (value.get(documentNew).getError() != Jsonifier::ErrorCode::Success) {
+			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the document!" };
+		}
+		this->theD = TheDJson{ std::move(documentNew) };
 	}
 	TheDJson theD{};
 };
