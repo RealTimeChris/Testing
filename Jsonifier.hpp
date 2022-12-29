@@ -14,6 +14,52 @@ namespace Jsonifier {
 		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
 
+	template<typename OTy>
+	class ObjectBuffer {
+	  public:
+		using AllocatorType = std::allocator<OTy>;
+
+		ObjectBuffer& operator=(const ObjectBuffer&) = delete;
+		ObjectBuffer(const ObjectBuffer&) = delete;
+
+		ObjectBuffer& operator=(ObjectBuffer&& other) noexcept {
+			this->objects = other.objects;
+			other.objects = nullptr;
+			return *this;
+		}
+
+		ObjectBuffer(ObjectBuffer&& other) noexcept {
+			*this = std::move(other);
+		}
+
+		ObjectBuffer() noexcept = default;
+
+		OTy& operator[](size_t index) noexcept {
+			return this->objects[index];
+		}
+
+		void deallocate(size_t currentSize) {
+			if (currentSize > 0 && this->objects) {
+				AllocatorType allocator{};
+				allocator.deallocate(this->objects, currentSize);
+			}
+		}
+
+		void allocate(size_t newSize) noexcept {
+			if (newSize != 0) {
+				AllocatorType allocator{};
+				this->objects = allocator.allocate(newSize);
+			}
+		}
+
+		OTy* get() noexcept {
+			return this->objects;
+		}
+
+	  protected:
+		OTy* objects{};
+	};
+
 	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
 	constexpr uint32_t JSON_COUNT_MASK{ 0xFFFFFF };
 
@@ -1736,32 +1782,31 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode allocate(uint8_t* stringViewNew) noexcept {
+			this->structuralIndexes.deallocate(this->tapeCapacity);
+			this->stringBuffer.deallocate(this->stringCapacity);
+			this->openContainers.deallocate(this->maxDepth);
+			this->isArray.deallocate(this->tapeCapacity);
+			this->tape.deallocate(this->tapeCapacity);
 			if (this->stringLengthRaw == 0) {
-				this->structuralIndexes.reset(nullptr);
-				this->stringBuffer.reset(nullptr);
-				this->isArray.reset(nullptr);
-				this->tape.reset(nullptr);
-				this->allocatedCapacity = 0;
 				return ErrorCode::Success;
 			}
 
-			size_t stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
-			size_t tapeCapacity = round(this->stringLengthRaw + 3, 256);
-			this->openContainers.reset(new (std::nothrow) OpenContainer[this->maxDepth]);
-			this->structuralIndexes.reset(new (std::nothrow) uint32_t[tapeCapacity]);
-			this->stringBuffer.reset(new (std::nothrow) uint8_t[stringCapacity]);
-			this->tape.reset(new (std::nothrow) uint64_t[tapeCapacity]);
-			this->isArray.reset(new (std::nothrow) bool[tapeCapacity]);
-			this->allocatedCapacity = stringCapacity;
+			this->stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
+			this->tapeCapacity = round(this->stringLengthRaw + 3, 256);
+			this->structuralIndexes.allocate(this->tapeCapacity);
+			this->stringBuffer.allocate(this->stringCapacity);
+			this->openContainers.allocate(this->maxDepth);
+			this->isArray.allocate(this->tapeCapacity);
+			this->tape.allocate(this->tapeCapacity);
 			this->stringView = stringViewNew;
 			this->nStructuralIndexes = 0;
 			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
 					this->openContainers.get())) {
-				this->structuralIndexes.reset(nullptr);
-				this->stringBuffer.reset(nullptr);
-				this->isArray.reset(nullptr);
-				this->tape.reset(nullptr);
-				this->allocatedCapacity = 0;
+				this->structuralIndexes.deallocate(this->tapeCapacity);
+				this->stringBuffer.deallocate(this->stringCapacity);
+				this->openContainers.deallocate(this->maxDepth);
+				this->isArray.deallocate(this->tapeCapacity);
+				this->tape.deallocate(this->tapeCapacity);
 				return ErrorCode::MemAlloc;
 			}
 			
@@ -1798,16 +1843,14 @@ namespace Jsonifier {
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
 				//for (size_t x = 0; x < this->nStructuralIndexes; ++x) {
-				////std::cout << "CURRENT INDEX (VALUE): " << (this->structuralIndexes.get()[x] >> 56) << std::endl;
-				//					//std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes.get()[x] & JSON_COUNT_MASK) << std::endl;
+				//std::cout << "CURRENT INDEX (VALUE): " << ((this->structuralIndexes[x]) >> 56) << std::endl;
+				//					std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes[x] & JSON_COUNT_MASK) << std::endl;
 				//}
 				//totalTimePassed += stopWatch.totalTimePassed().count();
 				////std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 			--this->nStructuralIndexes;
 		}
-
-		inline ~SimdJsonValue() noexcept {};
 
 		inline uint8_t* getStringView() {
 			return this->stringView;
@@ -1847,17 +1890,26 @@ namespace Jsonifier {
 			return this->isArray.get();
 		}
 
+		~SimdJsonValue() {
+			this->structuralIndexes.deallocate(this->tapeCapacity);
+			this->stringBuffer.deallocate(this->stringCapacity);
+			this->openContainers.deallocate(this->maxDepth);
+			this->isArray.deallocate(this->tapeCapacity);
+			this->tape.deallocate(this->tapeCapacity);
+		}
+
 	  protected:
-		std::unique_ptr<OpenContainer[]> openContainers{};
-		std::unique_ptr<uint32_t[]> structuralIndexes{};
-		std::unique_ptr<uint8_t[]> stringBuffer{};
-		std::unique_ptr<uint64_t[]> tape{};
-		std::unique_ptr<bool[]> isArray{};
+		ObjectBuffer<OpenContainer> openContainers{};
+		ObjectBuffer<uint32_t> structuralIndexes{};
+		ObjectBuffer<uint8_t> stringBuffer{};
+		ObjectBuffer<uint64_t> tape{};
+		ObjectBuffer<bool> isArray{};
 		size_t nStructuralIndexes{};
 		SimdStringSection section{};
-		size_t allocatedCapacity{};
 		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
+		size_t stringCapacity{};
+		size_t tapeCapacity{};
 		uint8_t* stringView{};
 		size_t tapeLength{};
 	};
@@ -2536,8 +2588,8 @@ namespace Jsonifier {
 		returnValueFirst.generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		auto errorCode = TapeBuilder::parseDocument(returnValueFirst);
 		returnValueFirst.getTapeLength() = (returnValueFirst.getTape()[0] & JSON_VALUE_MASK);
-		//dumpRawTape(//std::cout, this->getTape(), this->getStringBuffer());
-		////std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
+		//dumpRawTape(std::cout, returnValueFirst.getTape(), returnValueFirst.getStringBuffer());
+		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		JsonifierResult<Document> returnValue{ Document{ returnValueFirst.getDocument() }, std::move(errorCode) };
 		return returnValue;
 	}
