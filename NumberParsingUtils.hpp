@@ -25,18 +25,19 @@ namespace Jsonifier {
 
 	enum class ErrorCode : int8_t {
 		Empty = 0,
-		TapeError = 1,
-		DepthError = 2,
+		Tape_Error = 1,
+		Depth_Error = 2,
 		Success = 3,
-		ParseError = 4,
-		StringError = 5,
-		TAtomError = 6,
-		FAtomError = 7,
-		NAtomError = 8,
-		MemAlloc = 9,
-		InvalidNumber = 10,
+		Parse_Error = 4,
+		String_Error = 5,
+		T_Atom_Error = 6,
+		F_Atom_Error = 7,
+		N_Atom_Error = 8,
+		Mem_Alloc_Error = 9,
+		Invalid_Number_Error = 10,
 		Incorrect_Type = 11,
-		Uninitialized = 12
+		Uninitialized = 12,
+		Finished_Iterating = 13
 	};
 
 	class JsonifierError : public std::runtime_error {
@@ -82,7 +83,7 @@ namespace Jsonifier {
 			}
 			exponent = firstAfterPeriod - p;
 			if (exponent == 0) {
-				return ErrorCode::InvalidNumber;
+				return ErrorCode::Invalid_Number_Error;
 			}
 			return ErrorCode::Success;
 		}
@@ -98,7 +99,7 @@ namespace Jsonifier {
 				++p;
 			}
 			if (p == startExp) {
-				return ErrorCode::InvalidNumber;
+				return ErrorCode::Invalid_Number_Error;
 			}
 			if (p > startExp + 18) {
 				while (*startExp == '0') {
@@ -525,7 +526,7 @@ namespace Jsonifier {
 				writer.appendDouble(std::move(d));
 				return ErrorCode::Success;
 			}
-			return ErrorCode::InvalidNumber;
+			return ErrorCode::Invalid_Number_Error;
 		}
 
 		inline static const int smallestPower = -342;
@@ -648,13 +649,13 @@ namespace Jsonifier {
 					writer.appendDouble(negative ? -0.0 : 0.0);
 					return ErrorCode::Success;
 				} else {
-					return ErrorCode::InvalidNumber;
+					return ErrorCode::Invalid_Number_Error;
 				}
 			}
 			double d;
 			if (!computeFloat64(exponent, i, negative, d)) {
 				if (!parseFloatFallback(src, &d)) {
-					return ErrorCode::InvalidNumber;
+					return ErrorCode::Invalid_Number_Error;
 				}
 			}
 			writer.appendDouble(std::move(d));
@@ -672,7 +673,7 @@ namespace Jsonifier {
 			}
 			size_t digitCount = size_t(p - startDigits);
 			if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
-				return ErrorCode::InvalidNumber;
+				return ErrorCode::Invalid_Number_Error;
 			}
 			int64_t exponent = 0;
 			bool isFloat = false;
@@ -694,17 +695,17 @@ namespace Jsonifier {
 
 			size_t longestDigitCount = negative ? 19 : 20;
 			if (digitCount > longestDigitCount) {
-				return ErrorCode::InvalidNumber;
+				return ErrorCode::Invalid_Number_Error;
 			}
 			if (digitCount == longestDigitCount) {
 				if (negative) {
 					if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1) {
-						return ErrorCode::InvalidNumber;
+						return ErrorCode::Invalid_Number_Error;
 					}
 					writer.appendS64(~i + 1);
 					return ErrorCode::Success;
 				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-					return ErrorCode::InvalidNumber;
+					return ErrorCode::Invalid_Number_Error;
 				}
 			}
 
@@ -726,22 +727,22 @@ namespace Jsonifier {
 			}
 			size_t digitCount = size_t(p - startDigits);
 			if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
-				return static_cast<NumberType>(ErrorCode::InvalidNumber);
+				return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
 			}
 			int64_t exponent = 0;
 
 			size_t longestDigitCount = negative ? 19 : 20;
 			if (digitCount > longestDigitCount) {
-				return static_cast<NumberType>(ErrorCode::InvalidNumber);
+				return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
 			}
 			if (digitCount == longestDigitCount) {
 				if (negative) {
 					if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1) {
-						return static_cast<NumberType>(ErrorCode::InvalidNumber);
+						return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
 					}
 					return (~i + 1);
 				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-					return static_cast<NumberType>(ErrorCode::InvalidNumber);
+					return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
 				}
 			}
 

@@ -14,16 +14,16 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Array&& value) {
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
+		//this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
-		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<uint64_t>();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
+		//this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
+		//this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
+		//this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<uint64_t>();
+		//this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_05"].getType() << std::endl;
-		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
-		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<uint64_t>();
+		//this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
+		//this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
+		//this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<uint64_t>();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -38,31 +38,19 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto objectNew = value.getObject();
-		Jsonifier::Object objectNewer{};
-		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
-		}
-		auto fieldNew = objectNewer["TEST_VALUE_11"];
-		Jsonifier::Array arrayNewer{};
-		auto newArray = fieldNew.getArray().get(arrayNewer);
-		if (newArray != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array, for the reason: " +
-				std::to_string(( int32_t )newArray) };
-		}
+		auto objectNew = value.getValue<Jsonifier::Object>().getValueSafe();
+		auto fieldNew = objectNew["TEST_VALUE_11"];
+		auto newArray = fieldNew.get<Jsonifier::Array>();
 		
 		int32_t index{};
 		
-		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
+		for (auto iter = newArray.getValueUnsafe().begin(); iter != newArray.getValueSafe().end(); ++iter) {
 			index++;
 			
-			double newValueDouble = iter->getValue<double>();
-				std::cout << "NEW INDEX: " << newValueDouble << std::endl;
+			double newValueDouble = iter->getValue<double>().getValueSafe();
+			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
-		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
-		iterationCount = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
+		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		//for (size_t x = 0; x < 12; ++x) {
 			//iterationCount++;
 
@@ -72,17 +60,13 @@ struct TheDJson {
 			//}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
-	std::vector<ActivitiesJson> activities{};
+	//std::vector<ActivitiesJson> activities{};
 };
 
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonifierResult<Jsonifier::Document>&&  value) {
-		Jsonifier::Document documentNew{};
-		if (value.get(documentNew) != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the document!" };
-		}
-		this->theD = TheDJson{ std::move(documentNew) };
+	TheValueJson(Jsonifier::Document&&  value) {
+		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
 };
@@ -111,23 +95,16 @@ struct Activities {
 struct TheD {
 	TheD() noexcept = default;
 	TheD(simdjson::ondemand::value value) {
-		simdjson::ondemand::value valueNew{};
-		value["d"].get(valueNew);
-		auto theArray = DiscordCoreAPI::getArray(valueNew, "TEST_02");
-		if (theArray.didItSucceed) {
-			iterationCount = 0;
-			totalTime = 0;
-			iterationCount++;
-			stopWatch.resetTimer();
-			for (auto value : theArray.arrayValue) {
-				activities.emplace_back(std::move(value));
-				totalTime += stopWatch.totalTimePassed().count();
-			}
-			
+		simdjson::ondemand::array valueNew{};
+		value["TEST_VALUE_11"].get(valueNew);
+		for (auto value : valueNew) {
+			double newValue = static_cast<double>(value.get_double().take_value());
+			//std::cout << "THE VALUE: " << newValue << std::endl;
 		}
+			
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
-	std::vector<Activities> activities{};
+	//std::vector<Activities> activities{};
 };
 
 struct TheValue {
@@ -175,9 +152,8 @@ int32_t main() noexcept {
 
 		stopWatch.resetTimer();
 		Jsonifier::SimdJsonValue theParser{};
-		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = Jsonifier::SimdJsonValue::getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
+			TheValueJson value{ theParser.getJsonData(stringNew) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -195,7 +171,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
