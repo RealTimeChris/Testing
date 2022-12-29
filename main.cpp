@@ -38,13 +38,21 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto document = value.getObject();
+		auto objectNew = value.getObject();
 		//auto theArray = std::move(theObject["activitiess"]);
+		Jsonifier::Object objectNewer{};
+		if (objectNew.get(objectNewer).getError() != Jsonifier::ErrorCode::Success) {
+			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
+		}
 		Jsonifier::Field fieldNew{};
 		Jsonifier::Array arrayNew{};
-		Jsonifier::Object objectNew{};
+		auto sizeNew = objectNewer.size();
+		auto fieldNewer = objectNewer["TEST_VALUE_11"];
 		//auto array = object.get(valueDouble);
-		//std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
+		std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
+		sizeNew = fieldNewer.size();
+		//auto array = object.get(valueDouble);
+		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
 		//std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		int32_t index{};
 		for (auto iter = arrayNew.begin(); iter != arrayNew.end(); ++iter) {
