@@ -4,7 +4,7 @@
 
 #include "Jsonifier.hpp"
 #include <simdjson.h>
-#include "DataParsingFunctionc.hpp"
+#include "DataParsingFunctions.hpp"
 #include <fstream>
 
 Jsonifier ::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
@@ -51,8 +51,13 @@ struct TheDJson {
 		//auto array = object.get(valueDouble);
 		std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
 		sizeNew = fieldNewer.size();
+		auto arrayNewer = fieldNew.getField("TEST_VALUE_11");
+		arrayNewer.get(fieldNew);
+		
 		//auto array = object.get(valueDouble);
 		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
+		sizeNew = arrayNew.size();
+		std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		//std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		int32_t index{};
 		for (auto iter = arrayNew.begin(); iter != arrayNew.end(); ++iter) {

@@ -3,7 +3,8 @@ add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
 	"../Jsonifier.cpp"
-	"../DataParsingFunctionc.cpp"
+	"../DataParsingFunctions.cpp"
+	
  )
 
 if (DEFINED ENV{EnableASAN})

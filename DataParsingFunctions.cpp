@@ -23,7 +23,7 @@
 /// https://discordcoreapi.com
 /// \file DataParsingFunctions.cpp
 
-#include "DataParsingFunctionc.hpp"
+#include "DataParsingFunctions.hpp"
 
 namespace DiscordCoreAPI {
 
