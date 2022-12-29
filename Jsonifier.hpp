@@ -855,9 +855,9 @@ namespace Jsonifier {
 		}
 
 		inline std::string_view parseJsonString() {
-			assert(this->peek() == '"');
+			assert(this->peek(1) == '"' || this->peek(0) == '"');
 			std::string_view returnValue{};
-			if (this->peek() == '"') {
+			if (this->peek(1) == '"' || this->peek(0) == '"') {
 				size_t stringLength{};
 				std::cout << "CURRENT TAPE POSITION: " << (*this->getTapePosition() & JSON_VALUE_MASK) << std::endl;
 				std::memcpy(&stringLength, this->getStringBuffer() + (*this->getTapePosition() & JSON_VALUE_MASK), sizeof(uint32_t));
@@ -879,7 +879,7 @@ namespace Jsonifier {
 
 		inline int64_t parseJsonInt() {
 			//std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
-			assert(this->peek() == 'l');
+			assert(this->peek(1) == 'l' || this->peek(0) == 'l');
 			this->advance();
 			this->advance();
 			int64_t returnValue{};
@@ -1052,14 +1052,13 @@ namespace Jsonifier {
 			}
 
 			inline FieldIterator& operator++() noexcept {
-				this->ptr->advance();
 				return *this;
 			}
 
 			friend inline bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
-				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
+				std::cout << "STRUCTURAL COUNT (FIELD): " << lhs.ptr->getStructuralCount() << std::endl;
+				std::cout << "CURRENT INDEX (FIELD): " << lhs.ptr->getOffset() << std::endl;
+				return lhs.ptr->getOffset() >= lhs.ptr->getStructuralCount();
 			};
 
 		  protected:
@@ -1124,14 +1123,13 @@ namespace Jsonifier {
 			}
 
 			inline ArrayIterator& operator++() noexcept {
-				this->ptr->advance();
 				return *this;
 			}
 
 			friend inline bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
 				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
 				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
+				return lhs.ptr->getOffset() >= lhs.ptr->getStructuralCount();
 			};
 
 		  protected:
@@ -1193,14 +1191,13 @@ namespace Jsonifier {
 			}
 
 			inline ObjectIterator& operator++() noexcept {
-				this->ptr->advance();
 				return *this;
 			}
 
 			friend inline bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
-				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() > lhs.ptr->getStructuralCount();
+				std::cout << "STRUCTURAL COUNT (OBJECT): " << lhs.ptr->getStructuralCount() << std::endl;
+				std::cout << "CURRENT INDEX (OBJECT): " << lhs.ptr->getOffset() << std::endl;
+				return lhs.ptr->getOffset() >= lhs.ptr->getStructuralCount();
 			};
 
 		  protected:
