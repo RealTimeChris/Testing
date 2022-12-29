@@ -38,9 +38,9 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
+		std::cout << "CURRENT TYPE (DOCUMENT): " << ( int32_t )value.type() << std::endl;
 		auto objectNew = value.getObject();
 		//auto theArray = std::move(theObject["activitiess"]);
-		
 		Jsonifier::Object objectNewer{};
 		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };

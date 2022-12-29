@@ -937,7 +937,7 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t getRootKey() {
-			return (*(this->localTapeRootPosition + this->currentIndex)) >> 56;
+			return (*this->localTapeRootPosition >> 56);
 		}
 
 		inline size_t size() {
@@ -955,7 +955,7 @@ namespace Jsonifier {
 					size_t stringLength{};
 					std::memcpy(&stringLength, this->getStringBuffer() + ((*this->getLocalTapeRootPosition()) & JSON_VALUE_MASK), sizeof(uint32_t));
 					return stringLength;
-				}
+				} 
 				default: {
 					return 1;
 				}
@@ -963,6 +963,8 @@ namespace Jsonifier {
 		}
 
 		inline JsonType type() {
+			dumpRawTape(std::cout, this->getTapeRoot(), this->getStringBuffer());
+			std::cout << "CURRENT STRING BUFFER: " << this->getRootKey() << std::endl;
 			switch (this->getRootKey()) {
 				case 'r': {
 					return JsonType::Document;
@@ -2575,11 +2577,6 @@ namespace Jsonifier {
 	template<typename OTy> inline ErrorCode JsonifierResult<OTy>::get(OTy& value) noexcept {
 		ErrorCode error{};
 		std::forward<JsonifierResult<OTy>>(*this).tie(value, error);
-		std::cout << "WERE HERE THIS IS IT!" << typeid(OTy).name() << std::endl;
-		if (typeid(OTy).name() == "Field") {
-			std::cout << "WERE HERE THIS IS IT!" << std::endl;
-		}
-		
 		return error;
 	}
 
