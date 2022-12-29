@@ -848,7 +848,6 @@ namespace Jsonifier {
 										  (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
 						stringLength };
 				this->advance();
-				this->advance();
 			}
 			return returnValue;
 		}
@@ -906,7 +905,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getOffset() {
-			return &this->localTapeRootPosition[this->currentIndex] - this->tapeRootPosition + this->currentIndex;
+			return this->currentIndex + 1;
 		}
 
 		JsonValueBase& getCurrentIterator() {
@@ -940,7 +939,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getCurrentCount() {
-			return uint32_t((*this->tapeRootPosition & JSON_VALUE_MASK));
+			return uint32_t((*this->tapeRootPosition & JSON_VALUE_MASK)) - (this->localTapeRootPosition - this->tapeRootPosition) - 2;
 		}
 
 		inline uint8_t getRootKey() {
@@ -970,6 +969,7 @@ namespace Jsonifier {
 		}
 
 		inline JsonType type() {
+			dumpRawTape(std::cout, this->tapeRootPosition, this->stringBuffer);
 			switch (this->getRootKey()) {
 				case 'r': {
 					return JsonType::Document;

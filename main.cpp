@@ -56,7 +56,7 @@ struct TheDJson {
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
 			
-			std::string newValueDouble = iter->getValue<std::string>();
+			double newValueDouble = iter->getValue<double>();
 				std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
 		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
@@ -156,7 +156,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x <2; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "WERE HERE THIS IS IT!" });
+			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
