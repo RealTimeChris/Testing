@@ -362,6 +362,8 @@ namespace Jsonifier {
 
 	  protected:
 		JsonType type{ JsonType::Null };
+		size_t currentObjectDepth{};
+		size_t currentArrayDepth{};
 		JsonValue jsonValue{};
 		std::string string{};
 
@@ -444,34 +446,6 @@ namespace Jsonifier {
 
 		friend bool operator==(const Jsonifier& lhs, const Jsonifier& rhs);
 	};
-
-	template<> inline const Jsonifier::ObjectType& Jsonifier::getValue() const {
-		return *this->jsonValue.object;
-	}
-
-	template<> inline const Jsonifier::ArrayType& Jsonifier::getValue() const {
-		return *this->jsonValue.array;
-	}
-
-	template<> inline const Jsonifier::StringType& Jsonifier::getValue() const {
-		return *this->jsonValue.string;
-	}
-
-	template<> inline const Jsonifier::FloatType& Jsonifier::getValue() const {
-		return this->jsonValue.numberDouble;
-	}
-
-	template<> inline const Jsonifier::UintType& Jsonifier::getValue() const {
-		return this->jsonValue.numberUint;
-	}
-
-	template<> inline const Jsonifier::IntType& Jsonifier::getValue() const {
-		return this->jsonValue.numberInt;
-	}
-
-	template<> inline const Jsonifier::BoolType& Jsonifier::getValue() const {
-		return this->jsonValue.boolean;
-	}
 
 	template<> inline Jsonifier::ObjectType& Jsonifier::getValue() {
 		return *this->jsonValue.object;
@@ -784,22 +758,20 @@ namespace Jsonifier {
 					return JsonValueBase{ std::move(*this) };
 				}
 				case '{': {
-					auto startPtr = this->getTapePosition();
-					auto key = this->peek();
-					while (key!= '}') {
-						key = ((*this->advance()) >> 56);
+					int32_t index{};
+					while (this->peek(index) != '}') {
+						index++;
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, startPtr };
+					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, this->localTapeRootPosition + this->currentIndex + index };
 				}
 				case '[': {
-					auto startPtr = this->getTapePosition();
-					auto key = this->peek();
-					while (key != ']') {
-						key = ((*this->advance()) >> 56);
+					int32_t index{};
+					while (this->peek(index) != ']') {
+						index++;
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, startPtr };
+					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, this->localTapeRootPosition + this->currentIndex + index };
 				}
 				case 'l' : {
 					[[fallthrough]];
@@ -808,6 +780,8 @@ namespace Jsonifier {
 					[[fallthrough]];
 				}
 				case 'd': {
+					this->advance();
+					this->advance();
 					return JsonValueBase{ std::move(*this) };
 				}
 				case '"': {
@@ -955,7 +929,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getCurrentCount() {
-			return *this->localTapeRootPosition & JSON_VALUE_MASK;
+			return uint32_t((*this->tapeRootPosition & JSON_VALUE_MASK));
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -963,7 +937,7 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t getRootKey() {
-			return (*(this->localTapeRootPosition)) >> 56;
+			return (*(this->localTapeRootPosition + this->currentIndex)) >> 56;
 		}
 
 		inline size_t size() {
@@ -1119,6 +1093,7 @@ namespace Jsonifier {
 
 		inline Field(std::string_view&& key, JsonValueBase&& value) noexcept
 			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
+			this->advance();
 			this->advance();
 		};
 	};
@@ -2652,6 +2627,38 @@ namespace Jsonifier {
 	}
 
 	template<> inline JsonifierResult<bool> Object::get<bool>() noexcept {
+		return { this->parseJsonBool(), ErrorCode::Success };
+	}
+
+	template<> inline JsonifierResult<Array> Array::get<Array>() noexcept {
+		return this->getArray();
+	}
+
+	template<> inline JsonifierResult<Object> Array::get<Object>() noexcept {
+		return this->getObject();
+	}
+
+	template<> inline JsonifierResult<const char*> Array::get<const char*>() noexcept {
+		return { this->parseJsonString().data(), ErrorCode::Success };
+	}
+
+	template<> inline JsonifierResult<std::string_view> Array::get<std::string_view>() noexcept {
+		return { this->parseJsonString(), ErrorCode::Success };
+	}
+
+	template<> inline JsonifierResult<int64_t> Array::get<int64_t>() noexcept {
+		return { this->parseJsonInt(), ErrorCode::Success };
+	}
+
+	template<> inline JsonifierResult<uint64_t> Array::get<uint64_t>() noexcept {
+		return { this->parseJsonUint(), ErrorCode::Success };
+	}
+
+	template<> inline JsonifierResult<double> Array::get<double>() noexcept {
+		return { this->parseJsonFloat(), ErrorCode::Success };
+	}
+
+	template<> inline JsonifierResult<bool> Array::get<bool>() noexcept {
 		return { this->parseJsonBool(), ErrorCode::Success };
 	}
 

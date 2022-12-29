@@ -40,10 +40,12 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		auto objectNew = value.getObject();
 		//auto theArray = std::move(theObject["activitiess"]);
+		
 		Jsonifier::Object objectNewer{};
 		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
 		}
+		std::cout << "CURRENT TYPE (OBJECT): " << ( int32_t )objectNewer.type() << std::endl;
 		auto sizeNew = objectNewer.size();
 		auto fieldNew = objectNewer["TEST_VALUE_11"];
 		//auto array = object.get(valueDouble);
@@ -61,6 +63,7 @@ struct TheDJson {
 		}
 		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
 		sizeNew = arrayNewer.size();
+		std::cout << "CURRENT TYPE (ARRAY): " << ( int32_t )arrayNewer.type() << std::endl;
 		
 		std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		//std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
@@ -68,8 +71,9 @@ struct TheDJson {
 		
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
-			auto newValue = iter.operator*().getValue<std::string_view>();
-			std::cout << "NEW INDEX: " << newValue << std::endl;
+			double newValueDouble{};
+			auto newValue = static_cast<Jsonifier::Field*>(&(*iter))->get<double>().get(newValueDouble);
+			std::cout << "NEW INDEX: " << ( int32_t )newValue << std::endl;
 		}
 			
 		iterationCount = 0;
@@ -168,7 +172,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x <2; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "4325454.00434" });
+			serializer["TEST_VALUE_11"].emplaceBack(double{ 4325454.00434 });
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
