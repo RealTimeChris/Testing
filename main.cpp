@@ -48,6 +48,7 @@ struct TheDJson {
 		auto fieldNew = objectNewer["TEST_VALUE_11"];
 		//auto array = object.get(valueDouble);
 		std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
+		std::cout << "CURRENT KEY (FIELD): " << fieldNew.getKey() << std::endl;
 		//auto arrayNewer = fieldNewer.getField("TEST_VALUE_11");
 		sizeNew = fieldNew.size();
 		std::cout << "CURRENT TYPE (FIELD): " << ( int32_t )fieldNew.type() << std::endl;

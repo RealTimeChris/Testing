@@ -833,7 +833,7 @@ namespace Jsonifier {
 			*this = std::move(other);
 		}
 
-		inline Object operator[](const char* keyNew);
+		inline Field operator[](const char* keyNew);
 		
 		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* rootTapePositionNew, uint64_t* currentTapePositionNew) {
 			this->localTapeRootPosition = currentTapePositionNew;
@@ -866,18 +866,15 @@ namespace Jsonifier {
 				++index;
 				this->advance();
 			}
-			assert(this->peek(1) == '"' || this->peek(0) == '"');
+			assert(this->peek(0) == '"');
 			std::string_view returnValue{};
-			if (this->peek(1) == '"' || this->peek(0) == '"') {
+			if (this->peek(0) == '"') {
 				size_t stringLength{};
 				std::cout << "CURRENT TAPE POSITION: " << (uint32_t(*(this->getTapePosition()) & JSON_VALUE_MASK)) << std::endl;
 				std::memcpy(&stringLength, this->getStringBuffer() + (uint32_t(*(this->getTapePosition()) & JSON_VALUE_MASK)), sizeof(uint32_t));
 				std::cout << "CURRENT STRING LENGTH: " << stringLength << std::endl;
 				returnValue = std::string_view{ reinterpret_cast<const char*>(this->getStringBuffer() + (*this->getTapePosition() & JSON_VALUE_MASK) + sizeof(uint32_t)),
 					stringLength };
-			}
-			if (index > 0) {
-				this->setPosition(-(index - 2));
 			}
 			return returnValue;
 		}
@@ -929,6 +926,8 @@ namespace Jsonifier {
 		inline void setPosition(int32_t delta = 0) noexcept {
 			auto newValue = static_cast<int32_t>(this->currentIndex);
 			newValue += delta;
+			std::cout << "ADVANCING BY THIS AMOUNT(SET POSITION): " << newValue << std::endl;
+			std::cout << "CURRENT INDEX (SET POSITION): " << this->currentIndex << std::endl;
 			this->currentIndex += static_cast<uint32_t>(newValue);
 		}
 
@@ -1016,7 +1015,6 @@ namespace Jsonifier {
 					return JsonType::Bool;
 				}
 				case 'n': {
-					this->advance();
 					return JsonType::Null;
 				}
 				default: {
@@ -1094,6 +1092,10 @@ namespace Jsonifier {
 			return FieldIterator{ this };
 		}
 
+		inline std::string_view getKey() {
+			return this->first;
+		}
+
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
 		template<> inline JsonifierResult<Array> get<Array>() noexcept;
@@ -1113,7 +1115,9 @@ namespace Jsonifier {
 		template<> inline JsonifierResult<bool> get<bool>() noexcept;
 
 		inline Field(std::string_view&& key, TapeIterator&& value) noexcept
-			: TapeIterator{ std::move(value) }, std::pair<std::string_view, TapeIterator>{ std::move(key), std::move(value) } {};
+			: TapeIterator{ std::move(value) }, std::pair<std::string_view, TapeIterator>{ std::move(key), std::move(value) } {
+			this->advance();
+		};
 	};
 
 	class Array : public TapeIterator {
@@ -1163,7 +1167,9 @@ namespace Jsonifier {
 
 		inline Array() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
 
-		inline Array(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {};
+		inline Array(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {
+			this->advance();
+		};
 
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
@@ -1231,11 +1237,9 @@ namespace Jsonifier {
 
 		inline Object() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
 
-		inline Object& operator=(Object&& other) noexcept = default;
-		inline Object(Object&& other) noexcept : TapeIterator{ other.stringBuffer, other.rootTapePosition, other.localTapeRootPosition } {};
-		inline Object& operator=(const Object& other) noexcept {};
-		inline Object(const Object& other) noexcept : TapeIterator{ other.stringBuffer, other.rootTapePosition, other.localTapeRootPosition } {};
-		inline Object(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {};
+		inline Object(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {
+			this->advance();
+		};
 
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
@@ -1573,7 +1577,6 @@ namespace Jsonifier {
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
 		this->idx += StepSize;
 	}
-
 
 	class SimdStringSection {
 	  public:
@@ -2604,19 +2607,11 @@ namespace Jsonifier {
 		return error;
 	}
 
-	template<>
-	inline JsonifierResult<Document>::JsonifierResult(Document&& other, ErrorCode&& error) noexcept
-		: std::pair<Document, ErrorCode>{ std::move(other), std::move(error) } {};
+	template<typename OTy>
+	inline JsonifierResult<OTy>::JsonifierResult(OTy&& other, ErrorCode&& error) noexcept
+		: std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
-	template<>
-	inline JsonifierResult<Object>::JsonifierResult(Object&& other, ErrorCode&& error) noexcept
-		: std::pair<Object, ErrorCode>{ std::move(other), std::move(error) } {};
-
-	template<>
-	inline JsonifierResult<Array>::JsonifierResult(Array&& other, ErrorCode&& error) noexcept
-		: std::pair<Array, ErrorCode>{ std::move(other), std::move(error) } {};
-
-	inline Object TapeIterator::operator[](const char* keyNew) {
+	inline Field TapeIterator::operator[](const char* keyNew) {
 		return this->findField(keyNew);
 	}
 
