@@ -559,7 +559,7 @@ namespace Jsonifier {
 		size_t tape_idx{ 0 };
 		uint64_t tape_val{ tape[tape_idx] };
 		uint8_t type{ uint8_t(tape_val >> 56) };
-		//std::cout  << tape_idx << " : " << type;
+		cout << tape_idx << " : " << type;
 		tape_idx++;
 		size_t how_many{ 0 };
 		if (type == 'r') {
@@ -657,7 +657,7 @@ namespace Jsonifier {
 		inline ~JsonifierResult() noexcept;
 	};
 
-	class TapeIterator {
+	class JsonValueBase {
 	  public:
 
 		template<typename OTy> inline OTy getValue();
@@ -761,7 +761,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline TapeIterator& operator=(const TapeIterator& other) noexcept {
+		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
 			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
@@ -769,7 +769,7 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		inline TapeIterator& operator=(TapeIterator&& other) noexcept {
+		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
 			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
@@ -777,11 +777,11 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		inline TapeIterator collectNextIterator() {
+		inline JsonValueBase collectNextIterator() {
 			switch (this->peek()) {
 				case 'r': {
 					this->advance();
-					return TapeIterator{ std::move(*this) };
+					return JsonValueBase{ std::move(*this) };
 				}
 				case '{': {
 					auto startPtr = this->getTapePosition();
@@ -790,7 +790,7 @@ namespace Jsonifier {
 						key = ((*this->advance()) >> 56);
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					return TapeIterator{ this->stringBuffer, this->tapeRootPosition, startPtr };
+					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, startPtr };
 				}
 				case '[': {
 					auto startPtr = this->getTapePosition();
@@ -799,7 +799,7 @@ namespace Jsonifier {
 						key = ((*this->advance()) >> 56);
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					return TapeIterator{ this->stringBuffer, this->tapeRootPosition, startPtr };
+					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, startPtr };
 				}
 				case 'l' : {
 					[[fallthrough]];
@@ -808,7 +808,7 @@ namespace Jsonifier {
 					[[fallthrough]];
 				}
 				case 'd': {
-					return TapeIterator{ std::move(*this) };
+					return JsonValueBase{ std::move(*this) };
 				}
 				case '"': {
 					[[fallthrough]];
@@ -821,25 +821,24 @@ namespace Jsonifier {
 				}
 				case 'n': {
 					this->advance();
-					return TapeIterator{ std::move(*this) };
+					return JsonValueBase{ std::move(*this) };
 				}
 				default: {
-					return TapeIterator{ std::move(*this) };
+					return JsonValueBase{ std::move(*this) };
 				}
 			}
 		}
 
-		inline TapeIterator(TapeIterator&& other) noexcept {
+		inline JsonValueBase(JsonValueBase&& other) noexcept {
 			*this = std::move(other);
 		}
 
 		inline Field operator[](const char* keyNew);
 		
-		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* tapeRootPositionNew, uint64_t* currentTapePositionNew) {
+		inline JsonValueBase(uint8_t* stringBufferNew, uint64_t* tapeRootPositionNew, uint64_t* currentTapePositionNew) {
 			this->localTapeRootPosition = currentTapePositionNew;
 			this->tapeRootPosition = tapeRootPositionNew;
 			this->stringBuffer = stringBufferNew;
-			//dumpRawTape(//std::cout, tapeRootPosition, stringBuffer);
 		}
 
 		inline JsonifierResult<Object> getObject() noexcept;
@@ -935,6 +934,10 @@ namespace Jsonifier {
 			return this->localTapeRootPosition - this->tapeRootPosition + this->currentIndex;
 		}
 
+		inline void asserAtFieldStart() {
+			assert(this->peek() == '"');
+		}
+
 		inline void assertAtObjectStart() {
 			assert(this->peek() == '{');
 		}
@@ -951,8 +954,8 @@ namespace Jsonifier {
 			return (*(localTapeRootPosition + this->currentIndex + index)) >> 56;
 		}
 
-		inline size_t getStructuralCount() {
-			return uint32_t(*(this->localTapeRootPosition) & JSON_VALUE_MASK) - (this->localTapeRootPosition - this->tapeRootPosition);
+		inline size_t getCurrentCount() {
+			return *this->localTapeRootPosition & JSON_VALUE_MASK;
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -1043,15 +1046,15 @@ namespace Jsonifier {
 		size_t currentIndex{};
 	};
 
-	class Field : public TapeIterator, protected std::pair<std::string_view, TapeIterator> {
+	class Field : public JsonValueBase, protected std::pair<std::string_view, JsonValueBase> {
 	  public:
 		class FieldIterator {
 		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
-			using Reference = TapeIterator&;
-			using ValueType = TapeIterator;
-			using Pointer = TapeIterator*;
+			using Reference = JsonValueBase&;
+			using ValueType = JsonValueBase;
+			using Pointer = JsonValueBase*;
 
 			inline FieldIterator(Pointer ptr) noexcept : ptr(ptr) {
 			}
@@ -1071,9 +1074,9 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (FIELD): " << lhs.ptr->getStructuralCount() << std::endl;
+				std::cout << "STRUCTURAL COUNT (FIELD): " << lhs.ptr->getCurrentCount() << std::endl;
 				std::cout << "CURRENT INDEX (FIELD): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() >= lhs.ptr->getStructuralCount();
+				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
 		  protected:
@@ -1081,8 +1084,8 @@ namespace Jsonifier {
 		};
 
 		inline Field() noexcept
-			: TapeIterator{ nullptr, nullptr, nullptr }, std::pair<std::string_view, TapeIterator>{ std::string_view{},
-				  TapeIterator{ nullptr, nullptr, nullptr } } {};
+			: JsonValueBase{ nullptr, nullptr, nullptr }, std::pair<std::string_view, JsonValueBase>{ std::string_view{},
+				  JsonValueBase{ nullptr, nullptr, nullptr } } {};
 
 		inline auto begin() noexcept {
 			return FieldIterator{ this };
@@ -1114,21 +1117,21 @@ namespace Jsonifier {
 
 		template<> inline JsonifierResult<bool> get<bool>() noexcept;
 
-		inline Field(std::string_view&& key, TapeIterator&& value) noexcept
-			: TapeIterator{ std::move(value) }, std::pair<std::string_view, TapeIterator>{ std::move(key), std::move(value) } {
+		inline Field(std::string_view&& key, JsonValueBase&& value) noexcept
+			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
 			this->advance();
 		};
 	};
 
-	class Array : public TapeIterator {
+	class Array : public JsonValueBase {
 	  public:
 		class ArrayIterator {
 		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
-			using Reference = TapeIterator&;
-			using ValueType = TapeIterator;
-			using Pointer = TapeIterator*;
+			using Reference = JsonValueBase&;
+			using ValueType = JsonValueBase;
+			using Pointer = JsonValueBase*;
 
 			inline ArrayIterator(Pointer ptr) noexcept : ptr(ptr) {
 			}
@@ -1148,9 +1151,9 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getStructuralCount() << std::endl;
+				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getCurrentCount() << std::endl;
 				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() >= lhs.ptr->getStructuralCount();
+				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
 		  protected:
@@ -1165,9 +1168,9 @@ namespace Jsonifier {
 			return ArrayIterator{ this };
 		}
 
-		inline Array() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
+		inline Array() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
 
-		inline Array(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {
+		inline Array(JsonValueBase&& other) noexcept : JsonValueBase{ other.collectNextIterator() } {
 			this->advance();
 		};
 
@@ -1190,15 +1193,15 @@ namespace Jsonifier {
 		template<> inline JsonifierResult<bool> get<bool>() noexcept;
 	};
 	
-	class Object : public TapeIterator {
+	class Object : public JsonValueBase {
 	  public:
 		class ObjectIterator {
 		  public:
 			using IteratorCategory = std::forward_iterator_tag;
 			using DifferenceType = std::ptrdiff_t;
-			using Reference = TapeIterator&;
-			using ValueType = TapeIterator;
-			using Pointer = TapeIterator*;
+			using Reference = JsonValueBase&;
+			using ValueType = JsonValueBase;
+			using Pointer = JsonValueBase*;
 
 			inline ObjectIterator(Pointer ptr) noexcept : ptr(ptr) {
 			}
@@ -1218,9 +1221,9 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (OBJECT): " << lhs.ptr->getStructuralCount() << std::endl;
+				std::cout << "STRUCTURAL COUNT (OBJECT): " << lhs.ptr->getCurrentCount() << std::endl;
 				std::cout << "CURRENT INDEX (OBJECT): " << lhs.ptr->getOffset() << std::endl;
-				return lhs.ptr->getOffset() >= lhs.ptr->getStructuralCount();
+				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
 		  protected:
@@ -1235,9 +1238,9 @@ namespace Jsonifier {
 			return ObjectIterator{ this };
 		}
 
-		inline Object() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
+		inline Object() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
 
-		inline Object(TapeIterator&& other) noexcept : TapeIterator{ other.collectNextIterator() } {
+		inline Object(JsonValueBase&& other) noexcept : JsonValueBase{ other.collectNextIterator() } {
 			this->advance();
 		};
 
@@ -1725,10 +1728,8 @@ namespace Jsonifier {
 
 	class SimdJsonValue;
 
-	class Document : public TapeIterator {
+	class Document : public JsonValueBase {
 	  public:
-		inline Document& operator=(Document&&) noexcept = default;
-		inline Document(Document&&) noexcept = default;
 		inline Document() noexcept;
 		inline Document(SimdJsonValue&& value) noexcept;
 
@@ -2564,11 +2565,11 @@ namespace Jsonifier {
 		return returnValue;
 	}
 
-	inline JsonifierResult<Field> TapeIterator::getField(const char* fieldKey) noexcept {
+	inline JsonifierResult<Field> JsonValueBase::getField(const char* fieldKey) noexcept {
 		return { Field{ this->findField() }, ErrorCode::Success };
 	}
 
-	inline JsonifierResult<Object> TapeIterator::getObject() noexcept {
+	inline JsonifierResult<Object> JsonValueBase::getObject() noexcept {
 		this->assertAtObjectStart();
 		if (this->peek() == '{') {
 			return { Object{ this->collectNextIterator() }, ErrorCode::Success };
@@ -2578,7 +2579,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline JsonifierResult<Array> TapeIterator::getArray() noexcept {
+	inline JsonifierResult<Array> JsonValueBase::getArray() noexcept {
 		std::cout << "CURRENT KEY(GET ARRAY)" << this->peek() << std::endl;
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
@@ -2611,7 +2612,7 @@ namespace Jsonifier {
 	inline JsonifierResult<OTy>::JsonifierResult(OTy&& other, ErrorCode&& error) noexcept
 		: std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
-	inline Field TapeIterator::operator[](const char* keyNew) {
+	inline Field JsonValueBase::operator[](const char* keyNew) {
 		return this->findField(keyNew);
 	}
 
@@ -2685,15 +2686,16 @@ namespace Jsonifier {
 		return { this->parseJsonBool(), ErrorCode::Success };
 	}
 
-	inline Document::Document() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
+	inline Document::Document() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
 
 	inline Document::Document(SimdJsonValue&& value) noexcept
-		: parser{ std::make_unique<SimdJsonValue>(std::move(value)) }, TapeIterator{ value.getStringBuffer(), value.getTape(), value.getTape() } {};
+		: parser{ std::make_unique<SimdJsonValue>(std::move(value)) }, JsonValueBase{ value.getStringBuffer(), value.getTape(), value.getTape() } {};
 
-	inline Field TapeIterator::findField(const char* keyNew) {
-		for (size_t x = 0; x < this->getStructuralCount(); ++x) {
+	inline Field JsonValueBase::findField(const char* keyNew) {
+		for (size_t x = 0; x < this->getCurrentCount(); ++x) {
 			std::cout << "FIND FIELD(KEY)" << this->peek() << std::endl;
 			if (this->peek() == '"') {
+				this->asserAtFieldStart();
 				if (auto newString = this->parseJsonString(); newString == keyNew) {
 					return Field{ std::move(newString), std::move(*this) };
 				}
