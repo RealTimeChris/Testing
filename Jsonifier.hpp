@@ -763,7 +763,7 @@ namespace Jsonifier {
 
 		inline TapeIterator& operator=(const TapeIterator& other) noexcept {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
-			this->rootTapePosition = other.rootTapePosition;
+			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
 			//std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
@@ -771,7 +771,7 @@ namespace Jsonifier {
 
 		inline TapeIterator& operator=(TapeIterator&& other) noexcept {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
-			this->rootTapePosition = other.rootTapePosition;
+			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
 			//std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
@@ -790,7 +790,7 @@ namespace Jsonifier {
 						key = ((*this->advance()) >> 56);
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+					return TapeIterator{ this->stringBuffer, this->tapeRootPosition, startPtr };
 				}
 				case '[': {
 					auto startPtr = this->getTapePosition();
@@ -799,7 +799,7 @@ namespace Jsonifier {
 						key = ((*this->advance()) >> 56);
 						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
 					}
-					return TapeIterator{ this->stringBuffer, this->rootTapePosition, startPtr };
+					return TapeIterator{ this->stringBuffer, this->tapeRootPosition, startPtr };
 				}
 				case 'l' : {
 					[[fallthrough]];
@@ -835,11 +835,11 @@ namespace Jsonifier {
 
 		inline Field operator[](const char* keyNew);
 		
-		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* rootTapePositionNew, uint64_t* currentTapePositionNew) {
+		inline TapeIterator(uint8_t* stringBufferNew, uint64_t* tapeRootPositionNew, uint64_t* currentTapePositionNew) {
 			this->localTapeRootPosition = currentTapePositionNew;
-			this->rootTapePosition = rootTapePositionNew;
+			this->tapeRootPosition = tapeRootPositionNew;
 			this->stringBuffer = stringBufferNew;
-			//dumpRawTape(//std::cout, rootTapePosition, stringBuffer);
+			//dumpRawTape(//std::cout, tapeRootPosition, stringBuffer);
 		}
 
 		inline JsonifierResult<Object> getObject() noexcept;
@@ -932,7 +932,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getOffset() {
-			return this->localTapeRootPosition - this->rootTapePosition + this->currentIndex;
+			return this->localTapeRootPosition - this->tapeRootPosition + this->currentIndex;
 		}
 
 		inline void assertAtObjectStart() {
@@ -952,7 +952,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t getStructuralCount() {
-			return uint32_t(*(this->localTapeRootPosition) & JSON_VALUE_MASK) - (this->localTapeRootPosition - this->rootTapePosition);
+			return uint32_t(*(this->localTapeRootPosition) & JSON_VALUE_MASK) - (this->localTapeRootPosition - this->tapeRootPosition);
 		}
 
 		inline uint8_t* getStringBuffer() {
@@ -1033,12 +1033,12 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* getTapeRoot() {
-			return this->rootTapePosition;
+			return this->tapeRootPosition;
 		}
 
 	  protected:
 		uint64_t* localTapeRootPosition{};
-		uint64_t* rootTapePosition{};
+		uint64_t* tapeRootPosition{};
 		uint8_t* stringBuffer{};
 		size_t currentIndex{};
 	};
