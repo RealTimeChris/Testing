@@ -25,19 +25,18 @@ namespace Jsonifier {
 
 	enum class ErrorCode : int8_t {
 		Empty = 0,
-		Tape_Error = 1,
-		Depth_Error = 2,
+		TapeError = 1,
+		DepthError = 2,
 		Success = 3,
-		Parse_Error = 4,
-		String_Error = 5,
-		T_Atom_Error = 6,
-		F_Atom_Error = 7,
-		N_Atom_Error = 8,
-		Mem_Alloc_Error = 9,
-		Invalid_Number_Error = 10,
+		ParseError = 4,
+		StringError = 5,
+		TAtomError = 6,
+		FAtomError = 7,
+		NAtomError = 8,
+		MemAlloc = 9,
+		InvalidNumber = 10,
 		Incorrect_Type = 11,
-		Uninitialized = 12,
-		Finished_Iterating = 13
+		Uninitialized = 12
 	};
 
 	class JsonifierError : public std::runtime_error {
@@ -62,7 +61,6 @@ namespace Jsonifier {
 
 	class NumberParser {
 	  public:
-
 		template<typename I> inline static bool parseDigit(const uint8_t c, I& i) {
 			const uint8_t digit = static_cast<uint8_t>(c - '0');
 			if (digit > 9 || digit < -2) {
@@ -83,7 +81,7 @@ namespace Jsonifier {
 			}
 			exponent = firstAfterPeriod - p;
 			if (exponent == 0) {
-				return ErrorCode::Invalid_Number_Error;
+				return ErrorCode::InvalidNumber;
 			}
 			return ErrorCode::Success;
 		}
@@ -99,7 +97,7 @@ namespace Jsonifier {
 				++p;
 			}
 			if (p == startExp) {
-				return ErrorCode::Invalid_Number_Error;
+				return ErrorCode::InvalidNumber;
 			}
 			if (p > startExp + 18) {
 				while (*startExp == '0') {
@@ -224,59 +222,59 @@ namespace Jsonifier {
 				0x40DD, 0x40EF, 0x4902, 0x4915, 0x4929, 0x513E, 0x5153, 0x5169, 0x5180, 0x5998, 0x59B0, 0x59C9, 0x61E3, 0x61FD, 0x6218, 0x6A34,
 				0x6A50, 0x6A6D, 0x6A8B, 0x72AA, 0x72C9, 0x72E9, 0x7B0A, 0x7B2B, 0x7B4D, 0x8370, 0x8393, 0x83B7, 0x83DC, 0x8C02, 0x8C28, 0x8C4F,
 				0x9477, 0x949F, 0x94C8, 0x9CF2, 0x051C, 0x051C, 0x051C, 0x051C };
-			uint32_t x_a = numberOfDigitsDecimalLeftShift_table[shift];
-			uint32_t x_b = numberOfDigitsDecimalLeftShift_table[shift + 1];
-			uint32_t num_new_digits = x_a >> 11;
-			uint32_t pow5_a = 0x7FF & x_a;
-			uint32_t pow5_b = 0x7FF & x_b;
+			uint32_t xA = numberOfDigitsDecimalLeftShift_table[shift];
+			uint32_t xB = numberOfDigitsDecimalLeftShift_table[shift + 1];
+			uint32_t numNewDigits = xA >> 11;
+			uint32_t pow5A = 0x7FF & xA;
+			uint32_t pow5B = 0x7FF & xB;
 
-			static uint8_t numberOfDigitsDecimalLeftShift_table_powers_of_5[0x051C]{ 5, 2, 5, 1, 2, 5, 6, 2, 5, 3, 1, 2, 5, 1, 5, 6, 2, 5, 7, 8, 1, 2, 5,
-				3, 9, 0, 6, 2, 5, 1, 9, 5, 3, 1, 2, 5, 9, 7, 6, 5, 6, 2, 5, 4, 8, 8, 2, 8, 1, 2, 5, 2, 4, 4, 1, 4, 0, 6, 2, 5, 1, 2, 2, 0, 7, 0, 3, 1,
-				2, 5, 6, 1, 0, 3, 5, 1, 5, 6, 2, 5, 3, 0, 5, 1, 7, 5, 7, 8, 1, 2, 5, 1, 5, 2, 5, 8, 7, 8, 9, 0, 6, 2, 5, 7, 6, 2, 9, 3, 9, 4, 5, 3, 1,
-				2, 5, 3, 8, 1, 4, 6, 9, 7, 2, 6, 5, 6, 2, 5, 1, 9, 0, 7, 3, 4, 8, 6, 3, 2, 8, 1, 2, 5, 9, 5, 3, 6, 7, 4, 3, 1, 6, 4, 0, 6, 2, 5, 4, 7,
-				6, 8, 3, 7, 1, 5, 8, 2, 0, 3, 1, 2, 5, 2, 3, 8, 4, 1, 8, 5, 7, 9, 1, 0, 1, 5, 6, 2, 5, 1, 1, 9, 2, 0, 9, 2, 8, 9, 5, 5, 0, 7, 8, 1, 2,
-				5, 5, 9, 6, 0, 4, 6, 4, 4, 7, 7, 5, 3, 9, 0, 6, 2, 5, 2, 9, 8, 0, 2, 3, 2, 2, 3, 8, 7, 6, 9, 5, 3, 1, 2, 5, 1, 4, 9, 0, 1, 1, 6, 1, 1,
-				9, 3, 8, 4, 7, 6, 5, 6, 2, 5, 7, 4, 5, 0, 5, 8, 0, 5, 9, 6, 9, 2, 3, 8, 2, 8, 1, 2, 5, 3, 7, 2, 5, 2, 9, 0, 2, 9, 8, 4, 6, 1, 9, 1, 4,
-				0, 6, 2, 5, 1, 8, 6, 2, 6, 4, 5, 1, 4, 9, 2, 3, 0, 9, 5, 7, 0, 3, 1, 2, 5, 9, 3, 1, 3, 2, 2, 5, 7, 4, 6, 1, 5, 4, 7, 8, 5, 1, 5, 6, 2,
-				5, 4, 6, 5, 6, 6, 1, 2, 8, 7, 3, 0, 7, 7, 3, 9, 2, 5, 7, 8, 1, 2, 5, 2, 3, 2, 8, 3, 0, 6, 4, 3, 6, 5, 3, 8, 6, 9, 6, 2, 8, 9, 0, 6, 2,
-				5, 1, 1, 6, 4, 1, 5, 3, 2, 1, 8, 2, 6, 9, 3, 4, 8, 1, 4, 4, 5, 3, 1, 2, 5, 5, 8, 2, 0, 7, 6, 6, 0, 9, 1, 3, 4, 6, 7, 4, 0, 7, 2, 2, 6,
-				5, 6, 2, 5, 2, 9, 1, 0, 3, 8, 3, 0, 4, 5, 6, 7, 3, 3, 7, 0, 3, 6, 1, 3, 2, 8, 1, 2, 5, 1, 4, 5, 5, 1, 9, 1, 5, 2, 2, 8, 3, 6, 6, 8, 5,
-				1, 8, 0, 6, 6, 4, 0, 6, 2, 5, 7, 2, 7, 5, 9, 5, 7, 6, 1, 4, 1, 8, 3, 4, 2, 5, 9, 0, 3, 3, 2, 0, 3, 1, 2, 5, 3, 6, 3, 7, 9, 7, 8, 8, 0,
-				7, 0, 9, 1, 7, 1, 2, 9, 5, 1, 6, 6, 0, 1, 5, 6, 2, 5, 1, 8, 1, 8, 9, 8, 9, 4, 0, 3, 5, 4, 5, 8, 5, 6, 4, 7, 5, 8, 3, 0, 0, 7, 8, 1, 2,
-				5, 9, 0, 9, 4, 9, 4, 7, 0, 1, 7, 7, 2, 9, 2, 8, 2, 3, 7, 9, 1, 5, 0, 3, 9, 0, 6, 2, 5, 4, 5, 4, 7, 4, 7, 3, 5, 0, 8, 8, 6, 4, 6, 4, 1,
-				1, 8, 9, 5, 7, 5, 1, 9, 5, 3, 1, 2, 5, 2, 2, 7, 3, 7, 3, 6, 7, 5, 4, 4, 3, 2, 3, 2, 0, 5, 9, 4, 7, 8, 7, 5, 9, 7, 6, 5, 6, 2, 5, 1, 1,
-				3, 6, 8, 6, 8, 3, 7, 7, 2, 1, 6, 1, 6, 0, 2, 9, 7, 3, 9, 3, 7, 9, 8, 8, 2, 8, 1, 2, 5, 5, 6, 8, 4, 3, 4, 1, 8, 8, 6, 0, 8, 0, 8, 0, 1,
-				4, 8, 6, 9, 6, 8, 9, 9, 4, 1, 4, 0, 6, 2, 5, 2, 8, 4, 2, 1, 7, 0, 9, 4, 3, 0, 4, 0, 4, 0, 0, 7, 4, 3, 4, 8, 4, 4, 9, 7, 0, 7, 0, 3, 1,
-				2, 5, 1, 4, 2, 1, 0, 8, 5, 4, 7, 1, 5, 2, 0, 2, 0, 0, 3, 7, 1, 7, 4, 2, 2, 4, 8, 5, 3, 5, 1, 5, 6, 2, 5, 7, 1, 0, 5, 4, 2, 7, 3, 5, 7,
-				6, 0, 1, 0, 0, 1, 8, 5, 8, 7, 1, 1, 2, 4, 2, 6, 7, 5, 7, 8, 1, 2, 5, 3, 5, 5, 2, 7, 1, 3, 6, 7, 8, 8, 0, 0, 5, 0, 0, 9, 2, 9, 3, 5, 5,
-				6, 2, 1, 3, 3, 7, 8, 9, 0, 6, 2, 5, 1, 7, 7, 6, 3, 5, 6, 8, 3, 9, 4, 0, 0, 2, 5, 0, 4, 6, 4, 6, 7, 7, 8, 1, 0, 6, 6, 8, 9, 4, 5, 3, 1,
-				2, 5, 8, 8, 8, 1, 7, 8, 4, 1, 9, 7, 0, 0, 1, 2, 5, 2, 3, 2, 3, 3, 8, 9, 0, 5, 3, 3, 4, 4, 7, 2, 6, 5, 6, 2, 5, 4, 4, 4, 0, 8, 9, 2, 0,
-				9, 8, 5, 0, 0, 6, 2, 6, 1, 6, 1, 6, 9, 4, 5, 2, 6, 6, 7, 2, 3, 6, 3, 2, 8, 1, 2, 5, 2, 2, 2, 0, 4, 4, 6, 0, 4, 9, 2, 5, 0, 3, 1, 3, 0,
-				8, 0, 8, 4, 7, 2, 6, 3, 3, 3, 6, 1, 8, 1, 6, 4, 0, 6, 2, 5, 1, 1, 1, 0, 2, 2, 3, 0, 2, 4, 6, 2, 5, 1, 5, 6, 5, 4, 0, 4, 2, 3, 6, 3, 1,
-				6, 6, 8, 0, 9, 0, 8, 2, 0, 3, 1, 2, 5, 5, 5, 5, 1, 1, 1, 5, 1, 2, 3, 1, 2, 5, 7, 8, 2, 7, 0, 2, 1, 1, 8, 1, 5, 8, 3, 4, 0, 4, 5, 4, 1,
-				0, 1, 5, 6, 2, 5, 2, 7, 7, 5, 5, 5, 7, 5, 6, 1, 5, 6, 2, 8, 9, 1, 3, 5, 1, 0, 5, 9, 0, 7, 9, 1, 7, 0, 2, 2, 7, 0, 5, 0, 7, 8, 1, 2, 5,
-				1, 3, 8, 7, 7, 7, 8, 7, 8, 0, 7, 8, 1, 4, 4, 5, 6, 7, 5, 5, 2, 9, 5, 3, 9, 5, 8, 5, 1, 1, 3, 5, 2, 5, 3, 9, 0, 6, 2, 5, 6, 9, 3, 8, 8,
-				9, 3, 9, 0, 3, 9, 0, 7, 2, 2, 8, 3, 7, 7, 6, 4, 7, 6, 9, 7, 9, 2, 5, 5, 6, 7, 6, 2, 6, 9, 5, 3, 1, 2, 5, 3, 4, 6, 9, 4, 4, 6, 9, 5, 1,
-				9, 5, 3, 6, 1, 4, 1, 8, 8, 8, 2, 3, 8, 4, 8, 9, 6, 2, 7, 8, 3, 8, 1, 3, 4, 7, 6, 5, 6, 2, 5, 1, 7, 3, 4, 7, 2, 3, 4, 7, 5, 9, 7, 6, 8,
-				0, 7, 0, 9, 4, 4, 1, 1, 9, 2, 4, 4, 8, 1, 3, 9, 1, 9, 0, 6, 7, 3, 8, 2, 8, 1, 2, 5, 8, 6, 7, 3, 6, 1, 7, 3, 7, 9, 8, 8, 4, 0, 3, 5, 4,
-				7, 2, 0, 5, 9, 6, 2, 2, 4, 0, 6, 9, 5, 9, 5, 3, 3, 6, 9, 1, 4, 0, 6, 2, 5 };
+			static uint8_t numberOfDigitsDecimalLeftShift[0x051C]{ 5, 2, 5, 1, 2, 5, 6, 2, 5, 3, 1, 2, 5, 1, 5, 6, 2, 5, 7, 8, 1, 2,
+				5, 3, 9, 0, 6, 2, 5, 1, 9, 5, 3, 1, 2, 5, 9, 7, 6, 5, 6, 2, 5, 4, 8, 8, 2, 8, 1, 2, 5, 2, 4, 4, 1, 4, 0, 6, 2, 5, 1, 2, 2, 0, 7, 0, 3,
+				1, 2, 5, 6, 1, 0, 3, 5, 1, 5, 6, 2, 5, 3, 0, 5, 1, 7, 5, 7, 8, 1, 2, 5, 1, 5, 2, 5, 8, 7, 8, 9, 0, 6, 2, 5, 7, 6, 2, 9, 3, 9, 4, 5, 3,
+				1, 2, 5, 3, 8, 1, 4, 6, 9, 7, 2, 6, 5, 6, 2, 5, 1, 9, 0, 7, 3, 4, 8, 6, 3, 2, 8, 1, 2, 5, 9, 5, 3, 6, 7, 4, 3, 1, 6, 4, 0, 6, 2, 5, 4,
+				7, 6, 8, 3, 7, 1, 5, 8, 2, 0, 3, 1, 2, 5, 2, 3, 8, 4, 1, 8, 5, 7, 9, 1, 0, 1, 5, 6, 2, 5, 1, 1, 9, 2, 0, 9, 2, 8, 9, 5, 5, 0, 7, 8, 1,
+				2, 5, 5, 9, 6, 0, 4, 6, 4, 4, 7, 7, 5, 3, 9, 0, 6, 2, 5, 2, 9, 8, 0, 2, 3, 2, 2, 3, 8, 7, 6, 9, 5, 3, 1, 2, 5, 1, 4, 9, 0, 1, 1, 6, 1,
+				1, 9, 3, 8, 4, 7, 6, 5, 6, 2, 5, 7, 4, 5, 0, 5, 8, 0, 5, 9, 6, 9, 2, 3, 8, 2, 8, 1, 2, 5, 3, 7, 2, 5, 2, 9, 0, 2, 9, 8, 4, 6, 1, 9, 1,
+				4, 0, 6, 2, 5, 1, 8, 6, 2, 6, 4, 5, 1, 4, 9, 2, 3, 0, 9, 5, 7, 0, 3, 1, 2, 5, 9, 3, 1, 3, 2, 2, 5, 7, 4, 6, 1, 5, 4, 7, 8, 5, 1, 5, 6,
+				2, 5, 4, 6, 5, 6, 6, 1, 2, 8, 7, 3, 0, 7, 7, 3, 9, 2, 5, 7, 8, 1, 2, 5, 2, 3, 2, 8, 3, 0, 6, 4, 3, 6, 5, 3, 8, 6, 9, 6, 2, 8, 9, 0, 6,
+				2, 5, 1, 1, 6, 4, 1, 5, 3, 2, 1, 8, 2, 6, 9, 3, 4, 8, 1, 4, 4, 5, 3, 1, 2, 5, 5, 8, 2, 0, 7, 6, 6, 0, 9, 1, 3, 4, 6, 7, 4, 0, 7, 2, 2,
+				6, 5, 6, 2, 5, 2, 9, 1, 0, 3, 8, 3, 0, 4, 5, 6, 7, 3, 3, 7, 0, 3, 6, 1, 3, 2, 8, 1, 2, 5, 1, 4, 5, 5, 1, 9, 1, 5, 2, 2, 8, 3, 6, 6, 8,
+				5, 1, 8, 0, 6, 6, 4, 0, 6, 2, 5, 7, 2, 7, 5, 9, 5, 7, 6, 1, 4, 1, 8, 3, 4, 2, 5, 9, 0, 3, 3, 2, 0, 3, 1, 2, 5, 3, 6, 3, 7, 9, 7, 8, 8,
+				0, 7, 0, 9, 1, 7, 1, 2, 9, 5, 1, 6, 6, 0, 1, 5, 6, 2, 5, 1, 8, 1, 8, 9, 8, 9, 4, 0, 3, 5, 4, 5, 8, 5, 6, 4, 7, 5, 8, 3, 0, 0, 7, 8, 1,
+				2, 5, 9, 0, 9, 4, 9, 4, 7, 0, 1, 7, 7, 2, 9, 2, 8, 2, 3, 7, 9, 1, 5, 0, 3, 9, 0, 6, 2, 5, 4, 5, 4, 7, 4, 7, 3, 5, 0, 8, 8, 6, 4, 6, 4,
+				1, 1, 8, 9, 5, 7, 5, 1, 9, 5, 3, 1, 2, 5, 2, 2, 7, 3, 7, 3, 6, 7, 5, 4, 4, 3, 2, 3, 2, 0, 5, 9, 4, 7, 8, 7, 5, 9, 7, 6, 5, 6, 2, 5, 1,
+				1, 3, 6, 8, 6, 8, 3, 7, 7, 2, 1, 6, 1, 6, 0, 2, 9, 7, 3, 9, 3, 7, 9, 8, 8, 2, 8, 1, 2, 5, 5, 6, 8, 4, 3, 4, 1, 8, 8, 6, 0, 8, 0, 8, 0,
+				1, 4, 8, 6, 9, 6, 8, 9, 9, 4, 1, 4, 0, 6, 2, 5, 2, 8, 4, 2, 1, 7, 0, 9, 4, 3, 0, 4, 0, 4, 0, 0, 7, 4, 3, 4, 8, 4, 4, 9, 7, 0, 7, 0, 3,
+				1, 2, 5, 1, 4, 2, 1, 0, 8, 5, 4, 7, 1, 5, 2, 0, 2, 0, 0, 3, 7, 1, 7, 4, 2, 2, 4, 8, 5, 3, 5, 1, 5, 6, 2, 5, 7, 1, 0, 5, 4, 2, 7, 3, 5,
+				7, 6, 0, 1, 0, 0, 1, 8, 5, 8, 7, 1, 1, 2, 4, 2, 6, 7, 5, 7, 8, 1, 2, 5, 3, 5, 5, 2, 7, 1, 3, 6, 7, 8, 8, 0, 0, 5, 0, 0, 9, 2, 9, 3, 5,
+				5, 6, 2, 1, 3, 3, 7, 8, 9, 0, 6, 2, 5, 1, 7, 7, 6, 3, 5, 6, 8, 3, 9, 4, 0, 0, 2, 5, 0, 4, 6, 4, 6, 7, 7, 8, 1, 0, 6, 6, 8, 9, 4, 5, 3,
+				1, 2, 5, 8, 8, 8, 1, 7, 8, 4, 1, 9, 7, 0, 0, 1, 2, 5, 2, 3, 2, 3, 3, 8, 9, 0, 5, 3, 3, 4, 4, 7, 2, 6, 5, 6, 2, 5, 4, 4, 4, 0, 8, 9, 2,
+				0, 9, 8, 5, 0, 0, 6, 2, 6, 1, 6, 1, 6, 9, 4, 5, 2, 6, 6, 7, 2, 3, 6, 3, 2, 8, 1, 2, 5, 2, 2, 2, 0, 4, 4, 6, 0, 4, 9, 2, 5, 0, 3, 1, 3,
+				0, 8, 0, 8, 4, 7, 2, 6, 3, 3, 3, 6, 1, 8, 1, 6, 4, 0, 6, 2, 5, 1, 1, 1, 0, 2, 2, 3, 0, 2, 4, 6, 2, 5, 1, 5, 6, 5, 4, 0, 4, 2, 3, 6, 3,
+				1, 6, 6, 8, 0, 9, 0, 8, 2, 0, 3, 1, 2, 5, 5, 5, 5, 1, 1, 1, 5, 1, 2, 3, 1, 2, 5, 7, 8, 2, 7, 0, 2, 1, 1, 8, 1, 5, 8, 3, 4, 0, 4, 5, 4,
+				1, 0, 1, 5, 6, 2, 5, 2, 7, 7, 5, 5, 5, 7, 5, 6, 1, 5, 6, 2, 8, 9, 1, 3, 5, 1, 0, 5, 9, 0, 7, 9, 1, 7, 0, 2, 2, 7, 0, 5, 0, 7, 8, 1, 2,
+				5, 1, 3, 8, 7, 7, 7, 8, 7, 8, 0, 7, 8, 1, 4, 4, 5, 6, 7, 5, 5, 2, 9, 5, 3, 9, 5, 8, 5, 1, 1, 3, 5, 2, 5, 3, 9, 0, 6, 2, 5, 6, 9, 3, 8,
+				8, 9, 3, 9, 0, 3, 9, 0, 7, 2, 2, 8, 3, 7, 7, 6, 4, 7, 6, 9, 7, 9, 2, 5, 5, 6, 7, 6, 2, 6, 9, 5, 3, 1, 2, 5, 3, 4, 6, 9, 4, 4, 6, 9, 5,
+				1, 9, 5, 3, 6, 1, 4, 1, 8, 8, 8, 2, 3, 8, 4, 8, 9, 6, 2, 7, 8, 3, 8, 1, 3, 4, 7, 6, 5, 6, 2, 5, 1, 7, 3, 4, 7, 2, 3, 4, 7, 5, 9, 7, 6,
+				8, 0, 7, 0, 9, 4, 4, 1, 1, 9, 2, 4, 4, 8, 1, 3, 9, 1, 9, 0, 6, 7, 3, 8, 2, 8, 1, 2, 5, 8, 6, 7, 3, 6, 1, 7, 3, 7, 9, 8, 8, 4, 0, 3, 5,
+				4, 7, 2, 0, 5, 9, 6, 2, 2, 4, 0, 6, 9, 5, 9, 5, 3, 3, 6, 9, 1, 4, 0, 6, 2, 5 };
 
-			const uint8_t* pow5 = &numberOfDigitsDecimalLeftShift_table_powers_of_5[pow5_a];
+			const uint8_t* pow5 = &numberOfDigitsDecimalLeftShift[pow5A];
 
 			uint32_t i = 0;
-			uint32_t n = pow5_b - pow5_a;
+			uint32_t n = pow5B - pow5A;
 			for (; i < n; i++) {
 				if (i >= h.numDigits) {
-					return num_new_digits - 1;
+					return numNewDigits - 1;
 				} else if (h.digits[i] == pow5[i]) {
 					continue;
 				} else if (h.digits[i] < pow5[i]) {
-					return num_new_digits - 1;
+					return numNewDigits - 1;
 				} else {
-					return num_new_digits;
+					return numNewDigits;
 				}
 			}
-			return num_new_digits;
+			return numNewDigits;
 		}
 
 		inline static void trim(Decimal& h) {
@@ -288,25 +286,25 @@ namespace Jsonifier {
 		inline static const int32_t decimalPointRange = 2047;
 
 		inline static void decimalRightShift(Decimal& h, uint32_t shift) {
-			uint32_t read_index = 0;
-			uint32_t write_index = 0;
+			uint32_t readIndex = 0;
+			uint32_t writeIndex = 0;
 
 			uint64_t n = 0;
 
 			while ((n >> shift) == 0) {
-				if (read_index < h.numDigits) {
-					n = (10 * n) + h.digits[read_index++];
+				if (readIndex < h.numDigits) {
+					n = (10 * n) + h.digits[readIndex++];
 				} else if (n == 0) {
 					return;
 				} else {
 					while ((n >> shift) == 0) {
 						n = 10 * n;
-						read_index++;
+						readIndex++;
 					}
 					break;
 				}
 			}
-			h.decimalPoint -= int32_t(read_index - 1);
+			h.decimalPoint -= int32_t(readIndex - 1);
 			if (h.decimalPoint < -decimalPointRange) {
 				h.numDigits = 0;
 				h.decimalPoint = 0;
@@ -315,21 +313,21 @@ namespace Jsonifier {
 				return;
 			}
 			uint64_t mask = (uint64_t(1) << shift) - 1;
-			while (read_index < h.numDigits) {
-				uint8_t new_digit = uint8_t(n >> shift);
-				n = (10 * (n & mask)) + h.digits[read_index++];
-				h.digits[write_index++] = new_digit;
+			while (readIndex < h.numDigits) {
+				uint8_t newDigit = uint8_t(n >> shift);
+				n = (10 * (n & mask)) + h.digits[readIndex++];
+				h.digits[writeIndex++] = newDigit;
 			}
 			while (n > 0) {
-				uint8_t new_digit = uint8_t(n >> shift);
+				uint8_t newDigit = uint8_t(n >> shift);
 				n = 10 * (n & mask);
-				if (write_index < maxDigits) {
-					h.digits[write_index++] = new_digit;
-				} else if (new_digit > 0) {
+				if (writeIndex < maxDigits) {
+					h.digits[writeIndex++] = newDigit;
+				} else if (newDigit > 0) {
 					h.truncated = true;
 				}
 			}
-			h.numDigits = write_index;
+			h.numDigits = writeIndex;
 			trim(h);
 		}
 
@@ -344,14 +342,14 @@ namespace Jsonifier {
 			for (uint32_t i = 0; i < dp; i++) {
 				n = (10 * n) + ((i < h.numDigits) ? h.digits[i] : 0);
 			}
-			bool round_up = false;
+			bool roundUp = false;
 			if (dp < h.numDigits) {
-				round_up = h.digits[dp] >= 5;
+				roundUp = h.digits[dp] >= 5;
 				if ((h.digits[dp] == 5) && (dp + 1 == h.numDigits)) {
-					round_up = h.truncated || ((dp > 0) && (1 & h.digits[dp - 1]));
+					roundUp = h.truncated || ((dp > 0) && (1 & h.digits[dp - 1]));
 				}
 			}
-			if (round_up) {
+			if (roundUp) {
 				n++;
 			}
 			return n;
@@ -361,40 +359,40 @@ namespace Jsonifier {
 			if (h.numDigits == 0) {
 				return;
 			}
-			uint32_t num_new_digits = numberOfDigitsDecimalLeftShift(h, shift);
-			int32_t read_index = int32_t(h.numDigits - 1);
-			uint32_t write_index = h.numDigits - 1 + num_new_digits;
+			uint32_t numNewDigits = numberOfDigitsDecimalLeftShift(h, shift);
+			int32_t readIndex = int32_t(h.numDigits - 1);
+			uint32_t writeIndex = h.numDigits - 1 + numNewDigits;
 			uint64_t n = 0;
 
-			while (read_index >= 0) {
-				n += uint64_t(h.digits[read_index]) << shift;
+			while (readIndex >= 0) {
+				n += uint64_t(h.digits[readIndex]) << shift;
 				uint64_t quotient = n / 10;
 				uint64_t remainder = n - (10 * quotient);
-				if (write_index < maxDigits) {
-					h.digits[write_index] = uint8_t(remainder);
+				if (writeIndex < maxDigits) {
+					h.digits[writeIndex] = uint8_t(remainder);
 				} else if (remainder > 0) {
 					h.truncated = true;
 				}
 				n = quotient;
-				write_index--;
-				read_index--;
+				writeIndex--;
+				readIndex--;
 			}
 			while (n > 0) {
 				uint64_t quotient = n / 10;
 				uint64_t remainder = n - (10 * quotient);
-				if (write_index < maxDigits) {
-					h.digits[write_index] = uint8_t(remainder);
+				if (writeIndex < maxDigits) {
+					h.digits[writeIndex] = uint8_t(remainder);
 				} else if (remainder > 0) {
 					h.truncated = true;
 				}
 				n = quotient;
-				write_index--;
+				writeIndex--;
 			}
-			h.numDigits += num_new_digits;
+			h.numDigits += numNewDigits;
 			if (h.numDigits > maxDigits) {
 				h.numDigits = maxDigits;
 			}
-			h.decimalPoint += int32_t(num_new_digits);
+			h.decimalPoint += int32_t(numNewDigits);
 			trim(h);
 		}
 
@@ -415,14 +413,14 @@ namespace Jsonifier {
 				return answer;
 			}
 
-			static const uint32_t max_shift = 60;
-			static const uint32_t num_powers = 19;
+			static const uint32_t maxShift = 60;
+			static const uint32_t numPowers = 19;
 			static const uint8_t powers[19]{ 0, 3, 6, 9, 13, 16, 19, 23, 26, 29, 33, 36, 39, 43, 46, 49, 53, 56, 59 };
 
 			int32_t exp2 = 0;
 			while (d.decimalPoint > 0) {
 				uint32_t n = uint32_t(d.decimalPoint);
-				uint32_t shift = (n < num_powers) ? powers[n] : max_shift;
+				uint32_t shift = (n < numPowers) ? powers[n] : maxShift;
 				decimalRightShift(d, shift);
 				if (d.decimalPoint < -decimalPointRange) {
 					answer.power2 = 0;
@@ -440,7 +438,7 @@ namespace Jsonifier {
 					shift = (d.digits[0] < 2) ? 2 : 1;
 				} else {
 					uint32_t n = uint32_t(-d.decimalPoint);
-					shift = (n < num_powers) ? powers[n] : max_shift;
+					shift = (n < numPowers) ? powers[n] : maxShift;
 				}
 				decimalLeftShift(d, shift);
 				if (d.decimalPoint > decimalPointRange) {
@@ -454,8 +452,8 @@ namespace Jsonifier {
 			const int32_t minimumExponentNew = minimumExponent();
 			while ((minimumExponentNew + 1) > exp2) {
 				uint32_t n = uint32_t((minimumExponentNew + 1) - exp2);
-				if (n > max_shift) {
-					n = max_shift;
+				if (n > maxShift) {
+					n = maxShift;
 				}
 				decimalRightShift(d, n);
 				exp2 += int32_t(n);
@@ -466,11 +464,11 @@ namespace Jsonifier {
 				return answer;
 			}
 
-			const int mantissa_size_in_bits = mantissaExplicitBits() + 1;
-			decimalLeftShift(d, mantissa_size_in_bits);
+			const int mantissaSizeInBits = mantissaExplicitBits() + 1;
+			decimalLeftShift(d, mantissaSizeInBits);
 
 			uint64_t mantissa = round(d);
-			if (mantissa >= (uint64_t(1) << mantissa_size_in_bits)) {
+			if (mantissa >= (uint64_t(1) << mantissaSizeInBits)) {
 				decimalRightShift(d, 1);
 				exp2 += 1;
 				mantissa = round(d);
@@ -526,7 +524,7 @@ namespace Jsonifier {
 				writer.appendDouble(std::move(d));
 				return ErrorCode::Success;
 			}
-			return ErrorCode::Invalid_Number_Error;
+			return ErrorCode::InvalidNumber;
 		}
 
 		inline static const int smallestPower = -342;
@@ -649,21 +647,20 @@ namespace Jsonifier {
 					writer.appendDouble(negative ? -0.0 : 0.0);
 					return ErrorCode::Success;
 				} else {
-					return ErrorCode::Invalid_Number_Error;
+					return ErrorCode::InvalidNumber;
 				}
 			}
 			double d;
 			if (!computeFloat64(exponent, i, negative, d)) {
 				if (!parseFloatFallback(src, &d)) {
-					return ErrorCode::Invalid_Number_Error;
+					return ErrorCode::InvalidNumber;
 				}
 			}
 			writer.appendDouble(std::move(d));
 			return ErrorCode::Success;
 		}
 
-		template<typename TapeWriter>
-		inline static ErrorCode parseNumber(const uint8_t* src, TapeWriter& writer) {
+		template<typename TapeWriter> inline static ErrorCode parseNumber(const uint8_t* src, TapeWriter& writer) {
 			bool negative = (*src == '-');
 			const uint8_t* p = src + uint8_t(negative);
 			const uint8_t* const startDigits = p;
@@ -673,7 +670,7 @@ namespace Jsonifier {
 			}
 			size_t digitCount = size_t(p - startDigits);
 			if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
-				return ErrorCode::Invalid_Number_Error;
+				return ErrorCode::InvalidNumber;
 			}
 			int64_t exponent = 0;
 			bool isFloat = false;
@@ -695,17 +692,17 @@ namespace Jsonifier {
 
 			size_t longestDigitCount = negative ? 19 : 20;
 			if (digitCount > longestDigitCount) {
-				return ErrorCode::Invalid_Number_Error;
+				return ErrorCode::InvalidNumber;
 			}
 			if (digitCount == longestDigitCount) {
 				if (negative) {
 					if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1) {
-						return ErrorCode::Invalid_Number_Error;
+						return ErrorCode::InvalidNumber;
 					}
 					writer.appendS64(~i + 1);
 					return ErrorCode::Success;
 				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-					return ErrorCode::Invalid_Number_Error;
+					return ErrorCode::InvalidNumber;
 				}
 			}
 
@@ -727,22 +724,22 @@ namespace Jsonifier {
 			}
 			size_t digitCount = size_t(p - startDigits);
 			if (digitCount == 0 || ('0' == *startDigits && digitCount > 1)) {
-				return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
+				return static_cast<NumberType>(ErrorCode::InvalidNumber);
 			}
 			int64_t exponent = 0;
 
 			size_t longestDigitCount = negative ? 19 : 20;
 			if (digitCount > longestDigitCount) {
-				return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
+				return static_cast<NumberType>(ErrorCode::InvalidNumber);
 			}
 			if (digitCount == longestDigitCount) {
 				if (negative) {
 					if (i > static_cast<uint64_t>(std::numeric_limits<int64_t>::max()) + 1) {
-						return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
+						return static_cast<NumberType>(ErrorCode::InvalidNumber);
 					}
 					return (~i + 1);
 				} else if (src[0] != uint8_t('1') || i <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max())) {
-					return static_cast<NumberType>(ErrorCode::Invalid_Number_Error);
+					return static_cast<NumberType>(ErrorCode::InvalidNumber);
 				}
 			}
 
@@ -756,22 +753,20 @@ namespace Jsonifier {
 
 		enum NumberError { NUMBER_ERROR, SUCCESS, INCORRECT_TYPE };
 
-		inline static const uint8_t integerStringFinisher[256] = { NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR,
+		inline static const uint8_t integerStringFinisher[256] = { NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS,
-			NUMBER_ERROR, INCORRECT_TYPE, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, INCORRECT_TYPE, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR,
+			INCORRECT_TYPE, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, INCORRECT_TYPE, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS,
-			NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, INCORRECT_TYPE,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR,
+			SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, INCORRECT_TYPE, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, SUCCESS, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
@@ -783,52 +778,31 @@ namespace Jsonifier {
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
 			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
-			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR };
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR,
+			NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR, NUMBER_ERROR };
+
 		inline static int64_t parseInteger(const uint8_t* src) noexcept {
-			//
-			// Check for minus sign
-			//
 			bool negative = (*src == '-');
 			const uint8_t* p = src + uint8_t(negative);
 
-			//
-			// Parse the integer part.
-			//
-			// PERF NOTE: we don't use is_made_of_eight_digits_fast because large integers like 123456789 are rare
-			const uint8_t* const start_digits = p;
+			const uint8_t* const startDigits = p;
 			uint64_t i = 0;
 			while (parseDigit(*p, i)) {
 				p++;
 			}
 
-			// If there were no digits, or if the integer starts with 0 and has more than one digit, it's an error.
-			// Optimization note: size_t is expected to be unsigned.
-			size_t digit_count = size_t(p - start_digits);
-			// We go from
-			// -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
-			// so we can never represent numbers that have more than 19 digits.
-			size_t longest_digit_count = 19;
-			// Optimization note: the compiler can probably merge
-			// ((digit_count == 0) || (digit_count > longest_digit_count))
-			// into a single  branch since digit_count is unsigned.
-			if ((digit_count == 0) || (digit_count > longest_digit_count)) {
+			size_t digitCount = size_t(p - startDigits);
+			size_t longestDigitCount = 19;
+			if ((digitCount == 0) || (digitCount > longestDigitCount)) {
 				return -1;
 			}
-			// Here digit_count > 0.
-			if (('0' == *start_digits) && (digit_count > 1)) {
+			if (('0' == *startDigits) && (digitCount > 1)) {
 				return -1;
 			}
-			// We can do the following...
-			// if (!jsoncharutils::is_structural_or_whitespace(*p)) {
-			//  return (*p == '.' || *p == 'e' || *p == 'E') ? INCORRECT_TYPE : NUMBER_ERROR;
-			// }
-			// as a single table lookup:
 			if (integerStringFinisher[*p] != NumberError::SUCCESS) {
 				return NumberError(integerStringFinisher[*p]);
 			}
-			// Negative numbers have can go down to - INT64_MAX - 1 whereas positive numbers are limited to INT64_MAX.
-			// Performance note: This check is only needed when digit_count == longest_digit_count but it is
-			// so cheap that we might as well always make it.
 			if (i > uint64_t(INT64_MAX) + uint64_t(negative)) {
 				return INCORRECT_TYPE;
 			}
@@ -852,15 +826,9 @@ namespace Jsonifier {
 		}
 
 		inline static double parseDouble(const uint8_t* src) noexcept {
-			//
-			// Check for minus sign
-			//
 			bool negative = (*src == '-');
 			src += uint8_t(negative);
 
-			//
-			// Parse the integer part.
-			//
 			uint64_t i = 0;
 			const uint8_t* p = src;
 			p += parseDigit(*p, i);
@@ -868,7 +836,6 @@ namespace Jsonifier {
 			while (parseDigit(*p, i)) {
 				p++;
 			}
-			// no integer digits, or 0123 (zero must be solo)
 			if (p == src) {
 				return INCORRECT_TYPE;
 			}
@@ -876,9 +843,6 @@ namespace Jsonifier {
 				return NUMBER_ERROR;
 			}
 
-			//
-			// Parse the decimal part.
-			//
 			int64_t exponent = 0;
 			bool overflow;
 			if (*p == '.') {
@@ -886,30 +850,24 @@ namespace Jsonifier {
 				const uint8_t* start_decimal_digits = p;
 				if (!parseDigit(*p, i)) {
 					return NUMBER_ERROR;
-				}// no decimal digits
+				}
 				p++;
 				while (parseDigit(*p, i)) {
 					p++;
 				}
 				exponent = -(p - start_decimal_digits);
-
-				// Overflow check. More than 19 digits (minus the decimal) may be overflow.
 				overflow = p - src - 1 > 19;
 				if (overflow && leading_zero) {
-					// Skip leading 0.00000 and see if it still overflows
-					const uint8_t* start_digits = src + 2;
-					while (*start_digits == '0') {
-						start_digits++;
+					const uint8_t* startDigits = src + 2;
+					while (*startDigits == '0') {
+						startDigits++;
 					}
-					overflow = start_digits - src > 19;
+					overflow = startDigits - src > 19;
 				}
 			} else {
 				overflow = p - src > 19;
 			}
 
-			//
-			// Parse the exponent
-			//
 			if (*p == 'e' || *p == 'E') {
 				p++;
 				bool exp_neg = *p == '-';
@@ -920,7 +878,6 @@ namespace Jsonifier {
 				while (parseDigit(*p, exp)) {
 					p++;
 				}
-				// no exp digits, or 20+ exp digits
 				if (p - start_exp_digits == 0 || p - start_exp_digits > 19) {
 					return NUMBER_ERROR;
 				}
@@ -934,9 +891,6 @@ namespace Jsonifier {
 
 			overflow = overflow || exponent < smallestPower || exponent > largestPower;
 
-			//
-			// Assemble (or slow-parse) the float
-			//
 			double d;
 			if (!overflow) {
 				if (computeFloat64(exponent, i, negative, d)) {
