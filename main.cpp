@@ -52,11 +52,12 @@ struct TheDJson {
 		//auto arrayNewer = fieldNewer.getField("TEST_VALUE_11");
 		sizeNew = fieldNew.size();
 		std::cout << "CURRENT TYPE (FIELD): " << ( int32_t )fieldNew.type() << std::endl;
-		auto newArray = fieldNew.getArray();
+		
 		//auto array = object.get(valueDouble);
 		Jsonifier::Array arrayNewer{};
-		if (newArray.get(arrayNewer) != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
+		auto newArray = fieldNew.getArray().get(arrayNewer);
+		if (newArray != Jsonifier::ErrorCode::Success) {
+			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array!" };
 		}
 		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
 		sizeNew = arrayNewer.size();

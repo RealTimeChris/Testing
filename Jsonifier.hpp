@@ -2613,6 +2613,7 @@ namespace Jsonifier {
 		: std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
 	inline Field JsonValueBase::operator[](const char* keyNew) {
+		std::cout << "WERE HERE THIS IS IT GETTTING A FIELD!" << std::endl;
 		return this->findField(keyNew);
 	}
 
@@ -2692,15 +2693,11 @@ namespace Jsonifier {
 		: parser{ std::make_unique<SimdJsonValue>(std::move(value)) }, JsonValueBase{ value.getStringBuffer(), value.getTape(), value.getTape() } {};
 
 	inline Field JsonValueBase::findField(const char* keyNew) {
-		for (size_t x = 0; x < this->getCurrentCount(); ++x) {
-			std::cout << "FIND FIELD(KEY)" << this->peek() << std::endl;
-			if (this->peek() == '"') {
-				this->asserAtFieldStart();
-				if (auto newString = this->parseJsonString(); newString == keyNew) {
-					return Field{ std::move(newString), std::move(*this) };
-				}
-			} else {
-				this->advance();
+		std::cout << "FIND FIELD(KEY)" << this->peek() << std::endl;
+		if (this->peek() == '"') {
+			this->asserAtFieldStart();
+			if (auto newString = this->parseJsonString(); newString == keyNew) {
+				return Field{ std::move(newString), std::move(*this) };
 			}
 		}
 		return Field{ std::string_view{}, std::move(*this) };
