@@ -878,7 +878,7 @@ namespace Jsonifier {
 			}
 			return returnValue;
 		}
-
+		 
 		inline uint64_t parseJsonUint() {
 			//std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
 			assert(this->peek() == 'l');
@@ -986,7 +986,7 @@ namespace Jsonifier {
 		}
 
 		inline JsonType type() {
-			switch (this->peek()) {
+			switch (this->getRootKey()) {
 				case 'r': {
 					return JsonType::Document;
 				}
