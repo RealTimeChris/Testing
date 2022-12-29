@@ -38,45 +38,28 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		std::cout << "CURRENT TYPE (DOCUMENT): " << ( int32_t )value.type() << std::endl;
 		auto objectNew = value.getObject();
-		//auto theArray = std::move(theObject["activitiess"]);
 		Jsonifier::Object objectNewer{};
 		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
 		}
-		std::cout << "CURRENT TYPE (OBJECT): " << ( int32_t )objectNewer.type() << std::endl;
-		auto sizeNew = objectNewer.size();
 		auto fieldNew = objectNewer["TEST_VALUE_11"];
-		//auto array = object.get(valueDouble);
-		std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
-		std::cout << "CURRENT KEY (FIELD): " << fieldNew.getKey() << std::endl;
-		//auto arrayNewer = fieldNewer.getField("TEST_VALUE_11");
-		sizeNew = fieldNew.size();
-		std::cout << "CURRENT TYPE (FIELD): " << ( int32_t )fieldNew.type() << std::endl;
-		
-		//auto array = object.get(valueDouble);
 		Jsonifier::Array arrayNewer{};
 		auto newArray = fieldNew.getArray().get(arrayNewer);
 		if (newArray != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array, for the reason: " +
 				std::to_string(( int32_t )newArray) };
 		}
-		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
-		sizeNew = arrayNewer.size();
-		std::cout << "CURRENT TYPE (ARRAY): " << ( int32_t )arrayNewer.type() << std::endl;
 		
-		std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
-		//std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		int32_t index{};
 		
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
 			
-			double newValueDouble = static_cast<Jsonifier::Field*>(&(*iter))->getValue<double>();
-			std::cout << "NEW INDEX: " << ( int32_t )newValueDouble << std::endl;
+			std::string newValueDouble = iter->getValue<std::string>();
+			std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
-			
+		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -173,7 +156,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x <2; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(double{ 4325454.00434 });
+			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "WERE HERE THIS IS IT!" });
 		}
 		
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
