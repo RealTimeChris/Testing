@@ -57,7 +57,7 @@ struct TheDJson {
 			index++;
 			
 			std::string newValueDouble = iter->getValue<std::string>();
-			std::cout << "NEW INDEX: " << newValueDouble << std::endl;
+				std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
 		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		iterationCount = 0;

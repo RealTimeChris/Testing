@@ -847,6 +847,8 @@ namespace Jsonifier {
 					std::string_view{ reinterpret_cast<const char*>(this->stringBuffer +
 										  (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
 						stringLength };
+				this->advance();
+				this->advance();
 			}
 			return returnValue;
 		}
@@ -2702,15 +2704,19 @@ namespace Jsonifier {
 	inline Field JsonValueBase::findField(const char* keyNew) {
 		std::cout << "FIND FIELD(KEY)" << this->peek() << std::endl;
 		int32_t index{};
-		while (this->peek(index) != '"') {
+		std::string_view newString{};
+		if (this->peek() == '"') {
+			newString = this->parseJsonString();
+		}
+		while (this->peek(index) != '"' && newString!= keyNew) {
+			if (this->peek(index) == '"') {
+				newString = this->parseJsonString();
+			}
 			++index;
 		}
 		this->advance(index);
 		this->asserAtFieldStart(0);
-		if (auto newString = this->parseJsonString(); newString == keyNew) {
-			return Field{ std::move(newString), this->getCurrentIterator() };
-		}
-		return Field{ std::string_view{}, *this};
+		return Field{ std::move(newString), this->getCurrentIterator() };
 	}
 
 };
