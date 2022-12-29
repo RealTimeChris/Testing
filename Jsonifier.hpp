@@ -1422,16 +1422,20 @@ namespace Jsonifier {
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
 			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount) };
+			auto newValue02 = SimdBase256{ _mm256_srli_si256(_mm256_srli_epi64(*this, 64 - amount + 8), 32) };
+			newValue01.printBits("NEW VALUE 01 PRINT BITS (LEFT SHIFT): ");
+			newValue02.printBits("NEW VALUE 02 PRINT BITS (LEFT SHIFT): ");
 			returnValue = newValue01 | newValue02;
 			return returnValue;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
-			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, amount) };
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(*this, amount) };
-			returnValue = newValue01 | newValue02;
+			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, 64 - amount) };
+			auto newValue02 = SimdBase256{ _mm256_slli_si256(_mm256_srli_epi64(*this, 64 - amount), 8) };
+			newValue01.printBits("NEW VALUE 01 PRINT BITS (RIGHT SHIFT): ");
+			newValue02.printBits("NEW VALUE 02 PRINT BITS (RIGHT SHIFT): ");
+			returnValue = newValue02 | newValue01;
 			return returnValue;
 		}
 
@@ -1557,7 +1561,7 @@ namespace Jsonifier {
 		for (size_t x = 0; x < 8; ++x) {
 			whiteSpace[x] = in[x] == _mm256_shuffle_epi8(whitespaceTable, in[x]), _mm256_shuffle_epi8(whitespaceTable, in[x]);
 			SimdBase256 curlified = in[x] | _mm256_set1_epi8(0x20);
-			SimdBase256 op = curlified == _mm256_shuffle_epi8(opTable, in[x]);
+			opFinal[x] = curlified == _mm256_shuffle_epi8(opTable, in[x]);
 		}
 		
 
@@ -1717,8 +1721,14 @@ namespace Jsonifier {
 	};
 
 	inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-		SimdBase256 result = match.shl<1>() | overflow;
-		overflow = match.shr<63>();
+		match.printBits("PRE-LEFT SHIFT");
+		match = match.shl<1>();
+		match.printBits("POST-LEFT SHIFT");
+		SimdBase256 result = match | overflow;
+		match.printBits("PRE-RIGHT SHIFT");
+		match = match.shr<63>();
+		match.printBits("POST-RIGHT SHIFT");
+		overflow = match;
 		return result;
 	}
 
@@ -1729,6 +1739,7 @@ namespace Jsonifier {
 		strings.inString.printBits("INSTRING: ");
 		strings.quoteVal.printBits("QUOTE: ");
 		JsonCharacterBlock characters = JsonCharacterBlock::classify(in);
+		characters.opVal.printBits("OP VALS: ");
 		SimdBase256 nonquoteScalar = characters.scalar() & ~strings.quote();
 		SimdBase256 followsNonQuoteScalar = follows(nonquoteScalar, prevScalar);
 		return JsonBlock(strings, characters, followsNonQuoteScalar);
@@ -1803,15 +1814,6 @@ namespace Jsonifier {
 			}
 			currentIndexIntoTape += cnt;
 			return cnt;
-		}
-
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			SimdBase256 result{}; 
-			for (size_t x = 0; x < 4; ++x) {
-				result.insertInt64(match.getUint64(x) << 1 | overflow.getUint64(x), x);
-				overflow.insertInt64(match.getUint64(x) >> 63, x);
-			}
-			return result;
 		}
 
 		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
@@ -1905,7 +1907,8 @@ namespace Jsonifier {
 			this->S256 = this->collectStructuralCharacters();
 			json_scanner jsonScanner{};
 			JsonBlock jsonBlock = jsonScanner.next(this->values);
-			jsonBlock.characters.scalar().printBits("FINAL BITS: ");
+			jsonBlock.followsPotentialNonquoteScalar.printBits("FOLLOWS POTENTIAL NONQUOTE SCALAR: ");
+			this->S256 = jsonBlock.structuralStart();
 			//this->S256 = this->collectFinalStructurals();
 			this->S256.printBits("THE FINAL BITS: ");
 		}
