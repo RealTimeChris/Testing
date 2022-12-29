@@ -736,7 +736,7 @@ namespace Jsonifier {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
 			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
-			//std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
+			////std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
 		}
 
@@ -748,7 +748,7 @@ namespace Jsonifier {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
 			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
-			//std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
+			////std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
 		}
 
@@ -822,7 +822,7 @@ namespace Jsonifier {
 		inline Field findField(const char* keyNew);
 
 		inline double parseJsonFloat() {
-			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
+			//std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
 			assert(this->peek() == 'd');
 			double returnValue{};
 			this->advance();
@@ -836,11 +836,11 @@ namespace Jsonifier {
 			std::string_view returnValue{};
 			if (this->peek() == '"') {
 				size_t stringLength{};
-				std::cout << "CURRENT TAPE POSITION: " << (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK))
-						  << std::endl;
+				//std::cout << "CURRENT TAPE POSITION: " << (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK))
+						  //<< std::endl;
 				std::memcpy(&stringLength, this->stringBuffer + (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK)),
 					sizeof(uint32_t));
-				std::cout << "CURRENT STRING LENGTH: " << stringLength << std::endl;
+				//std::cout << "CURRENT STRING LENGTH: " << stringLength << std::endl;
 				returnValue =
 					std::string_view{ reinterpret_cast<const char*>(this->stringBuffer +
 										  (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
@@ -851,7 +851,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t parseJsonUint() {
-			//std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
+			////std::cout << "THE KEY: (UINT) " << this->peek() << std::endl;
 			assert(this->peek(0) == 'u');
 			this->advance();
 			uint64_t returnValue{};
@@ -861,7 +861,7 @@ namespace Jsonifier {
 		}
 
 		inline int64_t parseJsonInt() {
-			//std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
+			////std::cout << "THE KEY: (INT) " << this->peek() << std::endl;
 			assert(this->peek(0) == 'l');
 			this->advance();
 			int64_t returnValue{};
@@ -888,7 +888,7 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t* advance(uint32_t value = 1) noexcept {
-			std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
+			//std::cout << "ADVANCING BY THIS AMOUNT: " << value << std::endl;
 			auto returnValue = &this->localTapeRootPosition[this->currentIndex];
 			++this->currentIndex;
 			return returnValue;
@@ -897,8 +897,8 @@ namespace Jsonifier {
 		inline void setPosition(int32_t delta = 0) noexcept {
 			auto newValue = static_cast<int32_t>(this->currentIndex);
 			newValue += delta;
-			std::cout << "ADVANCING BY THIS AMOUNT(SET POSITION): " << newValue << std::endl;
-			std::cout << "CURRENT INDEX (SET POSITION): " << this->currentIndex << std::endl;
+			//std::cout << "ADVANCING BY THIS AMOUNT(SET POSITION): " << newValue << std::endl;
+			//std::cout << "CURRENT INDEX (SET POSITION): " << this->currentIndex << std::endl;
 			this->currentIndex += static_cast<uint32_t>(newValue);
 		}
 
@@ -907,7 +907,7 @@ namespace Jsonifier {
 		}
 
 		JsonValueBase& getCurrentIterator() {
-			std::cout << "THE CURRENT KEY: " << this->peek() << std::endl;
+			//std::cout << "THE CURRENT KEY: " << this->peek() << std::endl;
 			return *this;
 		}
 
@@ -967,7 +967,7 @@ namespace Jsonifier {
 		}
 
 		inline JsonType type() {
-			dumpRawTape(std::cout, this->tapeRootPosition, this->stringBuffer);
+			//dumpRawTape(//std::cout, this->tapeRootPosition, this->stringBuffer);
 			switch (this->getRootKey()) {
 				case 'r': {
 					return JsonType::Document;
@@ -1026,12 +1026,12 @@ namespace Jsonifier {
 			}
 
 			inline Reference operator*() noexcept {
-				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
+				////std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
 				return *ptr;
 			}
 
 			inline Pointer operator->() noexcept {
-				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
+				////std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
 				return ptr;
 			}
 
@@ -1040,8 +1040,8 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (FIELD): " << lhs.ptr->getCurrentCount() << std::endl;
-				std::cout << "CURRENT INDEX (FIELD): " << lhs.ptr->getOffset() << std::endl;
+				//std::cout << "STRUCTURAL COUNT (FIELD): " << lhs.ptr->getCurrentCount() << std::endl;
+				//std::cout << "CURRENT INDEX (FIELD): " << lhs.ptr->getOffset() << std::endl;
 				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
@@ -1106,12 +1106,12 @@ namespace Jsonifier {
 			}
 
 			inline Reference operator*() noexcept {
-				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
+				////std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
 				return *ptr;
 			}
 
 			inline Pointer operator->() noexcept {
-				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
+				////std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
 				return ptr;
 			}
 
@@ -1120,8 +1120,8 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getCurrentCount() << std::endl;
-				std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
+				//std::cout << "STRUCTURAL COUNT (ARRAY): " << lhs.ptr->getCurrentCount() << std::endl;
+				//std::cout << "CURRENT INDEX (ARRAY): " << lhs.ptr->getOffset() << std::endl;
 				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
@@ -1179,12 +1179,12 @@ namespace Jsonifier {
 			}
 
 			inline Reference operator*() noexcept {
-				//std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
+				////std::cout << "STRUCTURAL COUNT (ARRAY **)" << this->ptr->size() << std::endl;
 				return *ptr;
 			}
 
 			inline Pointer operator->() noexcept {
-				//std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
+				////std::cout << "STRUCTURAL COUNT (ARRAY ->): " << this->ptr->size() << std::endl;
 				return ptr;
 			}
 
@@ -1193,8 +1193,8 @@ namespace Jsonifier {
 			}
 
 			friend inline bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
-				std::cout << "STRUCTURAL COUNT (OBJECT): " << lhs.ptr->getCurrentCount() << std::endl;
-				std::cout << "CURRENT INDEX (OBJECT): " << lhs.ptr->getOffset() << std::endl;
+				//std::cout << "STRUCTURAL COUNT (OBJECT): " << lhs.ptr->getCurrentCount() << std::endl;
+				//std::cout << "CURRENT INDEX (OBJECT): " << lhs.ptr->getOffset() << std::endl;
 				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
@@ -1473,7 +1473,7 @@ namespace Jsonifier {
 			cout << std::endl;
 		}
 
-		inline void printBits(const std::string& valuesTitle) {
+		inline SimdBase256 printBits(const std::string& valuesTitle) {
 			using std::cout;
 			cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
@@ -1482,6 +1482,7 @@ namespace Jsonifier {
 				}
 			}
 			cout << std::endl;
+			return *this;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1525,6 +1526,227 @@ namespace Jsonifier {
 		size_t idx{};
 	};
 
+	struct JsonCharacterBlock {
+		static inline JsonCharacterBlock classify(SimdBase256 in[8]);
+		inline SimdBase256 whitespace() noexcept;
+		inline SimdBase256 op()  noexcept;
+		inline SimdBase256 scalar() noexcept;
+
+		SimdBase256 whitespaceVal{};
+		SimdBase256 opVal{};
+	};
+
+	inline SimdBase256 JsonCharacterBlock::whitespace() noexcept {
+		return whitespaceVal;
+	}
+	inline SimdBase256 JsonCharacterBlock::op() noexcept {
+		return opVal;
+	}
+	inline SimdBase256 JsonCharacterBlock::scalar() noexcept {
+		return ~(op() | whitespace());
+	}
+
+	inline JsonCharacterBlock JsonCharacterBlock::classify(SimdBase256 in[8]) {
+		uint8_t valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
+			100, '\t', '\n', 112, 100, '\r', 100, 100 };
+		SimdBase256 whitespaceTable{ valuesNew };
+		uint8_t newValues[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
+		SimdBase256 opTable{ newValues };
+		SimdBase256 whiteSpace[8]{};
+		SimdBase256 opFinal[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			whiteSpace[x] = in[x] == _mm256_shuffle_epi8(whitespaceTable, in[x]), _mm256_shuffle_epi8(whitespaceTable, in[x]);
+			SimdBase256 curlified = in[x] | _mm256_set1_epi8(0x20);
+			SimdBase256 op = curlified == _mm256_shuffle_epi8(opTable, in[x]);
+		}
+		
+
+		return { convertSimdBytesToBits(whiteSpace), convertSimdBytesToBits(opFinal) };
+	}
+
+	struct JsonStringBlock {
+		inline JsonStringBlock(SimdBase256 backslash, SimdBase256 escaped, SimdBase256 quote, SimdBase256 inString)
+			: backslash(backslash), escapedVal(escaped), quoteVal(quote), inString(inString) {
+		}
+
+		inline SimdBase256 escaped() {
+			return escapedVal;
+		}
+		inline SimdBase256 escape() {
+			return backslash.bitAndNot(escapedVal);
+		}
+		inline SimdBase256 quote() {
+			return quoteVal;
+		}
+		inline SimdBase256 stringStart() {
+			return quoteVal & inString;
+		}
+		inline SimdBase256 stringEnd() {
+			return quoteVal.bitAndNot(inString);
+		}
+		inline SimdBase256 stringContent() {
+			return inString.bitAndNot(quoteVal);
+		}
+		inline SimdBase256 nonQuoteInsideString(SimdBase256 mask) {
+			return mask & inString;
+		}
+		inline SimdBase256 nonQuoteOutsideString(SimdBase256 mask) {
+			return mask.bitAndNot(inString);
+		}
+		inline SimdBase256 stringTail() {
+			return inString ^ quoteVal;
+		}
+
+		SimdBase256 backslash{};
+		SimdBase256 escapedVal{};
+		SimdBase256 quoteVal{};
+		SimdBase256 inString{};
+	};
+
+	class JsonStringScanner {
+	  public:
+		inline JsonStringBlock next(SimdBase256 in[8]);
+		inline ErrorCode finish();
+
+	  private:
+		inline SimdBase256 find_escaped(SimdBase256 escape[8]);
+		inline SimdBase256 find_escaped_branchless(SimdBase256 escape[8]);
+		int64_t prevInString{};
+		SimdBase256 prevEscaped{};
+	};
+
+	inline SimdBase256 JsonStringScanner::find_escaped_branchless(SimdBase256 backslash[8]) {
+		SimdBase256 values[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			backslash[x] &= ~prevEscaped;
+			SimdBase256 followsEscape = backslash[x].shl<1>() | prevEscaped;
+			SimdBase256 evenBits = _mm256_set1_epi64x(0x5555555555555555ULL);
+			SimdBase256 oddSequenceStarts = backslash[x] & ~evenBits & ~followsEscape;
+			SimdBase256 sequencesStartingOnEvenBits;
+			this->prevEscaped = oddSequenceStarts.collectCarries(backslash[x], &sequencesStartingOnEvenBits);
+			SimdBase256 invertMask = sequencesStartingOnEvenBits.shl<1>();
+			values[x] = (evenBits ^ invertMask) & followsEscape;
+		}
+		
+		return convertSimdBytesToBits(values);
+	}
+
+	inline JsonStringBlock JsonStringScanner::next(SimdBase256 in[8]) {
+		SimdBase256 backslash[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			backslash[x] = in[x] == '\\';
+		}
+
+		SimdBase256 escaped[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			escaped[x] = find_escaped(backslash);
+		}
+		
+		SimdBase256 quote[8]{};
+		for (size_t x = 0; x < 8; ++x) {
+			quote[x] = in[x] == '"' & ~escaped[x];
+			
+		}
+
+		SimdBase256 finalBackSlash = convertSimdBytesToBits(backslash);
+
+		SimdBase256 finalEscaped= convertSimdBytesToBits(escaped);
+
+		SimdBase256 finalQuote = convertSimdBytesToBits(quote);
+		SimdBase256 inString = finalQuote.carrylessMultiplication(prevInString);
+		prevInString = uint64_t(static_cast<int64_t>(inString.getUint64(3)) >> 63);
+		return JsonStringBlock(finalBackSlash, finalEscaped, finalQuote, inString);
+	}
+
+	inline ErrorCode JsonStringScanner::finish() {
+		if (prevInString) {
+			return ErrorCode::StringError;
+		}
+		return ErrorCode::Success;
+	}
+
+	struct JsonBlock {
+	  public:
+		inline JsonBlock(JsonStringBlock&& string, JsonCharacterBlock characters, SimdBase256 follows_potential_nonquoteScalar)
+			: string(std::move(string)), characters(characters), followsPotentialNonquoteScalar(follows_potential_nonquoteScalar) {
+		}
+		inline JsonBlock(JsonStringBlock string, JsonCharacterBlock characters, SimdBase256 follows_potential_nonquoteScalar)
+			: string(string), characters(characters), followsPotentialNonquoteScalar(follows_potential_nonquoteScalar) {
+		}
+
+		inline SimdBase256 structuralStart() noexcept {
+			return potentialStructuralStart() & ~string.stringTail();
+		}
+		inline SimdBase256 whitespace() noexcept {
+			return nonQuoteOutsideString(characters.whitespace());
+		}
+
+		inline SimdBase256 nonQuoteInsideString(SimdBase256 mask) noexcept {
+			return string.nonQuoteInsideString(mask);
+		}
+		inline SimdBase256 nonQuoteOutsideString(SimdBase256 mask) noexcept {
+			return string.nonQuoteOutsideString(mask);
+		}
+
+		JsonStringBlock string;
+		JsonCharacterBlock characters{};
+		SimdBase256 followsPotentialNonquoteScalar{};
+
+	  private:
+		inline SimdBase256 potentialStructuralStart() noexcept {
+			return characters.op() | potentialScalarStart();
+		}
+		inline SimdBase256 potentialScalarStart() noexcept {
+			return characters.scalar() & ~followsPotentialScalar();
+		}
+		inline SimdBase256 followsPotentialScalar() noexcept {
+			return followsPotentialNonquoteScalar;
+		}
+	};
+
+	
+	class json_scanner {
+	  public:
+		json_scanner() = default;
+		inline JsonBlock next(SimdBase256 in[8]);
+		inline ErrorCode finish();
+
+	  private:
+		SimdBase256 prevScalar{};
+		JsonStringScanner stringScanner{};
+	};
+
+	inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
+		SimdBase256 result = match.shl<1>() | overflow;
+		overflow = match.shr<63>();
+		return result;
+	}
+
+	inline JsonBlock json_scanner::next(SimdBase256 in[8]) {
+		JsonStringBlock strings = stringScanner.next(in);
+		strings.backslash.printBits("BACKSLASH: ");
+		strings.escapedVal.printBits("ESCAPED: ");
+		strings.inString.printBits("INSTRING: ");
+		strings.quoteVal.printBits("QUOTE: ");
+		JsonCharacterBlock characters = JsonCharacterBlock::classify(in);
+		SimdBase256 nonquoteScalar = characters.scalar() & ~strings.quote();
+		SimdBase256 followsNonQuoteScalar = follows(nonquoteScalar, prevScalar);
+		return JsonBlock(strings, characters, followsNonQuoteScalar);
+	}
+
+	inline ErrorCode json_scanner::finish() {
+		return stringScanner.finish();
+	}
+
+	inline SimdBase256 JsonStringScanner::find_escaped(SimdBase256 backslash[8]) {
+		if (!backslash) {
+			SimdBase256 escaped = prevEscaped;
+			prevEscaped = _mm256_set1_epi8(0);
+			return escaped;
+		}
+		return find_escaped_branchless(backslash);
+	}
+
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
 		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ this->len < StepSize ? 0 : this->len - StepSize }, idx{ 0 } {
@@ -1565,7 +1787,7 @@ namespace Jsonifier {
 
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape,
 			size_t stringLength) {
-			int cnt = static_cast<int>(__popcnt64(*theBits));
+			uint64_t cnt = __popcnt64(*theBits);
 			int64_t newValue{};
 			for (int i = 0; i < cnt; i++) {
 				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndexIntoString;
@@ -1584,8 +1806,11 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			SimdBase256 result = match.shl<1>() | overflow;
-			overflow = match.shr<63>();
+			SimdBase256 result{}; 
+			for (size_t x = 0; x < 4; ++x) {
+				result.insertInt64(match.getUint64(x) << 1 | overflow.getUint64(x), x);
+				overflow.insertInt64(match.getUint64(x) >> 63, x);
+			}
 			return result;
 		}
 
@@ -1631,18 +1856,17 @@ namespace Jsonifier {
 			auto B256 = convertSimdBytesToBits(backslashesReal);
 			B256 &= ~this->prevEscaped;
 			SimdBase256 followsEscape = B256.shl<1>() | this->prevEscaped;
-			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
-			SimdBase256 oddSequenceStarts = B256.bitAndNot(E).bitAndNot(followsEscape);
+			SimdBase256 oddSequenceStarts = B256.bitAndNot(followsEscape);
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 			this->S256 = B256.bitAndNot(B256.shl<1>());
 			SimdBase256 EC{};
 			this->prevEscaped = B256.collectCarries(oddSequenceStarts, &EC);
 			auto ECE = EC.bitAndNot(B256);
-			auto OD1 = ECE.bitAndNot(E).bitAndNot(followsEscape);
+			auto OD1 = ECE.bitAndNot(followsEscape);
 			auto OS = this->S256 & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
-			auto OD2 = OCE & E;
+			auto OD2 = OCE & followsEscape;
 			auto OD = OD1 | OD2;
 			this->Q256 = this->Q256.bitAndNot(OD);
 			return this->Q256.carrylessMultiplication(this->prevInString);
@@ -1657,7 +1881,7 @@ namespace Jsonifier {
 
 			return convertSimdBytesToBits(quotesReal);
 		}
-
+		/*
 		inline SimdBase256 collectFinalStructurals() {
 			auto scalar = ~this->S256 | this->W256;
 			auto stringTail = this->R256 ^ this->Q256;
@@ -1665,7 +1889,7 @@ namespace Jsonifier {
 			this->followsPotentialNonquoteScalar = follows(nonQuoteScalar, this->prevInScalar);
 			return this->S256 | (~this->S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(stringTail);
 		}
-
+		*/
 		void submitDataForProcessing(const uint8_t* valueNew) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
@@ -1679,15 +1903,19 @@ namespace Jsonifier {
 			this->R256 = this->collectQuotedRange();
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
-			this->S256 = this->collectFinalStructurals();
+			json_scanner jsonScanner{};
+			JsonBlock jsonBlock = jsonScanner.next(this->values);
+			jsonBlock.characters.scalar().printBits("FINAL BITS: ");
+			//this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("THE FINAL BITS: ");
 		}
 
 	  protected:
-		SimdBase256 followsPotentialNonquoteScalar{};
+		uint64_t followsPotentialNonquoteScalar{};
 		size_t currentIndexIntoString{};
-		SimdBase256 prevInScalar{};
 		SimdBase256 prevEscaped{};
 		SimdBase256 values[8]{};
+		uint64_t prevInScalar{};
 		int64_t prevInString{};
 		SimdBase256 Q256{};
 		SimdBase256 W256{};
@@ -1776,9 +2004,9 @@ namespace Jsonifier {
 					}
 				}
 
-				//iterationCount++;
+				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				this->nStructuralIndexes = 0;
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
@@ -1793,11 +2021,11 @@ namespace Jsonifier {
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				this->nStructuralIndexes += indexCount;
 				//for (size_t x = 0; x < this->nStructuralIndexes; ++x) {
-				//std::cout << "CURRENT INDEX (VALUE): " << ((this->structuralIndexes[x]) >> 56) << std::endl;
-				//					std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes[x] & JSON_COUNT_MASK) << std::endl;
+				////std::cout << "CURRENT INDEX (VALUE): " << ((this->structuralIndexes[x]) >> 56) << std::endl;
+				//					//std::cout << "CURRENT INDEX (COUNT): " << (this->structuralIndexes[x] & JSON_COUNT_MASK) << std::endl;
 				//}
-				//totalTimePassed += stopWatch.totalTimePassed().count();
-				////std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				totalTimePassed += stopWatch.totalTimePassed().count();
+				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 			--this->nStructuralIndexes;
 		}
@@ -2536,8 +2764,8 @@ namespace Jsonifier {
 		returnValueFirst.generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		auto errorCode = TapeBuilder::parseDocument(returnValueFirst);
 		returnValueFirst.getTapeLength() = (returnValueFirst.getTape()[0] & JSON_VALUE_MASK);
-		//dumpRawTape(std::cout, returnValueFirst.getTape(), returnValueFirst.getStringBuffer());
-		//std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
+		//dumpRawTape(//std::cout, returnValueFirst.getTape(), returnValueFirst.getStringBuffer());
+		////std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
 		JsonifierResult<Document> returnValue{ Document{ returnValueFirst.getDocument() }, std::move(errorCode) };
 		return returnValue;
 	}
@@ -2557,7 +2785,7 @@ namespace Jsonifier {
 	}
 
 	inline JsonifierResult<Array> JsonValueBase::getArray() noexcept {
-		std::cout << "CURRENT KEY(GET ARRAY): " << +this->peek() << std::endl;
+		//std::cout << "CURRENT KEY(GET ARRAY): " << +this->peek() << std::endl;
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
 			return { Array{ this->getCurrentIterator() }, ErrorCode::Success };
@@ -2585,12 +2813,12 @@ namespace Jsonifier {
 		: std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
 	inline Field JsonValueBase::operator[](const char* keyNew) {
-		std::cout << "WERE HERE THIS IS IT GETTTING A FIELD!" << std::endl;
+		//std::cout << "WERE HERE THIS IS IT GETTTING A FIELD!" << std::endl;
 		return this->findField(keyNew);
 	}
 
 	template<typename OTy> inline JsonifierResult<OTy>::JsonifierResult() noexcept : JsonifierResult(OTy{}, ErrorCode::Uninitialized) {
-		std::cout << "WERE HERE THIS IS IT!" << std::endl;
+		//std::cout << "WERE HERE THIS IS IT!" << std::endl;
 	}
 
 	template<typename OTy> JsonifierResult<OTy>::~JsonifierResult() noexcept {};
@@ -2697,7 +2925,7 @@ namespace Jsonifier {
 		: parser{ std::make_unique<SimdJsonValue>(std::move(value)) }, JsonValueBase{ value.getStringBuffer(), value.getTape(), value.getTape() } {};
 
 	inline Field JsonValueBase::findField(const char* keyNew) {
-		std::cout << "FIND FIELD(KEY)" << this->peek() << std::endl;
+		//std::cout << "FIND FIELD(KEY)" << this->peek() << std::endl;
 		int32_t index{};
 		std::string_view newString{};
 		if (this->peek() == '"') {

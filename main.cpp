@@ -57,9 +57,9 @@ struct TheDJson {
 			index++;
 
 			double newValueDouble = iter->getValue<double>();
-			std::cout << "NEW INDEX: " << newValueDouble << std::endl;
+			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
-		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
+		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -111,18 +111,10 @@ struct Activities {
 struct TheD {
 	TheD() noexcept = default;
 	TheD(simdjson::ondemand::value value) {
-		simdjson::ondemand::value valueNew{};
-		value["d"].get(valueNew);
-		auto theArray = DiscordCoreAPI::getArray(valueNew, "TEST_02");
-		if (theArray.didItSucceed) {
-			iterationCount = 0;
-			totalTime = 0;
-			iterationCount++;
-			stopWatch.resetTimer();
-			for (auto value: theArray.arrayValue) {
-				activities.emplace_back(std::move(value));
-				totalTime += stopWatch.totalTimePassed().count();
-			}
+		simdjson::ondemand::array valueNew{};
+		value["TEST_VALUE_11"].get(valueNew);
+		for (auto value: valueNew) {
+			auto newDouble = value.get_double().take_value();
 		}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
@@ -154,7 +146,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 2; ++x) {
+		for (size_t x = 0; x < 125; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 
