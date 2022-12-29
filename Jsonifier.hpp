@@ -1171,18 +1171,6 @@ namespace Jsonifier {
 		template<> inline JsonifierResult<bool> get<bool>() noexcept;
 	};
 
-	class Document : public TapeIterator {
-	  public:
-		inline Document() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
-		inline Document(std::unique_ptr<uint8_t[]>&& stringBufferNew, std::unique_ptr<uint64_t[]>&& tapeNew, TapeIterator&& data) noexcept
-			: TapeIterator{ std::move(data) }, stringBuffer(std::forward<std::unique_ptr<uint8_t[]>>(stringBufferNew)),
-			  tape(std::forward<std::unique_ptr<uint64_t[]>>(tapeNew)){};
-
-	  protected:
-		std::unique_ptr<uint8_t[]> stringBuffer{};
-		std::unique_ptr<uint64_t[]> tape{};
-	};
-
 	class SimdBase128 {
 	  public:
 		inline SimdBase128() noexcept = default;
@@ -1647,6 +1635,19 @@ namespace Jsonifier {
 		uint32_t count{};
 	};
 
+	class SimdJsonValue;
+
+	class Document : public TapeIterator {
+	  public:
+		inline Document& operator=(Document&&) noexcept = default;
+		inline Document(Document&&) noexcept = default;
+		inline Document() noexcept;
+		inline Document(SimdJsonValue&& value) noexcept;
+
+	  protected:
+		std::unique_ptr<SimdJsonValue> parser{};
+	};
+
 	inline int64_t totalTimePassed{};
 	inline int64_t totalTimePassed02{};
 	inline int64_t iterationCount{};
@@ -1654,17 +1655,15 @@ namespace Jsonifier {
 	class SimdJsonValue {
 	  public:
 
-		JsonifierResult<Document> getDocument() {
-			return JsonifierResult<Document>{ Document{ std::move(this->stringBuffer), std::move(this->tape),
-				TapeIterator{ this->getStringBuffer(), this->getTape(), this->getTape() } } };
+		inline Document getDocument() {
+			return Document{ std::move(*this) };
 		}
 
-		SimdJsonValue& operator=(SimdJsonValue&&) = default;
-		SimdJsonValue(SimdJsonValue&&) = default;
-		inline SimdJsonValue() {
-		}
+		inline SimdJsonValue& operator=(SimdJsonValue&&) = default;
+		inline SimdJsonValue(SimdJsonValue&&) = default;
+		inline SimdJsonValue(){};
 
-		int64_t round(int64_t a, int64_t n) {
+		inline int64_t round(int64_t a, int64_t n) {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
@@ -1750,7 +1749,7 @@ namespace Jsonifier {
 			return this->stringBuffer.get();
 		}
 
-		OpenContainer* getOpenContainers() {
+		inline OpenContainer* getOpenContainers() {
 			return this->openContainers.get();
 		}
 
@@ -2471,13 +2470,7 @@ namespace Jsonifier {
 		returnValueFirst.getTapeLength() = (returnValueFirst.getTape()[0] & JSON_VALUE_MASK);
 		//dumpRawTape(//std::cout, this->getTape(), this->getStringBuffer());
 		////std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		JsonifierResult<Document> returnValue{ Document{ std::move(returnValueFirst.stringBuffer), std::move(returnValueFirst.tape),
-												   TapeIterator{ returnValueFirst.stringBuffer.get(), returnValueFirst.tape.get(),
-													   returnValueFirst.tape.get() } },
-
-			JsonifierError{ "Sorry, but you've encountered the following error: " +
-					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) },
-				errorCode } };
+		JsonifierResult<Document> returnValue{ Document{ returnValueFirst.getDocument() } };
 		return returnValue;
 	}
 
@@ -2605,5 +2598,9 @@ namespace Jsonifier {
 	template<> inline JsonifierResult<bool> Field::get<bool>() noexcept {
 		return this->parseJsonBool();
 	}
+
+	inline Document::Document() noexcept : TapeIterator{ nullptr, nullptr, nullptr } {};
+	inline Document::Document(SimdJsonValue&& value) noexcept
+		: parser{ std::make_unique<SimdJsonValue>(std::move(value)) }, TapeIterator{ value.getStringBuffer(), value.getTape(), value.getTape() } {};
 
 };
