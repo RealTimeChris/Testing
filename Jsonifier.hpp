@@ -643,19 +643,19 @@ namespace Jsonifier {
 	class Object;
 	class Field;
 
-	template<typename OTy> class JsonifierResult : protected std::pair<OTy, JsonifierError> {
+	template<typename OTy> class JsonifierResult : protected std::pair<OTy, ErrorCode> {
 	  public:
 		inline JsonifierResult() noexcept;
 		inline JsonifierResult<OTy>& operator=(JsonifierResult<OTy>&&) noexcept = default;
 		inline JsonifierResult<OTy>(JsonifierResult<OTy>&&) noexcept = default;
-		inline JsonifierResult(OTy&& value, JsonifierError&& error) noexcept;
-		inline JsonifierResult(JsonifierError&& value) noexcept;
+		inline JsonifierResult(OTy&& value, ErrorCode&& error) noexcept;
+		inline JsonifierResult(ErrorCode&& value) noexcept;
 		inline JsonifierResult(OTy&& value) noexcept;
 		inline JsonifierResult(OTy& value) noexcept;
 		
-		inline void tie(OTy& value, JsonifierError& error) noexcept;
+		inline void tie(OTy& value, ErrorCode& error) noexcept;
 		
-		inline JsonifierError get(OTy& value) noexcept;
+		inline ErrorCode get(OTy& value) noexcept;
 		
 		inline ~JsonifierResult() noexcept;
 	};
@@ -2558,7 +2558,7 @@ namespace Jsonifier {
 		returnValueFirst.getTapeLength() = (returnValueFirst.getTape()[0] & JSON_VALUE_MASK);
 		//dumpRawTape(//std::cout, this->getTape(), this->getStringBuffer());
 		////std::cout << "TAPE LENGTH: " << this->getTapeLength() << std::endl;
-		JsonifierResult<Document> returnValue{ Document{ returnValueFirst.getDocument() } };
+		JsonifierResult<Document> returnValue{ Document{ returnValueFirst.getDocument() }, std::move(errorCode) };
 		return returnValue;
 	}
 
@@ -2572,7 +2572,7 @@ namespace Jsonifier {
 		if (this->peek() == '{') {
 			return Object{ this->collectNextIterator() };
 		} else {
-			JsonifierResult<Object> returnValue{ JsonifierError{ "", ErrorCode::Incorrect_Type } };
+			JsonifierResult<Object> returnValue{ ErrorCode::Incorrect_Type };
 			return returnValue;
 		}
 	}
@@ -2583,51 +2583,43 @@ namespace Jsonifier {
 		if (this->peek() == '[') {
 			return Array{ this->collectNextIterator() };
 		} else {
-			JsonifierResult<Array> returnValue{ JsonifierError{ "", ErrorCode::Incorrect_Type } };
+			JsonifierResult<Array> returnValue{ ErrorCode::Incorrect_Type };
 			return returnValue;
 		}
 	}
 
 	template<>
 	inline JsonifierResult<Document>::JsonifierResult(Document&& other) noexcept
-		: std::pair<Document, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {};
+		: std::pair<Document, ErrorCode>{ std::move(other), ErrorCode::Success } {};
 
 	template<>
 	inline JsonifierResult<Document>::JsonifierResult(Document& other) noexcept
-		: std::pair<Document, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {};
+		: std::pair<Document, ErrorCode>{ std::move(other), ErrorCode::Success  } {};
 
 	template<>
 	inline JsonifierResult<Object>::JsonifierResult(Object&& other) noexcept
-		: std::pair<Object, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {};
+		: std::pair<Object, ErrorCode>{ std::move(other), ErrorCode::Success } {};
 
 	template<>
-	inline JsonifierResult<Array>::JsonifierResult(Array&& other) noexcept
-		: std::pair<Array, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {};
+	inline JsonifierResult<Array>::JsonifierResult(Array&& other) noexcept : std::pair<Array, ErrorCode>{ std::move(other), ErrorCode::Success } {};
 
 	template<>
-	inline JsonifierResult<Array>::JsonifierResult(JsonifierError&& other) noexcept
-		: std::pair<Array, JsonifierError>{ Array{}, std::move(other) } {};
+	inline JsonifierResult<Array>::JsonifierResult(ErrorCode&& other) noexcept : std::pair<Array, ErrorCode>{ Array{}, std::move(other) } {};
 
 	template<>
-	inline JsonifierResult<Field>::JsonifierResult(Field&& other) noexcept
-		: std::pair<Field, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {
-		std::cout << "WERE HERE THIS IS IT!" << std::endl;
-	};
+	inline JsonifierResult<Field>::JsonifierResult(Field&& other) noexcept : std::pair<Field, ErrorCode>{ std::move(other), ErrorCode::Success } {};
 
 	template<>
-	inline JsonifierResult<Field>::JsonifierResult(Field& other) noexcept
-		: std::pair<Field, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {
-		std::cout << "WERE HERE THIS IS IT!" << std::endl;
-	};
+	inline JsonifierResult<Field>::JsonifierResult(Field& other) noexcept : std::pair<Field, ErrorCode>{ std::move(other), ErrorCode::Success } {};
 
 	template<>
 	inline JsonifierResult<Object>::JsonifierResult(Object& other) noexcept
-		: std::pair<Object, JsonifierError>{ std::move(other), JsonifierError{ "", ErrorCode::Success } } {
+		: std::pair<Object, ErrorCode>{ std::move(other), ErrorCode::Success  } {
 		std::cout << "WERE HERE THIS IS IT!" << std::endl;
 	};
 
-	template<typename OTy> inline JsonifierError JsonifierResult<OTy>::get(OTy& value) noexcept {
-		JsonifierError error{ "", ErrorCode::Success };
+	template<typename OTy> inline ErrorCode JsonifierResult<OTy>::get(OTy& value) noexcept {
+		ErrorCode error{};
 		std::forward<JsonifierResult<OTy>>(*this).tie(value, error);
 		std::cout << "WERE HERE THIS IS IT!" << typeid(OTy).name() << std::endl;
 		if (typeid(OTy).name() == "Field") {
@@ -2637,18 +2629,16 @@ namespace Jsonifier {
 		return error;
 	}
 
-	template<>
-	inline JsonifierResult<Field>::JsonifierResult(JsonifierError&& other) noexcept : std::pair<Field, JsonifierError>{ Field{}, std::move(other) } {
+	template<> inline JsonifierResult<Field>::JsonifierResult(ErrorCode&& other) noexcept : std::pair<Field, ErrorCode>{ Field{}, std::move(other) } {
 		std::cout << "WERE HERE THIS IS IT!" << std::endl;
 	};
 
 	template<>
-	inline JsonifierResult<Object>::JsonifierResult(JsonifierError&& other) noexcept
-		: std::pair<Object, JsonifierError>{ Object{}, std::move(other) } {};
+	inline JsonifierResult<Object>::JsonifierResult(ErrorCode&& other) noexcept : std::pair<Object, ErrorCode>{ Object{}, std::move(other) } {};
 
 	template<>
-	inline JsonifierResult<Document>::JsonifierResult(Document&& other, JsonifierError&& error) noexcept
-		: std::pair<Document, JsonifierError>{ std::move(other), std::move(error) } {};
+	inline JsonifierResult<Document>::JsonifierResult(Document&& other, ErrorCode&& error) noexcept
+		: std::pair<Document, ErrorCode>{ std::move(other), std::move(error) } {};
 
 
 	inline Object TapeIterator::operator[](const char* keyNew) {
@@ -2659,9 +2649,9 @@ namespace Jsonifier {
 	};
 
 
-	template<typename OTy> inline void JsonifierResult<OTy>::tie(OTy& value, JsonifierError& error) noexcept {
+	template<typename OTy> inline void JsonifierResult<OTy>::tie(OTy& value, ErrorCode& error) noexcept {
 		error = this->second;
-		if (error.getError() == ErrorCode::Success) {
+		if (error == ErrorCode::Success) {
 			value = std::forward<JsonifierResult<OTy>>(*this).first;
 		}
 	}

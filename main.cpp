@@ -41,7 +41,7 @@ struct TheDJson {
 		auto objectNew = value.getObject();
 		//auto theArray = std::move(theObject["activitiess"]);
 		Jsonifier::Object objectNewer{};
-		if (objectNew.get(objectNewer).getError() != Jsonifier::ErrorCode::Success) {
+		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
 		}
 		auto sizeNew = objectNewer.size();
@@ -54,7 +54,7 @@ struct TheDJson {
 		auto newArray = fieldNew.getArray();
 		//auto array = object.get(valueDouble);
 		Jsonifier::Array arrayNewer{};
-		if (newArray.get(arrayNewer).getError() != Jsonifier::ErrorCode::Success) {
+		if (newArray.get(arrayNewer) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
 		}
 		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
@@ -89,7 +89,7 @@ struct TheDJson {
 struct TheValueJson {
 	TheValueJson(Jsonifier::JsonifierResult<Jsonifier::Document>&&  value) {
 		Jsonifier::Document documentNew{};
-		if (value.get(documentNew).getError() != Jsonifier::ErrorCode::Success) {
+		if (value.get(documentNew) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the document!" };
 		}
 		this->theD = TheDJson{ std::move(documentNew) };
