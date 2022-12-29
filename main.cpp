@@ -59,7 +59,8 @@ struct TheDJson {
 		Jsonifier::Array arrayNewer{};
 		auto newArray = fieldNew.getArray().get(arrayNewer);
 		if (newArray != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array!" };
+			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array, for the reason: " +
+				std::to_string(( int32_t )newArray) };
 		}
 		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
 		sizeNew = arrayNewer.size();
@@ -71,9 +72,9 @@ struct TheDJson {
 		
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
-			double newValueDouble{};
-			auto newValue = static_cast<Jsonifier::Field*>(&(*iter))->get<double>().get(newValueDouble);
-			std::cout << "NEW INDEX: " << ( int32_t )newValue << std::endl;
+			
+			double newValueDouble = static_cast<Jsonifier::Field*>(&(*iter))->getValue<double>();
+			std::cout << "NEW INDEX: " << ( int32_t )newValueDouble << std::endl;
 		}
 			
 		iterationCount = 0;

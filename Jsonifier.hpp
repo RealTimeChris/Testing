@@ -734,59 +734,16 @@ namespace Jsonifier {
 			return this->parseJsonString();
 		}
 
-		std::string_view getRawJsonString() {
-			std::string_view returnValue{};
-			switch (this->peek()) {
-				case 'r': {
-					this->advance();
-					returnValue = std::string_view{ reinterpret_cast<char*>(this->stringBuffer), this->size() };
-					return returnValue;
-				}
-				case '{': {
-					returnValue = std::string_view{ reinterpret_cast<char*>(this->stringBuffer), this->size() };
-					return returnValue;
-				}
-				case '[': {
-					returnValue = std::string_view{ reinterpret_cast<char*>(this->stringBuffer), this->size() };
-					return returnValue;
-				}
-				case 'l': {
-					[[fallthrough]];
-				}
-				case 'u': {
-					[[fallthrough]];
-				}
-				case 'd': {
-					returnValue = std::string_view{ reinterpret_cast<char*>(this->stringBuffer), this->size() };
-					return returnValue;
-				}
-				case '"': {
-					[[fallthrough]];
-				}
-				case 't': {
-					[[fallthrough]];
-				}
-				case 'f': {
-					[[fallthrough]];
-				}
-				case 'n': {
-					this->advance();
-					returnValue = std::string_view{ reinterpret_cast<char*>(this->stringBuffer), this->size() };
-					return returnValue;
-				}
-				default: {
-					returnValue = std::string_view{ reinterpret_cast<char*>(this->stringBuffer), this->size() };
-					return returnValue;
-				}
-			}
-		}
-
 		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept {
 			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
 			this->tapeRootPosition = other.tapeRootPosition;
 			this->stringBuffer = other.stringBuffer;
 			//std::cout << "WERE BEING CONSTRUCTED!" << std::endl;
 			return *this;
+		}
+
+		inline JsonValueBase(const JsonValueBase& other) noexcept {
+			*this = other;
 		}
 
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept {
@@ -800,7 +757,6 @@ namespace Jsonifier {
 		inline JsonValueBase collectNextIterator() {
 			switch (this->peek()) {
 				case 'r': {
-					this->advance();
 					return JsonValueBase{ std::move(*this) };
 				}
 				case '{': {
@@ -826,8 +782,6 @@ namespace Jsonifier {
 					[[fallthrough]];
 				}
 				case 'd': {
-					this->advance();
-					this->advance();
 					return JsonValueBase{ std::move(*this) };
 				}
 				case '"': {
@@ -871,28 +825,32 @@ namespace Jsonifier {
 
 		inline double parseJsonFloat() {
 			std::cout << "THE KEY: (FLOAT) " << this->peek() << std::endl;
-			assert(this->peek(1) == 'd' || this->peek(0) == 'd');
+			int32_t index{};
+			while (this->peek(index) != 'd') {
+				++index;
+			}
+			assert(this->peek(index) == 'd');
 			double returnValue{};
-			this->advance();
-			this->advance();
-			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
+			this->advance(index + 1);
+			std::memcpy(&returnValue, &this->localTapeRootPosition[this->currentIndex], sizeof(returnValue));
 			return returnValue;
 		}
 
 		inline std::string_view parseJsonString() {
 			int32_t index{};
-			while (this->peek() != '"') {
+			while (this->peek(index) != '"') {
 				++index;
-				this->advance();
 			}
-			assert(this->peek(0) == '"');
+			assert(this->peek(index) == '"');
 			std::string_view returnValue{};
-			if (this->peek(0) == '"') {
+			if (this->peek(index) == '"') {
 				size_t stringLength{};
-				std::cout << "CURRENT TAPE POSITION: " << (uint32_t(*(this->getTapePosition()) & JSON_VALUE_MASK)) << std::endl;
-				std::memcpy(&stringLength, this->getStringBuffer() + (uint32_t(*(this->getTapePosition()) & JSON_VALUE_MASK)), sizeof(uint32_t));
+				std::cout << "CURRENT TAPE POSITION: " << (uint32_t(*(this->localTapeRootPosition+index) & JSON_VALUE_MASK)) << std::endl;
+				std::memcpy(&stringLength, this->stringBuffer + (uint32_t(*(this->localTapeRootPosition + index) & JSON_VALUE_MASK)),
+					sizeof(uint32_t));
 				std::cout << "CURRENT STRING LENGTH: " << stringLength << std::endl;
-				returnValue = std::string_view{ reinterpret_cast<const char*>(this->getStringBuffer() + (*this->getTapePosition() & JSON_VALUE_MASK) + sizeof(uint32_t)),
+				returnValue = std::string_view{ reinterpret_cast<const char*>(this->stringBuffer +
+													(*this->localTapeRootPosition + index & JSON_VALUE_MASK) + sizeof(uint32_t)),
 					stringLength };
 			}
 			return returnValue;
@@ -904,7 +862,7 @@ namespace Jsonifier {
 			this->advance();
 			this->advance();
 			uint64_t returnValue{};
-			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
+			std::memcpy(&returnValue, &this->localTapeRootPosition[this->currentIndex], sizeof(returnValue));
 			return returnValue;
 		}
 
@@ -914,7 +872,7 @@ namespace Jsonifier {
 			this->advance();
 			this->advance();
 			int64_t returnValue{};
-			std::memcpy(&returnValue, this->getTapePosition(), sizeof(returnValue));
+			std::memcpy(&returnValue, &this->localTapeRootPosition[this->currentIndex], sizeof(returnValue));
 			return returnValue;
 		}
 
@@ -951,7 +909,11 @@ namespace Jsonifier {
 		}
 
 		inline size_t getOffset() {
-			return this->localTapeRootPosition - this->tapeRootPosition + this->currentIndex;
+			return &this->localTapeRootPosition[this->currentIndex] - this->tapeRootPosition - this->currentIndex;
+		}
+
+		JsonValueBase& getCurrentIterator() {
+			return *this;
 		}
 
 		inline void asserAtFieldStart() {
@@ -971,15 +933,11 @@ namespace Jsonifier {
 		}
 
 		inline const uint8_t peek(uint32_t index = 0) noexcept {
-			return (*(localTapeRootPosition + this->currentIndex + index)) >> 56;
+			return (*(this->localTapeRootPosition + this->currentIndex + index)) >> 56;
 		}
 
 		inline size_t getCurrentCount() {
 			return uint32_t((*this->tapeRootPosition & JSON_VALUE_MASK));
-		}
-
-		inline uint8_t* getStringBuffer() {
-			return this->stringBuffer;
 		}
 
 		inline uint8_t getRootKey() {
@@ -995,11 +953,11 @@ namespace Jsonifier {
 					[[fallthrough]];
 				}
 				case '{': {
-					return (((*(this->getLocalTapeRootPosition()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+					return (((*(this->localTapeRootPosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
 				}
 				case '"': {
 					size_t stringLength{};
-					std::memcpy(&stringLength, this->getStringBuffer() + ((*this->getLocalTapeRootPosition()) & JSON_VALUE_MASK), sizeof(uint32_t));
+					std::memcpy(&stringLength, this->stringBuffer + ((*this->localTapeRootPosition) & JSON_VALUE_MASK), sizeof(uint32_t));
 					return stringLength;
 				} 
 				default: {
@@ -1009,7 +967,7 @@ namespace Jsonifier {
 		}
 
 		inline JsonType type() {
-			dumpRawTape(std::cout, this->getTapeRoot(), this->getStringBuffer());
+			dumpRawTape(std::cout, this->tapeRootPosition, this->stringBuffer);
 			std::cout << "CURRENT STRING BUFFER: " << this->getRootKey() << std::endl;
 			switch (this->getRootKey()) {
 				case 'r': {
@@ -1046,19 +1004,6 @@ namespace Jsonifier {
 					return JsonType::Null;
 				}
 			}
-		}
-
-		inline uint64_t* getLocalTapeRootPosition() {
-			return this->localTapeRootPosition;
-		}
-
-		inline uint64_t* getTapePosition() {
-			std::cout << "CURRENT TAPE POSITIONINDEX: " << this->currentIndex << std::endl;
-			return &this->localTapeRootPosition[this->currentIndex];
-		}
-
-		inline uint64_t* getTapeRoot() {
-			return this->tapeRootPosition;
 		}
 
 	  protected:
@@ -1139,9 +1084,8 @@ namespace Jsonifier {
 
 		template<> inline JsonifierResult<bool> get<bool>() noexcept;
 
-		inline Field(std::string_view&& key, JsonValueBase&& value) noexcept
-			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
-			this->advance();
+		inline Field(std::string_view&& key, JsonValueBase& value) noexcept
+			: JsonValueBase{ value}, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
 			this->advance();
 		};
 	};
@@ -1193,7 +1137,7 @@ namespace Jsonifier {
 
 		inline Array() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
 
-		inline Array(JsonValueBase&& other) noexcept : JsonValueBase{ other.collectNextIterator() } {
+		inline Array(JsonValueBase& other) noexcept : JsonValueBase{ other } {
 			this->advance();
 		};
 
@@ -1263,7 +1207,7 @@ namespace Jsonifier {
 
 		inline Object() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
 
-		inline Object(JsonValueBase&& other) noexcept : JsonValueBase{ other.collectNextIterator() } {
+		inline Object(JsonValueBase& other) noexcept : JsonValueBase{ other } {
 			this->advance();
 		};
 
@@ -2601,7 +2545,7 @@ namespace Jsonifier {
 	inline JsonifierResult<Object> JsonValueBase::getObject() noexcept {
 		this->assertAtObjectStart();
 		if (this->peek() == '{') {
-			return { Object{ this->collectNextIterator() }, ErrorCode::Success };
+			return { Object{ this->getCurrentIterator() }, ErrorCode::Success };
 		} else {
 			JsonifierResult<Object> returnValue{ Object{}, ErrorCode::Incorrect_Type };
 			return returnValue;
@@ -2609,10 +2553,10 @@ namespace Jsonifier {
 	}
 
 	inline JsonifierResult<Array> JsonValueBase::getArray() noexcept {
-		std::cout << "CURRENT KEY(GET ARRAY)" << this->peek() << std::endl;
+		std::cout << "CURRENT KEY(GET ARRAY): " << +this->peek() << std::endl;
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
-			return { Array{ this->collectNextIterator() }, ErrorCode::Success };
+			return { Array{ this->getCurrentIterator() }, ErrorCode::Success };
 		} else {
 			JsonifierResult<Array> returnValue{ Array{}, ErrorCode::Incorrect_Type };
 			return returnValue;
@@ -2753,10 +2697,10 @@ namespace Jsonifier {
 		if (this->peek() == '"') {
 			this->asserAtFieldStart();
 			if (auto newString = this->parseJsonString(); newString == keyNew) {
-				return Field{ std::move(newString), std::move(*this) };
+				return Field{ std::move(newString), *this };
 			}
 		}
-		return Field{ std::string_view{}, std::move(*this) };
+		return Field{ std::string_view{}, *this};
 	}
 
 };
