@@ -44,27 +44,30 @@ struct TheDJson {
 		if (objectNew.get(objectNewer).getError() != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
 		}
-		Jsonifier::Field fieldNew{};
-		Jsonifier::Array arrayNew{};
 		auto sizeNew = objectNewer.size();
-		auto fieldNewer = objectNewer["TEST_VALUE_11"];
+		auto fieldNew = objectNewer["TEST_VALUE_11"];
 		//auto array = object.get(valueDouble);
 		std::cout << "CURRENT SIZE (OBJECT): " << sizeNew << std::endl;
-		sizeNew = fieldNewer.size();
-		auto arrayNewer = fieldNew.getField("TEST_VALUE_11");
-		arrayNewer.get(fieldNew);
-		
+		//auto arrayNewer = fieldNewer.getField("TEST_VALUE_11");
+		sizeNew = fieldNew.size();
+		std::cout << "CURRENT TYPE (FIELD): " << ( int32_t )fieldNew.type() << std::endl;
+		auto newArray = fieldNew.getArray();
 		//auto array = object.get(valueDouble);
+		Jsonifier::Array arrayNewer{};
+		if (newArray.get(arrayNewer).getError() != Jsonifier::ErrorCode::Success) {
+			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
+		}
 		std::cout << "CURRENT SIZE (FIELD): " << sizeNew << std::endl;
-		sizeNew = arrayNew.size();
+		sizeNew = arrayNewer.size();
+		
 		std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		//std::cout << "CURRENT SIZE (ARRAY): " << sizeNew << std::endl;
 		int32_t index{};
-		for (auto iter = arrayNew.begin(); iter != arrayNew.end(); ++iter) {
+		
+		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
-			//std::cout << "NEW SIZE: " << array.size() << std::endl;
-			//std::cout << "NEW INDEX: " << index << std::endl;
-			//std::cout << "NEW VALUE: " << newObject<< std::endl;
+			auto newValue = iter.operator*().getValue<double>();
+			std::cout << "NEW INDEX: " << newValue << std::endl;
 		}
 			
 		iterationCount = 0;
