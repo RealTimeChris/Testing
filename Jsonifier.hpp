@@ -2616,7 +2616,14 @@ namespace Jsonifier {
 	inline JsonifierResult<Object>::JsonifierResult(Object& other) noexcept
 		: std::pair<Object, ErrorCode>{ std::move(other), ErrorCode::Success  } {
 		std::cout << "WERE HERE THIS IS IT!" << std::endl;
-	};
+	}
+
+	template<typename OTy> inline void JsonifierResult<OTy>::tie(OTy& value, ErrorCode& error) noexcept {
+		error = this->second;
+		if (error == ErrorCode::Success) {
+			value = std::forward<JsonifierResult<OTy>>(*this).first;
+		}
+	}
 
 	template<typename OTy> inline ErrorCode JsonifierResult<OTy>::get(OTy& value) noexcept {
 		ErrorCode error{};
@@ -2631,7 +2638,7 @@ namespace Jsonifier {
 
 	template<> inline JsonifierResult<Field>::JsonifierResult(ErrorCode&& other) noexcept : std::pair<Field, ErrorCode>{ Field{}, std::move(other) } {
 		std::cout << "WERE HERE THIS IS IT!" << std::endl;
-	};
+	}
 
 	template<>
 	inline JsonifierResult<Object>::JsonifierResult(ErrorCode&& other) noexcept : std::pair<Object, ErrorCode>{ Object{}, std::move(other) } {};
@@ -2640,20 +2647,12 @@ namespace Jsonifier {
 	inline JsonifierResult<Document>::JsonifierResult(Document&& other, ErrorCode&& error) noexcept
 		: std::pair<Document, ErrorCode>{ std::move(other), std::move(error) } {};
 
-
 	inline Object TapeIterator::operator[](const char* keyNew) {
 		return this->findField(keyNew);
 	}
+
 	template<typename OTy> inline JsonifierResult<OTy>::JsonifierResult() noexcept : JsonifierResult(OTy{}, ErrorCode::Uninitialized) {
 		std::cout << "WERE HERE THIS IS IT!" << std::endl;
-	};
-
-
-	template<typename OTy> inline void JsonifierResult<OTy>::tie(OTy& value, ErrorCode& error) noexcept {
-		error = this->second;
-		if (error == ErrorCode::Success) {
-			value = std::forward<JsonifierResult<OTy>>(*this).first;
-		}
 	}
 
 	template<typename OTy> JsonifierResult<OTy>::~JsonifierResult()noexcept {};
