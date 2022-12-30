@@ -462,11 +462,11 @@ namespace Jsonifier {
 
 		Jsonifier& operator[](uint64_t index);
 
-		template<typename Ty> const Ty& getValue() const {
+		template<typename Ty> inline const Ty& getValue() const {
 			return Ty{};
 		}
 
-		template<typename Ty> Ty& getValue() {
+		template<typename Ty> inline Ty& getValue() {
 			return Ty{};
 		}
 
@@ -500,7 +500,7 @@ namespace Jsonifier {
 			std::enable_if_t<
 				std::is_integral<NumberType>::value || std::is_same<NumberType, uint64_t>::value || std::is_same<NumberType, int64_t>::value, int> =
 				0>
-		void writeJsonInt(NumberType Int) {
+		inline void writeJsonInt(NumberType Int) {
 			auto IntNew = std::to_string(Int);
 			this->writeString(IntNew.data(), IntNew.size());
 		}
@@ -728,10 +728,8 @@ namespace Jsonifier {
 		return true;
 	}
 
-	class Document;
 	class Object;
 	class Array;
-	class Object;
 	class Field;
 
 	template<typename OTy> class JsonifierResult : protected std::pair<OTy, ErrorCode> {
