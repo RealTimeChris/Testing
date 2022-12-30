@@ -165,10 +165,22 @@ int32_t main() noexcept {
 		//}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::string stringNew{ serializer.operator std::string() };
-
-		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t totalTime{};
 		size_t totalSize{};
+		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+		{
+			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
+			objectBuffer.allocate(1024 * 1024 * 1024);
+			objectBuffer.deallocate(1024 * 1024 * 1024);
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		{ std::unique_ptr<uint64_t[]> objectBuffer{ new (std::nothrow) uint64_t[1024 * 1024 * 1024]{} }; }
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		size_t oldSize = stringNew.size();
 
 		std::cout << "THE STRING: " << stringNew << std::endl;
