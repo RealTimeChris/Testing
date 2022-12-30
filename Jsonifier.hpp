@@ -2628,9 +2628,6 @@ namespace Jsonifier {
 		return { this->parseJsonBool(), std::move(this->error) };
 	}
 
-	template<> inline JsonifierResult<Document> JsonValueBase::get<Document>() noexcept {
-	}
-
 	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{ nullptr, nullptr, nullptr } {};
 
 	inline Document::Document(JsonifierCore* value) noexcept
