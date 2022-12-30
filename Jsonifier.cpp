@@ -738,6 +738,23 @@ namespace Jsonifier {
 		}
 	}
 
+	size_t Jsonifier::size() noexcept {
+		switch (this->type) {
+			case JsonType::Object: {
+				return this->jsonValue.object->size();
+			}
+			case JsonType::Array: {
+				return this->jsonValue.array->size();
+			}
+			case JsonType::String: {
+				return this->jsonValue.string->size();
+			}
+			default: {
+				return 1;
+			}
+		}
+	}
+
 	void Jsonifier::destroy() noexcept {
 		switch (this->type) {
 			case JsonType::Object: {

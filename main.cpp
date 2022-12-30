@@ -36,6 +36,7 @@ struct ActivitiesJson {
 };
 
 struct TheDJson {
+
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		auto objectNew = value.getObject();
@@ -130,6 +131,15 @@ struct TheValue {
 
 int32_t main() noexcept {
 	try {
+		Jsonifier::SimdBase256 testValueNew{};
+		testValueNew.fromUint64(uint64_t{ 0b01111111101111111101111111101111111101111111101111111101111111101 });
+		auto newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
+		testValueNew = testValueNew.shl<1>();
+		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
+
+		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
+		newBits = newBits.shr<1>();
+		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
@@ -149,7 +159,10 @@ int32_t main() noexcept {
 		for (size_t x = 0; x < 125; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
-
+		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
+		//for (auto& value : serializer) {
+		//std::cout << "THE TYPE: " << ( int32_t )value.getType() << std::endl;
+		//}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::string stringNew{ serializer.operator std::string() };
 
