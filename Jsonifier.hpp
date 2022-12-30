@@ -811,7 +811,7 @@ namespace Jsonifier {
 		inline JsonifierResult(OTy&& other, ErrorCode&& error) noexcept : std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
 		template<typename OTy> inline ErrorCode get(OTy& value) noexcept {
-			value = std::forward<OTy>(this->first);
+			value = std::move(this->first);
 			return this->second;
 		}
 
