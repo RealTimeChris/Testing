@@ -930,13 +930,13 @@ namespace Jsonifier {
 			this->stringBuffer = stringBufferNew;
 		}
 
+		inline Field findField(const char* keyNew);
+
 		inline Object parseJsonObject() noexcept;
 
 		inline Field parseJsonField(const char* fieldKey) noexcept;
 
 		inline Array parseJsonArray() noexcept;
-
-		inline Field findField(const char* keyNew);
 
 		inline std::string_view parseJsonString() {
 			assert(this->peek() == '"');
@@ -1487,8 +1487,8 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256  shl() {
 			SimdBase256 returnValue{};
-			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, (amount % 64)) };
-			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, (amount % 64) / 8), 64 - (amount % 64)) };
+			auto newValue01 = SimdBase256{ _mm256_slli_epi64(*this, 64 - (amount % 64)) };
+			auto newValue02 = SimdBase256{ _mm256_srli_epi64(_mm256_slli_si256(*this, (amount % 64) / 8), (amount % 64)) };
 			returnValue = newValue01 | newValue02;
 			return returnValue;
 		}
@@ -1589,105 +1589,28 @@ namespace Jsonifier {
 		inline size_t blockIndex();
 		inline void advance();
 
-	  protected:
-		const uint8_t* stringBuffer{};
-		const size_t len{};
-		const size_t lenminusstep{};
-		size_t idx{};
-	};
-
-	struct JsonCharacterBlock {
-		static inline JsonCharacterBlock classify(SimdBase256 in[8]);
-		inline SimdBase256 whitespace() noexcept;
-		inline SimdBase256 op()  noexcept;
-		inline SimdBase256 scalar() noexcept;
-
-		SimdBase256 whitespaceVal{};
-		SimdBase256 opVal{};
-	};
-
-	inline SimdBase256 JsonCharacterBlock::whitespace() noexcept {
-		return whitespaceVal;
-	}
-	inline SimdBase256 JsonCharacterBlock::op() noexcept {
-		return opVal;
-	}
-	inline SimdBase256 JsonCharacterBlock::scalar() noexcept {
-		return ~(op() | whitespace());
-	}
-
-	inline JsonCharacterBlock JsonCharacterBlock::classify(SimdBase256 in[8]) {
-		uint8_t valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
-			100, '\t', '\n', 112, 100, '\r', 100, 100 };
-		SimdBase256 whitespaceTable{ valuesNew };
-		uint8_t newValues[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
-		SimdBase256 opTable{ newValues };
-		SimdBase256 whiteSpace[8]{};
-		SimdBase256 opFinal[8]{};
-		for (size_t x = 0; x < 8; ++x) {
-			whiteSpace[x] = in[x] == _mm256_shuffle_epi8(whitespaceTable, in[x]), _mm256_shuffle_epi8(whitespaceTable, in[x]);
-			SimdBase256 curlified = in[x] | _mm256_set1_epi8(0x20);
-			opFinal[x] = curlified == _mm256_shuffle_epi8(opTable, in[x]);
-		}
-		
-
-		return { convertSimdBytesToBits(whiteSpace), convertSimdBytesToBits(opFinal) };
-	}
-
-	struct JsonStringBlock {
-		inline JsonStringBlock(SimdBase256 backslash, SimdBase256 escaped, SimdBase256 quote, SimdBase256 inString)
-			: backslash(backslash), escapedVal(escaped), quoteVal(quote), inString(inString) {
-		}
-
-		inline SimdBase256 escaped() {
-			return escapedVal;
-		}
-		inline SimdBase256 escape() {
-			return backslash.bitAndNot(escapedVal);
-		}
-		inline SimdBase256 quote() {
-			return quoteVal;
-		}
-		inline SimdBase256 stringStart() {
-			return quoteVal & inString;
-		}
-		inline SimdBase256 stringEnd() {
-			return quoteVal.bitAndNot(inString);
-		}
-		inline SimdBase256 stringContent() {
-			return inString.bitAndNot(quoteVal);
-		}
-		inline SimdBase256 nonQuoteInsideString(SimdBase256 mask) {
-			return mask & inString;
-		}
-		inline SimdBase256 nonQuoteOutsideString(SimdBase256 mask) {
-			return mask.bitAndNot(inString);
-		}
-		inline SimdBase256 stringTail() {
-			return inString ^ quoteVal;
-		}
-
-		SimdBase256 backslash{};
-		SimdBase256 escapedVal{};
-		SimdBase256 quoteVal{};
-		SimdBase256 inString{};
+	  private:
+		const uint8_t* stringBuffer;
+		const size_t len;
+		const size_t lenminusstep;
+		size_t idx;
 	};
 
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ this->len < StepSize ? 0 : this->len - StepSize }, idx{ 0 } {
+		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
-		return this->idx;
+		return idx;
 	}
 
 	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
-		return this->idx < this->lenminusstep;
+		return idx < lenminusstep;
 	}
 
 	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
-		return &this->stringBuffer[this->idx];
+		return &stringBuffer[idx];
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
@@ -1834,8 +1757,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			//this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("THE FINAL BITS: ");
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -1940,6 +1862,11 @@ namespace Jsonifier {
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				totalTimePassed += stopWatch.totalTimePassed().count();
+				for (size_t x = 0; x < indexCount; ++x) {
+					std::cout << "THE INDEX: " << this->structuralIndexes[x]
+							  << ", THE VALUE AT THAT INDEX: " << this->stringView[this->structuralIndexes[x]] << std::endl;
+
+				}
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}

@@ -131,12 +131,24 @@ struct TheValue {
 int32_t main() noexcept {
 	try {
 		Jsonifier::SimdBase256 testValueNew{};
-		testValueNew.fromUint64(uint64_t{ 0b00000001000000010000000100000001000000010000000100000001000000010000000});
-		testValueNew.fromUint64(uint64_t{ 0b1111111011111110111111101111111011111110111111101111111011111110 });
+		testValueNew.fromUint64(uint64_t{ 0b00000001000000010000000100000001000000010000000100000001000000010000000 });
 		auto newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
 		testValueNew = testValueNew.shl<1>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
-
+		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
+		newBits = newBits.shr<63>();
+		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
+		testValueNew.fromUint64(uint64_t{ 0b1111111011111110111111101111111011111110111111101111111011111110 });
+		newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
+		testValueNew = testValueNew.shl<1>();
+		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
+		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
+		newBits = newBits.shr<63>();
+		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
+		testValueNew.fromUint64(uint64_t{ 0b1000000100000001000000010000000100000001000000010000000100000001 });
+		newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
+		testValueNew = testValueNew.shl<1>();
+		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
 		newBits = newBits.shr<63>();
 		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
