@@ -728,6 +728,7 @@ namespace Jsonifier {
 		return true;
 	}
 
+	class JsonifierCore;
 	class Object;
 	class Array;
 	class Field;
@@ -756,9 +757,8 @@ namespace Jsonifier {
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
 		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept {
-			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
-			this->tapeRootPosition = other.tapeRootPosition;
-			this->stringBuffer = other.stringBuffer;
+			this->currentIndex = other.currentIndex;
+			this->parser = other.parser;
 			return *this;
 		}
 
@@ -767,71 +767,21 @@ namespace Jsonifier {
 		}
 
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept {
-			this->localTapeRootPosition = other.localTapeRootPosition + other.currentIndex;
-			this->tapeRootPosition = other.tapeRootPosition;
-			this->stringBuffer = other.stringBuffer;
+			this->currentIndex = other.currentIndex;
+			this->parser = other.parser;
 			return *this;
 		}
 
-		inline JsonValueBase collectNextIterator() {
-			switch (this->peek()) {
-				case 'r': {
-					return JsonValueBase{ std::move(*this) };
-				}
-				case '{': {
-					int32_t index{};
-					while (this->peek(index) != '}') {
-						index++;
-						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
-					}
-					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, this->localTapeRootPosition + this->currentIndex + index };
-				}
-				case '[': {
-					int32_t index{};
-					while (this->peek(index) != ']') {
-						index++;
-						std::this_thread::sleep_for(std::chrono::nanoseconds{ 1 });
-					}
-					return JsonValueBase{ this->stringBuffer, this->tapeRootPosition, this->localTapeRootPosition + this->currentIndex + index };
-				}
-				case 'l': {
-					[[fallthrough]];
-				}
-				case 'u': {
-					[[fallthrough]];
-				}
-				case 'd': {
-					return JsonValueBase{ std::move(*this) };
-				}
-				case '"': {
-					[[fallthrough]];
-				}
-				case 't': {
-					[[fallthrough]];
-				}
-				case 'f': {
-					[[fallthrough]];
-				}
-				case 'n': {
-					this->advance();
-					return JsonValueBase{ std::move(*this) };
-				}
-				default: {
-					return JsonValueBase{ std::move(*this) };
-				}
-			}
-		}
+		inline JsonValueBase collectNextIterator() noexcept;
 
 		inline JsonValueBase(JsonValueBase&& other) noexcept {
 			*this = std::move(other);
 		}
-
-		inline JsonValueBase(uint8_t* stringBufferNew, uint64_t* tapeRootPositionNew, uint64_t* currentTapePositionNew) {
-			this->localTapeRootPosition = currentTapePositionNew;
-			this->tapeRootPosition = tapeRootPositionNew;
-			this->stringBuffer = stringBufferNew;
+		
+		inline JsonValueBase(JsonifierCore* newData) {
+			this->parser = newData;
 		}
-
+		
 		inline Field operator[](const char* keyNew);
 
 		inline Field findField(const char* keyNew) noexcept;
@@ -842,204 +792,48 @@ namespace Jsonifier {
 
 		inline Array parseJsonArray() noexcept;
 
-		inline std::string_view parseJsonString() noexcept {
-			assert(this->peek() == '"');
-			std::string_view returnValue{};
-			if (this->peek() == '"') {
-				size_t stringLength{};
-				std::memcpy(&stringLength, this->stringBuffer + (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK)),
-					sizeof(uint32_t));
-				returnValue =
-					std::string_view{ reinterpret_cast<const char*>(this->stringBuffer +
-										  (uint32_t(*(this->localTapeRootPosition + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
-						stringLength };
-				this->advance();
-			} else {
-				this->error = ErrorCode::ParseError;
-			}
-			return returnValue;
-		}
-
-		inline double parseJsonFloat() noexcept {
-			assert(this->peek(0) == 'd');
-			double returnValue{};
-			if (this->peek() == 'd') {
-				this->advance();
-				std::memcpy(&returnValue, &this->localTapeRootPosition[this->currentIndex], sizeof(returnValue));
-				this->advance();
-			} else {
-				this->error = ErrorCode::ParseError;
-			}
-			return returnValue;
-		}
-
-		inline uint64_t parseJsonUint() noexcept {
-			assert(this->peek(0) == 'u');
-			uint64_t returnValue{};
-			if (this->peek() == 'u') {
-				this->advance();
-				std::memcpy(&returnValue, &this->localTapeRootPosition[this->currentIndex], sizeof(returnValue));
-				this->advance();
-			} else {
-				this->error = ErrorCode::ParseError;
-			}
-		}
-
-		inline int64_t parseJsonInt() noexcept {
-			assert(this->peek(0) == 'l');
-			int64_t returnValue{};
-			if (this->peek() == 'l') {
-				this->advance();
-				std::memcpy(&returnValue, &this->localTapeRootPosition[this->currentIndex], sizeof(returnValue));
-				this->advance();
-			} else {
-				this->error = ErrorCode::ParseError;
-			}
-			return returnValue;
-		}
-
-		inline bool parseJsonBool() noexcept {
-			assert(this->peek() == 'f' || this->peek() == 't');
-			if (this->peek() == 'f') {
-				this->advance();
-				return false;
-			} else if (this->peek() == 't') {
-				this->advance();
-				return true;
-			} else {
-				this->error = ErrorCode::ParseError;
-				return false;
-			}
-		}
-
-		inline nullptr_t parseJsonNull() noexcept {
-			assert(this->peek() == 'n');
-			if (this->peek() == 'n') {
-				this->advance();
-				return nullptr_t{};
-			} else {
-				this->error = ErrorCode::ParseError;
-				return nullptr_t{};
-			}
-		}
-
-		inline uint64_t* advance(uint32_t value = 1) noexcept {
-			auto returnValue = &this->localTapeRootPosition[this->currentIndex];
-			++this->currentIndex;
-			return returnValue;
-		}
-
-		inline void setPosition(int32_t delta = 0) noexcept {
-			auto newValue = static_cast<int32_t>(this->currentIndex);
-			newValue += delta;
-			this->currentIndex += static_cast<uint32_t>(newValue);
-		}
-
-		inline size_t getOffset() noexcept {
-			return this->currentIndex + 1;
-		}
-
-		inline JsonValueBase& getCurrentIterator() noexcept {
-			return *this;
-		}
-
-		inline JsonValueBase& advanceIteratorAndReturn(size_t value) noexcept {
-			this->currentIndex += value;
-			return *this;
-		}
-
-		inline void asserAtFieldStart(size_t amountToOffset) noexcept {
-			assert(this->peek(amountToOffset) == '"');
-		}
-
-		inline void assertAtObjectStart(size_t amountToOffset = 0) noexcept {
-			assert(this->peek(amountToOffset) == '{');
-		}
-
-		inline void assertAtArrayStart(size_t amountToOffset = 0) noexcept {
-			assert(this->peek(amountToOffset) == '[');
-		}
-
-		inline void assertAtStringStart(size_t amountToOffset = 0) noexcept {
-			assert(this->peek(amountToOffset) == '"');
-		}
-
-		inline const uint8_t peek(uint32_t index = 0) noexcept {
-			return (*(this->localTapeRootPosition + this->currentIndex + index)) >> 56;
-		}
-
-		inline size_t getCurrentCount() noexcept {
-			return uint32_t((*this->tapeRootPosition & JSON_VALUE_MASK)) - (this->localTapeRootPosition - this->tapeRootPosition) - 2;
-		}
-
-		inline uint8_t getRootKey() noexcept {
-			return (*this->localTapeRootPosition >> 56);
-		}
-
-		inline size_t size() noexcept {
-			switch (this->getRootKey()) {
-				case 'r': {
-					[[fallthrough]];
-				}
-				case '[': {
-					[[fallthrough]];
-				}
-				case '{': {
-					return (((*(this->localTapeRootPosition) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
-				}
-				case '"': {
-					size_t stringLength{};
-					std::memcpy(&stringLength, this->stringBuffer + ((*this->localTapeRootPosition) & JSON_VALUE_MASK), sizeof(uint32_t));
-					return stringLength;
-				}
-				default: {
-					return 1;
-				}
-			}
-		}
-
-		inline JsonType type() noexcept {
-			switch (this->getRootKey()) {
-				case 'r': {
-					return JsonType::Document;
-				}
-				case '{': {
-					return JsonType::Object;
-				}
-				case '[': {
-					return JsonType::Array;
-				}
-				case 'l': {
-					return JsonType::Int64;
-				}
-				case 'u': {
-					return JsonType::Uint64;
-				}
-				case 'd': {
-					return JsonType::Float;
-				}
-				case '"': {
-					return JsonType::String;
-				}
-				case 't': {
-					[[fallthrough]];
-				}
-				case 'f': {
-					return JsonType::Bool;
-				}
-				case 'n': {
-					return JsonType::Null;
-				}
-				default: {
-					return JsonType::Null;
-				}
-			}
-		}
-
+		inline std::string_view parseJsonString() noexcept;
+		
+		inline double parseJsonFloat() noexcept;
+		
+		inline uint64_t parseJsonUint() noexcept;
+		
+		inline int64_t parseJsonInt() noexcept;
+		
+		inline bool parseJsonBool() noexcept;
+		
+		inline nullptr_t parseJsonNull() noexcept;
+		
+		inline uint64_t* advance(uint32_t value = 1) noexcept;
+		
+		inline void setPosition(int32_t delta = 0) noexcept;
+		
+		inline size_t getOffset() noexcept;
+		
+		inline JsonValueBase& getCurrentIterator() noexcept;
+		
+		inline JsonValueBase& advanceIteratorAndReturn(size_t value) noexcept;
+		
+		inline void asserAtFieldStart(size_t amountToOffset) noexcept;
+		
+		inline void assertAtObjectStart(size_t amountToOffset = 0) noexcept;
+		
+		inline void assertAtArrayStart(size_t amountToOffset = 0) noexcept;
+		
+		inline void assertAtStringStart(size_t amountToOffset = 0) noexcept;
+		
+		inline const uint8_t peek(uint32_t index = 0) noexcept;
+		
+		inline size_t getCurrentCount() noexcept;
+		
+		inline uint8_t getRootKey() noexcept;
+		
+		inline size_t size() noexcept;
+		
+		inline JsonType type() noexcept;
+		
 	  protected:
-		uint64_t* localTapeRootPosition{};
-		uint64_t* tapeRootPosition{};
-		uint8_t* stringBuffer{};
+		JsonifierCore* parser{};
 		size_t currentIndex{};
 		ErrorCode error{};
 	};
@@ -1078,8 +872,7 @@ namespace Jsonifier {
 		};
 
 		inline Field() noexcept
-			: JsonValueBase{ nullptr, nullptr, nullptr }, std::pair<std::string_view, JsonValueBase>{ std::string_view{},
-				  JsonValueBase{ nullptr, nullptr, nullptr } } {};
+			: JsonValueBase{ nullptr }, std::pair<std::string_view, JsonValueBase>{ std::string_view{}, JsonValueBase{ nullptr } } {};
 
 		inline auto begin() noexcept {
 			return FieldIterator{ this };
@@ -1143,7 +936,7 @@ namespace Jsonifier {
 			return ArrayIterator{ this };
 		}
 
-		inline Array() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
+		inline Array() noexcept : JsonValueBase{ nullptr } {};
 
 		inline Array(JsonValueBase& other) : JsonValueBase{ other } {
 			if (this->peek() != '[') {
@@ -1194,7 +987,7 @@ namespace Jsonifier {
 			return ObjectIterator{ this };
 		}
 
-		inline Object() noexcept : JsonValueBase{ nullptr, nullptr, nullptr } {};
+		inline Object() noexcept : JsonValueBase{ nullptr } {};
 
 		inline Object(JsonValueBase& other) : JsonValueBase{ other } {
 			if (this->peek() != '{') {
@@ -2503,10 +2296,202 @@ namespace Jsonifier {
 		return { this->parseJsonBool(), std::move(this->error) };
 	}
 
-	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{ nullptr, nullptr, nullptr } {};
+	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{ nullptr } {};
 
-	inline Document::Document(JsonifierCore* value) noexcept
-		: parser{ value }, JsonValueBase{ value->getStringBuffer(), value->getTape(), value->getTape() } {};
+	inline Document::Document(JsonifierCore* value) noexcept : parser{ value }, JsonValueBase{ value } {};
+
+	inline std::string_view JsonValueBase::parseJsonString() noexcept {
+		assert(this->peek() == '"');
+		std::string_view returnValue{};
+		if (this->peek() == '"') {
+			size_t stringLength{};
+			std::memcpy(&stringLength, this->parser->getStringBuffer() + (uint32_t(*(this->parser->getTape() + this->currentIndex) & JSON_VALUE_MASK)),
+				sizeof(uint32_t));
+			returnValue = std::string_view{ reinterpret_cast<const char*>(this->parser->getStringBuffer() +
+												(uint32_t(*(this->parser->getTape() + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
+				stringLength };
+			this->advance();
+		} else {
+			this->error = ErrorCode::ParseError;
+		}
+		return returnValue;
+	}
+
+	inline double JsonValueBase::parseJsonFloat() noexcept {
+		assert(this->peek(0) == 'd');
+		double returnValue{};
+		if (this->peek() == 'd') {
+			this->advance();
+			std::memcpy(&returnValue, &this->parser->getTape()[this->currentIndex], sizeof(returnValue));
+			this->advance();
+		} else {
+			this->error = ErrorCode::ParseError;
+		}
+		return returnValue;
+	}
+
+	inline uint64_t JsonValueBase::parseJsonUint() noexcept {
+		assert(this->peek(0) == 'u');
+		uint64_t returnValue{};
+		if (this->peek() == 'u') {
+			this->advance();
+			std::memcpy(&returnValue, &this->parser->getTape()[this->currentIndex], sizeof(returnValue));
+			this->advance();
+		} else {
+			this->error = ErrorCode::ParseError;
+		}
+	}
+
+	inline int64_t JsonValueBase::parseJsonInt() noexcept {
+		assert(this->peek(0) == 'l');
+		int64_t returnValue{};
+		if (this->peek() == 'l') {
+			this->advance();
+			std::memcpy(&returnValue, &this->parser->getTape()[this->currentIndex], sizeof(returnValue));
+			this->advance();
+		} else {
+			this->error = ErrorCode::ParseError;
+		}
+		return returnValue;
+	}
+
+	inline bool JsonValueBase::parseJsonBool() noexcept {
+		assert(this->peek() == 'f' || this->peek() == 't');
+		if (this->peek() == 'f') {
+			this->advance();
+			return false;
+		} else if (this->peek() == 't') {
+			this->advance();
+			return true;
+		} else {
+			this->error = ErrorCode::ParseError;
+			return false;
+		}
+	}
+
+	inline nullptr_t JsonValueBase::parseJsonNull() noexcept {
+		assert(this->peek() == 'n');
+		if (this->peek() == 'n') {
+			this->advance();
+			return nullptr_t{};
+		} else {
+			this->error = ErrorCode::ParseError;
+			return nullptr_t{};
+		}
+	}
+
+	inline uint64_t* JsonValueBase::advance(uint32_t value) noexcept {
+		auto returnValue = &this->parser->getTape()[this->currentIndex];
+		++this->currentIndex;
+		return returnValue;
+	}
+
+	inline void JsonValueBase::setPosition(int32_t delta) noexcept {
+		auto newValue = static_cast<int32_t>(this->currentIndex);
+		newValue += delta;
+		this->currentIndex += static_cast<uint32_t>(newValue);
+	}
+
+	inline size_t JsonValueBase::getOffset() noexcept {
+		return this->currentIndex + 1;
+	}
+
+	inline JsonValueBase& JsonValueBase::getCurrentIterator() noexcept {
+		return *this;
+	}
+
+	inline JsonValueBase& JsonValueBase::advanceIteratorAndReturn(size_t value) noexcept {
+		this->currentIndex += value;
+		return *this;
+	}
+
+	inline void JsonValueBase::asserAtFieldStart(size_t amountToOffset) noexcept {
+		assert(this->peek(amountToOffset) == '"');
+	}
+
+	inline void JsonValueBase::assertAtObjectStart(size_t amountToOffset) noexcept {
+		assert(this->peek(amountToOffset) == '{');
+	}
+
+	inline void JsonValueBase::assertAtArrayStart(size_t amountToOffset) noexcept {
+		assert(this->peek(amountToOffset) == '[');
+	}
+
+	inline void JsonValueBase::assertAtStringStart(size_t amountToOffset) noexcept {
+		assert(this->peek(amountToOffset) == '"');
+	}
+
+	inline const uint8_t JsonValueBase::peek(uint32_t index) noexcept {
+		return (*(this->parser->getTape() + this->currentIndex + index)) >> 56;
+	}
+
+	inline size_t JsonValueBase::getCurrentCount() noexcept {
+		return uint32_t((*this->parser->getTape() & JSON_VALUE_MASK)) - (this->parser->getTape() - this->parser->getTape()) - 2;
+	}
+
+	inline uint8_t JsonValueBase::getRootKey() noexcept {
+		return (*this->parser->getTape() >> 56);
+	}
+
+	inline size_t JsonValueBase::size() noexcept {
+		switch (this->getRootKey()) {
+			case 'r': {
+				[[fallthrough]];
+			}
+			case '[': {
+				[[fallthrough]];
+			}
+			case '{': {
+				return (((*(this->parser->getTape()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
+			}
+			case '"': {
+				size_t stringLength{};
+				std::memcpy(&stringLength, this->parser->getStringBuffer() + ((*this->parser->getTape()) & JSON_VALUE_MASK), sizeof(uint32_t));
+				return stringLength;
+			}
+			default: {
+				return 1;
+			}
+		}
+	}
+
+	inline JsonType JsonValueBase::type() noexcept {
+		switch (this->getRootKey()) {
+			case 'r': {
+				return JsonType::Document;
+			}
+			case '{': {
+				return JsonType::Object;
+			}
+			case '[': {
+				return JsonType::Array;
+			}
+			case 'l': {
+				return JsonType::Int64;
+			}
+			case 'u': {
+				return JsonType::Uint64;
+			}
+			case 'd': {
+				return JsonType::Float;
+			}
+			case '"': {
+				return JsonType::String;
+			}
+			case 't': {
+				[[fallthrough]];
+			}
+			case 'f': {
+				return JsonType::Bool;
+			}
+			case 'n': {
+				return JsonType::Null;
+			}
+			default: {
+				return JsonType::Null;
+			}
+		}
+	}
 
 	inline Field JsonValueBase::findField(const char* keyNew) noexcept {
 		int32_t index{};
