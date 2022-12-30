@@ -807,8 +807,6 @@ namespace Jsonifier {
 
 	template<typename OTy> class JsonifierResult : protected std::pair<OTy, ErrorCode> {
 	  public:
-		inline JsonifierResult() noexcept;
-
 		template<typename OTy>
 		inline JsonifierResult(OTy&& other, ErrorCode&& error) noexcept : std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
@@ -816,8 +814,6 @@ namespace Jsonifier {
 			value = std::forward<OTy>(this->first);
 			return this->second;
 		}
-
-		inline ~JsonifierResult() noexcept {};
 
 		inline OTy getValue()  {
 			if (this->second != ErrorCode::Success) {
