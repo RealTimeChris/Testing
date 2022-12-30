@@ -754,35 +754,20 @@ namespace Jsonifier {
 
 	class JsonValueBase {
 	  public:
+
+		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept = delete;
+		inline JsonValueBase(const JsonValueBase& other) noexcept = delete;
+
+		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept;
+		inline JsonValueBase(JsonValueBase&& other) noexcept;
+		
+		inline JsonValueBase(JsonifierCore* newData) noexcept;
+		
+		inline Field operator[](const char* keyNew) noexcept;
+		
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
-		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept {
-			this->currentIndex = other.currentIndex;
-			this->parser = other.parser;
-			return *this;
-		}
-
-		inline JsonValueBase(const JsonValueBase& other) noexcept {
-			*this = other;
-		}
-
-		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept {
-			this->currentIndex = other.currentIndex;
-			this->parser = other.parser;
-			return *this;
-		}
-
 		inline JsonValueBase collectNextIterator() noexcept;
-
-		inline JsonValueBase(JsonValueBase&& other) noexcept {
-			*this = std::move(other);
-		}
-		
-		inline JsonValueBase(JsonifierCore* newData) {
-			this->parser = newData;
-		}
-		
-		inline Field operator[](const char* keyNew);
 
 		inline Field findField(const char* keyNew) noexcept;
 
@@ -887,7 +872,7 @@ namespace Jsonifier {
 		}
 
 		inline Field(std::string_view&& key, JsonValueBase& value)
-			: JsonValueBase{ value }, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
+			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
 			if (this->peek() != '"') {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
@@ -938,7 +923,7 @@ namespace Jsonifier {
 
 		inline Array() noexcept : JsonValueBase{ nullptr } {};
 
-		inline Array(JsonValueBase& other) : JsonValueBase{ other } {
+		inline Array(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 			if (this->peek() != '[') {
 				throw JsonifierException{ "Sorry, but this item's type is not array." };
 			}
@@ -989,7 +974,7 @@ namespace Jsonifier {
 
 		inline Object() noexcept : JsonValueBase{ nullptr } {};
 
-		inline Object(JsonValueBase& other) : JsonValueBase{ other } {
+		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 			if (this->peek() != '{') {
 				throw JsonifierException{ "Sorry, but this item's type is not object." };
 			}
@@ -2299,6 +2284,20 @@ namespace Jsonifier {
 	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{ nullptr } {};
 
 	inline Document::Document(JsonifierCore* value) noexcept : parser{ value }, JsonValueBase{ value } {};
+
+	inline JsonValueBase& JsonValueBase::operator=(JsonValueBase && other) noexcept {
+		this->currentIndex = other.currentIndex;
+		this->parser = other.parser;
+		return *this;
+	}
+
+	inline JsonValueBase::JsonValueBase(JsonValueBase&& other) noexcept {
+		*this = std::move(other);
+	}
+
+	inline JsonValueBase::JsonValueBase(JsonifierCore* newData) noexcept {
+		this->parser = newData;
+	}
 
 	inline std::string_view JsonValueBase::parseJsonString() noexcept {
 		assert(this->peek() == '"');
