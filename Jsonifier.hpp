@@ -1495,8 +1495,8 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
-			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, (amount % 64)) };
-			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, (amount % 64) / 8), 64 - (amount % 64)) };
+			auto newValue01 = SimdBase256{ _mm256_srli_epi64(*this, 64 - (amount % 64)) };
+			auto newValue02 = SimdBase256{ _mm256_slli_epi64(_mm256_srli_si256(*this, (amount % 64) / 8), (amount % 64)) };
 			returnValue = newValue01 | newValue02;
 			return returnValue;
 		}
@@ -1782,17 +1782,20 @@ namespace Jsonifier {
 			for (size_t x = 0; x < 8; ++x) {
 				backslashesReal[x] = this->values[x] == backslashes;
 			}
-			auto B = convertSimdBytesToBits(backslashesReal);
-			this->S256 == B.bitAndNot(B.shl<1>());
+
+			auto B256 = convertSimdBytesToBits(backslashesReal);
+
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
-			auto ES = this->S256 & E;
-			auto EC = B + ES;
-			auto ECE = EC.bitAndNot(B);
-			auto OD1 = ECE.bitAndNot(E);
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
+			this->S256 = B256.bitAndNot(B256.shl<1>());
+			auto ES = E & this->S256;
+			SimdBase256 EC{};
+			B256.collectCarries(ES, &EC);
+			auto ECE = EC.bitAndNot(B256);
+			auto OD1 = ECE.bitAndNot(E);
 			auto OS = this->S256 & O;
-			auto OC = B + OS;
-			auto OCE = OC.bitAndNot(B);
+			auto OC = B256 + OS;
+			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			this->Q256 = this->Q256.bitAndNot(OD);
@@ -1808,20 +1811,13 @@ namespace Jsonifier {
 
 			return convertSimdBytesToBits(quotesReal);
 		}
-		
+
 		inline SimdBase256 collectFinalStructurals() {
 			auto scalar = ~this->S256 | this->W256;
 			auto stringTail = this->R256 ^ this->Q256;
-			SimdBase256 nonQuoteScalar = scalar.bitAndNot(this->Q256);
-			nonQuoteScalar.printBits("NONQUOTE SCALAR: ");
-			auto P = this->S256 | this->W256;
-			P.printBits("PRE SHIFTED BITS: ");
-			P = P.shl<1>();
-			P.printBits("POST SHIFTED BITS: ");
-			P &= (~this->W256).bitAndNot(this->R256);
-			this->S256 = this->S256 | P;
-			this->followsPotentialNonquoteScalar = follows(nonQuoteScalar, this->prevInScalar);
-			return (this->S256 | (~this->S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar)) | ~nonQuoteScalar.shl<1>();
+			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
+			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar).bitAndNot(stringTail);
 		}
 		
 		void submitDataForProcessing(const uint8_t* valueNew) {
@@ -1833,10 +1829,6 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[5], valueNew + 160);
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
-			this->S256 = SimdBase256{};
-			this->W256 = SimdBase256{};
-			this->R256 = SimdBase256{};
-			this->Q256 = SimdBase256{};
 			this->Q256 = this->collectQuotes();
 			this->R256 = this->collectQuotedRange();
 			this->W256 = this->collectWhiteSpace();
