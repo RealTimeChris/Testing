@@ -810,17 +810,9 @@ namespace Jsonifier {
 		inline JsonifierResult() noexcept;
 		inline JsonifierResult(OTy&& value, ErrorCode&& error) noexcept;
 
-		template<typename OTy> inline void tie(OTy& value, ErrorCode& error) noexcept {
-			error = this->second;
-			if (error == ErrorCode::Success) {
-				value = std::forward<JsonifierResult<OTy>>(*this).first;
-			}
-		}
-
 		template<typename OTy> inline ErrorCode get(OTy& value) noexcept {
-			ErrorCode error{};
-			std::forward<JsonifierResult<OTy>>(*this).tie(value, error);
-			return error;
+			value = std::forward<OTy>(this->first);
+			return this->second;
 		}
 
 		template<typename OTy>
