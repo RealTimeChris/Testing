@@ -2569,28 +2569,63 @@ namespace Jsonifier {
 		: std::pair<Object, ErrorCode>{ std::move(other), std::move(error) } {
 		this->second = error;
 		this->first = other;
-	};
+	}
 
 	template<>
 	inline JsonifierResult<Array>::JsonifierResult(Array&& other, ErrorCode&& error) noexcept
 		: std::pair<Array, ErrorCode>{ std::move(other), std::move(error) } {
 		this->second = error;
 		this->first = other;
-	};
+	}
 
 	template<>
 	inline JsonifierResult<Document>::JsonifierResult(Document&& other, ErrorCode&& error) noexcept
 		: std::pair<Document, ErrorCode>{ std::move(other), std::move(error) } {
 		this->second = error;
 		this->first = other;
-	};
+	}
 
 	template<>
 	inline JsonifierResult<double>::JsonifierResult(double&& other, ErrorCode&& error) noexcept
 		: std::pair<double, ErrorCode>{ std::move(other), std::move(error) } {
 		this->second = error;
 		this->first = other;
-	};
+	}
+
+	template<>
+	inline JsonifierResult<bool>::JsonifierResult(bool&& other, ErrorCode&& error) noexcept
+		: std::pair<bool, ErrorCode>{ std::move(other), std::move(error) } {
+		this->second = error;
+		this->first = other;
+	}
+
+	template<>
+	inline JsonifierResult<int64_t>::JsonifierResult(int64_t&& other, ErrorCode&& error) noexcept
+		: std::pair<int64_t, ErrorCode>{ std::move(other), std::move(error) } {
+		this->second = error;
+		this->first = other;
+	}
+
+	template<>
+	inline JsonifierResult<uint64_t>::JsonifierResult(uint64_t&& other, ErrorCode&& error) noexcept
+		: std::pair<uint64_t, ErrorCode>{ std::move(other), std::move(error) } {
+		this->second = error;
+		this->first = other;
+	}
+
+	template<>
+	inline JsonifierResult<std::string>::JsonifierResult(std::string&& other, ErrorCode&& error) noexcept
+		: std::pair<std::string, ErrorCode>{ std::move(other), std::move(error) } {
+		this->second = error;
+		this->first = other;
+	}
+
+	template<>
+	inline JsonifierResult<std::string_view>::JsonifierResult(std::string_view&& other, ErrorCode&& error) noexcept
+		: std::pair<std::string_view, ErrorCode>{ std::move(other), std::move(error) } {
+		this->second = error;
+		this->first = other;
+	}
 
 	inline Field JsonValueBase::operator[](const char* keyNew) {
 		return this->findField(keyNew);
