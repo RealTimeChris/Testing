@@ -14,16 +14,16 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Array&& value) {
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].getValue<double>();
+		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValueUnsafe();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].getValue<bool>();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].getValue<std::string>();
-		this->TEST_VALUE_03 = value["TEST_VALUE_03"].getValue<uint64_t>();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].getValue<double>();
-		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_05"].getType() << std::endl;
-		this->TEST_VALUE_05 = value["TEST_VALUE_05"].getValue<bool>();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].getValue<std::string>();
-		this->TEST_VALUE_07 = value["TEST_VALUE_07"].getValue<uint64_t>();
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValueSafe();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValueSafe();
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValueSafe();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValueSafe();
+		//std::cout << "CURRENT TYPE: " << ( int32_t )va["TEST_VALUE_05"].getType() << std::endl;
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get<bool>().getValueSafe();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get<std::string>().getValueSafe();
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get<uint64_t>().getValueSafe();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -39,14 +39,14 @@ struct TheDJson {
 
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto objectNew = value.getObject();
+		auto objectNew = value.get<Jsonifier::Object>();
 		Jsonifier::Object objectNewer{};
 		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
 		}
 		auto fieldNew = objectNewer["TEST_VALUE_11"];
 		Jsonifier::Array arrayNewer{};
-		auto newArray = fieldNew.getArray().get(arrayNewer);
+		auto newArray = fieldNew.get<Jsonifier::Array>().get(arrayNewer);
 		if (newArray != Jsonifier::ErrorCode::Success) {
 			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array, for the reason: " +
 				std::to_string(( int32_t )newArray) };
@@ -57,7 +57,7 @@ struct TheDJson {
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
 
-			double newValueDouble = iter->getValue<double>();
+			double newValueDouble = iter->get<double>().getValueSafe();
 			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
 		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
@@ -75,7 +75,6 @@ struct TheDJson {
 	}
 	std::vector<ActivitiesJson> activities{};
 };
-
 
 struct TheValueJson {
 	TheValueJson(Jsonifier::JsonifierResult<Jsonifier::Document>&& value) {
@@ -156,7 +155,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 125; ++x) {
+		for (size_t x = 0; x < 12; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
@@ -170,8 +169,8 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
-			objectBuffer.allocate(512 * 2048, 0);
-			objectBuffer.deallocate(512 * 2048);
+			objectBuffer.allocate(512 * 2048*128, 0);
+			objectBuffer.deallocate(512 * 2048 * 128);
 		}
 		
 		totalTime += stopWatch.totalTimePassed().count();
@@ -181,7 +180,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		{
 			std::unique_ptr<uint64_t[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) uint64_t[512 * 2048]);
+			objectBuffer.reset(new (std::nothrow) uint64_t[512 * 2048 * 128]);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
@@ -194,9 +193,9 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
-		Jsonifier::SimdJsonValue theParser{};
+		Jsonifier::JsonifierCore theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = Jsonifier::SimdJsonValue::getJsonData(stringNew);
+			auto jsonData = Jsonifier::JsonifierCore::getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
