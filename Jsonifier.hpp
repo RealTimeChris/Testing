@@ -339,8 +339,8 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy>
 		inline Jsonifier& operator=(std::unordered_map<KTy, OTy>&& data) noexcept {
 			this->setValue(JsonType::object);
-			for (auto& [key, Value]: data) {
-				(*this->jsonValue.object)[key] = std::move(Value);
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = std::move(value);
 			}
 			return *this;
 		}
@@ -352,8 +352,8 @@ namespace Jsonifier {
 		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy>
 		inline Jsonifier& operator=(std::unordered_map<KTy, OTy>& data) noexcept {
 			this->setValue(JsonType::object);
-			for (auto& [key, Value]: data) {
-				(*this->jsonValue.object)[key] = Value;
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = value;
 			}
 			return *this;
 		}
@@ -364,8 +364,8 @@ namespace Jsonifier {
 
 		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier& operator=(std::map<KTy, OTy>&& data) noexcept {
 			this->setValue(JsonType::object);
-			for (auto& [key, Value]: data) {
-				(*this->jsonValue.object)[key] = std::move(Value);
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = std::move(value);
 			}
 			return *this;
 		}
@@ -376,8 +376,8 @@ namespace Jsonifier {
 
 		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier& operator=(std::map<KTy, OTy>& data) noexcept {
 			this->setValue(JsonType::object);
-			for (auto& [key, Value]: data) {
-				(*this->jsonValue.object)[key] = Value;
+			for (auto& [key, value]: data) {
+				(*this->jsonValue.object)[key] = value;
 			}
 			return *this;
 		}
@@ -541,17 +541,17 @@ namespace Jsonifier {
 
 		void appendMapHeader(const uint32_t sizeNew);
 
-		void appendUint64(const uint64_t Value);
+		void appendUint64(const uint64_t value);
 
-		void appendUint32(const uint32_t Value);
+		void appendUint32(const uint32_t value);
 
-		void appendInt64(const int64_t Value);
+		void appendInt64(const int64_t value);
 
-		void appendInt32(const int32_t Value);
+		void appendInt32(const int32_t value);
 
-		void appendUint8(const uint8_t Value);
+		void appendUint8(const uint8_t value);
 
-		void appendInt8(const int8_t Value);
+		void appendInt8(const int8_t value);
 
 		void appendBool(bool data);
 
@@ -991,7 +991,7 @@ namespace Jsonifier {
 		inline SimdBase128() noexcept = default;
 
 		inline SimdBase128& operator=(char other) {
-			this->Value = _mm_set1_epi8(other);
+			this->value = _mm_set1_epi8(other);
 			return *this;
 		}
 
@@ -1000,11 +1000,11 @@ namespace Jsonifier {
 		}
 
 		inline operator __m128i() {
-			return this->Value;
+			return this->value;
 		}
 
 	  protected:
-		__m128i Value{};
+		__m128i value{};
 	};
 
 	class SimdBase256 {
@@ -1021,7 +1021,7 @@ namespace Jsonifier {
 		}
 
 		void fromUint64(uint64_t data) {
-			this->Value = _mm256_set1_epi64x(static_cast<int64_t>(data));
+			this->value = _mm256_set1_epi64x(static_cast<int64_t>(data));
 		}
 
 		explicit inline SimdBase256(int64_t other) {
@@ -1029,7 +1029,7 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256& operator=(uint8_t other) {
-			this->Value = _mm256_set1_epi8(other);
+			this->value = _mm256_set1_epi8(other);
 			return *this;
 		}
 
@@ -1043,16 +1043,16 @@ namespace Jsonifier {
 		}
 
 		explicit inline SimdBase256(int64_t value00, int64_t value01, int64_t value02, int64_t value03) {
-			this->Value = _mm256_set_epi64x(value03, value02, value01, value00);
+			this->value = _mm256_set_epi64x(value03, value02, value01, value00);
 		}
 
 		explicit inline SimdBase256(uint64_t value00, uint64_t value01, uint64_t value02, uint64_t value03) {
-			this->Value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
+			this->value = _mm256_set_epi64x(static_cast<int64_t>(value03), static_cast<int64_t>(value02), static_cast<int64_t>(value01),
 				static_cast<int64_t>(value00));
 		}
 
 		inline SimdBase256& operator=(__m256i other) {
-			this->Value = other;
+			this->value = other;
 			return *this;
 		}
 
@@ -1061,25 +1061,25 @@ namespace Jsonifier {
 		}
 
 		inline void store(uint8_t dst[32]) const {
-			return _mm256_storeu_epi8(dst, this->Value);
+			return _mm256_storeu_epi8(dst, this->value);
 		}
 
 		inline uint64_t getUint64(size_t index) {
 			switch (index) {
 				case 0: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->Value, 0));
+					return static_cast<size_t>(_mm256_extract_epi64(this->value, 0));
 				}
 				case 1: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->Value, 1));
+					return static_cast<size_t>(_mm256_extract_epi64(this->value, 1));
 				}
 				case 2: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->Value, 2));
+					return static_cast<size_t>(_mm256_extract_epi64(this->value, 2));
 				}
 				case 3: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->Value, 3));
+					return static_cast<size_t>(_mm256_extract_epi64(this->value, 3));
 				}
 				default: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->Value, 0));
+					return static_cast<size_t>(_mm256_extract_epi64(this->value, 0));
 				}
 			}
 		}
@@ -1087,66 +1087,66 @@ namespace Jsonifier {
 		inline int64_t getInt64(size_t index) {
 			switch (index) {
 				case 0: {
-					return _mm256_extract_epi64(this->Value, 0);
+					return _mm256_extract_epi64(this->value, 0);
 				}
 				case 1: {
-					return _mm256_extract_epi64(this->Value, 1);
+					return _mm256_extract_epi64(this->value, 1);
 				}
 				case 2: {
-					return _mm256_extract_epi64(this->Value, 2);
+					return _mm256_extract_epi64(this->value, 2);
 				}
 				case 3: {
-					return _mm256_extract_epi64(this->Value, 3);
+					return _mm256_extract_epi64(this->value, 3);
 				}
 				default: {
-					return _mm256_extract_epi64(this->Value, 0);
+					return _mm256_extract_epi64(this->value, 0);
 				}
 			}
 		}
 
-		inline void insertInt64(int64_t Value, size_t index) {
+		inline void insertInt64(int64_t value, size_t index) {
 			switch (index) {
 				case 0: {
-					this->Value = _mm256_insert_epi64(this->Value, Value, 0);
+					this->value = _mm256_insert_epi64(this->value, value, 0);
 					break;
 				}
 				case 1: {
-					this->Value = _mm256_insert_epi64(this->Value, Value, 1);
+					this->value = _mm256_insert_epi64(this->value, value, 1);
 					break;
 				}
 				case 2: {
-					this->Value = _mm256_insert_epi64(this->Value, Value, 2);
+					this->value = _mm256_insert_epi64(this->value, value, 2);
 					break;
 				}
 				case 3: {
-					this->Value = _mm256_insert_epi64(this->Value, Value, 3);
+					this->value = _mm256_insert_epi64(this->value, value, 3);
 					break;
 				}
 				default: {
-					this->Value = _mm256_insert_epi64(this->Value, Value, 0);
+					this->value = _mm256_insert_epi64(this->value, value, 0);
 					break;
 				}
 			}
 		}
 
 		inline operator __m256i&() {
-			return this->Value;
+			return this->value;
 		}
 
 		inline SimdBase256 operator|(SimdBase256 other) {
-			return _mm256_or_si256(this->Value, other);
+			return _mm256_or_si256(this->value, other);
 		}
 
 		inline SimdBase256 operator&(SimdBase256 other) {
-			return _mm256_and_si256(this->Value, other);
+			return _mm256_and_si256(this->value, other);
 		}
 
 		inline SimdBase256 operator^(SimdBase256 other) {
-			return _mm256_xor_si256(this->Value, other);
+			return _mm256_xor_si256(this->value, other);
 		}
 
 		inline SimdBase256 operator+(SimdBase256 other) {
-			return _mm256_add_epi8(this->Value, other);
+			return _mm256_add_epi8(this->value, other);
 		}
 
 		inline SimdBase256& operator|=(SimdBase256 other) {
@@ -1165,11 +1165,11 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 operator==(SimdBase256 other) {
-			return _mm256_cmpeq_epi8(this->Value, other);
+			return _mm256_cmpeq_epi8(this->value, other);
 		}
 
 		inline SimdBase256 operator==(uint8_t other) {
-			return _mm256_cmpeq_epi8(this->Value, _mm256_set1_epi8(other));
+			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
 		}
 
 		template<size_t amount> inline SimdBase256 shl() {
@@ -1188,10 +1188,10 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 0), 0);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 1), 1);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 2), 2);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 3), 3);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
 			return newValues;
 		}
 
@@ -1232,22 +1232,22 @@ namespace Jsonifier {
 			cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
 				for (size_t y = 0; y < 8; ++y) {
-					cout << std::bitset<1>{ static_cast<size_t>(*(reinterpret_cast<int8_t*>(&this->Value) + x)) >> y };
+					cout << std::bitset<1>{ static_cast<size_t>(*(reinterpret_cast<int8_t*>(&this->value) + x)) >> y };
 				}
 			}
 			cout << std::endl;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
-			return _mm256_andnot_si256(other, this->Value);
+			return _mm256_andnot_si256(other, this->value);
 		}
 
 		inline SimdBase256 shuffle(SimdBase256 other) {
-			return _mm256_shuffle_epi8(other, this->Value);
+			return _mm256_shuffle_epi8(other, this->value);
 		}
 
 	  protected:
-		__m256i Value{};
+		__m256i value{};
 	};
 
 	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00[8]) {
@@ -1619,63 +1619,6 @@ namespace Jsonifier {
 		Null_Value = 'n'
 	};
 
-	class TapeBuilder;
-
-	class StructuralIterator {
-	  public:
-		JsonifierCore* masterParser{};
-		const uint8_t* stringView{};
-		uint32_t* nextStructural{};
-		uint32_t depth{};
-
-		inline StructuralIterator(JsonifierCore* masterParserNew, size_t start_structural_index);
-
-		inline ErrorCode visitRootPrimitive(TapeBuilder& visitor, const uint8_t* Value);
-
-		inline ErrorCode visitPrimitive(TapeBuilder& visitor, const uint8_t* Value);
-
-		inline ErrorCode walkDocument(TapeBuilder& visitor);
-
-		inline const uint8_t* advance() noexcept;
-
-		inline uint8_t lastStructural() noexcept;
-
-		inline size_t remainingLen() noexcept;
-
-		inline const uint8_t* peek() noexcept;
-
-		inline bool atBeginning() noexcept;
-
-		inline bool atEof() noexcept;
-	};
-
-	inline StructuralIterator::StructuralIterator(JsonifierCore* masterParserNew, size_t start_structural_index)
-		: nextStructural(masterParserNew->getStructuralIndexes()), stringView{ masterParserNew->getStringView() }, masterParser{ masterParserNew } {};
-
-	inline const uint8_t* StructuralIterator::peek() noexcept {
-		return &this->stringView[*this->nextStructural];
-	}
-
-	inline const uint8_t* StructuralIterator::advance() noexcept {
-		return &this->stringView[*this->nextStructural++];
-	}
-
-	inline size_t StructuralIterator::remainingLen() noexcept {
-		return this->masterParser->getStructuralIndexCount() - *this->nextStructural;
-	}
-
-	inline bool StructuralIterator::atEof() noexcept {
-		return this->nextStructural == &this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1];
-	}
-
-	inline bool StructuralIterator::atBeginning() noexcept {
-		return this->nextStructural == this->masterParser->getStructuralIndexes();
-	}
-
-	inline uint8_t StructuralIterator::lastStructural() noexcept {
-		return this->stringView[this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1]];
-	}
-
 	struct TapeWriter {
 		TapeWriter(uint64_t* ptr) {
 			this->nextTapeLocation = ptr;
@@ -1683,9 +1626,9 @@ namespace Jsonifier {
 		uint64_t* nextTapeLocation;
 		inline static void write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept;
 		inline void append(uint64_t val, TapeType t) noexcept;
-		inline void appendDouble(double Value) noexcept;
-		inline void appendU64(uint64_t Value) noexcept;
-		inline void appendS64(int64_t Value) noexcept;
+		inline void appendDouble(double value) noexcept;
+		inline void appendU64(uint64_t value) noexcept;
+		inline void appendS64(int64_t value) noexcept;
 		inline void skipLargeInteger() noexcept;
 		inline void skipDouble() noexcept;
 		inline void skip() noexcept;
@@ -1694,16 +1637,16 @@ namespace Jsonifier {
 		template<typename OTy> inline void append2(uint64_t val, OTy val2, TapeType t) noexcept;
 	};
 
-	inline void TapeWriter::appendS64(int64_t Value) noexcept {
-		append2(0, Value, TapeType::Int64);
+	inline void TapeWriter::appendS64(int64_t value) noexcept {
+		append2(0, value, TapeType::Int64);
 	}
 
-	inline void TapeWriter::appendU64(uint64_t Value) noexcept {
-		append2(0, Value, TapeType::Uint64);
+	inline void TapeWriter::appendU64(uint64_t value) noexcept {
+		append2(0, value, TapeType::Uint64);
 	}
 
-	inline void TapeWriter::appendDouble(double Value) noexcept {
-		append2(0, Value, TapeType::Double);
+	inline void TapeWriter::appendDouble(double value) noexcept {
+		append2(0, value, TapeType::Double);
 	}
 
 	inline void TapeWriter::skip() noexcept {
@@ -1735,127 +1678,152 @@ namespace Jsonifier {
 	}
 
 	struct TapeBuilder {
-		inline ErrorCode parseDocument(JsonifierCore* masterParser);
-
-		inline ErrorCode visitDocumentStart(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitDocumentEnd(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitArrayStart(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitArrayEnd(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitEmptyArray(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitObjectStart(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitKey(StructuralIterator& iter, const uint8_t* key) noexcept;
-
-		inline ErrorCode visitObjectEnd(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitEmptyObject(StructuralIterator& iter) noexcept;
-
-		inline ErrorCode visitPrimitive(StructuralIterator& iter, const uint8_t* Value);
-
-		inline ErrorCode visitRootPrimitive(StructuralIterator& iter, const uint8_t* Value);
-
-		inline ErrorCode visitString(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitNumber(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitTrueAtom(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitFalseAtom(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitNullAtom(StructuralIterator& iter, const uint8_t* Value) noexcept;
-
-		inline ErrorCode visitRootString(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitRootNumber(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitRootTrueAtom(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitRootFalseAtom(StructuralIterator& iter, const uint8_t* Value) noexcept;
-		inline ErrorCode visitRootNullAtom(StructuralIterator& iter, const uint8_t* Value) noexcept;
-
-		inline ErrorCode incrementCount(StructuralIterator& iter) noexcept;
-
-		TapeWriter tape;
 
 		inline TapeBuilder(JsonifierCore* doc) noexcept;
 
+		inline ErrorCode walkDocument();
+
 	  protected:
 		uint8_t* currentStringBufferLocation{};
-		size_t& currentTapeLength;		
+		JsonifierCore* masterParser{};
+		uint32_t* nextStructural{};
+		TapeWriter tape{ nullptr };
+		uint32_t depth{};
 
-		inline uint32_t nextTapeIndex(StructuralIterator& iter) noexcept;
-		inline ErrorCode startContainer(StructuralIterator& iter) noexcept;
-		inline ErrorCode endContainer(StructuralIterator& iter, TapeType start, TapeType end) noexcept;
-		inline ErrorCode emptyContainer(StructuralIterator& iter, TapeType start, TapeType end) noexcept;
-		inline uint8_t* onStartString(StructuralIterator& iter) noexcept;
+		inline ErrorCode visitRootPrimitive(const uint8_t* value);
+
+		inline ErrorCode visitPrimitive(const uint8_t* value);
+
+		inline const uint8_t* advance() noexcept;
+
+		inline uint8_t lastStructural() noexcept;
+
+		inline size_t remainingLen() noexcept;
+
+		inline const uint8_t* peek() noexcept;
+
+		inline bool atBeginning() noexcept;
+
+		inline bool atEof() noexcept;
+
+		inline uint32_t nextTapeIndex() noexcept;
+		inline ErrorCode startContainer() noexcept;
+		inline ErrorCode endContainer(TapeType start, TapeType end) noexcept;
+		inline ErrorCode emptyContainer(TapeType start, TapeType end) noexcept;
+		inline uint8_t* onStartString() noexcept;
 		inline ErrorCode onEndString(uint8_t* dst) noexcept;
+		inline ErrorCode incrementCount() noexcept;
+
+		inline ErrorCode visitDocumentStart() noexcept;
+
+		inline ErrorCode visitDocumentEnd() noexcept;
+
+		inline ErrorCode visitArrayStart() noexcept;
+
+		inline ErrorCode visitArrayEnd() noexcept;
+
+		inline ErrorCode visitEmptyArray() noexcept;
+
+		inline ErrorCode visitObjectStart() noexcept;
+
+		inline ErrorCode visitKey(const uint8_t* key) noexcept;
+
+		inline ErrorCode visitObjectEnd() noexcept;
+
+		inline ErrorCode visitEmptyObject() noexcept;
+
+		inline ErrorCode visitString(const uint8_t* value) noexcept;
+		inline ErrorCode visitNumber(const uint8_t* value) noexcept;
+		inline ErrorCode visitTrueAtom(const uint8_t* value) noexcept;
+		inline ErrorCode visitFalseAtom(const uint8_t* value) noexcept;
+		inline ErrorCode visitNullAtom(const uint8_t* value) noexcept;
+
+		inline ErrorCode visitRootString(const uint8_t* value) noexcept;
+		inline ErrorCode visitRootNumber(const uint8_t* value) noexcept;
+		inline ErrorCode visitRootTrueAtom(const uint8_t* value) noexcept;
+		inline ErrorCode visitRootFalseAtom(const uint8_t* value) noexcept;
+		inline ErrorCode visitRootNullAtom(const uint8_t* value) noexcept;
 	};
+	
+	inline TapeBuilder::TapeBuilder(JsonifierCore* masterParserNew) noexcept
+		: nextStructural(masterParserNew->getStructuralIndexes()), masterParser{ masterParserNew }, tape{ masterParserNew->getTape() } {};
 
-	inline ErrorCode TapeBuilder::parseDocument(JsonifierCore* masterParser) {
-		StructuralIterator iter(masterParser, 0);
-		return iter.walkDocument(*this);
+	inline const uint8_t* TapeBuilder::peek() noexcept {
+		return &this->masterParser->getStringView()[*this->nextStructural];
 	}
 
-	inline ErrorCode TapeBuilder::visitRootPrimitive(StructuralIterator& iter, const uint8_t* Value) {
-		return iter.visitRootPrimitive(*this, Value);
+	inline const uint8_t* TapeBuilder::advance() noexcept {
+		std::cout << "CURRENT STRUCTURAL KEY: " << &this->masterParser->getStringView()[*this->nextStructural] << std::endl;
+		return &this->masterParser->getStringView()[*this->nextStructural++];
 	}
 
-	inline ErrorCode TapeBuilder::visitPrimitive(StructuralIterator& iter, const uint8_t* Value) {
-		return iter.visitPrimitive(*this, Value);
+	inline size_t TapeBuilder::remainingLen() noexcept {
+		return this->masterParser->getStructuralIndexCount() - *this->nextStructural;
 	}
 
-	inline ErrorCode TapeBuilder::visitEmptyObject(StructuralIterator& iter) noexcept {
-		return emptyContainer(iter, TapeType::Start_Object, TapeType::End_Object);
+	inline bool TapeBuilder::atEof() noexcept {
+		return this->nextStructural == &this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1];
 	}
 
-	inline ErrorCode TapeBuilder::visitEmptyArray(StructuralIterator& iter) noexcept {
-		return emptyContainer(iter, TapeType::Start_Array, TapeType::End_Array);
+	inline bool TapeBuilder::atBeginning() noexcept {
+		return this->nextStructural == this->masterParser->getStructuralIndexes();
 	}
 
-	inline ErrorCode TapeBuilder::visitDocumentStart(StructuralIterator& iter) noexcept {
-		startContainer(iter);
+	inline uint8_t TapeBuilder::lastStructural() noexcept {
+		return this->masterParser->getStringView()[this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1]];
+	}
+
+	inline ErrorCode TapeBuilder::visitEmptyObject() noexcept {
+		return emptyContainer(TapeType::Start_Object, TapeType::End_Object);
+	}
+
+	inline ErrorCode TapeBuilder::visitEmptyArray() noexcept {
+		return emptyContainer(TapeType::Start_Array, TapeType::End_Array);
+	}
+
+	inline ErrorCode TapeBuilder::visitDocumentStart() noexcept {
+		startContainer();
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitObjectStart(StructuralIterator& iter) noexcept {
-		startContainer(iter);
+	inline ErrorCode TapeBuilder::visitObjectStart() noexcept {
+		startContainer();
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitArrayStart(StructuralIterator& iter) noexcept {
-		startContainer(iter);
+	inline ErrorCode TapeBuilder::visitArrayStart() noexcept {
+		startContainer();
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitObjectEnd(StructuralIterator& iter) noexcept {
-		return endContainer(iter, TapeType::Start_Object, TapeType::End_Object);
+	inline ErrorCode TapeBuilder::visitObjectEnd() noexcept {
+		return endContainer(TapeType::Start_Object, TapeType::End_Object);
 	}
 
-	inline ErrorCode TapeBuilder::visitArrayEnd(StructuralIterator& iter) noexcept {
-		return endContainer(iter, TapeType::Start_Array, TapeType::End_Array);
+	inline ErrorCode TapeBuilder::visitArrayEnd() noexcept {
+		return endContainer(TapeType::Start_Array, TapeType::End_Array);
 	}
 
-	inline ErrorCode TapeBuilder::visitDocumentEnd(StructuralIterator& iter) noexcept {
+	inline ErrorCode TapeBuilder::visitDocumentEnd() noexcept {
 		constexpr uint32_t startTapeIndex = 0;
 		this->tape.append(startTapeIndex, TapeType::Root);
-		TapeWriter::write(iter.masterParser->getTape()[startTapeIndex], nextTapeIndex(iter), TapeType::Root);
+		TapeWriter::write(this->masterParser->getTape()[startTapeIndex], nextTapeIndex(), TapeType::Root);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitKey(StructuralIterator& iter, const uint8_t* key) noexcept {
-		return visitString(iter, key);
+	inline ErrorCode TapeBuilder::visitKey(const uint8_t* key) noexcept {
+		return visitString(key);
 	}
 
-	inline ErrorCode TapeBuilder::incrementCount(StructuralIterator& iter) noexcept {
-		iter.masterParser->getOpenContainers()[iter.depth].count++;
+	inline ErrorCode TapeBuilder::incrementCount() noexcept {
+		this->masterParser->getOpenContainers()[this->depth].count++;
 		return ErrorCode::Success;
 	}
 
-	inline TapeBuilder::TapeBuilder(JsonifierCore* doc) noexcept
-		: tape{ doc->getTape() }, currentStringBufferLocation{ doc->getStringBuffer() }, currentTapeLength(doc->getTapeLength()){};
-
-	inline ErrorCode TapeBuilder::visitString(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		uint8_t* dst01 = onStartString(iter);
-		dst01 = StringParser::parseString(reinterpret_cast<const uint8_t*>(Value) + 1ull, reinterpret_cast<uint8_t*>(dst01),
-			(*iter.nextStructural + 1ull) - (*iter.nextStructural));
+	inline ErrorCode TapeBuilder::visitString(const uint8_t* value) noexcept {
+		uint8_t* dst01 = onStartString();
+		dst01 = StringParser::parseString(reinterpret_cast<const uint8_t*>(value) + 1ull, reinterpret_cast<uint8_t*>(dst01),
+			(*this->nextStructural + 1ull) - (*this->nextStructural));
 		if (dst01 == nullptr) {
 			return ErrorCode::StringError;
 		}
@@ -1863,101 +1831,101 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitRootString(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		return visitString(iter, Value);
+	inline ErrorCode TapeBuilder::visitRootString(const uint8_t* value) noexcept {
+		return visitString(value);
 	}
 
-	inline ErrorCode TapeBuilder::visitNumber(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		return NumberParser::parseNumber<TapeWriter>(Value, this->tape);
+	inline ErrorCode TapeBuilder::visitNumber(const uint8_t* value) noexcept {
+		return NumberParser::parseNumber<TapeWriter>(value, this->tape);
 	}
 
-	inline ErrorCode TapeBuilder::visitRootNumber(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[iter.remainingLen() + 256]);
+	inline ErrorCode TapeBuilder::visitRootNumber(const uint8_t* value) noexcept {
+		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[this->remainingLen() + 256]);
 		if (copy.get() == nullptr) {
 			return ErrorCode::MemAlloc;
 		}
-		std::memcpy(copy.get(), Value, iter.remainingLen());
-		std::memset(copy.get() + iter.remainingLen(), ' ', 256);
-		return visitNumber(iter, copy.get());
+		std::memcpy(copy.get(), value, this->remainingLen());
+		std::memset(copy.get() + this->remainingLen(), ' ', 256);
+		return visitNumber(copy.get());
 	}
 
-	inline ErrorCode TapeBuilder::visitTrueAtom(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		if (!StringParser::isValidTrueAtom(Value)) {
+	inline ErrorCode TapeBuilder::visitTrueAtom(const uint8_t* value) noexcept {
+		if (!StringParser::isValidTrueAtom(value)) {
 			return ErrorCode::TAtomError;
 		}
 		this->tape.append(0, TapeType::True_Value);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitRootTrueAtom(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		if (!StringParser::isValidTrueAtom(Value)) {
+	inline ErrorCode TapeBuilder::visitRootTrueAtom(const uint8_t* value) noexcept {
+		if (!StringParser::isValidTrueAtom(value)) {
 			return ErrorCode::NAtomError;
 		}
 		this->tape.append(0, TapeType::True_Value);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitFalseAtom(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		if (!StringParser::isValidFalseAtom(Value)) {
+	inline ErrorCode TapeBuilder::visitFalseAtom(const uint8_t* value) noexcept {
+		if (!StringParser::isValidFalseAtom(value)) {
 			return ErrorCode::FAtomError;
 		}
 		this->tape.append(0, TapeType::False_Value);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitRootFalseAtom(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		if (!StringParser::isValidFalseAtom(Value)) {
+	inline ErrorCode TapeBuilder::visitRootFalseAtom(const uint8_t* value) noexcept {
+		if (!StringParser::isValidFalseAtom(value)) {
 			return ErrorCode::FAtomError;
 		}
 		this->tape.append(0, TapeType::False_Value);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitNullAtom(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		if (!StringParser::isValidNullAtom(Value)) {
+	inline ErrorCode TapeBuilder::visitNullAtom(const uint8_t* value) noexcept {
+		if (!StringParser::isValidNullAtom(value)) {
 			return ErrorCode::NAtomError;
 		}
 		this->tape.append(0, TapeType::Null_Value);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::visitRootNullAtom(StructuralIterator& iter, const uint8_t* Value) noexcept {
-		if (!StringParser::isValidNullAtom(Value)) {
+	inline ErrorCode TapeBuilder::visitRootNullAtom(const uint8_t* value) noexcept {
+		if (!StringParser::isValidNullAtom(value)) {
 			return ErrorCode::NAtomError;
 		}
 		this->tape.append(0, TapeType::Null_Value);
 		return ErrorCode::Success;
 	}
 
-	inline uint32_t TapeBuilder::nextTapeIndex(StructuralIterator& iter) noexcept {
-		return uint32_t(tape.nextTapeLocation - iter.masterParser->getTape());
+	inline uint32_t TapeBuilder::nextTapeIndex() noexcept {
+		return uint32_t(tape.nextTapeLocation - this->masterParser->getTape());
 	}
 
-	inline ErrorCode TapeBuilder::emptyContainer(StructuralIterator& iter, TapeType start, TapeType end) noexcept {
-		auto startIndex = nextTapeIndex(iter);
+	inline ErrorCode TapeBuilder::emptyContainer(TapeType start, TapeType end) noexcept {
+		auto startIndex = nextTapeIndex();
 		this->tape.append(startIndex + 2ull, start);
 		this->tape.append(startIndex, end);
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::startContainer(StructuralIterator& iter) noexcept {
-		iter.masterParser->getOpenContainers()[iter.depth].tapeIndex = nextTapeIndex(iter);
-		iter.masterParser->getOpenContainers()[iter.depth].count = 0;
+	inline ErrorCode TapeBuilder::startContainer() noexcept {
+		this->masterParser->getOpenContainers()[this->depth].tapeIndex = nextTapeIndex();
+		this->masterParser->getOpenContainers()[this->depth].count = 0;
 		this->tape.skip();
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode TapeBuilder::endContainer(StructuralIterator& iter, TapeType start, TapeType end) noexcept {
-		const uint32_t startTapeIndex = iter.masterParser->getOpenContainers()[iter.depth].tapeIndex;
+	inline ErrorCode TapeBuilder::endContainer(TapeType start, TapeType end) noexcept {
+		const uint32_t startTapeIndex = this->masterParser->getOpenContainers()[this->depth].tapeIndex;
 		this->tape.append(startTapeIndex, end);
-		const uint32_t count = iter.masterParser->getOpenContainers()[iter.depth].count;
+		const uint32_t count = this->masterParser->getOpenContainers()[this->depth].count;
 		const uint32_t cntsat = count > 0xFFFFFF ? 0xFFFFFF : count;
-		TapeWriter::write(iter.masterParser->getTape()[startTapeIndex], nextTapeIndex(iter) | (uint64_t(cntsat) << 32), start);
+		TapeWriter::write(this->masterParser->getTape()[startTapeIndex], nextTapeIndex() | (uint64_t(cntsat) << 32), start);
 		return ErrorCode::Success;
 	}
 
-	inline uint8_t* TapeBuilder::onStartString(StructuralIterator& iter) noexcept {
-		this->tape.append(currentStringBufferLocation - iter.masterParser->getStringBuffer(), TapeType::String);
+	inline uint8_t* TapeBuilder::onStartString() noexcept {
+		this->tape.append(currentStringBufferLocation - this->masterParser->getStringBuffer(), TapeType::String);
 		return this->currentStringBufferLocation + sizeof(uint32_t);
 	}
 
@@ -1969,33 +1937,33 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode StructuralIterator::walkDocument(TapeBuilder& visitor) {
+	inline ErrorCode TapeBuilder::walkDocument() {
 		this->masterParser->getTapeLength() = 0;
 		if (atEof()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
-		visitor.visitDocumentStart(*this);
-		auto Value = this->advance();
+		this->visitDocumentStart();
+		auto value = this->advance();
 
-		switch (*Value) {
+		switch (*value) {
 			case '{':
 				if (*this->peek() == '}') {
 					this->advance();
-					visitor.visitEmptyObject(*this);
+					this->visitEmptyObject();
 					break;
 				}
 				goto Object_Begin;
 			case '[':
 				if (*this->peek() == ']') {
 					this->advance();
-					visitor.visitEmptyArray(*this);
+					this->visitEmptyArray();
 					break;
 				}
 				goto Array_Begin;
 			default:
-				visitor.visitRootPrimitive(*this, Value);
+				this->visitRootPrimitive(value);
 				break;
 		}
 		goto Document_End;
@@ -2006,15 +1974,15 @@ namespace Jsonifier {
 			return ErrorCode::DepthError;
 		}
 		this->masterParser->getIsArray()[this->depth] = false;
-		visitor.visitObjectStart(*this);
+		this->visitObjectStart();
 		auto key = this->advance();
 		if (*key != '"') {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
-		visitor.visitKey(*this, key);
-		visitor.incrementCount(*this);
+		this->visitKey(key);
+		this->incrementCount();
 	}
 
 	Object_Field : {
@@ -2024,24 +1992,24 @@ namespace Jsonifier {
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
-		auto Value = this->advance();
-		switch (*Value) {
+		auto value = this->advance();
+		switch (*value) {
 			case '{':
 				if (*this->peek() == '}') {
 					this->advance();
-					visitor.visitEmptyObject(*this);
+					this->visitEmptyObject();
 					break;
 				}
 				goto Object_Begin;
 			case '[':
 				if (*this->peek() == ']') {
 					this->advance();
-					visitor.visitEmptyArray(*this);
+					this->visitEmptyArray();
 					break;
 				}
 				goto Array_Begin;
 			default:
-				if (auto resultCode = visitor.visitPrimitive(*this, Value); resultCode != ErrorCode::Success) {
+				if (auto resultCode = this->visitPrimitive(value); resultCode != ErrorCode::Success) {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(resultCode) } +
 						", at the following index into the string: " + std::to_string(*this->nextStructural) };
@@ -2054,7 +2022,7 @@ namespace Jsonifier {
 		auto newValue = *this->advance();
 		switch (newValue) {
 			case ',':
-				visitor.incrementCount(*this);
+				this->incrementCount();
 				{
 					auto key = this->advance();
 					if (*key != '"') {
@@ -2063,11 +2031,11 @@ namespace Jsonifier {
 							", at the following index into the string: " + std::to_string(*this->nextStructural) +
 							", and the key was: " + std::string{ *reinterpret_cast<const char*>(this->peek() - 1) } };
 					}
-					visitor.visitKey(*this, key);
+					this->visitKey(key);
 				}
 				goto Object_Field;
 			case '}':
-				visitor.visitObjectEnd(*this);
+				this->visitObjectEnd();
 				goto Scope_End;
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -2095,17 +2063,17 @@ namespace Jsonifier {
 				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 		this->masterParser->getIsArray()[this->depth] = true;
-		visitor.visitArrayStart(*this);
-		visitor.incrementCount(*this);
+		this->visitArrayStart();
+		this->incrementCount();
 	}
 
 	Array_Value : {
-		auto Value = this->advance();
-		switch (*Value) {
+		auto value = this->advance();
+		switch (*value) {
 			case '{':
 				if (*this->peek() == '}') {
 					this->advance();
-					visitor.visitEmptyObject(*this);
+					this->visitEmptyObject();
 					break;
 				}
 
@@ -2113,12 +2081,12 @@ namespace Jsonifier {
 			case '[':
 				if (*this->peek() == ']') {
 					this->advance();
-					visitor.visitEmptyArray(*this);
+					this->visitEmptyArray();
 					break;
 				}
 				goto Array_Begin;
 			default:
-				if (auto resultCode = visitor.visitPrimitive(*this, Value); resultCode != ErrorCode::Success) {
+				if (auto resultCode = this->visitPrimitive(value); resultCode != ErrorCode::Success) {
 					throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 						std::string{ static_cast<EnumStringConverter>(resultCode) } +
 						", at the following index into the string: " + std::to_string(*this->nextStructural) };
@@ -2131,10 +2099,10 @@ namespace Jsonifier {
 		auto newValue = *this->advance();
 		switch (newValue) {
 			case ',':
-				visitor.incrementCount(*this);
+				this->incrementCount();
 				goto Array_Value;
 			case ']':
-				visitor.visitArrayEnd(*this);
+				this->visitArrayEnd();
 				goto Scope_End;
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
@@ -2144,7 +2112,7 @@ namespace Jsonifier {
 	}
 
 	Document_End : {
-		visitor.visitDocumentEnd(*this);
+		this->visitDocumentEnd();
 
 		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
 
@@ -2157,16 +2125,16 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline ErrorCode StructuralIterator::visitRootPrimitive(TapeBuilder& visitor, const uint8_t* Value) {
-		switch (*Value) {
+	inline ErrorCode TapeBuilder::visitRootPrimitive(const uint8_t* value) {
+		switch (*value) {
 			case '"':
-				return visitor.visitRootString(*this, Value);
+				return this->visitRootString(value);
 			case 't':
-				return visitor.visitRootTrueAtom(*this, Value);
+				return this->visitRootTrueAtom(value);
 			case 'f':
-				return visitor.visitRootFalseAtom(*this, Value);
+				return this->visitRootFalseAtom(value);
 			case 'n':
-				return visitor.visitRootNullAtom(*this, Value);
+				return this->visitRootNullAtom(value);
 			case '-':
 			case '0':
 			case '1':
@@ -2178,7 +2146,7 @@ namespace Jsonifier {
 			case '7':
 			case '8':
 			case '9':
-				return visitor.visitRootNumber(*this, Value);
+				return this->visitRootNumber(value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
@@ -2186,16 +2154,16 @@ namespace Jsonifier {
 		}
 	}
 
-	inline ErrorCode StructuralIterator::visitPrimitive(TapeBuilder& visitor, const uint8_t* Value) {
-		switch (*Value) {
+	inline ErrorCode TapeBuilder::visitPrimitive(const uint8_t* value) {
+		switch (*value) {
 			case '"':
-				return visitor.visitString(*this, Value);
+				return this->visitString(value);
 			case 't':
-				return visitor.visitTrueAtom(*this, Value);
+				return this->visitTrueAtom(value);
 			case 'f':
-				return visitor.visitFalseAtom(*this, Value);
+				return this->visitFalseAtom(value);
 			case 'n':
-				return visitor.visitNullAtom(*this, Value);
+				return this->visitNullAtom(value);
 			case '-':
 			case '0':
 			case '1':
@@ -2207,7 +2175,7 @@ namespace Jsonifier {
 			case '7':
 			case '8':
 			case '9':
-				return visitor.visitNumber(*this, Value);
+				return this->visitNumber(value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
@@ -2218,7 +2186,7 @@ namespace Jsonifier {
 	JsonifierResult<Document> JsonifierCore::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		TapeBuilder tapeBuilder{ this };
-		auto errorCode = tapeBuilder.parseDocument(this);
+		auto errorCode = tapeBuilder.walkDocument();
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
 		JsonifierResult<Document> returnValue{ Document{ this->getDocument() }, std::move(errorCode) };
 		return returnValue;
