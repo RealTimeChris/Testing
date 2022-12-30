@@ -39,10 +39,6 @@ namespace Jsonifier {
 			void deallocate(OTy* ptr, size_t count) {
 				free(ptr);
 			}
-
-			void construct(OTy* p, const OTy& val) {
-				new (p) OTy(val);
-			}
 		};
 
 		using AllocatorTraits = std::allocator_traits<AllocatorType<OTy>>;
