@@ -103,21 +103,20 @@ namespace Jsonifier {
 			return this->objects[index];
 		}
 
-		inline void deallocate(size_t currentSize) {
-			if (currentSize > 0 && this->objects) {
+		inline void deallocate() {
+			if (this->size > 0 && this->objects) {
 				ObjectAllocator<OTy> allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, currentSize);
+				AllocatorTraits::deallocate(allocator, this->objects, this->size);
 				this->objects = nullptr;
 			}
 		}
 
-		inline void allocate(size_t newSize, size_t oldSize) noexcept {
-			if (this->objects) {
-				this->deallocate(oldSize);
-			}
+		inline void allocate(size_t newSize) noexcept {
+			this->deallocate();
 			if (newSize != 0) {
 				ObjectAllocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
+				this->size = newSize;
 			}
 		}
 
@@ -125,8 +124,13 @@ namespace Jsonifier {
 			return this->objects;
 		}
 
+		inline ~ObjectBuffer() noexcept {
+			this->deallocate();
+		}
+
 	  protected:
 		OTy* objects{};
+		size_t size{};
 	};
 
 	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
@@ -1489,19 +1493,19 @@ namespace Jsonifier {
 
 			this->stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
 			this->tapeCapacity = round(this->stringLengthRaw + 3, 256);
-			this->structuralIndexes.allocate(this->tapeCapacity, this->tapeCapacity);
-			this->stringBuffer.allocate(this->stringCapacity, this->stringCapacity);
-			this->isArray.allocate(this->tapeCapacity, this->tapeCapacity);
-			this->openContainers.allocate(this->maxDepth, this->maxDepth);
-			this->tape.allocate(this->tapeCapacity, this->tapeCapacity);
+			this->structuralIndexes.allocate(this->tapeCapacity);
+			this->stringBuffer.allocate(this->stringCapacity);
+			this->openContainers.allocate(this->maxDepth);
+			this->isArray.allocate(this->tapeCapacity);
+			this->tape.allocate(this->tapeCapacity);
 			this->stringView = stringViewNew;
 			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
 					this->openContainers.get())) {
-				this->structuralIndexes.deallocate(this->tapeCapacity);
-				this->stringBuffer.deallocate(this->stringCapacity);
-				this->openContainers.deallocate(this->maxDepth);
-				this->isArray.deallocate(this->tapeCapacity);
-				this->tape.deallocate(this->tapeCapacity);
+				this->structuralIndexes.deallocate();
+				this->openContainers.deallocate();
+				this->stringBuffer.deallocate();
+				this->isArray.deallocate();
+				this->tape.deallocate();
 				return ErrorCode::MemAlloc;
 			}
 
@@ -1579,14 +1583,6 @@ namespace Jsonifier {
 
 		inline bool* getIsArray() {
 			return this->isArray.get();
-		}
-
-		~JsonifierCore() {
-			this->structuralIndexes.deallocate(this->tapeCapacity);
-			this->stringBuffer.deallocate(this->stringCapacity);
-			this->openContainers.deallocate(this->maxDepth);
-			this->isArray.deallocate(this->tapeCapacity);
-			this->tape.deallocate(this->tapeCapacity);
 		}
 
 	  protected:
