@@ -12,10 +12,10 @@ namespace Jsonifier {
 
 	class EnumStringConverter {
 	  public:
-		EnumStringConverter(ErrorCode error) {
+		inline EnumStringConverter(ErrorCode error) {
 			this->code = error;
 		}
-		operator std::string() {
+		inline operator std::string() {
 			switch (this->code) {
 				case ErrorCode::Empty: {
 					return "Empty";
@@ -61,7 +61,7 @@ namespace Jsonifier {
 	};
 
 	struct JsonifierException : public std::runtime_error, std::string {
-		inline JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
+		JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
 
 	template<typename OTy> class ObjectBuffer {
@@ -78,32 +78,32 @@ namespace Jsonifier {
 			using propagate_on_container_move_assignment = std::true_type;
 			using is_always_equal = std::true_type;
 
-			ObjectAllocator() noexcept = default;
+			inline ObjectAllocator() noexcept = default;
 
-			OTy* allocate(size_t count) {
+			inline OTy* allocate(size_t count) {
 				return static_cast<OTy*>(malloc(sizeof(OTy) * count));
 			}
 
-			template<typename OTy> void deallocate(OTy* ptr, size_t count) {
+			template<typename OTy> inline void deallocate(OTy* ptr, size_t count) {
 				free(ptr);
 			}
 		};
 
 		using AllocatorTraits = std::allocator_traits<ObjectAllocator<OTy>>;
 
-		ObjectBuffer& operator=(ObjectBuffer&&) = delete;
-		ObjectBuffer(ObjectBuffer&&) = delete;
+		inline ObjectBuffer& operator=(ObjectBuffer&&) = delete;
+		inline ObjectBuffer(ObjectBuffer&&) = delete;
 
-		ObjectBuffer& operator=(const ObjectBuffer&) = delete;
-		ObjectBuffer(const ObjectBuffer&) = delete;
+		inline ObjectBuffer& operator=(const ObjectBuffer&) = delete;
+		inline ObjectBuffer(const ObjectBuffer&) = delete;
 
-		ObjectBuffer() noexcept = default;
+		inline ObjectBuffer() noexcept = default;
 
-		OTy& operator[](size_t index) noexcept {
+		inline OTy& operator[](size_t index) noexcept {
 			return this->objects[index];
 		}
 
-		void deallocate(size_t currentSize) {
+		inline void deallocate(size_t currentSize) {
 			if (currentSize > 0 && this->objects) {
 				ObjectAllocator<OTy> allocator{};
 				AllocatorTraits::deallocate(allocator, this->objects, currentSize);
@@ -111,7 +111,7 @@ namespace Jsonifier {
 			}
 		}
 
-		void allocate(size_t newSize, size_t oldSize) noexcept {
+		inline void allocate(size_t newSize, size_t oldSize) noexcept {
 			if (this->objects) {
 				this->deallocate(oldSize);
 			}
@@ -121,7 +121,7 @@ namespace Jsonifier {
 			}
 		}
 
-		OTy* get() noexcept {
+		inline OTy* get() noexcept {
 			return this->objects;
 		}
 
@@ -132,7 +132,7 @@ namespace Jsonifier {
 	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
 	constexpr uint32_t JSON_COUNT_MASK{ 0xFFFFFF };
 
-	template<typename RTy> void reverseByteOrder(RTy& net) {
+	template<typename RTy> inline void reverseByteOrder(RTy& net) {
 		if constexpr (std::endian::native == std::endian::little) {
 			switch (sizeof(RTy)) {
 				case 1: {
@@ -159,7 +159,7 @@ namespace Jsonifier {
 		}
 	}
 
-	template<typename RTy> void storeBits(char* to, RTy num) {
+	template<typename RTy> inline void storeBits(char* to, RTy num) {
 		uint8_t byteSize{ 8 };
 		reverseByteOrder<RTy>(num);
 		for (uint32_t x = 0; x < sizeof(RTy); ++x) {
@@ -171,34 +171,34 @@ namespace Jsonifier {
 	  public:
 		using HRClock = std::chrono::high_resolution_clock;
 
-		StopWatch() = delete;
+		inline StopWatch() = delete;
 
-		StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
+		inline StopWatch<TTy>& operator=(const StopWatch<TTy>& data) {
 			this->maxNumberOfMs.store(data.maxNumberOfMs.load());
 			this->startTime.store(data.startTime.load());
 			return *this;
 		}
 
-		StopWatch(const StopWatch<TTy>& data) {
+		inline StopWatch(const StopWatch<TTy>& data) {
 			*this = data;
 		}
 
-		StopWatch(TTy maxNumberOfMsNew) {
+		inline StopWatch(TTy maxNumberOfMsNew) {
 			this->maxNumberOfMs.store(maxNumberOfMsNew);
 			this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 		}
 
-		TTy totalTimePassed() {
+		inline TTy totalTimePassed() {
 			TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 			TTy elapsedTime = currentTime - this->startTime.load();
 			return elapsedTime;
 		}
 
-		TTy getTotalWaitTime() {
+		inline TTy getTotalWaitTime() {
 			return this->maxNumberOfMs.load();
 		}
 
-		bool hasTimePassed() {
+		inline bool hasTimePassed() {
 			TTy currentTime = std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch());
 			TTy elapsedTime = currentTime - this->startTime.load();
 			if (elapsedTime >= this->maxNumberOfMs.load()) {
@@ -208,7 +208,7 @@ namespace Jsonifier {
 			}
 		}
 
-		void resetTimer() {
+		inline void resetTimer() {
 			this->startTime.store(std::chrono::duration_cast<TTy>(HRClock::now().time_since_epoch()));
 		}
 
@@ -237,23 +237,23 @@ namespace Jsonifier {
 	concept IsEnum = std::is_enum<Ty>::Value;
 
 	struct EnumConverter {
-		template<IsEnum EnumType> EnumConverter& operator=(const std::vector<EnumType>& data) {
+		template<IsEnum EnumType> inline EnumConverter& operator=(const std::vector<EnumType>& data) {
 			for (auto& Value: data) {
 				this->vector.emplace_back(std::move(static_cast<uint64_t>(Value)));
 			}
 			return *this;
 		};
 
-		template<IsEnum EnumType> EnumConverter(const std::vector<EnumType>& data) {
+		template<IsEnum EnumType> inline EnumConverter(const std::vector<EnumType>& data) {
 			*this = data;
 		};
 
-		template<IsEnum EnumType> EnumConverter& operator=(EnumType data) {
+		template<IsEnum EnumType> inline EnumConverter& operator=(EnumType data) {
 			this->integer = static_cast<uint64_t>(data);
 			return *this;
 		};
 
-		template<IsEnum EnumType> EnumConverter(EnumType data) {
+		template<IsEnum EnumType> inline EnumConverter(EnumType data) {
 			*this = data;
 		};
 
@@ -290,74 +290,13 @@ namespace Jsonifier {
 		using UintType = uint64_t;
 		using IntType = int64_t;
 		using BoolType = bool;
-		/*
-		class JsonifierIterator : public Jsonifier::ObjectType::iterator, public Jsonifier::ArrayType::iterator {
-		  public:
 
-			JsonifierIterator(Jsonifier* ptrNew) {
-				ptr = ptrNew;
-			}
-
-			Jsonifier* operator->() {
-				switch (ptr->type) {
-					case JsonType::Object: {
-						if (Jsonifier::ObjectType::iterator::operator->() != ptr->end())
-						return &Jsonifier::ObjectType::iterator::operator->()->second;
-					}
-					case JsonType::Array: {
-						return Jsonifier::ArrayType::iterator::operator->();
-					}
-					default: {
-						return this->ptr;
-					}
-				}
-			}
-
-			Jsonifier& operator*() {
-				switch (ptr->type) {
-					case JsonType::Object: {
-						return Jsonifier::ObjectType::iterator::operator*().second;
-					}
-					case JsonType::Array: {
-						return Jsonifier::ArrayType::iterator::operator*();
-					}
-					default: {
-						return *this->ptr;
-					}
-				}
-			}
-
-			JsonifierIterator& operator++() {
-				switch (ptr->type) {
-					case JsonType::Object: {
-						Jsonifier::ObjectType::iterator::operator++();
-						return *this;
-					}
-					case JsonType::Array: {
-						Jsonifier::ArrayType::iterator::operator++();
-						return *this;
-					}
-					default: {
-						return *this;
-					}
-				}
-			}
-
-			friend inline bool operator==(const JsonifierIterator& lhs, const JsonifierIterator& rhs) {
-				std::cout << "DOES IT EQUAL THE OTHER? " << std::boolalpha << (lhs.ptr == rhs.ptr) << std::endl;
-				return (lhs.ptr != rhs.ptr);
-			}
-
-		  protected:
-			Jsonifier* ptr{};
-		};
-		*/
 		union JsonValue {
-			JsonValue() noexcept = default;
-			JsonValue& operator=(JsonValue&&) noexcept = delete;
-			JsonValue(JsonValue&&) noexcept = delete;
-			JsonValue& operator=(const JsonValue&) noexcept = delete;
-			JsonValue(const JsonValue&) noexcept = delete;
+			inline JsonValue() noexcept = default;
+			inline JsonValue& operator=(JsonValue&&) noexcept = delete;
+			inline JsonValue(JsonValue&&) noexcept = delete;
+			inline JsonValue& operator=(const JsonValue&) noexcept = delete;
+			inline JsonValue(const JsonValue&) noexcept = delete;
 			ObjectType* object;
 			StringType* string;
 			ArrayType* array;
@@ -366,18 +305,10 @@ namespace Jsonifier {
 			IntType numberInt;
 			BoolType boolean;
 		};
-		/*
-		auto begin() {
-			return JsonifierIterator{ this };
-		}
-
-		auto end() {
-			return JsonifierIterator{ this };
-		}
-		*/
+		
 		Jsonifier() noexcept = default;
 
-		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>&& data) noexcept {
+		template<IsConvertibleToJsonifier OTy> inline Jsonifier& operator=(std::vector<OTy>&& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& Value: data) {
 				this->jsonValue.array->push_back(std::move(Value));
@@ -385,11 +316,11 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		template<IsConvertibleToJsonifier OTy> Jsonifier(std::vector<OTy>&& data) noexcept {
+		template<IsConvertibleToJsonifier OTy> inline Jsonifier(std::vector<OTy>&& data) noexcept {
 			*this = std::move(data);
 		}
 
-		template<IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::vector<OTy>& data) noexcept {
+		template<IsConvertibleToJsonifier OTy> inline Jsonifier& operator=(std::vector<OTy>& data) noexcept {
 			this->setValue(JsonType::Array);
 			for (auto& Value: data) {
 				this->jsonValue.array->push_back(Value);
@@ -397,11 +328,12 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		template<IsConvertibleToJsonifier OTy> Jsonifier(std::vector<OTy>& data) noexcept {
+		template<IsConvertibleToJsonifier OTy> inline Jsonifier(std::vector<OTy>& data) noexcept {
 			*this = data;
 		}
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::unordered_map<KTy, OTy>&& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy>
+		inline Jsonifier& operator=(std::unordered_map<KTy, OTy>&& data) noexcept {
 			this->setValue(JsonType::object);
 			for (auto& [key, Value]: data) {
 				(*this->jsonValue.object)[key] = std::move(Value);
@@ -409,11 +341,12 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::unordered_map<KTy, OTy>&& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier(std::unordered_map<KTy, OTy>&& data) noexcept {
 			*this = std::move(data);
 		};
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::unordered_map<KTy, OTy>& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy>
+		inline Jsonifier& operator=(std::unordered_map<KTy, OTy>& data) noexcept {
 			this->setValue(JsonType::object);
 			for (auto& [key, Value]: data) {
 				(*this->jsonValue.object)[key] = Value;
@@ -421,11 +354,11 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::unordered_map<KTy, OTy>& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier(std::unordered_map<KTy, OTy>& data) noexcept {
 			*this = data;
 		};
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::map<KTy, OTy>&& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier& operator=(std::map<KTy, OTy>&& data) noexcept {
 			this->setValue(JsonType::object);
 			for (auto& [key, Value]: data) {
 				(*this->jsonValue.object)[key] = std::move(Value);
@@ -433,11 +366,11 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::map<KTy, OTy>&& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier(std::map<KTy, OTy>&& data) noexcept {
 			*this = std::move(data);
 		};
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier& operator=(std::map<KTy, OTy>& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier& operator=(std::map<KTy, OTy>& data) noexcept {
 			this->setValue(JsonType::object);
 			for (auto& [key, Value]: data) {
 				(*this->jsonValue.object)[key] = Value;
@@ -445,17 +378,17 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> Jsonifier(std::map<KTy, OTy>& data) noexcept {
+		template<IsConvertibleToJsonifier KTy, IsConvertibleToJsonifier OTy> inline Jsonifier(std::map<KTy, OTy>& data) noexcept {
 			*this = data;
 		};
 
-		template<IsEnum Ty> Jsonifier& operator=(Ty data) noexcept {
+		template<IsEnum Ty> inline Jsonifier& operator=(Ty data) noexcept {
 			this->jsonValue.numberUint = static_cast<uint64_t>(data);
 			this->type = JsonType::Uint64;
 			return *this;
 		}
 
-		template<IsEnum Ty> Jsonifier(Ty data) noexcept {
+		template<IsEnum Ty> inline Jsonifier(Ty data) noexcept {
 			*this = data;
 		}
 
@@ -663,9 +596,9 @@ namespace Jsonifier {
 
 	class EscapeJsonString {
 	  public:
-		EscapeJsonString(std::string_view _str) noexcept : str{ _str } {
+		inline EscapeJsonString(std::string_view _str) noexcept : str{ _str } {
 		}
-		operator std::string() noexcept {
+		inline operator std::string() noexcept {
 			std::stringstream s;
 			s << *this;
 			return s.str();
@@ -673,7 +606,7 @@ namespace Jsonifier {
 
 	  protected:
 		std::string_view str;
-		friend std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped);
+		inline friend std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped);
 	};
 
 	inline std::ostream& operator<<(std::ostream& out, const EscapeJsonString& unescaped) {
@@ -1010,11 +943,11 @@ namespace Jsonifier {
 			return this->currentIndex + 1;
 		}
 
-		JsonValueBase& getCurrentIterator() noexcept {
+		inline JsonValueBase& getCurrentIterator() noexcept {
 			return *this;
 		}
 
-		JsonValueBase& advanceIteratorAndReturn(size_t value) noexcept {
+		inline JsonValueBase& advanceIteratorAndReturn(size_t value) noexcept {
 			this->currentIndex += value;
 			return *this;
 		}
@@ -1140,7 +1073,7 @@ namespace Jsonifier {
 				return *this;
 			}
 
-			friend inline bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
+			inline friend bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
 				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
@@ -1198,7 +1131,7 @@ namespace Jsonifier {
 				return *this;
 			}
 
-			friend inline bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
+			inline friend bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
 				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
@@ -1249,7 +1182,7 @@ namespace Jsonifier {
 				return *this;
 			}
 
-			friend inline bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
+			inline friend bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
 				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
