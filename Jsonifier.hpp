@@ -1187,7 +1187,10 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = *this ^ _mm256_set1_epi64x(-1);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 0), 0);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 1), 1);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 2), 2);
+			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->Value, 3), 3);
 			return newValues;
 		}
 
@@ -1223,7 +1226,7 @@ namespace Jsonifier {
 			cout << std::endl;
 		}
 
-		inline SimdBase256 printBits(const std::string& valuesTitle) {
+		inline void printBits(const std::string& valuesTitle) {
 			using std::cout;
 			cout << valuesTitle;
 			for (size_t x = 0; x < 32; ++x) {
@@ -1232,7 +1235,6 @@ namespace Jsonifier {
 				}
 			}
 			cout << std::endl;
-			return *this;
 		}
 
 		inline SimdBase256 bitAndNot(SimdBase256 other) {
@@ -1294,17 +1296,18 @@ namespace Jsonifier {
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
-		if (this->len == this->idx) {
+		if (len == idx) {
 			return 0;
 		}
 		std::memset(dst, 0x20, StepSize);
-		std::memcpy(dst, this->stringBuffer + this->idx, this->len - this->idx);
-		return this->len - this->idx;
+		std::memcpy(dst, stringBuffer + idx, len - idx);
+		return len - idx;
 	}
 
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
-		this->idx += StepSize;
+		idx += StepSize;
 	}
+
 
 	class SimdStringSection {
 	  public:
@@ -1316,10 +1319,10 @@ namespace Jsonifier {
 
 		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape,
 			size_t stringLength) {
-			uint64_t cnt = __popcnt64(*theBits);
+			int cnt = static_cast<int>(__popcnt64(*theBits));
 			int64_t newValue{};
 			for (int i = 0; i < cnt; i++) {
-				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + this->currentIndexIntoString;
+				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 
 				if (newValue >= stringLength) {
 					currentIndexIntoTape += cnt;
@@ -1334,6 +1337,12 @@ namespace Jsonifier {
 			return cnt;
 		}
 
+		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
+			SimdBase256 result = match.shl<1>() | overflow;
+			overflow = match.shr<63>();
+			return result;
+		}
+
 		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
@@ -1342,12 +1351,6 @@ namespace Jsonifier {
 			}
 			this->currentIndexIntoString += 256;
 			return returnValue;
-		}
-
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			SimdBase256 result = match.shl<1>() | overflow;
-			overflow = match.shr<63>();
-			return result;
 		}
 
 		inline SimdBase256 collectWhiteSpace() {
@@ -1410,14 +1413,11 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			this->S256 = this->S256.bitAndNot(this->R256);
-			this->S256 = this->S256 | this->Q256;
-			auto P = this->S256 | this->W256;
-			P = P.shl<1>();
-			P &= ~this->W256.bitAndNot(this->R256);
-			this->S256 = this->S256 | P;
-			this->S256 = this->S256.bitAndNot(this->Q256.bitAndNot(this->R256));
-			return this->S256;
+			auto scalar = ~this->S256 | this->W256;
+			auto stringTail = this->R256 ^ this->Q256;
+			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
+			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar);
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {
@@ -1434,14 +1434,14 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
+			this->S256.printBits("FINAL BITS:  ");
 		}
 
 	  protected:
 		SimdBase256 followsPotentialNonquoteScalar{};
 		size_t currentIndexIntoString{};
+		SimdBase256 previousMatch{};
 		SimdBase256 prevInScalar{};
-		SimdBase256 prevEscaped{};
 		SimdBase256 values[8]{};
 		int64_t prevInString{};
 		SimdBase256 Q256{};
