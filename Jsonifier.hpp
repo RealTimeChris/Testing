@@ -82,7 +82,7 @@ namespace Jsonifier {
 			ObjectAllocator() noexcept = default;
 
 			OTy* allocate(size_t count) {
-				return reinterpret_cast<OTy*>(malloc(sizeof(OTy) * count));
+				return static_cast<OTy*>(malloc(sizeof(OTy) * count));
 			}
 
 			template<typename OTy>
@@ -922,15 +922,15 @@ namespace Jsonifier {
 			*this = std::move(other);
 		}
 
-		inline Field operator[](const char* keyNew);
-
 		inline JsonValueBase(uint8_t* stringBufferNew, uint64_t* tapeRootPositionNew, uint64_t* currentTapePositionNew) {
 			this->localTapeRootPosition = currentTapePositionNew;
 			this->tapeRootPosition = tapeRootPositionNew;
 			this->stringBuffer = stringBufferNew;
 		}
 
-		inline Field findField(const char* keyNew);
+		inline Field operator[](const char* keyNew);
+
+		inline Field findField(const char* keyNew) noexcept;
 
 		inline Object parseJsonObject() noexcept;
 
@@ -938,7 +938,7 @@ namespace Jsonifier {
 
 		inline Array parseJsonArray() noexcept;
 
-		inline std::string_view parseJsonString() {
+		inline std::string_view parseJsonString() noexcept {
 			assert(this->peek() == '"');
 			std::string_view returnValue{};
 			if (this->peek() == '"') {
@@ -956,7 +956,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline double parseJsonFloat() {
+		inline double parseJsonFloat() noexcept {
 			assert(this->peek(0) == 'd');
 			double returnValue{};
 			if (this->peek() == 'd') {
@@ -969,7 +969,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline uint64_t parseJsonUint() {
+		inline uint64_t parseJsonUint() noexcept {
 			assert(this->peek(0) == 'u');
 			uint64_t returnValue{};
 			if (this->peek() == 'u') {
@@ -981,7 +981,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline int64_t parseJsonInt() {
+		inline int64_t parseJsonInt() noexcept {
 			assert(this->peek(0) == 'l');
 			int64_t returnValue{};
 			if (this->peek() == 'l') {
@@ -994,7 +994,7 @@ namespace Jsonifier {
 			return returnValue;
 		}
 
-		inline bool parseJsonBool() {
+		inline bool parseJsonBool() noexcept {
 			assert(this->peek() == 'f' || this->peek() == 't');
 			if (this->peek() == 'f') {
 				this->advance();
@@ -1008,7 +1008,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline nullptr_t parseJsonNull() {
+		inline nullptr_t parseJsonNull() noexcept {
 			assert(this->peek() == 'n');
 			if (this->peek() == 'n') {
 				this->advance();
@@ -1031,32 +1031,32 @@ namespace Jsonifier {
 			this->currentIndex += static_cast<uint32_t>(newValue);
 		}
 
-		inline size_t getOffset() {
+		inline size_t getOffset() noexcept {
 			return this->currentIndex + 1;
 		}
 
-		JsonValueBase& getCurrentIterator() {
+		JsonValueBase& getCurrentIterator() noexcept {
 			return *this;
 		}
 
-		JsonValueBase& advanceIteratorAndReturn(size_t value) {
+		JsonValueBase& advanceIteratorAndReturn(size_t value) noexcept {
 			this->currentIndex += value;
 			return *this;
 		}
 
-		inline void asserAtFieldStart(size_t amountToOffset) {
+		inline void asserAtFieldStart(size_t amountToOffset) noexcept {
 			assert(this->peek(amountToOffset) == '"');
 		}
 
-		inline void assertAtObjectStart(size_t amountToOffset = 0) {
+		inline void assertAtObjectStart(size_t amountToOffset = 0) noexcept {
 			assert(this->peek(amountToOffset) == '{');
 		}
 
-		inline void assertAtArrayStart(size_t amountToOffset = 0) {
+		inline void assertAtArrayStart(size_t amountToOffset = 0) noexcept {
 			assert(this->peek(amountToOffset) == '[');
 		}
 
-		inline void assertAtStringStart(size_t amountToOffset = 0) {
+		inline void assertAtStringStart(size_t amountToOffset = 0) noexcept {
 			assert(this->peek(amountToOffset) == '"');
 		}
 
@@ -1064,15 +1064,15 @@ namespace Jsonifier {
 			return (*(this->localTapeRootPosition + this->currentIndex + index)) >> 56;
 		}
 
-		inline size_t getCurrentCount() {
+		inline size_t getCurrentCount() noexcept {
 			return uint32_t((*this->tapeRootPosition & JSON_VALUE_MASK)) - (this->localTapeRootPosition - this->tapeRootPosition) - 2;
 		}
 
-		inline uint8_t getRootKey() {
+		inline uint8_t getRootKey() noexcept {
 			return (*this->localTapeRootPosition >> 56);
 		}
 
-		inline size_t size() {
+		inline size_t size() noexcept {
 			switch (this->getRootKey()) {
 				case 'r': {
 					[[fallthrough]];
@@ -1094,7 +1094,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline JsonType type() {
+		inline JsonType type() noexcept {
 			switch (this->getRootKey()) {
 				case 'r': {
 					return JsonType::Document;
@@ -2567,29 +2567,29 @@ namespace Jsonifier {
 	template<>
 	inline JsonifierResult<Object>::JsonifierResult(Object&& other, ErrorCode&& error) noexcept
 		: std::pair<Object, ErrorCode>{ std::move(other), std::move(error) } {
-		this->second = std::move(error);
-		this->first = std::move(other);
+		this->second = error;
+		this->first = other;
 	};
 
 	template<>
 	inline JsonifierResult<Array>::JsonifierResult(Array&& other, ErrorCode&& error) noexcept
 		: std::pair<Array, ErrorCode>{ std::move(other), std::move(error) } {
-		this->second = std::move(error);
-		this->first = std::move(other);
+		this->second = error;
+		this->first = other;
 	};
 
 	template<>
 	inline JsonifierResult<Document>::JsonifierResult(Document&& other, ErrorCode&& error) noexcept
 		: std::pair<Document, ErrorCode>{ std::move(other), std::move(error) } {
-		this->second = std::move(error);
-		this->first = std::move(other);
+		this->second = error;
+		this->first = other;
 	};
 
 	template<>
 	inline JsonifierResult<double>::JsonifierResult(double&& other, ErrorCode&& error) noexcept
 		: std::pair<double, ErrorCode>{ std::move(other), std::move(error) } {
-		this->second = std::move(error);
-		this->first = std::move(other);
+		this->second = error;
+		this->first = other;
 	};
 
 	inline Field JsonValueBase::operator[](const char* keyNew) {
@@ -2636,7 +2636,7 @@ namespace Jsonifier {
 	inline Document::Document(JsonifierCore* value) noexcept
 		: parser{ value }, JsonValueBase{ value->getStringBuffer(), value->getTape(), value->getTape() } {};
 
-	inline Field JsonValueBase::findField(const char* keyNew) {
+	inline Field JsonValueBase::findField(const char* keyNew) noexcept {
 		int32_t index{};
 		std::string_view newString{};
 		if (this->peek() == '"') {
