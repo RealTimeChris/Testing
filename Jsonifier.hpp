@@ -66,15 +66,14 @@ namespace Jsonifier {
 
 	template<typename OTy> class ObjectBuffer {
 	  public:
-		template<typename OTy>
-		class ObjectAllocator {
+		template<typename OTy> class ObjectAllocator {
 		  public:
 			using value_type = OTy;
 			using pointer = OTy*;
 			using const_pointer = const OTy*;
 			using reference = OTy&;
 			using const_reference = const OTy&;
-			using size_type	= std::size_t;
+			using size_type = std::size_t;
 			using difference_type = std::ptrdiff_t;
 			using propagate_on_container_move_assignment = std::true_type;
 			using is_always_equal = std::true_type;
@@ -85,8 +84,7 @@ namespace Jsonifier {
 				return static_cast<OTy*>(malloc(sizeof(OTy) * count));
 			}
 
-			template<typename OTy>
-			void deallocate(OTy* ptr, size_t count) {
+			template<typename OTy> void deallocate(OTy* ptr, size_t count) {
 				free(ptr);
 			}
 		};
@@ -113,7 +111,7 @@ namespace Jsonifier {
 			}
 		}
 
-		void allocate(size_t newSize,size_t oldSize) noexcept {
+		void allocate(size_t newSize, size_t oldSize) noexcept {
 			if (this->objects) {
 				this->deallocate(oldSize);
 			}
@@ -815,7 +813,7 @@ namespace Jsonifier {
 			return this->second;
 		}
 
-		inline OTy getValue()  {
+		inline OTy getValue() {
 			if (this->second != ErrorCode::Success) {
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 					std::string{ static_cast<EnumStringConverter>(this->second) } };
@@ -826,7 +824,6 @@ namespace Jsonifier {
 
 	class JsonValueBase {
 	  public:
-
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
 		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept {
@@ -1834,7 +1831,6 @@ namespace Jsonifier {
 				for (size_t x = 0; x < indexCount; ++x) {
 					std::cout << "THE INDEX: " << this->structuralIndexes[x]
 							  << ", THE VALUE AT THAT INDEX: " << this->stringView[this->structuralIndexes[x]] << std::endl;
-
 				}
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
@@ -2536,7 +2532,7 @@ namespace Jsonifier {
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
 			return Array{ this->getCurrentIterator() };
-			
+
 		} else {
 			return Array{};
 		}
@@ -2545,7 +2541,7 @@ namespace Jsonifier {
 	inline Field JsonValueBase::operator[](const char* keyNew) {
 		return this->findField(keyNew);
 	}
-	
+
 	template<> inline JsonifierResult<Array> JsonValueBase::get<Array>() noexcept {
 		return { this->parseJsonArray(), std::move(this->error) };
 	}
@@ -2554,7 +2550,7 @@ namespace Jsonifier {
 		return { this->parseJsonObject(), std::move(this->error) };
 	}
 
-	template<> inline JsonifierResult<const char*> JsonValueBase::get<const char*>() noexcept{
+	template<> inline JsonifierResult<const char*> JsonValueBase::get<const char*>() noexcept {
 		return { this->parseJsonString().data(), std::move(this->error) };
 	}
 

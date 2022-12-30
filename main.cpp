@@ -36,7 +36,6 @@ struct ActivitiesJson {
 };
 
 struct TheDJson {
-
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		auto objectNew = value.get<Jsonifier::Object>();
@@ -182,10 +181,10 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
-			objectBuffer.allocate(512*512, 0);
+			objectBuffer.allocate(512 * 512, 0);
 			objectBuffer.deallocate(512 * 512);
 		}
-		
+
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		totalSize = 0;

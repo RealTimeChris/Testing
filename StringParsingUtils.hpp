@@ -28,7 +28,6 @@ namespace Jsonifier {
 
 	class StringParser {
 	  public:
-		
 		inline static uint32_t stringToUint32(const char* str) {
 			uint32_t val{};
 			std::memcpy(&val, str, sizeof(uint32_t));
