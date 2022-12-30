@@ -772,8 +772,6 @@ namespace Jsonifier {
 		
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
-		inline JsonValueBase collectNextIterator() noexcept;
-
 		inline Field findField(const char* keyNew) noexcept;
 
 		inline Object parseJsonObject() noexcept;
@@ -1308,7 +1306,6 @@ namespace Jsonifier {
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
 		idx += StepSize;
 	}
-
 
 	class SimdStringSection {
 	  public:
