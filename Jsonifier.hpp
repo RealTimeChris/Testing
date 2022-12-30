@@ -481,8 +481,6 @@ namespace Jsonifier {
 
 	  protected:
 		JsonType type{ JsonType::Null };
-		size_t currentObjectDepth{};
-		size_t currentArrayDepth{};
 		JsonValue jsonValue{};
 		std::string string{};
 
