@@ -808,10 +808,6 @@ namespace Jsonifier {
 	template<typename OTy> class JsonifierResult : protected std::pair<OTy, ErrorCode> {
 	  public:
 		inline JsonifierResult() noexcept;
-		inline JsonifierResult(OTy&& value, ErrorCode&& error) noexcept {
-			this->second = std::move(error);
-			this->first = std::move(value);
-		}
 
 		template<typename OTy>
 		inline JsonifierResult(OTy&& other, ErrorCode&& error) noexcept : std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
