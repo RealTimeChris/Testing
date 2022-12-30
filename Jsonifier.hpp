@@ -739,6 +739,7 @@ namespace Jsonifier {
 
 	template<typename OTy> class JsonifierResult : protected std::pair<OTy, ErrorCode> {
 	  public:
+		template<typename OTy> inline JsonifierResult() noexcept : std::pair<OTy, ErrorCode>{ OTy{}, ErrorCode::Success } {};
 		template<typename OTy>
 		inline JsonifierResult(OTy&& other, ErrorCode&& error) noexcept : std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
 
@@ -1555,10 +1556,11 @@ namespace Jsonifier {
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				totalTimePassed += stopWatch.totalTimePassed().count();
-				for (size_t x = 0; x < indexCount; ++x) {
+				for (size_t x = 0; x < tapeCurrentIndex; ++x) {
 					std::cout << "THE INDEX: " << this->structuralIndexes[x]
 							  << ", THE VALUE AT THAT INDEX: " << this->stringView[this->structuralIndexes[x]] << std::endl;
 				}
+				this->getStructuralIndexCount() = tapeCurrentIndex;
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
@@ -1579,15 +1581,15 @@ namespace Jsonifier {
 			return this->structuralIndexes.get();
 		}
 
-		inline size_t getStructuralIndexCount() {
-			return this->lastStructural - this->getStructuralIndexes();
+		inline size_t& getStructuralIndexCount() {
+			return this->tapeLength;
 		}
 
 		inline uint64_t* getTape() {
 			return this->tape.get();
 		}
 
-		static inline JsonifierResult<Document> getJsonData(std::string& string);
+		inline JsonifierResult<Document> getJsonData(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -1748,7 +1750,7 @@ namespace Jsonifier {
 	}
 
 	struct TapeBuilder {
-		inline static ErrorCode parseDocument(JsonifierCore& masterParser);
+		inline ErrorCode parseDocument(JsonifierCore* masterParser);
 
 		inline ErrorCode visitDocumentStart(StructuralIterator& iter) noexcept;
 
@@ -1788,11 +1790,11 @@ namespace Jsonifier {
 
 		TapeWriter tape;
 
+		inline TapeBuilder(JsonifierCore* doc) noexcept;
+
 	  protected:
 		uint8_t* currentStringBufferLocation{};
-		size_t& currentTapeLength;
-
-		inline TapeBuilder(JsonifierCore& doc) noexcept;
+		size_t& currentTapeLength;		
 
 		inline uint32_t nextTapeIndex(StructuralIterator& iter) noexcept;
 		inline ErrorCode startContainer(StructuralIterator& iter) noexcept;
@@ -1802,10 +1804,9 @@ namespace Jsonifier {
 		inline ErrorCode onEndString(uint8_t* dst) noexcept;
 	};
 
-	inline ErrorCode TapeBuilder::parseDocument(JsonifierCore& masterParser) {
-		StructuralIterator iter(&masterParser, 0);
-		TapeBuilder builder(masterParser);
-		return iter.walkDocument(builder);
+	inline ErrorCode TapeBuilder::parseDocument(JsonifierCore* masterParser) {
+		StructuralIterator iter(masterParser, 0);
+		return iter.walkDocument(*this);
 	}
 
 	inline ErrorCode TapeBuilder::visitRootPrimitive(StructuralIterator& iter, const uint8_t* Value) {
@@ -1863,8 +1864,8 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline TapeBuilder::TapeBuilder(JsonifierCore& doc) noexcept
-		: tape{ doc.getTape() }, currentStringBufferLocation{ doc.getStringBuffer() }, currentTapeLength(doc.getTapeLength()){};
+	inline TapeBuilder::TapeBuilder(JsonifierCore* doc) noexcept
+		: tape{ doc->getTape() }, currentStringBufferLocation{ doc->getStringBuffer() }, currentTapeLength(doc->getTapeLength()){};
 
 	inline ErrorCode TapeBuilder::visitString(StructuralIterator& iter, const uint8_t* Value) noexcept {
 		uint8_t* dst01 = onStartString(iter);
@@ -1986,7 +1987,9 @@ namespace Jsonifier {
 	inline ErrorCode StructuralIterator::walkDocument(TapeBuilder& visitor) {
 		this->masterParser->getTapeLength() = 0;
 		if (atEof()) {
-			return ErrorCode::Empty;
+			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
+				", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 		visitor.visitDocumentStart(*this);
 		auto Value = this->advance();
@@ -2149,7 +2152,9 @@ namespace Jsonifier {
 				visitor.visitArrayEnd(*this);
 				goto Scope_End;
 			default:
-				return ErrorCode::TapeError;
+				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 	}
 
@@ -2226,11 +2231,11 @@ namespace Jsonifier {
 	}
 
 	JsonifierResult<Document> JsonifierCore::getJsonData(std::string& string) {
-		JsonifierCore returnValueFirst{};
-		returnValueFirst.generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		auto errorCode = TapeBuilder::parseDocument(returnValueFirst);
-		returnValueFirst.getTapeLength() = (returnValueFirst.getTape()[0] & JSON_VALUE_MASK);
-		JsonifierResult<Document> returnValue{ Document{ returnValueFirst.getDocument() }, std::move(errorCode) };
+		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
+		TapeBuilder tapeBuilder{ this };
+		auto errorCode = tapeBuilder.parseDocument(this);
+		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
+		JsonifierResult<Document> returnValue{ Document{ this->getDocument() }, std::move(errorCode) };
 		return returnValue;
 	}
 

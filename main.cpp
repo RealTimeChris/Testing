@@ -78,8 +78,9 @@ struct TheDJson {
 struct TheValueJson {
 	TheValueJson(Jsonifier::JsonifierResult<Jsonifier::Document>&& value) {
 		Jsonifier::Document documentNew{};
-		if (value.get(documentNew) != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the document!" };
+		if (auto result = value.get(documentNew);result != Jsonifier::ErrorCode::Success) {
+			throw Jsonifier::JsonifierException{ "Sorry, but you've encountered the following error: " +
+				std::string{ static_cast<Jsonifier::EnumStringConverter>(result) } };
 		}
 		this->theD = TheDJson{ std::move(documentNew) };
 	}
@@ -210,7 +211,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		Jsonifier::JsonifierCore theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = Jsonifier::JsonifierCore::getJsonData(stringNew);
+			auto jsonData = theParser.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
