@@ -66,10 +66,14 @@ namespace Jsonifier {
 			if (currentSize > 0 && this->objects) {
 				AllocatorType<OTy> allocator{};
 				AllocatorTraits::deallocate(allocator, this->objects, currentSize);
+				this->objects = nullptr;
 			}
 		}
 
-		void allocate(size_t newSize) noexcept {
+		void allocate(size_t newSize,size_t oldSize) noexcept {
+			if (this->objects) {
+				this->deallocate(oldSize);
+			}
 			if (newSize != 0) {
 				AllocatorType<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
@@ -1916,11 +1920,11 @@ namespace Jsonifier {
 
 			this->stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
 			this->tapeCapacity = round(this->stringLengthRaw + 3, 256);
-			this->structuralIndexes.allocate(this->tapeCapacity);
-			this->stringBuffer.allocate(this->stringCapacity);
-			this->openContainers.allocate(this->maxDepth);
-			this->isArray.allocate(this->tapeCapacity);
-			this->tape.allocate(this->tapeCapacity);
+			this->structuralIndexes.allocate(this->tapeCapacity, this->tapeCapacity);
+			this->stringBuffer.allocate(this->stringCapacity, this->stringCapacity);
+			this->isArray.allocate(this->tapeCapacity, this->tapeCapacity);
+			this->openContainers.allocate(this->maxDepth, this->maxDepth);
+			this->tape.allocate(this->tapeCapacity, this->tapeCapacity);
 			this->stringView = stringViewNew;
 			this->nStructuralIndexes = 0;
 			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
