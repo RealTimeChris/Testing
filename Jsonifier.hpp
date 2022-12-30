@@ -833,11 +833,7 @@ namespace Jsonifier {
 
 		inline ~JsonifierResult() noexcept {};
 
-		inline OTy getValueUnsafe() noexcept {
-			return std::move(this->first);
-		}
-
-		inline OTy getValueSafe()  {
+		inline OTy getValue()  {
 			if (this->second != ErrorCode::Success) {
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 					std::string{ static_cast<EnumStringConverter>(this->second) } };

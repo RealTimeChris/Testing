@@ -14,16 +14,16 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Array&& value) {
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValueUnsafe();
+		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValue();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValueSafe();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValueSafe();
-		this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValueSafe();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValueSafe();
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValue();
+		this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValue();
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValue();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValue();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )va["TEST_VALUE_05"].getType() << std::endl;
-		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get<bool>().getValueSafe();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get<std::string>().getValueSafe();
-		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get<uint64_t>().getValueSafe();
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get<bool>().getValue();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get<std::string>().getValue();
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get<uint64_t>().getValue();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -57,7 +57,7 @@ struct TheDJson {
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
 
-			double newValueDouble = iter->get<double>().getValueSafe();
+			double newValueDouble = iter->get<double>().getValue();
 			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
 		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
