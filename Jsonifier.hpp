@@ -1746,14 +1746,15 @@ namespace Jsonifier {
 	};
 	
 	inline TapeBuilder::TapeBuilder(JsonifierCore* masterParserNew) noexcept
-		: nextStructural(masterParserNew->getStructuralIndexes()), masterParser{ masterParserNew }, tape{ masterParserNew->getTape() } {};
+		: nextStructural(masterParserNew->getStructuralIndexes()), masterParser{ masterParserNew }, tape{ masterParserNew->getTape() },
+		  currentStringBufferLocation{ masterParserNew->getStringBuffer() } {};
 
 	inline const uint8_t* TapeBuilder::peek() noexcept {
 		return &this->masterParser->getStringView()[*this->nextStructural];
 	}
 
 	inline const uint8_t* TapeBuilder::advance() noexcept {
-		std::cout << "CURRENT STRUCTURAL KEY: " << &this->masterParser->getStringView()[*this->nextStructural] << std::endl;
+		std::cout << "CURRENT STRUCTURAL KEY: " << *&this->masterParser->getStringView()[*this->nextStructural] << std::endl;
 		return &this->masterParser->getStringView()[*this->nextStructural++];
 	}
 
