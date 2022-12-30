@@ -2245,7 +2245,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline Field JsonValueBase::operator[](const char* keyNew) {
+	inline Field JsonValueBase::operator[](const char* keyNew) noexcept {
 		return this->findField(keyNew);
 	}
 
