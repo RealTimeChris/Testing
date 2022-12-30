@@ -170,7 +170,7 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
-			objectBuffer.allocate(512 *2048);
+			objectBuffer.allocate(512 * 2048, 0);
 			objectBuffer.deallocate(512 * 2048);
 		}
 		

@@ -1909,11 +1909,6 @@ namespace Jsonifier {
 		}
 
 		inline ErrorCode allocate(uint8_t* stringViewNew) noexcept {
-			this->structuralIndexes.deallocate(this->tapeCapacity);
-			this->stringBuffer.deallocate(this->stringCapacity);
-			this->openContainers.deallocate(this->maxDepth);
-			this->isArray.deallocate(this->tapeCapacity);
-			this->tape.deallocate(this->tapeCapacity);
 			if (this->stringLengthRaw == 0) {
 				return ErrorCode::Success;
 			}
@@ -1926,7 +1921,6 @@ namespace Jsonifier {
 			this->openContainers.allocate(this->maxDepth, this->maxDepth);
 			this->tape.allocate(this->tapeCapacity, this->tapeCapacity);
 			this->stringView = stringViewNew;
-			this->nStructuralIndexes = 0;
 			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
 					this->openContainers.get())) {
 				this->structuralIndexes.deallocate(this->tapeCapacity);
@@ -1956,23 +1950,19 @@ namespace Jsonifier {
 				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
 				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
-				this->nStructuralIndexes = 0;
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
 					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-					this->nStructuralIndexes += indexCount;
 					stringReader.advance();
 				}
 				uint8_t block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				this->nStructuralIndexes += indexCount;
 				totalTimePassed += stopWatch.totalTimePassed().count();
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
-			--this->nStructuralIndexes;
 		}
 
 		inline uint8_t* getStringView() {
@@ -1991,6 +1981,10 @@ namespace Jsonifier {
 			return this->structuralIndexes.get();
 		}
 
+		inline size_t getStructuralIndexCount() {
+			return this->lastStructural - this->getStructuralIndexes();
+		}
+
 		inline uint64_t* getTape() {
 			return this->tape.get();
 		}
@@ -2003,10 +1997,6 @@ namespace Jsonifier {
 
 		inline size_t& getTapeLength() {
 			return this->tapeLength;
-		}
-
-		inline size_t getStructuralIndexCount() {
-			return this->nStructuralIndexes;
 		}
 
 		inline bool* getIsArray() {
@@ -2027,8 +2017,8 @@ namespace Jsonifier {
 		ObjectBuffer<uint8_t> stringBuffer{};
 		ObjectBuffer<uint64_t> tape{};
 		ObjectBuffer<bool> isArray{};
-		size_t nStructuralIndexes{};
 		SimdStringSection section{};
+		uint32_t* lastStructural{};
 		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
 		size_t stringCapacity{};
