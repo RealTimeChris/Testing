@@ -1413,11 +1413,24 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			auto scalar = ~this->S256 | this->W256;
-			auto stringTail = this->R256 ^ this->Q256;
-			SimdBase256 nonquoteScalar = scalar.bitAndNot(this->Q256);
+			//auto stringTail = this->R256 ^ this->Q256;
+			//this->S256 = this->S256 | ~this->R256;
+			auto nonquoteScalar = this->S256.bitAndNot(this->Q256);
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
-			return this->S256 | (~S256 | this->W256).bitAndNot(this->followsPotentialNonquoteScalar);
+			//this->S256 = this->S256.bitAndNot(this->followsPotentialNonquoteScalar);
+			//this->S256 |= this->Q256;
+			//auto P = this->S256 | this->W256;
+			//P = P.shl<1>();
+			//P = P.bitAndNot(this->W256.bitAndNot(this->R256));
+			//P.printBits("PSEUDO-STRUCTURALS: ");
+			//this->S256.printBits("SCALARS: ");
+			//this->S256 = this->S256 | P;
+			//this->Q256.printBits("QUOTES: ");
+			//this->R256.printBits("QUOTED RANGE: ");
+			//this->S256.printBits("FINAL BITS:  ");
+			
+
+			return (this->S256 | (~(this->S256 | this->W256) & ~this->followsPotentialNonquoteScalar) & ~(this->R256 ^ Q256));
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {
@@ -1435,6 +1448,9 @@ namespace Jsonifier {
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
 			this->S256.printBits("FINAL BITS:  ");
+			//this->R256.printBits("QUOTES: ");
+			//			this->R256.printBits("QUOTED RANGE: ");
+			//this->S256.printBits("FINAL BITS:  ");
 		}
 
 	  protected:

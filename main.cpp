@@ -131,21 +131,21 @@ int32_t main() noexcept {
 	try {
 		Jsonifier::SimdBase256 testValueNew{};
 		testValueNew.fromUint64(uint64_t{ 0b00000001000000010000000100000001000000010000000100000001000000010000000 });
-		auto newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
+		auto newBits = testValueNew;
 		testValueNew = testValueNew.shl<1>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
 		newBits = newBits.shr<1>();
 		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
 		testValueNew.fromUint64(uint64_t{ 0b1111111011111110111111101111111011111110111111101111111011111110 });
-		newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
+		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
 		testValueNew = testValueNew.shl<1>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
 		newBits = newBits.shr<1>();
 		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
 		testValueNew.fromUint64(uint64_t{ 0b1000000100000001000000010000000100000001000000010000000100000001 });
-		newBits = testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
+		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
 		testValueNew = testValueNew.shl<1>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
@@ -168,7 +168,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 122; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
+			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "2.2003323" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {
@@ -180,11 +180,11 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
-			Jsonifier::ObjectBuffer<Jsonifier::Jsonifier> objectBuffer{};
+			Jsonifier::ObjectBuffer<bool> objectBuffer{};
 			objectBuffer.allocate(512 * 512 * 128);
-			for (size_t x = 0; x < 34; ++x) {
-				objectBuffer[x].getType();
-			}
+			//for (size_t x = 0; x < 34; ++x) {
+				//std::cout << "CURRENT TYPE: "<< (int32_t) objectBuffer[x].getType()<< std::endl;
+			//}
 			objectBuffer.deallocate();
 		}
 
@@ -194,8 +194,8 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		{
-			std::unique_ptr<Jsonifier::Jsonifier[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) Jsonifier::Jsonifier[512 * 512 * 128]);
+			std::unique_ptr<bool[]> objectBuffer{};
+			objectBuffer.reset(new (std::nothrow) bool[512 * 512 * 128]);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
