@@ -1211,10 +1211,11 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			returnValue |= _mm256_slli_epi64(*this, 64 - (amount % 64));
 			returnValue |= _mm256_srli_epi64(_mm256_slli_si256(*this, (amount % 64) / 8), (amount % 64));
-			auto newValue = SimdBase256{ _mm256_set_epi64x((1ll >> 64) - (1ll >> 0), (1ll >> 64) - (1ll >> 0), (1ll >> 64) - (1ll >> 0),
-				(1ll >>64- amount) - (1ll >> 0)) };
+			auto newValue = SimdBase256{ _mm256_set_epi64x((1ll << 64) - (1ll << 0), (1ll << 64) - (1ll << 0), (1ll << 64) - (1ll << 0),
+				(1ll << 64) - (1ll << 64 - amount)) };
+			std::cout << "AMOUNT: " << amount << std::endl;
 			newValue.printBits("NEW VALUE: ");
-			returnValue = returnValue.bitAndNot(newValue);
+			returnValue &= newValue;
 			return returnValue;
 		}
 
