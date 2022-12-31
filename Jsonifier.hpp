@@ -1133,38 +1133,73 @@ namespace Jsonifier {
 			return this->value;
 		}
 
-		inline SimdBase256 operator|(SimdBase256 other) {
+		inline SimdBase256 operator|(SimdBase256& other) {
 			return _mm256_or_si256(this->value, other);
 		}
 
-		inline SimdBase256 operator&(SimdBase256 other) {
+		inline SimdBase256 operator&(SimdBase256& other) {
 			return _mm256_and_si256(this->value, other);
 		}
 
-		inline SimdBase256 operator^(SimdBase256 other) {
+		inline SimdBase256 operator^(SimdBase256& other) {
 			return _mm256_xor_si256(this->value, other);
 		}
 
-		inline SimdBase256 operator+(SimdBase256 other) {
+		inline SimdBase256 operator+(SimdBase256& other) {
 			return _mm256_add_epi8(this->value, other);
 		}
 
-		inline SimdBase256& operator|=(SimdBase256 other) {
+		inline SimdBase256& operator|=(SimdBase256& other) {
 			*this = *this | other;
 			return *this;
 		}
 
-		inline SimdBase256& operator&=(SimdBase256 other) {
+		inline SimdBase256& operator&=(SimdBase256& other) {
 			*this = *this & other;
 			return *this;
 		}
 
-		inline SimdBase256& operator^=(SimdBase256 other) {
+		inline SimdBase256& operator^=(SimdBase256& other) {
 			*this = *this ^ other;
 			return *this;
 		}
 
-		inline SimdBase256 operator==(SimdBase256 other) {
+		inline SimdBase256 operator==(SimdBase256& other) {
+			return _mm256_cmpeq_epi8(this->value, other);
+		}
+
+		inline SimdBase256 operator|(SimdBase256&& other) {
+			return _mm256_or_si256(this->value, other);
+		}
+
+		inline SimdBase256 operator&(SimdBase256&& other) {
+			return _mm256_and_si256(this->value, other);
+		}
+
+		inline SimdBase256 operator^(SimdBase256&& other) {
+			return _mm256_xor_si256(this->value, other);
+		}
+
+		inline SimdBase256 operator+(SimdBase256&& other) {
+			return _mm256_add_epi8(this->value, other);
+		}
+
+		inline SimdBase256& operator|=(SimdBase256&& other) {
+			*this = *this | other;
+			return *this;
+		}
+
+		inline SimdBase256& operator&=(SimdBase256&& other) {
+			*this = *this & other;
+			return *this;
+		}
+
+		inline SimdBase256& operator^=(SimdBase256&& other) {
+			*this = *this ^ other;
+			return *this;
+		}
+
+		inline SimdBase256 operator==(SimdBase256&& other) {
 			return _mm256_cmpeq_epi8(this->value, other);
 		}
 
@@ -1176,7 +1211,10 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			returnValue |= _mm256_slli_epi64(*this, 64 - (amount % 64));
 			returnValue |= _mm256_srli_epi64(_mm256_slli_si256(*this, (amount % 64) / 8), (amount % 64));
-			returnValue &= SimdBase256{ _mm256_set1_epi64x(int64_t{ 0x01 } >> amount) };
+			auto newValue = SimdBase256{ _mm256_set_epi64x((1ll >> 64) - (1ll >> 0), (1ll >> 64) - (1ll >> 0), (1ll >> 64) - (1ll >> 0),
+				(1ll >>64- amount) - (1ll >> 0)) };
+			newValue.printBits("NEW VALUE: ");
+			returnValue = returnValue.bitAndNot(newValue);
 			return returnValue;
 		}
 
@@ -1184,7 +1222,6 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			returnValue |= _mm256_srli_epi64(*this, 64 - (amount % 64));
 			returnValue |= _mm256_slli_epi64(_mm256_srli_si256(*this, (amount % 64) / 8), (amount % 64));
-			returnValue &= SimdBase256{ _mm256_set1_epi64x(int64_t{ 0x01 } << amount) };
 			return returnValue;
 		}
 
@@ -1388,20 +1425,22 @@ namespace Jsonifier {
 
 			auto B256 = convertSimdBytesToBits(backslashesReal);
 
+
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			auto S = B256.bitAndNot(B256.shl<1>());
-			auto ES = E & S;
+
+			auto S = B256 & ~(B256.shl<1>());
+			auto ES = S & E;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
-			auto OD1 = ECE.bitAndNot(E);
+			auto OD1 = ECE & ~E;
 			auto OS = S & O;
 			auto OC = B256 + OS;
-			auto OCE = OC.bitAndNot(B256);
+			auto OCE = OC & ~B256;
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			auto R = this->Q256.bitAndNot(OD);
+			auto R = Q256.bitAndNot(OD);
 			return R.carrylessMultiplication(this->prevInString);
 		}
 
@@ -1416,9 +1455,20 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			auto nonquoteScalar = this->S256.bitAndNot(this->Q256);
-			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
-			return (this->S256 | (~(this->S256 | this->W256) & ~this->followsPotentialNonquoteScalar) & ~(this->R256 ^ Q256));
+			auto nonquoteScalar = ~(this->S256 | this->W256).bitAndNot(this->Q256);
+			SimdBase256 prevInScalar{};
+			followsPotentialNonquoteScalar = follows(nonquoteScalar, prevInScalar);
+			auto string_tail = R256 ^ Q256;
+			auto scalar = ~(S256 | W256);
+			scalar.printBits("SCALAR: ");
+			auto potential_scalar_start = scalar & ~followsPotentialNonquoteScalar;
+			followsPotentialNonquoteScalar.printBits("FOLLOWS POTENTIAL SCALAR ");
+			potential_scalar_start.printBits("POTENTIAL SCALAR START: ");
+			auto op = S256;
+			auto potential_structural_start = op | potential_scalar_start;
+			auto structuralStart = potential_structural_start & ~string_tail;
+			string_tail.printBits("STRING TAIL: ");
+			return structuralStart;
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {

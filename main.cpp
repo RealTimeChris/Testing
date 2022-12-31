@@ -133,7 +133,7 @@ int32_t main() noexcept {
 		Jsonifier::SimdBase256 testValueNew{};
 		testValueNew.fromUint64(uint64_t{ 0b00000001000000010000000100000001000000010000000100000001000000010000000 });
 		auto newBits = testValueNew;
-		testValueNew = testValueNew.shl<1>();
+		testValueNew = testValueNew.shl<24>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
 		newBits = newBits.shr<1>();
@@ -168,7 +168,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 1; ++x) {
+		for (size_t x = 0; x < 122; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
