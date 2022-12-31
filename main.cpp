@@ -168,7 +168,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 122; ++x) {
+		for (size_t x = 0; x < 12; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
@@ -176,7 +176,8 @@ int32_t main() noexcept {
 		//std::cout << "THE TYPE: " << ( int32_t )value.getType() << std::endl;
 		//}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ serializer.operator std::string() };
+		std::string stringNew{ serializer.operator std::string&&() };
+		//std::string stringNew{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };

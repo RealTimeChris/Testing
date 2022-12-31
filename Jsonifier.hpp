@@ -772,9 +772,11 @@ namespace Jsonifier {
 		
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
-		inline JsonValueBase collectNextIterator() noexcept;
-
 		inline Field findField(const char* keyNew) noexcept;
+
+		JsonifierCore* getCore() {
+			return this->parser;
+		}
 
 		inline Object parseJsonObject() noexcept;
 
@@ -877,7 +879,7 @@ namespace Jsonifier {
 		}
 
 		inline Field(std::string_view&& key, JsonValueBase& value)
-			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), std::move(value) } {
+			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), this->getCore() } {
 			if (this->peek() != '"') {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
@@ -1209,10 +1211,10 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			returnValue |= _mm256_srli_epi64(*this, 64 - (amount % 64));
-			returnValue |= _mm256_slli_epi64(_mm256_srli_si256(*this, (amount % 64) / 8), (amount % 64));
+			returnValue |= _mm256_slli_epi64(*this, (amount % 64));
+			returnValue |= _mm256_srli_epi64(_mm256_slli_si256(*this, (64 - amount % 64) / 8), (64 - amount % 64));
 			auto newValue = SimdBase256{ _mm256_set_epi64x(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
-				std::numeric_limits<uint64_t>::max(), (1ll << 64) - (1ll << amount)) };
+				std::numeric_limits<uint64_t>::max(), 0 - (1ll << amount)) };
 			std::cout << "AMOUNT: " << amount << std::endl;
 			newValue.printBits("NEW VALUE: ");
 			returnValue &= newValue;
@@ -1222,9 +1224,9 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
-			returnValue |= _mm256_slli_epi64(*this, 64 - (amount % 64));
-			returnValue |= _mm256_srli_epi64(_mm256_slli_si256(*this, (amount % 64) / 8), (amount % 64));
-			auto newValue = SimdBase256{ _mm256_set_epi64x((1ll << 64 - amount) - (1ll << 0), std::numeric_limits<uint64_t>::max(),
+			returnValue |= _mm256_srli_epi64(*this, (amount % 64));
+			returnValue |= _mm256_slli_epi64(_mm256_srli_si256(*this, (64 - amount % 64) / 8), (64 - amount % 64));
+			auto newValue = SimdBase256{ _mm256_set_epi64x((1ll << 64ll - amount) - (1ll << 0ll), std::numeric_limits<uint64_t>::max(),
 				std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max()) };
 			std::cout << "AMOUNT: " << amount << std::endl;
 			newValue.printBits("NEW VALUE (LEFT): ");
@@ -1252,6 +1254,7 @@ namespace Jsonifier {
 			prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
 			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
 			prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
+			std::cout << "PREV IN STRING: " << std::bitset<64>{ prevInString } << std::endl;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
 
@@ -1463,6 +1466,7 @@ namespace Jsonifier {
 
 		inline SimdBase256 collectFinalStructurals() {
 			auto nonquoteScalar = ~(this->S256 | this->W256).bitAndNot(this->Q256);
+			nonquoteScalar.printBits("NONQUOTE SCALAR: ");
 			SimdBase256 prevInScalar{};
 			auto followsPotentialNonquoteScalar = follows(nonquoteScalar, prevInScalar);
 			auto string_tail = R256 ^ Q256;
@@ -1491,6 +1495,7 @@ namespace Jsonifier {
 			this->R256 = this->collectQuotedRange();
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
+			this->S256.printBits("STRUCTURAL CHARACTERS: ");
 			this->S256 = this->collectFinalStructurals();
 			this->S256.printBits("FINAL BITS:  ");
 			//this->R256.printBits("QUOTES: ");
