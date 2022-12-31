@@ -104,9 +104,9 @@ namespace Jsonifier {
 		}
 
 		inline void deallocate() {
-			if (this->sizeVal > 0 && this->objects) {
+			if (this->size > 0 && this->objects) {
 				ObjectAllocator<OTy> allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, this->sizeVal);
+				AllocatorTraits::deallocate(allocator, this->objects, this->size);
 				this->objects = nullptr;
 			}
 		}
@@ -116,7 +116,7 @@ namespace Jsonifier {
 			if (newSize != 0) {
 				ObjectAllocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
-				this->sizeVal = newSize;
+				this->size = newSize;
 			}
 		}
 
@@ -128,13 +128,9 @@ namespace Jsonifier {
 			this->deallocate();
 		}
 
-		inline size_t size() noexcept {
-			return this->sizeVal;
-		}
-
 	  protected:
 		OTy* objects{};
-		size_t sizeVal{};
+		size_t size{};
 	};
 
 	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
@@ -1252,36 +1248,6 @@ namespace Jsonifier {
 		__m256i value{};
 	};
 
-	class Simd256Memory {
-	  public:
-		inline Simd256Memory() noexcept = default;
-
-		inline Simd256Memory& operator=(SimdBase256& data) noexcept {
-			_mm256_storeu_epi64(this->data.data(), data);
-			return *this;
-		}
-
-		inline Simd256Memory(SimdBase256& data) noexcept {
-			*this = data;
-		}
-
-		inline Simd256Memory& operator=(SimdBase256&& data) noexcept {
-			_mm256_storeu_epi64(this->data.data(), data);
-			return *this;
-		}
-
-		inline Simd256Memory(SimdBase256&& data) noexcept {
-			*this = data;
-		}
-
-		inline operator SimdBase256() noexcept {
-			return _mm256_loadu_epi64(this->data.data());
-		}
-
-	  protected:
-		alignas(32) std::array<int64_t, 4> data{};
-	};
-
 	inline SimdBase256 convertSimdBytesToBits(SimdBase256 input00[8]) {
 		SimdBase256 returnValue{};
 		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[0]), 0);
@@ -1378,14 +1344,14 @@ namespace Jsonifier {
 		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
 			size_t returnValue{};
 			for (size_t x = 0; x < 4; ++x) {
-				auto newValue = this->S256.operator SimdBase256().getUint64(x);
+				auto newValue = this->S256.getUint64(x);
 				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoTape, stringLength);
 			}
 			this->currentIndexIntoString += 256;
 			return returnValue;
 		}
 
-		inline void collectWhiteSpace() {
+		inline SimdBase256 collectWhiteSpace() {
 			uint8_t valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113,
 				2, 100, '\t', '\n', 112, 100, '\r', 100, 100 };
 			SimdBase256 whitespaceTable{ valuesNew };
@@ -1393,10 +1359,10 @@ namespace Jsonifier {
 			for (size_t x = 0; x < 8; ++x) {
 				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
 			}
-			this->W256 = convertSimdBytesToBits(whiteSpaceReal);
+			return convertSimdBytesToBits(whiteSpaceReal);
 		}
 
-		inline void collectStructuralCharacters() {
+		inline SimdBase256 collectStructuralCharacters() {
 			uint8_t newValues[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ newValues };
 			SimdBase256 structural[8]{};
@@ -1405,10 +1371,10 @@ namespace Jsonifier {
 				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
 			}
 
-			this->S256 = convertSimdBytesToBits(structural);
+			return convertSimdBytesToBits(structural);
 		}
 
-		inline void collectQuotedRange() {
+		inline SimdBase256 collectQuotedRange() {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
 			SimdBase256 backslashesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
@@ -1419,37 +1385,35 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			auto op = B256.bitAndNot(B256.shl<1>());
-			auto ES = E & op;
+			this->S256 = B256.bitAndNot(B256.shl<1>());
+			auto ES = E & this->S256;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
 			auto OD1 = ECE.bitAndNot(E);
-			auto OS = op & O;
+			auto OS = this->S256 & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			auto range = this->Q256.operator SimdBase256().bitAndNot(OD);
-			this->R256 = range.carrylessMultiplication(this->prevInString);
+			this->Q256 = this->Q256.bitAndNot(OD);
+			return this->Q256.carrylessMultiplication(this->prevInString);
 		}
 
-		inline void collectQuotes() {
+		inline SimdBase256 collectQuotes() {
 			SimdBase256 quotes = _mm256_set1_epi8('"');
 			SimdBase256 quotesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
 				quotesReal[x] = (this->values[x] == quotes);
 			}
 
-			this->Q256 = convertSimdBytesToBits(quotesReal);
+			return convertSimdBytesToBits(quotesReal);
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			auto nonquoteScalar = this->S256.operator SimdBase256().bitAndNot(this->Q256);
+			auto nonquoteScalar = this->S256.bitAndNot(this->Q256);
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
-			return (this->S256.operator SimdBase256() |
-				(~(this->S256.operator SimdBase256() | this->W256) & ~this->followsPotentialNonquoteScalar.operator SimdBase256()) &
-					~(this->R256.operator SimdBase256() ^ Q256));
+			return (this->S256 | (~(this->S256 | this->W256) & ~this->followsPotentialNonquoteScalar) & ~(this->R256 ^ Q256));
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {
@@ -1461,27 +1425,28 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[5], valueNew + 160);
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
-			this->collectQuotes();
-			this->collectQuotedRange();
-			this->collectWhiteSpace();
-			this->collectStructuralCharacters();
-			this->collectFinalStructurals();
-			this->S256.operator SimdBase256().printBits("FINAL BITS:  ");
+			this->Q256 = this->collectQuotes();
+			this->R256 = this->collectQuotedRange();
+			this->W256 = this->collectWhiteSpace();
+			this->S256 = this->collectStructuralCharacters();
+			this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("FINAL BITS:  ");
 			//this->R256.printBits("QUOTES: ");
 			//			this->R256.printBits("QUOTED RANGE: ");
 			//this->S256.printBits("FINAL BITS:  ");
 		}
 
 	  protected:
-		Simd256Memory followsPotentialNonquoteScalar{};
+		SimdBase256 followsPotentialNonquoteScalar{};
 		size_t currentIndexIntoString{};
+		SimdBase256 previousMatch{};
 		SimdBase256 prevInScalar{};
 		SimdBase256 values[8]{};
 		int64_t prevInString{};
-		Simd256Memory Q256{};
-		Simd256Memory W256{};
-		Simd256Memory R256{};
-		Simd256Memory S256{};
+		SimdBase256 Q256{};
+		SimdBase256 W256{};
+		SimdBase256 R256{};
+		SimdBase256 S256{};
 	};
 
 	struct OpenContainer {
