@@ -168,8 +168,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 122; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "2.2003323" });
+		for (size_t x = 0; x < 1; ++x) {
+			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {

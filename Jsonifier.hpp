@@ -1176,6 +1176,7 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			returnValue |= _mm256_slli_epi64(*this, 64 - (amount % 64));
 			returnValue |= _mm256_srli_epi64(_mm256_slli_si256(*this, (amount % 64) / 8), (amount % 64));
+			returnValue &= SimdBase256{ _mm256_set1_epi64x(int64_t{ 0x01 } >> amount) };
 			return returnValue;
 		}
 
@@ -1183,6 +1184,7 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			returnValue |= _mm256_srli_epi64(*this, 64 - (amount % 64));
 			returnValue |= _mm256_slli_epi64(_mm256_srli_si256(*this, (amount % 64) / 8), (amount % 64));
+			returnValue &= SimdBase256{ _mm256_set1_epi64x(int64_t{ 0x01 } << amount) };
 			return returnValue;
 		}
 
@@ -1388,19 +1390,19 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256.shl<1>());
-			auto ES = E & this->S256;
+			auto S = B256.bitAndNot(B256.shl<1>());
+			auto ES = E & S;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
 			auto OD1 = ECE.bitAndNot(E);
-			auto OS = this->S256 & O;
+			auto OS = S & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(this->prevInString);
+			auto R = this->Q256.bitAndNot(OD);
+			return R.carrylessMultiplication(this->prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1938,7 +1940,6 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::walkDocument() {
-		this->masterParser->getTapeLength() = 0;
 		if (atEof()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
