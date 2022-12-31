@@ -1273,42 +1273,41 @@ namespace Jsonifier {
 		inline void advance();
 
 	  private:
-		const uint8_t* stringBuffer;
-		const size_t len;
-		const size_t lenminusstep;
-		size_t idx;
+		const uint8_t* stringBuffer{};
+		const size_t length{};
+		const size_t lenminusstep{};
+		size_t index{};
 	};
 
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
+		: stringBuffer{ _buf }, length{ _len }, lenminusstep{ length < StepSize ? 0 : length - StepSize }, index{ 0 } {
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
-		return idx;
+		return this->index;
 	}
 
 	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
-		return idx < lenminusstep;
+		return this->index < this->lenminusstep;
 	}
 
 	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
-		return &stringBuffer[idx];
+		return &this->stringBuffer[this->index];
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
-		if (len == idx) {
+		if (this->length == this->index) {
 			return 0;
 		}
 		std::memset(dst, 0x20, StepSize);
-		std::memcpy(dst, stringBuffer + idx, len - idx);
-		return len - idx;
+		std::memcpy(dst, this->stringBuffer + this->index, this->length - this->index);
+		return this->length - this->index;
 	}
 
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
-		idx += StepSize;
+		this->index += StepSize;
 	}
-
 
 	class SimdStringSection {
 	  public:
@@ -1324,10 +1323,11 @@ namespace Jsonifier {
 			int64_t newValue{};
 			for (int i = 0; i < cnt; i++) {
 				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-
+				//std::cout << "STRING LENGTH: " << stringLength << std::endl;
+				//std::cout << "NEW VALUE: " << newValue<< std::endl;
 				if (newValue >= stringLength) {
-					currentIndexIntoTape += cnt;
-					return cnt;
+					currentIndexIntoTape += i;
+					return i;
 
 				} else {
 					tapePtrs[i + currentIndexIntoTape] = newValue;
@@ -1388,19 +1388,19 @@ namespace Jsonifier {
 
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
-			this->S256 = B256.bitAndNot(B256.shl<1>());
-			auto ES = E & this->S256;
+			auto op = B256.bitAndNot(B256.shl<1>());
+			auto ES = E & op;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
 			auto OD1 = ECE.bitAndNot(E);
-			auto OS = this->S256 & O;
+			auto OS = op & O;
 			auto OC = B256 + OS;
 			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
-			this->Q256 = this->Q256.bitAndNot(OD);
-			return this->Q256.carrylessMultiplication(this->prevInString);
+			auto R = this->Q256.bitAndNot(OD);
+			return R.carrylessMultiplication(this->prevInString);
 		}
 
 		inline SimdBase256 collectQuotes() {
@@ -1414,9 +1414,21 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			auto nonquoteScalar = this->S256.bitAndNot(this->Q256);
+			auto string_tail = R256 ^ Q256;
+			string_tail.printBits("STRING TAIL: ");
+			auto op = S256;
+			auto scalar = ~(S256 | W256);
+			auto follows_potential_scalar = followsPotentialNonquoteScalar;
+			auto potential_scalar_start = scalar & ~follows_potential_scalar;
+			follows_potential_scalar.printBits("FOLLOWS POTENTIAL SCALAR: ");
+			auto potential_structural_start = op | potential_scalar_start;
+			potential_structural_start.printBits("POTENTIAL STRUCTURAL START: ");
+			auto structural_start = potential_structural_start & ~string_tail;
+			structural_start.printBits("STRUCTURAL START: ");
+			auto nonquoteScalar = ~(this->S256 | this->W256).bitAndNot(this->Q256);
+			nonquoteScalar.printBits("NONQUOTE SCALAR: ");
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
-			return (this->S256 | (~(this->S256 | this->W256) & ~this->followsPotentialNonquoteScalar) & ~(this->R256 ^ Q256));
+			return (this->S256 | ((~(this->S256 | this->W256)).bitAndNot(this->followsPotentialNonquoteScalar)).bitAndNot(this->R256 ^ this->Q256));
 		}
 
 		void submitDataForProcessing(const uint8_t* valueNew) {
@@ -1434,8 +1446,8 @@ namespace Jsonifier {
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
 			this->S256.printBits("FINAL BITS:  ");
-			//this->R256.printBits("QUOTES: ");
-			//			this->R256.printBits("QUOTED RANGE: ");
+			this->Q256.printBits("QUOTES: ");
+			this->R256.printBits("QUOTED RANGE: ");
 			//this->S256.printBits("FINAL BITS:  ");
 		}
 
@@ -1746,14 +1758,14 @@ namespace Jsonifier {
 	};
 	
 	inline TapeBuilder::TapeBuilder(JsonifierCore* masterParserNew) noexcept
-		: nextStructural(masterParserNew->getStructuralIndexes()), masterParser{ masterParserNew }, tape{ masterParserNew->getTape() } {};
+		: nextStructural{ masterParserNew->getStructuralIndexes() }, masterParser{ masterParserNew }, tape{ masterParserNew->getTape() },
+		  currentStringBufferLocation{ masterParserNew->getStringBuffer() } {};
 
 	inline const uint8_t* TapeBuilder::peek() noexcept {
 		return &this->masterParser->getStringView()[*this->nextStructural];
 	}
 
 	inline const uint8_t* TapeBuilder::advance() noexcept {
-		std::cout << "CURRENT STRUCTURAL KEY: " << &this->masterParser->getStringView()[*this->nextStructural] << std::endl;
 		return &this->masterParser->getStringView()[*this->nextStructural++];
 	}
 
@@ -1938,7 +1950,6 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode TapeBuilder::walkDocument() {
-		this->masterParser->getTapeLength() = 0;
 		if (atEof()) {
 			throw JsonifierException{ "Sorry, but you've encountered the following error: " +
 				std::string{ static_cast<EnumStringConverter>(ErrorCode::Empty) } +
