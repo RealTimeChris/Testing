@@ -1325,9 +1325,9 @@ namespace Jsonifier {
 			for (int i = 0; i < cnt; i++) {
 				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
 
-				if (newValue >= stringLength) {
-					currentIndexIntoTape += cnt;
-					return cnt;
+				if (newValue > stringLength) {
+					currentIndexIntoTape += i;
+					return i;
 
 				} else {
 					tapePtrs[i + currentIndexIntoTape] = newValue;
@@ -1746,14 +1746,14 @@ namespace Jsonifier {
 	};
 	
 	inline TapeBuilder::TapeBuilder(JsonifierCore* masterParserNew) noexcept
-		: nextStructural(masterParserNew->getStructuralIndexes()), masterParser{ masterParserNew }, tape{ masterParserNew->getTape() } {};
+		: nextStructural(masterParserNew->getStructuralIndexes()), masterParser{ masterParserNew }, tape{ masterParserNew->getTape() },
+		  currentStringBufferLocation{ masterParserNew->getStringBuffer() } {};
 
 	inline const uint8_t* TapeBuilder::peek() noexcept {
 		return &this->masterParser->getStringView()[*this->nextStructural];
 	}
 
 	inline const uint8_t* TapeBuilder::advance() noexcept {
-		std::cout << "CURRENT STRUCTURAL KEY: " << &this->masterParser->getStringView()[*this->nextStructural] << std::endl;
 		return &this->masterParser->getStringView()[*this->nextStructural++];
 	}
 
