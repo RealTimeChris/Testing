@@ -169,7 +169,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 122; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
+			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "2.2003323" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {
