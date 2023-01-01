@@ -3018,7 +3018,7 @@ namespace Jsonifier {
 	}
 
 	inline void JsonValueBase::assert_at_container_start() const noexcept {
-		//assert(position == root+ 1);
+		assert(position() == root + 1);
 	}
 
 	inline ErrorCode JsonValueBase::end_container() noexcept {
