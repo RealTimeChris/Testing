@@ -863,9 +863,6 @@ namespace Jsonifier {
 			Pointer ptr{};
 		};
 
-		inline Field() noexcept
-			: JsonValueBase{ nullptr }, std::pair<std::string_view, JsonValueBase>{ std::string_view{}, JsonValueBase{ nullptr } } {};
-
 		inline auto begin() noexcept {
 			return FieldIterator{ this };
 		}
@@ -883,6 +880,7 @@ namespace Jsonifier {
 			if (this->peek() != '"') {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
+			std::cout << "WERE HERE BUILDING THE FIELD!" << std::endl;
 			this->advance();
 			this->advance();
 		};
