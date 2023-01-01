@@ -1578,7 +1578,7 @@ namespace Jsonifier {
 
 				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
@@ -1589,13 +1589,9 @@ namespace Jsonifier {
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				totalTimePassed += stopWatch.totalTimePassed().count();
-				for (size_t x = 0; x < tapeCurrentIndex; ++x) {
-					std::cout << "THE INDEX: " << this->structuralIndexes[x]
-							  << ", THE VALUE AT THAT INDEX: " << this->stringView[this->structuralIndexes[x]] << std::endl;
-				}
+				//totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getStructuralIndexCount() = tapeCurrentIndex;
-				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
 
@@ -2309,6 +2305,7 @@ namespace Jsonifier {
 			returnValue = std::string_view{ reinterpret_cast<const char*>(this->parser->getStringBuffer() +
 												(uint32_t(*(this->parser->getTape() + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
 				stringLength };
+			this->error = ErrorCode::Success;
 			this->advance();
 		} else {
 			this->error = ErrorCode::ParseError;
@@ -2321,6 +2318,7 @@ namespace Jsonifier {
 		double returnValue{};
 		if (this->peek() == 'd') {
 			this->advance();
+			this->error = ErrorCode::Success;
 			std::memcpy(&returnValue, &this->parser->getTape()[this->currentIndex], sizeof(returnValue));
 			this->advance();
 		} else {
@@ -2334,6 +2332,7 @@ namespace Jsonifier {
 		uint64_t returnValue{};
 		if (this->peek() == 'u') {
 			this->advance();
+			this->error = ErrorCode::Success;
 			std::memcpy(&returnValue, &this->parser->getTape()[this->currentIndex], sizeof(returnValue));
 			this->advance();
 		} else {
@@ -2346,6 +2345,7 @@ namespace Jsonifier {
 		int64_t returnValue{};
 		if (this->peek() == 'l') {
 			this->advance();
+			this->error = ErrorCode::Success;
 			std::memcpy(&returnValue, &this->parser->getTape()[this->currentIndex], sizeof(returnValue));
 			this->advance();
 		} else {
@@ -2358,9 +2358,11 @@ namespace Jsonifier {
 		assert(this->peek() == 'f' || this->peek() == 't');
 		if (this->peek() == 'f') {
 			this->advance();
+			this->error = ErrorCode::Success;
 			return false;
 		} else if (this->peek() == 't') {
 			this->advance();
+			this->error = ErrorCode::Success;
 			return true;
 		} else {
 			this->error = ErrorCode::ParseError;
@@ -2372,6 +2374,7 @@ namespace Jsonifier {
 		assert(this->peek() == 'n');
 		if (this->peek() == 'n') {
 			this->advance();
+			this->error = ErrorCode::Success;
 			return nullptr_t{};
 		} else {
 			this->error = ErrorCode::ParseError;

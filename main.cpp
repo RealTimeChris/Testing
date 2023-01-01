@@ -105,7 +105,7 @@ struct TheD {
 		simdjson::ondemand::array valueNew{};
 		value["TEST_VALUE_11"].get(valueNew);
 		for (auto value: valueNew) {
-			auto newDouble = value.get_double().take_value();
+			auto newDouble = value.get_string().take_value();
 		}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
