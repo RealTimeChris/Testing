@@ -404,6 +404,6 @@ namespace Jsonifier {
 		uint8_t* stringBufferLocation{};
 		JsonifierCore* parser{};
 		uint8_t* stringView{};
-		uint32_t* root{};
+		uint32_t* rootPosition{};
 	};
 }
