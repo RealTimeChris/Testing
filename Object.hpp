@@ -4,13 +4,13 @@
 
 namespace Jsonifier {
 
-	class JsonValueBase;
+	class ValueIterator;
 
 	class Field;
 
 	class ObjectIterator {
 	  public:
-		inline ObjectIterator(const JsonValueBase& _iter) noexcept : iter{ _iter } {
+		inline ObjectIterator(const ValueIterator& _iter) noexcept : iter{ _iter } {
 		}
 
 		inline Field operator*() noexcept;
@@ -21,11 +21,11 @@ namespace Jsonifier {
 		
 
 	  private:
-		JsonValueBase iter{};
+		ValueIterator iter{};
 		friend struct JsonifierResult<ObjectIterator>;
 	};
 
-	class Object : public JsonValueBase {
+	class Object : public ValueIterator {
 	  public:
 		inline auto begin() noexcept {
 			return ObjectIterator{ *this };
@@ -37,16 +37,16 @@ namespace Jsonifier {
 		inline size_t count_fields() noexcept;
 		inline Object() noexcept = default;
 
-		static inline Object start(JsonValueBase& iter) noexcept {
+		static inline Object start(ValueIterator& iter) noexcept {
 			iter.start_object();
 			return Object(iter);
 		}
 
-		static inline Object resume(JsonValueBase&& iter) noexcept {
+		static inline Object resume(ValueIterator&& iter) noexcept {
 			return iter;
 		}
 
-		static inline Object start_root(JsonValueBase& iter) noexcept {
+		static inline Object start_root(ValueIterator& iter) noexcept {
 			iter.start_root_object();
 			return Object(iter);
 		}
@@ -61,6 +61,7 @@ namespace Jsonifier {
 
 		inline Object find_field_unordered(const std::string_view key) && noexcept {
 			bool has_value{ this->find_field_unordered_raw(key) };
+			std::cout << "DO WE HAVE VALUE?: " << std::boolalpha << has_value << std::endl;
 			if (!has_value) {
 				return Object{};
 			}
@@ -91,8 +92,8 @@ namespace Jsonifier {
 			return Object(child());
 		}
 
-		inline Object(JsonValueBase&& other) : JsonValueBase{ std::move(other) } {};
+		inline Object(ValueIterator&& other) : ValueIterator{ std::move(other) } {};
 
-		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {};
+		inline Object(ValueIterator& other) : ValueIterator{ std::move(other) } {};
 	};
 }
