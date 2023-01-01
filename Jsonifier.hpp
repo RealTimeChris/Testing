@@ -894,6 +894,7 @@ namespace Jsonifier {
 		friend class value;
 		friend class RawJsonString;
 		friend class parser;
+		friend class JsonValueBase;
 		friend class value_iterator;
 	};
 
@@ -3270,7 +3271,24 @@ namespace Jsonifier {
 
 	inline JsonValueBase JsonValueBase::child()  noexcept {
 		assert_at_child();
-		return { _json_iter, static_cast<size_t>(depth() + 1), _json_iter->position() };
+		return { _json_iter, static_cast<size_t>(depth() + 1), _json_iter->token.position() };
 	}
 
+	inline uint32_t* json_iterator::end_position() const noexcept {
+		size_t n_structural_indexes{ parser->getTapeLength() };
+		return &parser->getStructuralIndexes()[n_structural_indexes];
+	}
+
+	inline void JsonValueBase::move_at_container_start() noexcept {
+		_json_iter->_depth = _depth;
+		_json_iter->token.set_position(_start_position + 1);
+	}
+
+	inline void TokenIterator::set_position(uint32_t* target_position) noexcept {
+		_position = target_position;
+	}
+
+	inline uint32_t* TokenIterator::position() const noexcept {
+		return _position;
+	}
 };
