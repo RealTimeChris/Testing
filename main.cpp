@@ -217,7 +217,7 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		Jsonifier::Object objectNew{};
-		auto fieldNew = value.get<Jsonifier::Object>(objectNew);
+		objectNew = value["TEST_VALUE_11"];
 
 		std::cout << "CURRENT KEY: " << objectNew.field_key() << std::endl;
 		int32_t index{};
