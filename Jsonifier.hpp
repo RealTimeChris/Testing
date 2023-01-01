@@ -1486,7 +1486,6 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -1579,7 +1578,7 @@ namespace Jsonifier {
 
 				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
@@ -1590,9 +1589,9 @@ namespace Jsonifier {
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				//totalTimePassed += stopWatch.totalTimePassed().count();
+				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getStructuralIndexCount() = tapeCurrentIndex;
-				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
 
@@ -2395,8 +2394,6 @@ namespace Jsonifier {
 	}
 
 	inline uint64_t* JsonValueBase::advance() noexcept {
-		auto newValue = ((*(this->parser->getTape() + this->currentIndex)) >> 56);
-		std::cout << "CURRENT ADVANCE KEY: " << newValue << std::endl;
 		auto returnValue = &this->parser->getTape()[this->currentIndex];
 		++this->currentIndex;
 		return returnValue;
