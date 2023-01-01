@@ -3292,7 +3292,7 @@ namespace Jsonifier {
 		return _position;
 	}
 
-	inline JsonValueBase::JsonValueBase(json_iterator* iterator, uint64_t depth, uint32_t* rootPosition) {
+	inline JsonValueBase::JsonValueBase(json_iterator* iterator, uint64_t depth, uint32_t* rootPosition)noexcept {
 		this->iterator = *iterator;
 		this->currentDepth = depth;
 		this->root = rootPosition;
