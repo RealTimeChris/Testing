@@ -138,7 +138,7 @@ int32_t main() noexcept {
 		
 		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIT): ");
 		auto newBits = testValueNew;
-		testValueNew = testValueNew.shl<5>();
+		testValueNew = testValueNew.shl<1>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValueNew{};

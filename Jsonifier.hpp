@@ -1211,34 +1211,67 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
-			returnValue |= _mm256_slli_epi64(*this, (amount % 64));
+			SimdBase256 returnValueReal{};
+			
+			returnValue = _mm256_slli_epi64(*this, (amount % 64));
+			returnValueReal |= returnValue;
 			this->printBits("PRE SHIFT: ");
 			returnValue.printBits("SHIFTED LEFT 01: ");
-			returnValue |= _mm256_slli_epi64(_mm256_srli_si256(*this, 8), (64 - amount % 64));
-			returnValue.printBits("SHIFTED LEFT 02: ");
-			returnValue |= _mm256_srli_epi64(_mm256_slli_si256(*this, 8), ((64 - amount % 64)));
-			returnValue.printBits("POST SHIFT LEFT: ");
+			SimdBase256 y = _mm256_permute4x64_epi64(*this, 0b10010011);
+			y.printBits("SHIFTED LEFT 02: ");
+			returnValue = _mm256_srli_epi64(y, 64 - amount);
+			returnValueReal |= returnValue;
+			returnValue.printBits("SHIFTED LEFT 03: ");
+			//returnValue = _mm256_slli_epi64(_mm256_srli_si256(*this, 8), (amount % 64));
+			//returnValueReal |= returnValue;
+			//returnValue.printBits("SHIFTED LEFT 04: ");
+			//returnValue = _mm256_slli_epi64(_mm256_srli_si256(*this, 16), (amount % 64));
+			//returnValueReal |= returnValue;
+			//returnValue.printBits("SHIFTED LEFT 05: ");
+			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
+			//returnValueReal &= ~returnValue;
+			returnValue.printBits("SHIFTED LEFT 06: ");
+			//returnValue = _mm256_slli_si256(*this, (64 - amount % 64) / 8);
+			//returnValueReal |= returnValue;
+			//returnValue.printBits("SHIFTED LEFT 03: ");
+			returnValueReal.printBits("POST SHIFTED LEFT: ");
 			std::cout << "AMOUNT: " << amount << std::endl;
-			std::cout << "AMOUNT: " << 64 - amount % 64 << std::endl;
-			return returnValue;
+			return returnValueReal;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
-			returnValue |= _mm256_srli_epi64(*this, (amount % 64));
+			SimdBase256 returnValueReal{};
+
+			returnValue = _mm256_srli_epi64(*this, (amount % 64));
+			returnValueReal |= returnValue;
 			this->printBits("PRE SHIFT: ");
 			returnValue.printBits("SHIFTED RIGHT 01: ");
-			returnValue |= _mm256_slli_epi64(_mm256_srli_si256(*this, 8), ((64 - amount) % 64));
-			returnValue.printBits("POST SHIFT RIGHT: ");
-			return returnValue;
+			SimdBase256 y = _mm256_permute4x64_epi64(*this, 0b00111001);
+			y.printBits("SHIFTED RIGHT 02: ");
+			returnValue = _mm256_slli_epi64(y, 64 - amount);
+			returnValueReal |= returnValue;
+			returnValue.printBits("SHIFTED RIGHT 03: ");
+			//returnValue = _mm256_srli_epi64(_mm256_slli_si256(*this, 8), (amount % 64));
+			//returnValueReal |= returnValue;
+			//returnValue.printBits("SHIFTED RIGHT 04: ");
+			//returnValue = _mm256_srli_epi64(_mm256_slli_si256(*this, 16), (amount % 64));
+			//returnValueReal |= returnValue;
+			//returnValue.printBits("SHIFTED RIGHT 05: ");
+			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
+			//returnValueReal &= ~returnValue;
+			returnValue.printBits("SHIFTED RIGHT 06: ");
+			//returnValue = _mm256_srli_si256(*this, (64 - amount % 64) / 8);
+			//returnValueReal |= returnValue;
+			//returnValue.printBits("SHIFTED RIGHT 03: ");
+			returnValueReal.printBits("POST SHIFTED RIGHT: ");
+			std::cout << "AMOUNT: " << amount << std::endl;
+			return returnValueReal;
 		}
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 0), 0);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 1), 1);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 2), 2);
-			newValues = _mm256_insert_epi64(newValues, ~_mm256_extract_epi64(this->value, 3), 3);
+			newValues = _mm256_xor_si256(*this, _mm256_set1_epi64x(-1ll));
 			return newValues;
 		}
 
