@@ -28,31 +28,31 @@ namespace Jsonifier {
 
 	class StringParser {
 	  public:
-		inline static uint32_t stringToUint32(const char* str) {
+		static inline uint32_t stringToUint32(const char* str) {
 			uint32_t val{};
 			std::memcpy(&val, str, sizeof(uint32_t));
 			return val;
 		}
 
-		inline static uint32_t str4ncmp(const uint8_t* src, const char* atom) {
+		static inline uint32_t str4ncmp(const uint8_t* src, const char* atom) {
 			uint32_t srcval{};
 			std::memcpy(&srcval, src, sizeof(uint32_t));
 			return srcval ^ stringToUint32(atom);
 		}
 
-		inline static bool isValidTrueAtom(const uint8_t* src) {
+		static inline bool isValidTrueAtom(const uint8_t* src) {
 			return (str4ncmp(src, "true")) == 0;
 		}
 
-		inline static bool isValidFalseAtom(const uint8_t* src) {
+		static inline bool isValidFalseAtom(const uint8_t* src) {
 			return (str4ncmp(src, "false")) == 0;
 		}
 
-		inline static bool isValidNullAtom(const uint8_t* src) {
+		static inline bool isValidNullAtom(const uint8_t* src) {
 			return (str4ncmp(src, "null")) == 0;
 		}
 
-		inline static size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
+		static inline size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
 			if (cp <= 0x7F) {
 				c[0] = uint8_t(cp);
 				return 1;
@@ -77,7 +77,7 @@ namespace Jsonifier {
 			return 0;
 		}
 
-		inline static const uint32_t digitToVal32[886]{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+		static inline const uint32_t digitToVal32[886]{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -155,7 +155,7 @@ namespace Jsonifier {
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
 
-		inline static uint32_t hexToU32Nocheck(const uint8_t* src) {
+		static inline uint32_t hexToU32Nocheck(const uint8_t* src) {
 			uint32_t v1 = digitToVal32[630 + src[0]];
 			uint32_t v2 = digitToVal32[420 + src[1]];
 			uint32_t v3 = digitToVal32[210 + src[2]];
@@ -163,7 +163,7 @@ namespace Jsonifier {
 			return v1 | v2 | v3 | v4;
 		}
 
-		inline static bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
+		static inline bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
 			uint32_t codePoint = hexToU32Nocheck(*srcPtr + 2);
 			*srcPtr += 6;
 			if (codePoint >= 0xd800 && codePoint < 0xdc00) {
@@ -187,7 +187,7 @@ namespace Jsonifier {
 			return offset > 0;
 		}
 
-		template<typename SimdBase256> inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
+		template<typename SimdBase256> static inline uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
 			SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
 			values.store(reinterpret_cast<uint8_t*>(dst));
@@ -201,13 +201,24 @@ namespace Jsonifier {
 			return 0;
 		}
 
-		inline static uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
+		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
 			int32_t index{};
 			while (length > 0) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
 					return dst + result;
 				}
 				length -= 32;
+				index += 32;
+			}
+			return nullptr;
+		}
+
+		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
+			int32_t index{};
+			while (1) {
+				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
+					return dst + result;
+				}
 				index += 32;
 			}
 			return nullptr;

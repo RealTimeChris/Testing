@@ -12,12 +12,13 @@ int64_t iterationCount{};
 int64_t totalTime{};
 
 int64_t getInt64(Jsonifier::Array&& jsonData, const char* key) {
-	int64_t value{};
+	int64_t value{}; /*
 	if (jsonData.get<int64_t>().get(value) == Jsonifier::ErrorCode::Success) {
 		return int64_t{ value };
 	} else {
 		return 0;
-	}
+	}*/
+	return 0;
 }
 
 int32_t getInt32(Jsonifier::Object jsonData, const char* key) {
@@ -190,7 +191,7 @@ Jsonifier::ArrayReturnDataJson getArray(Jsonifier::ObjectReturnDataJson jsonData
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
-	ActivitiesJson(Jsonifier::Array&& value) {
+	ActivitiesJson(Jsonifier::Object&& value) {
 		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValue();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
 		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValue();
