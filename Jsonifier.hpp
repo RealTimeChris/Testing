@@ -864,7 +864,7 @@ namespace Jsonifier {
 		inline const uint8_t* return_current_and_advance() noexcept;
 		inline uint32_t current_offset() const noexcept;
 		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
-		inline const uint8_t* peek(uint32_t* position = nullptr) const noexcept;
+		inline const uint8_t* peek() const noexcept;
 		inline uint32_t peek_length(uint32_t* position) const noexcept;
 		inline void set_position(uint32_t* target_position) noexcept;
 		inline bool operator==(const JsonValueBase& other) const noexcept;
@@ -2566,7 +2566,7 @@ namespace Jsonifier {
 	}
 
 	inline double JsonValueBase::parseJsonFloat() noexcept {
-		assert(*this->peek(0) == 'd');
+		assert(*this->peek() == 'd');
 		double returnValue{};
 		if (*this->peek() == 'd') {
 			this->advance();
@@ -2580,7 +2580,7 @@ namespace Jsonifier {
 	}
 
 	inline uint64_t JsonValueBase::parseJsonUint() noexcept {
-		assert(*this->peek(0) == 'u');
+		assert(*this->peek() == 'u');
 		uint64_t returnValue{};
 		if (*this->peek() == 'u') {
 			this->advance();
@@ -2594,7 +2594,7 @@ namespace Jsonifier {
 	}
 
 	inline int64_t JsonValueBase::parseJsonInt() noexcept {
-		assert(*this->peek(0) == 'l');
+		assert(*this->peek() == 'l');
 		int64_t returnValue{};
 		if (*this->peek() == 'l') {
 			this->advance();
@@ -2781,8 +2781,8 @@ namespace Jsonifier {
 		return this->peek();
 	}
 
-	inline const uint8_t* JsonValueBase::peek(uint32_t* position) const noexcept {
-		return &stringView[*position];
+	inline const uint8_t* JsonValueBase::peek() const noexcept {
+		return &stringView[*this->position];
 	}
 
 	inline int64_t JsonValueBase::get_int64() noexcept {
@@ -2829,7 +2829,6 @@ namespace Jsonifier {
 
 	inline void JsonValueBase::assert_at_start() const noexcept {
 		assert(position == root);
-		assert(currentDepth > 0);
 	}
 
 	inline const uint8_t* JsonValueBase::return_current_and_advance() noexcept {
@@ -2845,7 +2844,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonValueBase::peek_start() const noexcept {
-		return this->peek(start_position());
+		return &this->stringView[*start_position()];
 	}
 
 	inline uint32_t* JsonValueBase::positionVal() const noexcept {

@@ -350,7 +350,26 @@ int32_t main() noexcept {
 		std::string stringNewer = stringNew;
 		totalSize = 0;
 		totalTime = 0;
-
+		stopWatch.resetTimer();
+		for (size_t x = 0ull; x < 2048ull * 128ull; ++x) {
+			Jsonifier::JsonifierCore parser{};
+			auto jsonData = parser.parseJson(stringNew);
+			TheValueJson value{ std::move(jsonData) };
+			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
+			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
+			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
+			//std::cout << "VALUE03: " << value.theD.activities.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE04: " << value.theD.activities.begin().operator*().TEST_VALUE_04 << std::endl;
+			//std::cout << "VALUE06: " << value.theD.activities.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE07: " << value.theD.activities.begin().operator*().TEST_VALUE_07 << std::endl;
+			totalSize += oldSize;
+		}
+		totalTime += stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		
+		totalSize = 0;
+		totalTime = 0;
+		
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 128ull; ++x) {
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
@@ -368,25 +387,6 @@ int32_t main() noexcept {
 		}
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-		totalSize = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
-		for (size_t x = 0ull; x < 2048ull * 128ull; ++x) {
-			Jsonifier::JsonifierCore parser{};
-			auto jsonData = parser.parseJson(stringNew);
-			TheValueJson value{ std::move(jsonData) };
-			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
-			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
-			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.theD.activities.begin().operator*().TEST_VALUE_03 << std::endl;
-			//std::cout << "VALUE04: " << value.theD.activities.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE06: " << value.theD.activities.begin().operator*().TEST_VALUE_06 << std::endl;
-			//std::cout << "VALUE07: " << value.theD.activities.begin().operator*().TEST_VALUE_07 << std::endl;
-			totalSize += oldSize;
-		}
-		totalTime += stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
-
 		
 		
 
