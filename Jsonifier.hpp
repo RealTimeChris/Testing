@@ -883,7 +883,7 @@ namespace Jsonifier {
 			if (this->peek() != '"') {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
-			std::cout << "WERE HERE BUILDING THE FIELD!" << std::endl;
+			//std::cout << "WERE HERE BUILDING THE FIELD!" << std::endl;
 			this->advance();
 		};
 	};
@@ -1617,7 +1617,7 @@ namespace Jsonifier {
 			return this->tape.get();
 		}
 
-		inline JsonifierResult<Document> parseJson(std::string& string);
+		inline Document parseJson(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2197,13 +2197,12 @@ namespace Jsonifier {
 		}
 	}
 
-	JsonifierResult<Document> JsonifierCore::parseJson(std::string& string) {
+	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		TapeBuilder tapeBuilder{ this };
 		auto errorCode = tapeBuilder.walkDocument();
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		JsonifierResult<Document> returnValue{ Document{ this->getDocument() }, std::move(errorCode) };
-		return returnValue;
+		return this->getDocument();
 	}
 
 	inline Field JsonValueBase::parseJsonField(const char* fieldKey) noexcept {
@@ -2213,7 +2212,7 @@ namespace Jsonifier {
 	inline Object JsonValueBase::parseJsonObject() noexcept {
 		this->assertAtObjectStart();
 		if (this->peek() == '{') {
-			std::cout << "PEEKING THE JSONOBJECT:!" << std::endl;
+			//std::cout << "PEEKING THE JSONOBJECT:!" << std::endl;
 			this->error = ErrorCode::Success;
 			return Object{ this->getCurrentIterator() };
 		} else {
@@ -2222,10 +2221,10 @@ namespace Jsonifier {
 	}
 
 	inline Array JsonValueBase::parseJsonArray() noexcept {
-		std::cout << "PEEKING THE JSONARRAY!" << this->peek() << std::endl;
+		//std::cout << "PEEKING THE JSONARRAY!" << this->peek() << std::endl;
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
-			std::cout << "PEEKING THE JSONARRAY!" << std::endl;
+			//			std::cout << "PEEKING THE JSONARRAY!" << std::endl;
 			this->error = ErrorCode::Success;
 			return Array{ this->getCurrentIterator() };
 
@@ -2502,15 +2501,15 @@ namespace Jsonifier {
 			this->error = ErrorCode::Success;
 			newString = this->parseJsonString();
 		}
-		std::cout << "NEW STRING: " << newString << std::endl;
-		std::cout << "KEY NEW: " << keyNew << std::endl;
+		//std::cout << "NEW STRING: " << newString << std::endl;
+		//std::cout << "KEY NEW: " << keyNew << std::endl;
 		while (newString != keyNew) {
-			std::cout << "NEW STRING: " << newString << std::endl;
+			//			std::cout << "NEW STRING: " << newString << std::endl;
 			if (this->peek() == '"') {
 				
 				this->error = ErrorCode::Success;
 				newString = this->parseJsonString();
-				std::cout << "NEW STRING: " << newString << std::endl;
+				//WERE				std::cout << "NEW STRING: " << newString << std::endl;
 			} else {
 				this->advance();
 			}

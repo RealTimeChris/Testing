@@ -44,12 +44,12 @@ struct TheDJson {
 
 		int32_t index{};
 
-		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
+		//for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
 
-			std::string_view newValueDouble = iter->get<std::string_view>().getValue();
+		//	std::string_view newValueDouble = iter->get<std::string_view>().getValue();
 			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
-		}
+			//}
 		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
@@ -67,13 +67,8 @@ struct TheDJson {
 };
 
 struct TheValueJson {
-	TheValueJson(Jsonifier::JsonifierResult<Jsonifier::Document>&& value) {
-		Jsonifier::Document documentNew{};
-		if (auto result = value.get(documentNew);result != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but you've encountered the following error: " +
-				std::string{ static_cast<Jsonifier::EnumStringConverter>(result) } };
-		}
-		this->theD = TheDJson{ std::move(documentNew) };
+	TheValueJson(Jsonifier::Document&& value) {
+		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
 };
@@ -179,10 +174,10 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
-		Jsonifier::JsonifierCore theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			auto jsonData = theParser.parseJson(stringNew);
-			//TheValueJson value{ std::move(jsonData) };
+			Jsonifier::JsonifierCore parser{};
+			auto jsonData = parser.parseJson(stringNew);
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -198,11 +193,11 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			//TheValue value{ newDocument };
+			TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
