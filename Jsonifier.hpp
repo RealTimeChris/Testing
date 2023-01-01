@@ -1578,9 +1578,9 @@ namespace Jsonifier {
 					}
 				}
 
-				iterationCount++;
+				//iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
@@ -1591,9 +1591,9 @@ namespace Jsonifier {
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				totalTimePassed += stopWatch.totalTimePassed().count();
+				//totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
-				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
 
@@ -1617,7 +1617,7 @@ namespace Jsonifier {
 			return this->tape.get();
 		}
 
-		inline JsonifierResult<Document> getJsonData(std::string& string);
+		inline JsonifierResult<Document> parseJson(std::string& string);
 
 		inline uint32_t getMaxDepth() {
 			return this->maxDepth;
@@ -2197,7 +2197,7 @@ namespace Jsonifier {
 		}
 	}
 
-	JsonifierResult<Document> JsonifierCore::getJsonData(std::string& string) {
+	JsonifierResult<Document> JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		TapeBuilder tapeBuilder{ this };
 		auto errorCode = tapeBuilder.walkDocument();
