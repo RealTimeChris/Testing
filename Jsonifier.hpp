@@ -793,15 +793,13 @@ namespace Jsonifier {
 
 	class JsonValueBase {
 	  public:
-
+		inline JsonValueBase() noexcept = default;
 		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept;
 		inline JsonValueBase(const JsonValueBase& other) noexcept;
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept;
 		inline JsonValueBase(JsonValueBase&& other) noexcept;
 
 		inline JsonValueBase(JsonifierCore* other) noexcept;
-
-		inline JsonValueBase() noexcept = default;
 
 		inline Field operator[](const char* keyNew) noexcept;
 		
@@ -811,9 +809,15 @@ namespace Jsonifier {
 
 		template<typename OTy> inline JsonifierResult<OTy> get(const char*) noexcept;
 
+		inline JsonValueBase resume_value_iterator() noexcept;
+
+		inline JsonValueBase get_root_value_iterator() noexcept;
+
 		inline Field findField(const char* keyNew) noexcept;
 
 		inline JsonifierCore* getCore() noexcept;
+
+		inline Object get_object() & noexcept;
 
 		inline Object parseJsonObject() noexcept;
 
@@ -909,7 +913,6 @@ namespace Jsonifier {
 		inline JsonValueBase(const uint8_t* buf, uint32_t* position) noexcept;
 		inline uint32_t peek_index(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_index(uint32_t* position) const noexcept;
-		uint32_t* startPosition{};
 		inline void start_document() noexcept;
 		inline ErrorCode skip_child() noexcept;
 		inline bool is_open() const noexcept;
@@ -1073,46 +1076,46 @@ namespace Jsonifier {
 		};
 	};
 
-	class array_iterator {
+	class ArrayIterator {
 	  public:
-		inline array_iterator() noexcept = default;
+		inline ArrayIterator() noexcept = default;
 		inline JsonifierResult<Object> operator*() noexcept;
-		inline bool operator==(const array_iterator&) const noexcept;
-		inline bool operator!=(const array_iterator&) const noexcept;
-		inline array_iterator& operator++() noexcept;
+		inline bool operator==(const ArrayIterator&) const noexcept;
+		inline bool operator!=(const ArrayIterator&) const noexcept;
+		inline ArrayIterator& operator++() noexcept;
 
 	  private:
 		JsonValueBase iter{};
 
-		inline array_iterator(const JsonValueBase& iter) noexcept;
+		inline ArrayIterator(const JsonValueBase& iter) noexcept;
 
 		friend class Array;
-		friend struct JsonifierResult<array_iterator>;
+		friend struct JsonifierResult<ArrayIterator>;
 	};
 
 	class field;
 
-	class object_iterator {
+	class ObjectIterator {
 	  public:
-		inline object_iterator() noexcept = default;
+		inline ObjectIterator() noexcept = default;
 		inline JsonifierResult<field> operator*() noexcept;
-		inline bool operator==(const object_iterator&) const noexcept;
-		inline bool operator!=(const object_iterator&) const noexcept;
-		inline object_iterator& operator++() noexcept;
+		inline bool operator==(const ObjectIterator&) const noexcept;
+		inline bool operator!=(const ObjectIterator&) const noexcept;
+		inline ObjectIterator& operator++() noexcept;
 
 	  private:
 		JsonValueBase iter{};
 
-		inline object_iterator(const JsonValueBase& iter) noexcept;
-		friend struct JsonifierResult<object_iterator>;
+		inline ObjectIterator(const JsonValueBase& iter) noexcept;
+		friend struct JsonifierResult<ObjectIterator>;
 		friend class object;
 	};
 
 	class Array {
 	  public:
 		inline Array() noexcept = default;
-		inline JsonifierResult<array_iterator> begin() noexcept;
-		inline JsonifierResult<array_iterator> end() noexcept;
+		inline JsonifierResult<ArrayIterator> begin() noexcept;
+		inline JsonifierResult<ArrayIterator> end() noexcept;
 		inline JsonifierResult<size_t> count_elements() & noexcept;
 		inline JsonifierResult<bool> is_empty() & noexcept;
 		inline JsonifierResult<bool> reset() & noexcept;
@@ -1133,7 +1136,7 @@ namespace Jsonifier {
 		friend class document;
 		friend struct JsonifierResult<Object>;
 		friend struct JsonifierResult<Array>;
-		friend class array_iterator;
+		friend class ArrayIterator;
 	};
 
 	class Object : public JsonValueBase {
@@ -1178,6 +1181,16 @@ namespace Jsonifier {
 		}
 
 		inline Object() noexcept = default;
+
+		static inline Object start(JsonValueBase& iter) noexcept {
+			iter.start_object();
+			return Object(iter);
+		}
+
+		static inline Object start_root(JsonValueBase& iter) noexcept {
+			iter.start_root_object();
+			return Object(iter);
+		}
 
 		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 			if (*this->peek() != '{') {
@@ -2444,35 +2457,35 @@ namespace Jsonifier {
 	}
 
 	template<> inline JsonifierResult<Object> JsonValueBase::get<Object>() noexcept {
-		return { this->parseJsonObject(), std::move(this->error) };
+		return { this->get_object(), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<const char*> JsonValueBase::get<const char*>() noexcept {
-		return { this->parseJsonString().data(), std::move(this->error) };
+		return { this->get_string().data(), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<std::string_view> JsonValueBase::get<std::string_view>() noexcept {
-		return { this->parseJsonString(), std::move(this->error) };
+		return { this->get_string(), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<int64_t> JsonValueBase::get<int64_t>() noexcept {
-		return { this->parseJsonInt(), std::move(this->error) };
+		return { this->get_int64(), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<uint64_t> JsonValueBase::get<uint64_t>() noexcept {
-		return { this->parseJsonUint(), std::move(this->error) };
+		return { this->get_uint64(), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<double> JsonValueBase::get<double>() noexcept {
-		return { this->parseJsonFloat(), std::move(this->error) };
+		return { this->get_double(), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<bool> JsonValueBase::get<bool>() noexcept {
-		return { this->parseJsonBool(), std::move(this->error) };
+		return { this->get_bool(), std::move(this->error) };
 	}
 
 	template<> inline ErrorCode JsonValueBase::get<Object>(Object& value) noexcept {
-		value = this->parseJsonObject();
+		value = this->get_object();
 		return std::move(this->error);
 	}
 
@@ -2515,7 +2528,8 @@ namespace Jsonifier {
 
 	inline Document::Document(JsonifierCore* value) noexcept : JsonValueBase{ value } {};
 
-	inline JsonValueBase::JsonValueBase(JsonifierCore* other) noexcept {
+	inline JsonValueBase::JsonValueBase(JsonifierCore* other) noexcept
+		: root(other->getStructuralIndexes()), stringView(other->getStringView()), stringBufferLocation(other->getStringBuffer()), position(other->getStructuralIndexes()) {
 		this->parser = other;
 	}
 
@@ -2916,6 +2930,28 @@ namespace Jsonifier {
 
 	inline RawJsonString::RawJsonString(const uint8_t* bufNew) noexcept {
 		this->buf = bufNew;
+	}
+	
+	inline bool JsonValueBase::start_object() noexcept {
+		start_container('{', "Not an object", "object");
+		return started_object();
+	}
+
+	inline bool JsonValueBase::start_root_object() noexcept {
+		start_container('{', "Not an object", "object");
+		return started_root_object();
+	}
+
+	inline Object JsonValueBase::get_object() & noexcept {
+		auto value = get_root_value_iterator();
+		return Object::start_root(value);
+	}
+
+	inline JsonValueBase JsonValueBase::resume_value_iterator() noexcept {
+		return JsonValueBase(this, 1, root_position());
+	}
+	inline JsonValueBase JsonValueBase::get_root_value_iterator() noexcept {
+		return resume_value_iterator();
 	}
 
 };
