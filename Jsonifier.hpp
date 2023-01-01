@@ -1091,42 +1091,11 @@ namespace Jsonifier {
 		uint32_t* root{};
 	};
 
-	class Field :  protected std::pair<std::string_view, JsonValueBase> {
+	class ObjectIterator;
+
+	class Field : protected std::pair<std::string_view, JsonValueBase> {
 	  public:
-		class FieldIterator {
-		  public:
-			using IteratorCategory = std::forward_iterator_tag;
-			using DifferenceType = std::ptrdiff_t;
-			using Reference = JsonValueBase&;
-			using ValueType = JsonValueBase;
-			using Pointer = JsonValueBase*;
-
-			inline FieldIterator(Pointer ptr) noexcept : ptr(ptr) {
-			}
-
-			inline Reference operator*() noexcept {
-				return *ptr;
-			}
-
-			inline Pointer operator->() noexcept {
-				return ptr;
-			}
-
-			inline FieldIterator& operator++() noexcept {
-				return *this;
-			}
-
-			inline friend bool operator==(const FieldIterator& lhs, const FieldIterator& rhs) noexcept {
-				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
-			};
-
-		  protected:
-			Pointer ptr{};
-		};
-
-		inline auto begin() noexcept {
-			return FieldIterator{ &this->second };
-		}
+		
 
 		static inline Field start(JsonValueBase& parent_iter) noexcept {
 			RawJsonString key{};
@@ -1144,9 +1113,10 @@ namespace Jsonifier {
 			return this->second.getError();
 		}
 
-		inline auto end() noexcept {
-			return FieldIterator{ &this->second };
-		}
+		inline ObjectIterator end() noexcept;
+
+		inline ObjectIterator begin() noexcept;
+
 
 		inline std::string_view getKey() {
 			return this->first;
@@ -1154,12 +1124,63 @@ namespace Jsonifier {
 
 		inline Field() noexcept = default;
 
-		inline Field(RawJsonString& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), value } {
-		};
+		inline Field(RawJsonString& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), value } {};
 
-		inline Field(std::string_view&& key, JsonValueBase& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {
-		};
+		inline Field(std::string_view&& key, JsonValueBase& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {};
 	};
+
+
+	class ObjectIterator {
+	  public:
+		inline ObjectIterator(const JsonValueBase& _iter) noexcept : iter{ _iter } {
+		}
+
+		inline Field operator*() noexcept {
+			ErrorCode error = iter.getError();
+			if (error != ErrorCode::Success) {
+				iter.abandon();
+				return Field{};
+			}
+			auto result = Field::start(iter);
+			if (result.getError() != ErrorCode::Success) {
+				iter.abandon();
+			}
+			return result;
+		}
+
+		inline bool operator==(ObjectIterator& other) noexcept {
+			return !(this->iter != other.iter);
+		}
+
+		inline ObjectIterator& operator++() noexcept {
+			if (!iter.is_open()) {
+				return *this;
+			}
+
+			ErrorCode error{};
+			if (error = iter.skip_child(); error != ErrorCode::Success) {
+				return *this;
+			}
+
+			bool has_value{};
+			if (!iter.has_next_field()) {
+				return *this;
+			};
+			return *this;
+		}
+
+	  private:
+		JsonValueBase iter{};
+		friend struct JsonifierResult<ObjectIterator>;
+	};
+
+	inline ObjectIterator Field::end() noexcept {
+		return ObjectIterator{ this->second };
+	}
+
+	inline ObjectIterator Field::begin() noexcept {
+		return ObjectIterator{ this->second };
+	}
 
 	class ArrayIterator {
 	  public:
@@ -1206,50 +1227,6 @@ namespace Jsonifier {
 		friend struct JsonifierResult<Object>;
 		friend struct JsonifierResult<Array>;
 		friend class ArrayIterator;
-	};
-
-	class ObjectIterator {
-	  public:
-		inline ObjectIterator(const JsonValueBase& _iter) noexcept : iter{ _iter } {
-		}
-
-		inline Field operator*() noexcept {
-			ErrorCode error = iter.getError();
-			if (error != ErrorCode::Success) {
-				iter.abandon();
-				return Field{};
-			}
-			auto result = Field::start(iter);
-			if (result.getError() != ErrorCode::Success) {
-				iter.abandon();
-			}
-			return result;
-		}
-
-		inline bool operator==(ObjectIterator& other) noexcept {
-			return !(this->iter != other.iter);
-		}
-
-		inline ObjectIterator& operator++() noexcept {
-			if (!iter.is_open()) {
-				return *this;
-			}
-
-			ErrorCode error{};
-			if (error = iter.skip_child(); error != ErrorCode::Success) {
-				return *this;
-			}
-
-			bool has_value{};
-			if (!iter.has_next_field()) {
-				return *this;
-			};
-			return *this;
-		}
-
-	  private:
-		JsonValueBase iter{};
-		friend struct JsonifierResult<ObjectIterator>;
 	};
 
 	class Object : public JsonValueBase {
