@@ -804,8 +804,6 @@ namespace Jsonifier {
 		
 		inline JsonValueBase& getCurrentIterator() noexcept;
 		
-		inline JsonValueBase& advanceIteratorAndReturn(size_t value) noexcept;
-		
 		inline void asserAtFieldStart(size_t amountToOffset) noexcept;
 		
 		inline void assertAtObjectStart(size_t amountToOffset = 0) noexcept;
@@ -1212,34 +1210,28 @@ namespace Jsonifier {
 		}
 
 		template<size_t amount> inline SimdBase256 shl() {
-			SimdBase256 returnValue{};
 			SimdBase256 returnValueReal{};
+			SimdBase256 returnValue{};
 			returnValue = _mm256_slli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
-			this->printBits("PRE SHIFT: ");
 			returnValue = _mm256_permute4x64_epi64(*this, 0b10010011);
 			returnValue = _mm256_srli_epi64(returnValue, 64 - amount);
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
 			returnValueReal &= ~returnValue;
-			returnValueReal.printBits("POST SHIFTED LEFT: ");
-			std::cout << "AMOUNT: " << amount << std::endl;
 			return returnValueReal;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
-			SimdBase256 returnValue{};
 			SimdBase256 returnValueReal{};
+			SimdBase256 returnValue{};
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
-			this->printBits("PRE SHIFT: ");
 			returnValue = _mm256_permute4x64_epi64(*this, 0b00111001);
 			returnValue = _mm256_slli_epi64(returnValue, 64 - amount);
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << 64-amount) - (1ull << 0));
-			returnValueReal.printBits("POST SHIFTED RIGHT: ");
 			returnValueReal &= returnValue;
-			std::cout << "AMOUNT: " << amount << std::endl;
 			return returnValueReal;
 		}
 
@@ -1469,21 +1461,14 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			this->Q256.printBits("QUOTED BITS: ");
 			auto nonquoteScalar = ~(this->S256 | this->W256).bitAndNot(this->Q256);
-			nonquoteScalar.printBits("NONQUOTE SCALAR: ");
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
 			auto string_tail = this->R256 ^ this->Q256;
 			auto scalar = ~(this->S256 | this->W256);
-			scalar.printBits("SCALAR: ");
-			this->prevInScalar.printBits("PREV IN SCALAR: ");
 			auto potential_scalar_start = scalar & ~this->followsPotentialNonquoteScalar;
-			this->followsPotentialNonquoteScalar.printBits("FOLLOWS POTENTIAL SCALAR ");
-			potential_scalar_start.printBits("POTENTIAL SCALAR START: ");
 			auto op = this->S256;
 			auto potential_structural_start = op | potential_scalar_start;
 			auto structuralStart = potential_structural_start & ~string_tail;
-			string_tail.printBits("STRING TAIL: ");
 			return structuralStart;
 		}
 
@@ -1500,12 +1485,7 @@ namespace Jsonifier {
 			this->R256 = this->collectQuotedRange();
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
-			this->S256.printBits("STRUCTURAL CHARACTERS: ");
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS:  ");
-			//this->R256.printBits("QUOTES: ");
-			//			this->R256.printBits("QUOTED RANGE: ");
-			//this->S256.printBits("FINAL BITS:  ");
 		}
 
 	  protected:
@@ -2416,11 +2396,6 @@ namespace Jsonifier {
 	}
 
 	inline JsonValueBase& JsonValueBase::getCurrentIterator() noexcept {
-		return *this;
-	}
-
-	inline JsonValueBase& JsonValueBase::advanceIteratorAndReturn(size_t value) noexcept {
-		this->currentIndex += value;
 		return *this;
 	}
 
