@@ -39,7 +39,7 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		Jsonifier::Object objectNew{};
-		std::cout << "CURRENT SIZE: " << value.find_field_unordered("TEST_VALUE_11").field_key() << std::endl;
+		std::cout << "CURRENT SIZE: " << value.get_object().find_field_unordered("TEST_VALUE_11").field_key() << std::endl;
 		objectNew = value["TEST_VALUE_11"];
 
 		std::cout << "CURRENT KEY: " << objectNew.field_key() << std::endl;

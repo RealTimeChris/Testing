@@ -723,9 +723,9 @@ namespace Jsonifier {
 
 		inline Field() noexcept = default;
 
-		inline Field(RawJsonString& key, ValueIterator&& value) : std::pair<std::string_view, ValueIterator>{ std::move(key.raw()), value } {};
+		inline Field(RawJsonString& key, ValueIterator&& value) : std::pair<std::string_view, ValueIterator>{ std::move(key.raw()), Object{} } {};
 
-		inline Field(std::string_view&& key, ValueIterator& value) : std::pair<std::string_view, ValueIterator>{ std::move(key), value } {};
+		inline Field(std::string_view&& key, ValueIterator& value) : std::pair<std::string_view, ValueIterator>{ std::move(key), Object{} } {};
 	};
 
 	inline ObjectIterator Field::end() noexcept {
@@ -739,7 +739,7 @@ namespace Jsonifier {
 	class ArrayIterator {
 	  public:
 		inline ArrayIterator() noexcept = default;
-		inline JsonifierResult<Object> operator*() noexcept;
+		inline Object operator*() noexcept;
 		inline bool operator==(const ArrayIterator&) const noexcept;
 		inline bool operator!=(const ArrayIterator&) const noexcept;
 		inline ArrayIterator& operator++() noexcept;
@@ -758,21 +758,21 @@ namespace Jsonifier {
 	class Array {
 	  public:
 		inline Array() noexcept = default;
-		inline JsonifierResult<ArrayIterator> begin() noexcept;
-		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<size_t> count_elements() & noexcept;
-		inline JsonifierResult<bool> is_empty() & noexcept;
-		inline JsonifierResult<bool> reset() & noexcept;
-		inline JsonifierResult<Object> at_pointer(std::string_view json_pointer) noexcept;
-		inline JsonifierResult<std::string_view> raw_json() noexcept;
-		inline JsonifierResult<Object> at(size_t index) noexcept;
+		inline ArrayIterator begin() noexcept;
+		inline ArrayIterator end() noexcept;
+		inline size_t count_elements() & noexcept;
+		inline bool is_empty() & noexcept;
+		inline bool reset() & noexcept;
+		inline Object at_pointer(std::string_view json_pointer) noexcept;
+		inline std::string_view raw_json() noexcept;
+		inline Object at(size_t index) noexcept;
 		inline Array(const ValueIterator& iter) noexcept;
+		static inline Array start_root(ValueIterator& iter) noexcept;
+		static inline Array started(ValueIterator& iter) noexcept;
 
 	  protected:
 		inline ErrorCode consume() noexcept;
-		static inline JsonifierResult<Array> start(ValueIterator& iter) noexcept;
-		static inline JsonifierResult<Array> start_root(ValueIterator& iter) noexcept;
-		static inline JsonifierResult<Array> started(ValueIterator& iter) noexcept;
+		static inline Array start(ValueIterator& iter) noexcept;
 
 		ValueIterator iter{};
 
@@ -785,6 +785,7 @@ namespace Jsonifier {
 	};
 
 	class JsonifierCore;
+	class Object;
 
 	class Document {
 	  public:
@@ -805,7 +806,9 @@ namespace Jsonifier {
 		}
 
 		inline Object start_or_resume_object() noexcept {
-			if (this->iter.at_root()) {
+			auto newValue = this->iter.at_root();
+			std::cout << "ARE WE AT ROOT?: " << std::boolalpha << newValue << std::endl;
+			if (newValue) {
 				return get_object();
 			} else {
 				return Object::resume(resume_value_iterator());
@@ -819,20 +822,204 @@ namespace Jsonifier {
 		inline Object find_field(std::string_view key) & noexcept {
 			return start_or_resume_object().find_field(key);
 		}
+
 		inline Object find_field(const char* key) & noexcept {
 			return start_or_resume_object().find_field(key);
 		}
+
 		inline Object find_field_unordered(std::string_view key) & noexcept {
 			return start_or_resume_object().find_field_unordered(key);
 		}
+
 		inline Object find_field_unordered(const char* key) & noexcept {
 			return start_or_resume_object().find_field_unordered(key);
 		}
+
 		inline Object operator[](std::string_view key) & noexcept {
 			return start_or_resume_object()[key];
 		}
+
 		inline Object operator[](const char* key) & noexcept {
 			return start_or_resume_object()[key];
+		}
+
+		inline void rewind() noexcept {
+			iter.rewind();
+		}
+
+		inline std::string to_debug_string() noexcept {
+			return iter.to_string();
+		}
+
+		inline const char* current_location() noexcept {
+			return iter.current_location();
+		}
+
+		inline int32_t current_depth() const noexcept {
+			return iter.depth();
+		}
+
+		inline bool is_alive() noexcept {
+			return iter.is_alive();
+		}
+
+		inline Object get_value() noexcept {
+			iter.assert_at_document_depth();
+			switch (*iter.peek()) {
+				case '[':
+				case '{':
+					return Object(get_root_value_iterator());
+				default:
+					return Object{};
+			}
+		}
+
+		inline Array get_array() & noexcept {
+			auto value = get_root_value_iterator();
+			return Array::start_root(value);
+		}
+
+		inline uint64_t get_uint64() noexcept {
+			return get_root_value_iterator().get_root_uint64();
+		}
+
+		inline uint64_t get_uint64_in_string() noexcept {
+			return get_root_value_iterator().get_root_uint64_in_string();
+		}
+
+		inline int64_t get_int64() noexcept {
+			return get_root_value_iterator().get_root_int64();
+		}
+
+		inline int64_t get_int64_in_string() noexcept {
+			return get_root_value_iterator().get_root_int64_in_string();
+		}
+
+		inline double get_double() noexcept {
+			return get_root_value_iterator().get_root_double();
+		}
+
+		inline double get_double_in_string() noexcept {
+			return get_root_value_iterator().get_root_double_in_string();
+		}
+
+		inline std::string_view get_string() noexcept {
+			return get_root_value_iterator().get_root_string();
+		}
+
+		inline RawJsonString get_raw_json_string() noexcept {
+			return get_root_value_iterator().get_root_raw_json_string();
+		}
+
+		inline bool get_bool() noexcept {
+			return get_root_value_iterator().get_root_bool();
+		}
+
+		inline bool is_null() noexcept {
+			return get_root_value_iterator().is_root_null();
+		}
+
+		template<typename OTy> inline OTy get() & noexcept;
+
+		template<typename OTy> inline OTy get() && noexcept;
+
+		template<> inline Array get() & noexcept {
+			return get_array();
+		}
+
+		template<> inline Object get() & noexcept {
+			return get_object();
+		}
+
+		template<> inline RawJsonString get() & noexcept {
+			return get_raw_json_string();
+		}
+
+		template<> inline std::string_view get() & noexcept {
+			return get_string();
+		}
+
+		template<> inline double get() & noexcept {
+			return get_double();
+		}
+
+		template<> inline uint64_t get() & noexcept {
+			return get_uint64();
+		}
+
+		template<> inline int64_t get() & noexcept {
+			return get_int64();
+		}
+
+		template<> inline bool get() & noexcept {
+			return get_bool();
+		}
+
+		template<> inline RawJsonString get() && noexcept {
+			return get_raw_json_string();
+		}
+
+		template<> inline std::string_view get() && noexcept {
+			return get_string();
+		}
+
+		template<> inline double get() && noexcept {
+			return std::forward<Document>(*this).get_double();
+		}
+
+		template<> inline uint64_t get() && noexcept {
+			return std::forward<Document>(*this).get_uint64();
+		}
+
+		template<> inline int64_t get() && noexcept {
+			return std::forward<Document>(*this).get_int64();
+		}
+
+		template<> inline bool get() && noexcept {
+			return std::forward<Document>(*this).get_bool();
+		}
+
+		template<> inline Object get() && noexcept {
+			return get_value();
+		}
+
+		template<typename T> inline ErrorCode get(T& out) & noexcept {
+			return get<T>().get(out);
+		}
+
+		template<typename T> inline ErrorCode get(T& out) && noexcept {
+			return std::forward<Document>(*this).get<T>().get(out);
+		}
+
+		inline size_t count_elements() & noexcept {
+			auto a = get_array();
+			size_t answer = a.count_elements();
+			if (answer != 0) {
+				rewind();
+			}
+			return answer;
+		}
+
+		inline size_t count_fields() & noexcept {
+			auto a = get_object();
+			size_t answer = a.count_fields();
+			if (answer != 0) {
+				rewind();
+			}
+			return answer;
+		}
+
+		inline Object at(size_t index) & noexcept {
+			auto a = get_array();
+			return a.at(index);
+		}
+
+		inline ArrayIterator begin() & noexcept {
+			return get_array().begin();
+		}
+
+		inline ArrayIterator end() & noexcept {
+			return {};
 		}
 
 	  protected:
@@ -1338,7 +1525,7 @@ namespace Jsonifier {
 		if (newValue != ':') {
 			return ErrorCode::TapeError;
 		}
-		auto value = this->advance();
+		auto Object = this->advance();
 		switch (*value) {
 			case '{':
 				if (*this->peek() == '}') {
@@ -1405,7 +1592,7 @@ namespace Jsonifier {
 	}
 
 	Array_Value : {
-		auto value = this->advance();
+		auto Object = this->advance();
 		switch (*value) {
 			case '{':
 				if (*this->peek() == '}') {
@@ -2367,5 +2554,10 @@ namespace Jsonifier {
 		return *this;
 	}
 
+	inline Array Array::start_root(ValueIterator& iter) noexcept {
+		bool has_value{};
+		iter.start_root_array();
+		return Array(iter);
+	}
 
 };
