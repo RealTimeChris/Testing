@@ -38,6 +38,10 @@ namespace Jsonifier {
 			return false;
 		}
 
+		uint32_t toBitMask() {
+			return _mm256_movemask_epi8(*this);
+		}
+
 		void fromUint64(uint64_t data) {
 			this->value = _mm256_set1_epi64x(static_cast<int64_t>(data));
 		}

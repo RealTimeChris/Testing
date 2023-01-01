@@ -85,8 +85,8 @@ namespace Jsonifier {
 	class RawJsonString {
 	  public:
 		inline RawJsonString() noexcept = default;
-		inline RawJsonString(const uint8_t* _buf) noexcept;
-		inline const char* raw() const noexcept;
+		inline RawJsonString(uint8_t* _buf) noexcept;
+		inline char* raw() const noexcept;
 		inline bool unsafe_is_equal(size_t length, std::string_view target) const noexcept;
 		inline bool unsafe_is_equal(std::string_view target) const noexcept;
 		inline bool unsafe_is_equal(const char* target) const noexcept;
@@ -104,7 +104,7 @@ namespace Jsonifier {
 		}
 		inline std::string_view unescape(JsonIterator& iter) const noexcept;
 
-		const uint8_t* buf{};
+		uint8_t* buf{};
 		friend class field;
 		friend class parser;
 		friend class ValueIterator;

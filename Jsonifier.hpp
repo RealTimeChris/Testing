@@ -701,7 +701,7 @@ namespace Jsonifier {
 			key = parent_iter.field_key();
 			std::cout << "CURRENT KEY: " << key << std::endl;
 			parent_iter.field_value();
-			return Field::start(parent_iter, RawJsonString{ reinterpret_cast<const uint8_t*>(key.data()) });
+			return Field::start(parent_iter, RawJsonString{ ( uint8_t* )(key.data()) });
 		}
 
 		static inline Field start(ValueIterator& parent_iter, RawJsonString key) noexcept {
@@ -1976,7 +1976,7 @@ namespace Jsonifier {
 			return RawJsonString{};
 		}
 		advance_scalar();
-		return RawJsonString(json + 1);
+		return RawJsonString(( uint8_t* )json + 1);
 	}
 
 	inline std::string_view RawJsonString::unescape(JsonIterator& iter) const noexcept {
@@ -2013,7 +2013,7 @@ namespace Jsonifier {
 		this->jsonIterator->ascend_to(depth() - 1);
 	}
 
-	inline RawJsonString::RawJsonString(const uint8_t* bufNew) noexcept {
+	inline RawJsonString::RawJsonString(uint8_t* bufNew) noexcept {
 		this->buf = bufNew;
 	}
 	
@@ -2133,11 +2133,11 @@ namespace Jsonifier {
 		if (*(key++) != '"') {
 			return "";
 		}
-		return RawJsonString{ key }.unescape(*this->jsonIterator);
+		return RawJsonString{ ( uint8_t* )key }.unescape(*this->jsonIterator);
 	}
 
-	inline const char* RawJsonString::raw() const noexcept {
-		return reinterpret_cast<const char*>(buf);
+	inline char* RawJsonString::raw() const noexcept {
+		return reinterpret_cast<char*>(buf);
 	}
 
 	inline bool ValueIterator::is_open() const noexcept {
@@ -2264,15 +2264,9 @@ namespace Jsonifier {
 	}
 
 	inline std::string_view JsonIterator::unescape(RawJsonString in) noexcept {
-		auto newValue = StringParser::parseString(reinterpret_cast<const uint8_t*>(in.raw()), stringBuffer);
-		size_t index{};
-		while (1) {
-			index++;
-			if (newValue[index] == '\0') {
-				break;
-			}
-		}
-		return std::string_view{ reinterpret_cast<char*>(newValue), index };
+		auto newValue = StringParser::parseString(reinterpret_cast<uint8_t*>(in.raw()), stringBuffer);
+		std::cout << "NEW STRING: " << newValue << std::endl;
+		return std::string_view{ reinterpret_cast<char*>(newValue) };
 	}
 
 	inline JsonIterator& ValueIterator::json_iter() noexcept {
@@ -2348,7 +2342,8 @@ namespace Jsonifier {
 
 		while (has_value) {
 			RawJsonString actual_key{};
-			if (actual_key.buf = reinterpret_cast<const uint8_t*>(field_key().data()); actual_key.buf == nullptr) {
+			uint8_t* newPtr = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(field_key().data()));
+			if (actual_key.buf = newPtr; actual_key.buf == nullptr) {
 				abandon();
 				return false;
 			};

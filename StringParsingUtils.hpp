@@ -209,7 +209,7 @@ namespace Jsonifier {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
 					std::cout << "WERRE HERE THIS IS IT: (REAL) " << src[index] << std::endl;
 					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << index + result << std::endl;
-					return dst + index + result;
+					return dst;
 				}
 				length -= 32;
 				index += 32;
@@ -217,6 +217,87 @@ namespace Jsonifier {
 			return nullptr;
 		}
 
+		inline static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0x0.
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0,
+
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x5c, 0, 0, 0, 0, 0, 0x08, 0, 0, 0, 0x0c, 0, 0, 0, 0,
+			0, 0, 0, 0x0a, 0, 0, 0, 0x0d, 0, 0x09, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+		template<typename SimdBase256>
+		struct backslash_and_quote {
+		  public:
+			static constexpr uint32_t BYTES_PROCESSED = 32;
+			static inline backslash_and_quote copy_and_find(uint8_t* src, uint8_t* dst) {
+				// this can read up to 15 bytes beyond the buffer size, but we require
+				// SIMDJSON_PADDING of padding
+				static_assert(32 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
+				SimdBase256 v(reinterpret_cast<char*>(src));
+				// store to dest unconditionally - we can overwrite the bits we don't like later
+				v.store(dst);
+				return {
+					static_cast<uint32_t>((v == '\\').toBitMask()),
+					static_cast<uint32_t>((v == '"').toBitMask()),
+				};
+			}
+
+			inline bool has_quote_first() {
+				return ((bs_bits - 1) & quote_bits) != 0;
+			}
+			inline bool has_backslash() {
+				return bs_bits != 0;
+			}
+			inline int quote_index() {
+				return _tzcnt_u64(quote_bits);
+			}
+			inline int backslash_index() {
+				return _tzcnt_u64(bs_bits);
+			}
+
+			uint32_t bs_bits;
+			uint32_t quote_bits;
+		};
+
+		 static inline uint8_t* parseString(uint8_t* src, uint8_t* dst) {
+			while (1) {
+				 auto bs_quote = backslash_and_quote<SimdBase256>::copy_and_find(src, dst);
+				if (bs_quote.has_quote_first()) {
+					 return dst + bs_quote.quote_index();
+				}
+				if (bs_quote.has_backslash()) {
+					auto bs_dist = bs_quote.backslash_index();
+					uint8_t escape_char = src[bs_dist + 1];
+					if (escape_char == 'u') {
+						src += bs_dist;
+						dst += bs_dist;
+						if (!handleUnicodeCodepoint(const_cast<const uint8_t**>(&src), &dst)) {
+							return nullptr;
+						}
+					} else {
+						uint8_t escape_result = escapeMap[escape_char];
+						if (escape_result == 0u) {
+							return nullptr;
+						}
+						dst[bs_dist] = escape_result;
+						src += bs_dist + 2;
+						dst += bs_dist + 1;
+					}
+				} else {
+					src += backslash_and_quote<SimdBase256>::BYTES_PROCESSED;
+					dst += backslash_and_quote<SimdBase256>::BYTES_PROCESSED;
+				}
+			}
+			/* can't be reached */
+			return nullptr;
+		}
+
+		 /*
 		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
 			int32_t index{};
 			while (1) {
@@ -224,12 +305,13 @@ namespace Jsonifier {
 					std::cout << "WERRE HERE THIS IS IT: (REAL) " << src[index] << std::endl;
 					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << index + result << std::endl;
 					std::cout << std::string_view{ reinterpret_cast<char*>(dst + result), result } << std::endl;
-					return dst + index + result;
+					return dst;
 				}
 				index += 32;
 			}
 			return nullptr;
 		}
+		*/
 	};
 
 
