@@ -1518,7 +1518,6 @@ namespace Jsonifier {
 		inline Document(JsonifierCore* value) noexcept;
 
 	  protected:
-		JsonifierCore* parser{};
 	};
 
 	inline int64_t totalTimePassed{};
@@ -2273,9 +2272,9 @@ namespace Jsonifier {
 		return { this->parseJsonBool(), std::move(this->error) };
 	}
 
-	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{} {};
+	inline Document::Document() noexcept : JsonValueBase{} {};
 
-	inline Document::Document(JsonifierCore* value) noexcept : parser{ value }, JsonValueBase{ value } {};
+	inline Document::Document(JsonifierCore* value) noexcept : JsonValueBase{ value } {};
 
 	inline JsonValueBase::JsonValueBase(JsonifierCore* other) noexcept {
 		this->parser = other;
