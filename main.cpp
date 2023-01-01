@@ -218,6 +218,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		auto fieldNew = value.get<Jsonifier::Object>();
 		auto objectNewer = fieldNew.getValue();
+		std::cout << "CURRENT SIZE: " << fieldNew.getValue().count_fields() << std::endl;
 		Jsonifier::Array arrayNewer = objectNewer.get<Jsonifier::Array>().getValue();
 
 		int32_t index{};

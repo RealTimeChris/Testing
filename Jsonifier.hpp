@@ -910,7 +910,6 @@ namespace Jsonifier {
 		inline uint32_t peek_index(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_index(uint32_t* position) const noexcept;
 		inline void start_document() noexcept;
-		inline ErrorCode skip_child() noexcept;
 		inline bool is_open() const noexcept;
 		inline bool at_first_field() const noexcept;
 		inline JsonValueBase child_value() const noexcept;
@@ -920,7 +919,7 @@ namespace Jsonifier {
 		inline bool started_object() noexcept;
 		inline bool started_root_object() noexcept;
 		inline bool has_next_field() noexcept;
-		inline std::string_view field_key() noexcept;
+		inline RawJsonString field_key() noexcept;
 		inline ErrorCode field_value() noexcept;
 		inline ErrorCode find_field(const std::string_view key) noexcept;
 		inline bool find_field_raw(const std::string_view key) noexcept;
@@ -930,7 +929,7 @@ namespace Jsonifier {
 		inline bool started_array() noexcept;
 		inline bool started_root_array() noexcept;
 		inline bool has_next_element() noexcept;
-		inline JsonValueBase child() const noexcept;
+		inline JsonValueBase child() noexcept;
 
 		inline std::string_view get_string() noexcept;
 		inline RawJsonString get_raw_json_string() noexcept;
@@ -958,7 +957,7 @@ namespace Jsonifier {
 		inline bool is_root_integer() noexcept;
 		inline bool is_root_null() noexcept;
 
-		inline ErrorCode getError() const noexcept;
+		inline ErrorCode getError()  noexcept;
 		inline const JsonValueBase& json_iter() const noexcept;
 		inline JsonValueBase& json_iter() noexcept;
 
@@ -1053,6 +1052,18 @@ namespace Jsonifier {
 			return FieldIterator{ this };
 		}
 
+		static inline Field start(JsonValueBase& parent_iter) noexcept {
+			RawJsonString key{};
+			key = parent_iter.field_key();
+			std::cout << "CURRENT KEY: " << key.raw() << std::endl;
+			parent_iter.field_value();
+			return Field::start(parent_iter, key);
+		}
+
+		static inline Field start(JsonValueBase& parent_iter, RawJsonString key) noexcept {
+			return Field(key, parent_iter.child());
+		}
+
 		inline auto end() noexcept {
 			return FieldIterator{ this };
 		}
@@ -1061,13 +1072,14 @@ namespace Jsonifier {
 			return this->first;
 		}
 
+		inline Field() noexcept = default;
+
+		inline Field(RawJsonString& key, JsonValueBase&& value)
+			: JsonValueBase{ value }, std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), value } {
+		};
+
 		inline Field(std::string_view&& key, JsonValueBase& value)
 			: JsonValueBase{ value }, std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {
-			if (*this->peek() != '"') {
-				throw JsonifierException{ "Sorry, but this item's type is not field." };
-			}
-			//std::cout << "WERE HERE BUILDING THE FIELD!" << std::endl;
-			this->advance();
 		};
 	};
 
@@ -1092,16 +1104,53 @@ namespace Jsonifier {
 
 	class ObjectIterator {
 	  public:
-		inline ObjectIterator() noexcept = default;
-		inline JsonifierResult<field> operator*() noexcept;
-		inline bool operator==(const ObjectIterator&) const noexcept;
-		inline bool operator!=(const ObjectIterator&) const noexcept;
-		inline ObjectIterator& operator++() noexcept;
+		inline ObjectIterator(const JsonValueBase& _iter) noexcept : iter{ _iter } {
+		}
+
+		inline Field operator*() noexcept {
+			ErrorCode error = iter.getError();
+			if (error!=ErrorCode::Success) {
+				iter.abandon();
+				return Field{};
+			}
+			auto result = Field::start(iter);
+			// TODO this is a safety rail ... users should exit loops as soon as they receive an error.
+			// Nonetheless, let's see if performance is OK with this if statement--the compiler may give it to us for free.
+			if (result.getError() != ErrorCode::Success) {
+				iter.abandon();
+			}
+			return result;
+		}
+
+		inline bool operator==(const ObjectIterator& other) const noexcept {
+			return !(*this != other);
+		}
+
+		inline bool operator!=(const ObjectIterator&) const noexcept {
+			return iter.is_open();
+		}
+
+		inline ObjectIterator& operator++() noexcept {
+			// TODO this is a safety rail ... users should exit loops as soon as they receive an error.
+			// Nonetheless, let's see if performance is OK with this if statement--the compiler may give it to us for free.
+			if (!iter.is_open()) {
+				return *this;
+			}// Iterator will be released if there is an error
+
+			ErrorCode error;
+			if (error = iter.skip_child(iter.depth()); error != ErrorCode::Success) {
+				return *this;
+			}
+
+			bool has_value;
+			if (!iter.has_next_field()) {
+				return *this;
+			};
+			return *this;
+		}
 
 	  private:
 		JsonValueBase iter{};
-
-		inline ObjectIterator(const JsonValueBase& iter) noexcept;
 		friend struct JsonifierResult<ObjectIterator>;
 		friend class object;
 	};
@@ -1136,45 +1185,15 @@ namespace Jsonifier {
 
 	class Object : public JsonValueBase {
 	  public:
-		class ObjectIterator {
-		  public:
-			using IteratorCategory = std::forward_iterator_tag;
-			using DifferenceType = std::ptrdiff_t;
-			using Reference = JsonValueBase&;
-			using ValueType = JsonValueBase;
-			using Pointer = JsonValueBase*;
-
-			inline ObjectIterator(Pointer ptr) noexcept : ptr(ptr) {
-			}
-
-			inline Reference operator*() noexcept {
-				return *ptr;
-			}
-
-			inline Pointer operator->() noexcept {
-				return ptr;
-			}
-
-			inline ObjectIterator& operator++() noexcept {
-				return *this;
-			}
-
-			inline friend bool operator==(const ObjectIterator& lhs, const ObjectIterator& rhs) noexcept {
-				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
-			};
-
-		  protected:
-			Pointer ptr{};
-		};
 
 		inline auto begin() noexcept {
-			return ObjectIterator{ this };
+			return ObjectIterator{ *this };
 		}
 
 		inline auto end() noexcept {
-			return ObjectIterator{ this };
+			return ObjectIterator{ *this };
 		}
-
+		inline size_t count_fields() noexcept;
 		inline Object() noexcept = default;
 
 		static inline Object start(JsonValueBase& iter) noexcept {
@@ -1188,10 +1207,6 @@ namespace Jsonifier {
 		}
 
 		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
-			if (*this->peek() != '{') {
-				throw JsonifierException{ "Sorry, but this item's type is not object." };
-			}
-			this->advance();
 		};
 	};
 
@@ -2832,7 +2847,6 @@ namespace Jsonifier {
 		
 	inline void JsonValueBase::assert_at_next() const noexcept {
 		assert(position > root);
-		assert(currentDepth > 0);
 	}
 
 	inline void JsonValueBase::assert_at_start() const noexcept {
@@ -2996,7 +3010,6 @@ namespace Jsonifier {
 
 	inline void JsonValueBase::assert_at_container_start() const noexcept {
 		assert(position == root+ 1);
-		assert(currentDepth > 0);
 	}
 
 	inline ErrorCode JsonValueBase::end_container() noexcept {
@@ -3006,6 +3019,163 @@ namespace Jsonifier {
 
 	inline ErrorCode JsonValueBase::incorrect_type_error(const char* message) const noexcept {
 		return ErrorCode::Incorrect_Type;
+	}
+
+	inline bool JsonValueBase::reset_object() noexcept {
+		move_at_container_start();
+		return started_object();
+	}
+
+	inline ErrorCode JsonValueBase::getError() noexcept {
+		return this->error;
+	}
+
+	inline size_t Object::count_fields()  noexcept {
+		size_t count{ 0 };
+		// Important: we do not consume any of the values.
+		for ( auto v: *this) {
+			count++;
+		}
+		// The above loop will always succeed, but we want to report errors.
+		if (getError()!=ErrorCode::Success) {
+			return static_cast<size_t>(getError());
+		}
+		// We need to move back at the start because we expect users to iterate through
+		// the object after counting the number of elements.
+		this->reset_object();
+		return count;
+	}
+
+	inline void JsonValueBase::move_at_container_start() noexcept {
+		this->currentDepth =currentDepth;
+		this->set_position(start_position() + 1);
+	}
+
+	inline void JsonValueBase::set_position(uint32_t* target_position) noexcept {
+		position = target_position;
+	}
+
+	inline void JsonValueBase::abandon() noexcept {
+		parser = nullptr;
+		currentDepth = 0;
+	}
+	inline ErrorCode JsonValueBase::skip_child(size_t parent_depth) noexcept {
+		if (depth() <= parent_depth) {
+			return ErrorCode::Success;
+		}
+		switch (*return_current_and_advance()) {
+			case '[':
+			case '{':
+			case ':':
+				break;
+			case ',':
+				break;
+			case ']':
+			case '}':
+				--currentDepth;
+				if (depth() <= parent_depth) {
+					return ErrorCode::Success;
+				}
+				break;
+			case '"':
+				if (*peek() == ':') {
+					return_current_and_advance();
+					break;
+				}
+				[[fallthrough]];
+			default:
+				--currentDepth;
+				if (depth() <= parent_depth) {
+					return ErrorCode::Success;
+				}
+				break;
+		}
+
+		while (position < end_position()) {
+			switch (*return_current_and_advance()) {
+				case '[':
+				case '{':
+					++currentDepth;
+					break;
+				case ']':
+				case '}':
+					--currentDepth;
+					if (depth() <= parent_depth) {
+						return ErrorCode::Success;
+					}
+					break;
+				default:
+					break;
+			}
+		}
+
+		return ErrorCode::TapeError;
+	}
+
+	inline uint32_t* JsonValueBase::end_position() const noexcept {
+		size_t n_structural_indexes{ parser->getTapeLength() };
+		return &parser->getStructuralIndexes()[n_structural_indexes];
+	}
+
+	inline ErrorCode JsonValueBase::field_value() noexcept {
+		assert_at_next();
+
+		if (*this->return_current_and_advance() != ':') {
+			return ErrorCode::TapeError;
+		}
+		this->descend_to(depth() + 1);
+		return ErrorCode::Success;
+	}
+		
+	inline void JsonValueBase::descend_to(size_t child_depth) noexcept {
+		assert(child_depth >= 1 && child_depth < INT32_MAX);
+		assert(currentDepth == child_depth - 1);
+		currentDepth = child_depth;
+	}
+
+	inline RawJsonString JsonValueBase::field_key() noexcept {
+		assert_at_next();
+
+		const uint8_t* key = this->return_current_and_advance();
+		if (*(key++) != '"') {
+			return RawJsonString{};
+		}
+		return RawJsonString{ key };
+	}
+
+	inline JsonValueBase JsonValueBase::child() noexcept {
+		assert_at_child();
+		++this->currentDepth;
+		return { *this };
+	}
+
+	inline const char* RawJsonString::raw() const noexcept {
+		return reinterpret_cast<const char*>(buf);
+	}
+
+	inline bool JsonValueBase::is_open() const noexcept {
+		return depth() >= depth();
+	}
+
+	inline bool JsonValueBase::has_next_field() noexcept {
+		assert_at_next();
+
+		// It's illegal to call this unless there are more tokens: anything that ends in } or ] is
+		// obligated to verify there are more tokens if they are not the top level.
+		switch (*this->return_current_and_advance()) {
+			case '}':
+				end_container();
+				return false;
+			case ',':
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	inline void JsonValueBase::assert_at_child() const noexcept {
+		assert(position > start_position());
+		assert(currentDepth > 0);
 	}
 
 };
