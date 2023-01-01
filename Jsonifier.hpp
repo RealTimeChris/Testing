@@ -103,20 +103,20 @@ namespace Jsonifier {
 			return this->objects[index];
 		}
 
-		inline void deallocate() {
-			if (this->size > 0 && this->objects) {
-				ObjectAllocator<OTy> allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, this->size);
-				this->objects = nullptr;
-			}
-		}
-
 		inline void allocate(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
 				ObjectAllocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
 				this->size = newSize;
+			}
+		}
+
+		inline void deallocate() {
+			if (this->size > 0 && this->objects) {
+				ObjectAllocator<OTy> allocator{};
+				AllocatorTraits::deallocate(allocator, this->objects, this->size);
+				this->objects = nullptr;
 			}
 		}
 
@@ -1486,6 +1486,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -2227,8 +2228,10 @@ namespace Jsonifier {
 	}
 
 	inline Array JsonValueBase::parseJsonArray() noexcept {
+		std::cout << "PEEKING THE JSONARRAY!" << this->peek() << std::endl;
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
+			std::cout << "PEEKING THE JSONARRAY!" << std::endl;
 			this->error = ErrorCode::Success;
 			return Array{ this->getCurrentIterator() };
 
@@ -2306,7 +2309,6 @@ namespace Jsonifier {
 												(uint32_t(*(this->parser->getTape() + this->currentIndex) & JSON_VALUE_MASK)) + sizeof(uint32_t)),
 				stringLength };
 			this->error = ErrorCode::Success;
-			this->advance();
 		} else {
 			this->error = ErrorCode::ParseError;
 		}
