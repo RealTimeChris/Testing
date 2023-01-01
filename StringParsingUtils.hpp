@@ -191,9 +191,9 @@ namespace Jsonifier {
 			SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
 			values.store(reinterpret_cast<uint8_t*>(dst));
-			for (size_t x = 1; x < 32; ++x) {
+			for (size_t x = 0; x < 32; ++x) {
 				
-				if (dst[x] == '\"') {
+				if (dst[x] == '"') {
 					std::cout << "WERRE HERE THIS IS IT: " << dst[x] << std::endl;
 					dst[x] = '\0';
 					return x;
@@ -208,7 +208,7 @@ namespace Jsonifier {
 			while (length > 0) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
 					std::cout << "WERRE HERE THIS IS IT: (REAL) " << src[index] << std::endl;
-					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << result << std::endl;
+					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << index + result << std::endl;
 					return dst + index + result;
 				}
 				length -= 32;
@@ -222,7 +222,7 @@ namespace Jsonifier {
 			while (1) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
 					std::cout << "WERRE HERE THIS IS IT: (REAL) " << src[index] << std::endl;
-					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << result << std::endl;
+					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << index + result << std::endl;
 					std::cout << std::string_view{ reinterpret_cast<char*>(dst + result), result } << std::endl;
 					return dst + index + result;
 				}
