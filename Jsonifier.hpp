@@ -775,6 +775,8 @@ namespace Jsonifier {
 
 		inline Field operator[](const char* keyNew) noexcept;
 		
+		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
+
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
 		template<typename OTy> inline JsonifierResult<OTy> get(const char*) noexcept;
@@ -785,7 +787,7 @@ namespace Jsonifier {
 
 		inline Object parseJsonObject() noexcept;
 
-		inline Field parseJsonField(const char* fieldKey) noexcept;
+		inline Field parseJsonField(const char* fieldKey = nullptr) noexcept;
 
 		inline Array parseJsonArray() noexcept;
 
@@ -979,6 +981,8 @@ namespace Jsonifier {
 		inline auto end() noexcept {
 			return ObjectIterator{ this };
 		}
+
+		inline Object() noexcept = default;
 
 		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 			if (this->peek() != '{') {
@@ -1323,40 +1327,40 @@ namespace Jsonifier {
 		inline void advance();
 
 	  private:
-		const uint8_t* stringBuffer;
-		const size_t len;
-		const size_t lenminusstep;
-		size_t idx;
+		const uint8_t* stringBuffer{};
+		const size_t length{};
+		const size_t lengthMinusStep{};
+		size_t index{};
 	};
 
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
-		: stringBuffer{ _buf }, len{ _len }, lenminusstep{ len < StepSize ? 0 : len - StepSize }, idx{ 0 } {
+		: stringBuffer{ _buf }, length{ _len }, lengthMinusStep{ length < StepSize ? 0 : length - StepSize }, index{ 0 } {
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
-		return idx;
+		return index;
 	}
 
 	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
-		return idx < lenminusstep;
+		return index < lengthMinusStep;
 	}
 
 	template<size_t StepSize> inline const char* StringBlockReader<StepSize>::fullBlock() const {
-		return reinterpret_cast<const char*>(&stringBuffer[idx]);
+		return reinterpret_cast<const char*>(&stringBuffer[index]);
 	}
 
 	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(char* dst) const {
-		if (len == idx) {
+		if (length == index) {
 			return 0;
 		}
 		std::memset(dst, 0x20, StepSize);
-		std::memcpy(dst, stringBuffer + idx, len - idx);
-		return len - idx;
+		std::memcpy(dst, stringBuffer + index, length - index);
+		return length - index;
 	}
 
 	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
-		idx += StepSize;
+		index += StepSize;
 	}
 
 
@@ -2272,6 +2276,51 @@ namespace Jsonifier {
 		return { this->parseJsonBool(), std::move(this->error) };
 	}
 
+	template<> inline ErrorCode JsonValueBase::get<Object>(Object& value) noexcept {
+		value = this->parseJsonObject();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<Array>(Array& value) noexcept {
+		value = this->parseJsonArray();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<Field>(Field& value) noexcept {
+		value = this->parseJsonField();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<double>(double& value) noexcept {
+		value = this->parseJsonFloat();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<bool>(bool& value) noexcept {
+		value = this->parseJsonBool();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<int64_t>(int64_t& value) noexcept {
+		value = this->parseJsonInt();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<uint64_t>(uint64_t& value) noexcept {
+		value = this->parseJsonUint();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<std::string>(std::string& value) noexcept {
+		value = this->parseJsonString();
+		return std::move(this->error);
+	}
+
+	template<> inline ErrorCode JsonValueBase::get<std::string_view>(std::string_view& value) noexcept {
+		value = this->parseJsonString();
+		return std::move(this->error);
+	}
+
 	inline Document::Document() noexcept : JsonValueBase{} {};
 
 	inline Document::Document(JsonifierCore* value) noexcept : JsonValueBase{ value } {};
@@ -2342,6 +2391,7 @@ namespace Jsonifier {
 		} else {
 			this->error = ErrorCode::ParseError;
 		}
+		return returnValue;
 	}
 
 	inline int64_t JsonValueBase::parseJsonInt() noexcept {
@@ -2521,4 +2571,4 @@ namespace Jsonifier {
 		return this->parser;
 	}
 
-};
+};;

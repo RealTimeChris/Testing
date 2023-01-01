@@ -24,8 +24,9 @@
 /// \file DataParsingFunctions.cpp
 
 #include "DataParsingFunctions.hpp"
+#include "Jsonifier.hpp"
 
-namespace DiscordCoreAPI {
+namespace Jsonifier {
 
 	int64_t getInt64(simdjson::ondemand::value jsonData, const char* key) {
 		int64_t value{};

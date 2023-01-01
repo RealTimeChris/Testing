@@ -2,14 +2,191 @@
 	#define _TESTING
 #endif
 
+#include "DataParsingFunctions.hpp"
 #include "Jsonifier.hpp"
 #include <simdjson.h>
-#include "DataParsingFunctions.hpp"
 #include <fstream>
 
 Jsonifier ::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 int64_t iterationCount{};
 int64_t totalTime{};
+
+int64_t getInt64(Jsonifier::Array&& jsonData, const char* key) {
+	int64_t value{};
+	if (jsonData.get<int64_t>().get(value) == Jsonifier::ErrorCode::Success) {
+		return int64_t{ value };
+	} else {
+		return 0;
+	}
+}
+
+int32_t getInt32(Jsonifier::Object jsonData, const char* key) {
+	int64_t value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return static_cast<int32_t>(value);
+	} else {
+		return 0;
+	}
+}
+
+int16_t getInt16(Jsonifier::Object jsonData, const char* key) {
+	int64_t value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return static_cast<int16_t>(value);
+	} else {
+		return 0;
+	}
+}
+
+int8_t getInt8(Jsonifier::Object jsonData, const char* key) {
+	int64_t value{};
+	jsonData[key].get<int64_t>(value);
+	return static_cast<int8_t>(value);
+}
+
+uint64_t getUint64(Jsonifier::Object jsonData, const char* key) {
+	uint64_t value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return uint64_t{ value };
+	} else {
+		return 0;
+	}
+}
+
+uint32_t getUint32(Jsonifier::Object jsonData, const char* key) {
+	uint64_t value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return static_cast<uint32_t>(value);
+	} else {
+		return 0;
+	}
+}
+
+uint16_t getUint16(Jsonifier::Object jsonData, const char* key) {
+	uint64_t value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return static_cast<uint16_t>(value);
+	} else {
+		return 0;
+	}
+}
+
+uint8_t getUint8(Jsonifier::Object jsonData, const char* key) {
+	uint64_t value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return static_cast<uint8_t>(value);
+	} else {
+		return 0;
+	}
+}
+
+float getFloat(Jsonifier::Object jsonData, const char* key) {
+	double value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return double{ value };
+	} else {
+		return 0.0f;
+	}
+}
+
+bool getBool(Jsonifier::Object jsonData, const char* key) {
+	bool value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return bool{ value };
+	} else {
+		return false;
+	}
+}
+
+std::string getString(Jsonifier::Object jsonData, const char* key) {
+	std::string_view value{};
+	if (jsonData[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return std::string{ value.data(), value.size() };
+	} else {
+		return "";
+	}
+}
+
+bool getObject(Jsonifier::Object& object, const char* key, Jsonifier::Object jsonObjectData) {
+	if (jsonObjectData[key].get(object) == Jsonifier::ErrorCode::Success) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool getArray(Jsonifier::Array& array, const char* key, Jsonifier::Object jsonObjectData) {
+	if (jsonObjectData[key].get(array) == Jsonifier::ErrorCode::Success) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool getArray(Jsonifier::Array& array, Jsonifier::Object jsonObjectData) {
+	if (jsonObjectData.get(array) == Jsonifier::ErrorCode::Success) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+std::string getString(Jsonifier::ObjectReturnDataJson jsonData, const char* key) {
+	std::string_view value{};
+	if (jsonData.didItSucceed && jsonData.object[key].get(value) == Jsonifier::ErrorCode::Success) {
+		return static_cast<std::string>(value);
+	}
+	return static_cast<std::string>(value);
+}
+
+std::string getString(Jsonifier::Object jsonData) {
+	std::string_view value{};
+	if (jsonData.get(value) == Jsonifier::ErrorCode::Success) {
+		return std::string{ value.data(), value.size() };
+	} else {
+		return "";
+	}
+}
+
+Jsonifier::ObjectReturnDataJson getObject(Jsonifier::Object jsonData, const char* objectName) {
+	Jsonifier::ObjectReturnDataJson value{};
+	if (jsonData[objectName].get(value.object) == Jsonifier::ErrorCode::Success) {
+		value.didItSucceed = true;
+	}
+	return value;
+}
+
+Jsonifier::ObjectReturnDataJson getObject(Jsonifier::ObjectReturnDataJson jsonData, const char* objectName) {
+	Jsonifier::ObjectReturnDataJson value{};
+	if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == Jsonifier::ErrorCode::Success) {
+		value.didItSucceed = true;
+	}
+	return value;
+}
+/*
+Jsonifier::ObjectReturnDataJson getObject(Jsonifier::ArrayReturnDataJson jsonData, uint64_t objectIndex) {
+	Jsonifier::ObjectReturnDataJson value{};
+	if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == Jsonifier::ErrorCode::Success) {
+		value.didItSucceed = true;
+	}
+	return value;
+}
+*/
+Jsonifier::ArrayReturnDataJson getArray(Jsonifier::Object jsonData, const char* arrayName) {
+	Jsonifier::ArrayReturnDataJson value{};
+	if (jsonData[arrayName].get(value.arrayValue) == Jsonifier::ErrorCode::Success) {
+		value.didItSucceed = true;
+	}
+	return value;
+}
+
+Jsonifier::ArrayReturnDataJson getArray(Jsonifier::ObjectReturnDataJson jsonData, const char* arrayName) {
+	Jsonifier::ArrayReturnDataJson value{};
+	if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == Jsonifier::ErrorCode::Success) {
+		value.didItSucceed = true;
+	}
+	return value;
+}
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
@@ -75,14 +252,14 @@ struct TheValueJson {
 
 struct Activities {
 	Activities(simdjson::ondemand::value value) {
-		this->TEST_VALUE_07 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_07");
-		this->TEST_VALUE_06 = DiscordCoreAPI::getString(value, "TEST_VALUE_06");
-		this->TEST_VALUE_05 = DiscordCoreAPI::getBool(value, "TEST_VALUE_05");
-		this->TEST_VALUE_04 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_04");
-		this->TEST_VALUE_03 = DiscordCoreAPI::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_00 = DiscordCoreAPI::getFloat(value, "TEST_VALUE_00");
-		this->TEST_VALUE_02 = DiscordCoreAPI::getString(value, "TEST_VALUE_02");
-		this->TEST_VALUE_01 = DiscordCoreAPI::getBool(value, "TEST_VALUE_01");
+		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
+		this->TEST_VALUE_06 = Jsonifier::getString(value, "TEST_VALUE_06");
+		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
+		this->TEST_VALUE_04 = Jsonifier::getFloat(value, "TEST_VALUE_04");
+		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
+		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
+		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};

@@ -27,12 +27,64 @@
 
 #ifndef DATA_PARSING_FUNCTIONS
 	#define DATA_PARSING_FUNCTIONS
-
+	
 	#include <simdjson.h>
 	#include <map>
+#include"Jsonifier.hpp"
 
-namespace DiscordCoreAPI {
+namespace Jsonifier {
 
+	struct ObjectReturnDataJson {
+		Object object{};
+		bool didItSucceed{ false };
+	};
+
+	struct ArrayReturnDataJson {
+		Array arrayValue{};
+		bool didItSucceed{ false };
+	};
+
+	int64_t getInt64(Object jsonData, const char* key);
+
+	int32_t getInt32(Object jsonData, const char* key);
+
+	int16_t getInt16(Object jsonData, const char* key);
+
+	int8_t getInt8(Object jsonData, const char* key);
+
+	uint64_t getUint64(Object jsonData, const char* key);
+
+	uint32_t getUint32(Object jsonData, const char* key);
+
+	uint16_t getUint16(Object jsonData, const char* key);
+
+	uint8_t getUint8(Object jsonData, const char* key);
+
+	float getFloat(Object jsonData, const char* key);
+
+	bool getBool(Object jsonData, const char* key);
+
+	std::string getString(Object jsonData, const char* key);
+
+	std::string getString(ObjectReturnDataJson jsonData, const char* key);
+
+	bool getObject(Object& object, const char* key, Object jsonObjectData);
+
+	bool getArray(Array& array, const char* key, Object jsonObjectData);
+
+	bool getArray(Array& array, Object jsonObjectData);
+
+	std::string getString(Object jsonData);
+
+	ObjectReturnDataJson getObject(Object jsonObjectData, const char* objectName);
+
+	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonObjectData, const char* objectName);
+
+	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonObjectData, uint64_t objectIndex);
+
+	ArrayReturnDataJson getArray(Object jsonObjectData, const char* arrayName);
+
+	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonObjectData, const char* arrayName);
 
 	struct ObjectReturnData {
 		simdjson::ondemand::value object{};
