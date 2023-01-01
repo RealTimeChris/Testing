@@ -10,14 +10,14 @@
 Jsonifier ::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 int64_t iterationCount{};
 int64_t totalTime{};
-
+/*
 int64_t getInt64(Jsonifier::Array&& jsonData, const char* key) {
 	int64_t value{}; /*
 	if (jsonData.get<int64_t>().get(value) == Jsonifier::ErrorCode::Success) {
 		return int64_t{ value };
 	} else {
 		return 0;
-	}*/
+	}
 	return 0;
 }
 
@@ -172,7 +172,7 @@ Jsonifier::ObjectReturnDataJson getObject(Jsonifier::ArrayReturnDataJson jsonDat
 	}
 	return value;
 }
-*/
+
 Jsonifier::ArrayReturnDataJson getArray(Jsonifier::Object jsonData, const char* arrayName) {
 	Jsonifier::ArrayReturnDataJson value{};
 	if (jsonData[arrayName].get(value.arrayValue) == Jsonifier::ErrorCode::Success) {
@@ -188,20 +188,20 @@ Jsonifier::ArrayReturnDataJson getArray(Jsonifier::ObjectReturnDataJson jsonData
 	}
 	return value;
 }
-
+*/
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Object&& value) {
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValue();
+		//this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValue();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValue();
-		this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValue();
-		this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValue();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValue();
+		//this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValue();
+		//this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValue();
+		//this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValue();
+		//this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValue();
 		//std::cout << "CURRENT TYPE: " << ( int32_t )va["TEST_VALUE_05"].getType() << std::endl;
-		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get<bool>().getValue();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get<std::string>().getValue();
-		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get<uint64_t>().getValue();
+		//this->TEST_VALUE_05 = value["TEST_VALUE_05"].get<bool>().getValue();
+		//this->TEST_VALUE_06 = value["TEST_VALUE_06"].get<std::string>().getValue();
+		//this->TEST_VALUE_07 = value["TEST_VALUE_07"].get<uint64_t>().getValue();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -216,10 +216,9 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto fieldNew = value.get<Jsonifier::Object>();
-		auto objectNewer = fieldNew.getValue();
-		std::cout << "CURRENT SIZE: " << fieldNew.getValue().count_fields() << std::endl;
-		Jsonifier::Array arrayNewer = objectNewer.get<Jsonifier::Array>().getValue();
+		Jsonifier::Object objectNew{};
+		auto fieldNew = value.get<Jsonifier::Object>(objectNew);
+		std::cout << "CURRENT SIZE: " << objectNew.count_fields() << std::endl;
 
 		int32_t index{};
 
