@@ -880,12 +880,13 @@ namespace Jsonifier {
 			return this->first;
 		}
 
+		inline Field() noexcept = default;
+
 		inline Field(std::string_view&& key, JsonValueBase& value)
 			: JsonValueBase{ value }, std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {
 			if (this->peek() != '"') {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
-			//std::cout << "WERE HERE BUILDING THE FIELD!" << std::endl;
 			this->advance();
 		};
 	};
@@ -2457,7 +2458,7 @@ namespace Jsonifier {
 	}
 
 	inline void JsonValueBase::asserAtFieldStart(size_t amountToOffset) noexcept {
-		assert(this->peek(amountToOffset) == '"');
+		assert(this->peek(amountToOffset) == '"' && this->peek(amountToOffset + 1) == '{');
 	}
 
 	inline void JsonValueBase::assertAtObjectStart(size_t amountToOffset) noexcept {
@@ -2473,6 +2474,8 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t JsonValueBase::peek(uint32_t index) noexcept {
+		auto newValue = (*(this->parser->getTape() + this->currentIndex + index)) >> 56;
+		std::cout << "CURRENT VALUE: " << newValue << std::endl;
 		return (*(this->parser->getTape() + this->currentIndex + index)) >> 56;
 	}
 
@@ -2552,15 +2555,16 @@ namespace Jsonifier {
 		}
 		//std::cout << "NEW STRING: " << newString << std::endl;
 		//std::cout << "KEY NEW: " << keyNew << std::endl;
-		while (newString != keyNew) {
-			//			std::cout << "NEW STRING: " << newString << std::endl;
-			if (this->peek() == '"') {
-				
-				this->error = ErrorCode::Success;
-				newString = this->parseJsonString();
-				//WERE				std::cout << "NEW STRING: " << newString << std::endl;
-			} else {
-				this->advance();
+		if (keyNew) {
+			while (newString != keyNew) {
+				//			std::cout << "NEW STRING: " << newString << std::endl;
+				if (this->peek() == '"') {
+					this->error = ErrorCode::Success;
+					newString = this->parseJsonString();
+					//WERE				std::cout << "NEW STRING: " << newString << std::endl;
+				} else {
+					this->advance();
+				}
 			}
 		}
 		this->asserAtFieldStart(0);

@@ -191,9 +191,9 @@ Jsonifier::ArrayReturnDataJson getArray(Jsonifier::ObjectReturnDataJson jsonData
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Array&& value) {
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValue();
+		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
 		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValue();
+		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
 		this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValue();
 		this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValue();
 		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValue();
@@ -215,9 +215,9 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto fieldNew = value.get<Jsonifier::Field>("TEST_VALUE_11");
-		auto objectNewer = fieldNew.getValue();
-		Jsonifier::Array arrayNewer = objectNewer.get<Jsonifier::Array>().getValue();
+		Jsonifier::Field fieldNew{};
+		value.get(fieldNew);
+		//Jsonifier::Array arrayNewer = objectNewer.get<Jsonifier::Array>().getValue();
 
 		int32_t index{};
 
@@ -276,9 +276,9 @@ struct TheD {
 	TheD(simdjson::ondemand::value value) {
 		simdjson::ondemand::array valueNew{};
 		value["TEST_VALUE_11"].get(valueNew);
-		for (auto value: valueNew) {
-			auto newDouble = value.get_string().take_value();
-		}
+		//for (auto value: valueNew) {
+			//auto newDouble = value.get_string().take_value();
+		//}
 		//std::cout << "THE TOTAL TIME: " << totalTime / iterationCount << std::endl;
 	}
 	std::vector<Activities> activities{};
@@ -310,7 +310,16 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 30; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "222003323.0097898" });
+			Jsonifier::Jsonifier newValues{};
+			newValues["TEST_VALUE_00"] = double{ 0.0334343 };
+			newValues["TEST_VALUE_01"] = true;
+			newValues["TEST_VALUE_02"] = ":TEST STRING STESTING STRING!";
+			newValues["TEST_VALUE_03"] = int64_t{ 34324243 };
+			newValues["TEST_VALUE_04"] = double{ 0.0334343 };
+			newValues["TEST_VALUE_05"] = true;
+			newValues["TEST_VALUE_06"] = ":TEST STRING STESTING STRING!";
+			newValues["TEST_VALUE_07"] = int64_t{ 34324243 };
+			serializer["TEST_VALUE_11"].emplaceBack(newValues);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {
