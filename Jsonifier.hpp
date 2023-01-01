@@ -1043,20 +1043,19 @@ namespace Jsonifier {
 		inline const uint8_t* peek_start() const noexcept;
 		inline uint32_t peek_start_length() const noexcept;
 
-		inline void advance_scalar(const char* type) noexcept;
-		inline void advance_root_scalar(const char* type) noexcept;
-		inline void advance_non_root_scalar(const char* type) noexcept;
+		inline void advance_scalar() noexcept;
+		inline void advance_root_scalar() noexcept;
+		inline void advance_non_root_scalar() noexcept;
 
-		inline const uint8_t* peek_scalar(const char* type) noexcept;
-		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
-		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_scalar() noexcept;
+		inline const uint8_t* peek_root_scalar() noexcept;
+		inline const uint8_t* peek_non_root_scalar() noexcept;
 
 
 		inline ErrorCode start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
 		inline ErrorCode end_container() noexcept;
 		inline const uint8_t* advance_to_value() noexcept;
 
-		inline ErrorCode incorrect_type_error(const char* message) const noexcept;
 		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
 
 		inline bool is_at_start() const noexcept;
@@ -2597,11 +2596,13 @@ namespace Jsonifier {
 
 	inline JsonValueBase& JsonValueBase::operator=(const JsonValueBase& other) noexcept {
 		this->stringBufferLocation = other.stringBufferLocation;
-		this->currentIndex = other.currentIndex;
-		this->stringView = other.stringView;
 		this->_start_position = other._start_position;
+		this->currentIndex = other.currentIndex;
 		*this->_json_iter = *other._json_iter;
+		this->stringView = other.stringView;
+		this->_depth = other._depth;
 		this->parser = other.parser;
+		this->error = other.error;
 		this->root = other.root;
 		return *this;
 	}
@@ -2612,11 +2613,13 @@ namespace Jsonifier {
 
 	inline JsonValueBase& JsonValueBase::operator=(JsonValueBase && other) noexcept {
 		this->stringBufferLocation = other.stringBufferLocation;
-		this->currentIndex = other.currentIndex;
-		this->stringView = other.stringView;
 		this->_start_position = other._start_position;
+		this->currentIndex = other.currentIndex;
 		*this->_json_iter = *other._json_iter;
+		this->stringView = other.stringView;
+		this->_depth = other._depth;
 		this->parser = other.parser;
+		this->error = other.error;
 		this->root = other.root;
 		return *this;
 	}
@@ -2816,40 +2819,17 @@ namespace Jsonifier {
 		}
 	}
 
-	inline Field JsonValueBase::findField(const char* keyNew) noexcept {
-		std::string_view newString{};
-		if (*this->_json_iter->peek() == '"') {
-			this->error = ErrorCode::Success;
-			newString = this->parseJsonString();
-		}
-		//std::cout << "NEW STRING: " << newString << std::endl;
-		//std::cout << "KEY NEW: " << keyNew << std::endl;
-		while (newString != keyNew) {
-			//			std::cout << "NEW STRING: " << newString << std::endl;
-			if (*this->_json_iter->peek() == '"') {
-				
-				this->error = ErrorCode::Success;
-				newString = this->parseJsonString();
-				//WERE				std::cout << "NEW STRING: " << newString << std::endl;
-			} else {
-				this->advance();
-			}
-		}
-		this->asserAtFieldStart(0);
-		return Field{ std::move(newString), this->getCurrentIterator() };
-	}
-
 	JsonifierCore* JsonValueBase::getCore() noexcept {
 		return this->parser;
 	}
 
 	inline uint64_t JsonValueBase::get_uint64() noexcept {
-		auto result = NumberParser::parseUnsigned(peek_non_root_scalar("uint64"));
-		advance_non_root_scalar("uint64");
+		auto result = NumberParser::parseUnsigned(peek_non_root_scalar());
+		advance_non_root_scalar();
 		return result;
 	}
 
-	inline const uint8_t* JsonValueBase::peek_non_root_scalar(const char* type) noexcept {
+	inline const uint8_t* JsonValueBase::peek_non_root_scalar() noexcept {
 		if (!is_at_start()) {
 			return peek_start();
 		}
@@ -2859,14 +2839,14 @@ namespace Jsonifier {
 	}
 
 	inline int64_t JsonValueBase::get_int64() noexcept {
-		auto result = NumberParser::parseInteger(peek_non_root_scalar("int64"));
-		advance_non_root_scalar("int64");
+		auto result = NumberParser::parseInteger(peek_non_root_scalar());
+		advance_non_root_scalar();
 		return result;
 	}
 
 	inline bool JsonValueBase::get_bool() noexcept {
-		auto result = parse_bool(peek_non_root_scalar("bool"));
-		advance_non_root_scalar("bool");
+		auto result = parse_bool(peek_non_root_scalar());
+		advance_non_root_scalar();
 		return result;
 	}
 
@@ -2880,7 +2860,7 @@ namespace Jsonifier {
 		return bool{ !not_true };
 	}
 
-	inline void JsonValueBase::advance_non_root_scalar(const char* type) noexcept {
+	inline void JsonValueBase::advance_non_root_scalar() noexcept {
 		if (!is_at_start()) {
 			return;
 		}
@@ -2922,8 +2902,8 @@ namespace Jsonifier {
 	}
 
 	inline double JsonValueBase::get_double() noexcept {
-		auto result = NumberParser::parseDouble(peek_non_root_scalar("double"));
-		advance_non_root_scalar("double");
+		auto result = NumberParser::parseDouble(peek_non_root_scalar());
+		advance_non_root_scalar();
 		return result;
 	}
 
@@ -2936,11 +2916,11 @@ namespace Jsonifier {
 	}
 
 	inline RawJsonString JsonValueBase::get_raw_json_string() noexcept {
-		auto json = peek_scalar("string");
+		auto json = peek_scalar();
 		if (*json != '"') {
 			return RawJsonString{};
 		}
-		advance_scalar("string");
+		advance_scalar();
 		return RawJsonString(json + 1);
 	}
 
@@ -2959,7 +2939,7 @@ namespace Jsonifier {
 		return result;
 	}
 
-	inline const uint8_t* JsonValueBase::peek_scalar(const char* type) noexcept {
+	inline const uint8_t* JsonValueBase::peek_scalar() noexcept {
 		if (!is_at_start()) {
 			return peek_start();
 		}
@@ -2968,7 +2948,7 @@ namespace Jsonifier {
 		return this->_json_iter->peek();
 	}
 
-	inline void JsonValueBase::advance_scalar(const char* type) noexcept {
+	inline void JsonValueBase::advance_scalar() noexcept {
 		if (!is_at_start()) {
 			return;
 		}
@@ -2992,9 +2972,8 @@ namespace Jsonifier {
 		return started_root_object();
 	}
 
-	inline Object JsonValueBase::get_object() & noexcept {
-		auto value = get_root_value_iterator();
-		return Object::start_root(value);
+	inline Object JsonValueBase::get_object() &  noexcept {
+		return Object::start(*this);
 	}
 
 	inline JsonValueBase JsonValueBase::resume_value_iterator() noexcept {
@@ -3023,13 +3002,13 @@ namespace Jsonifier {
 		if (!is_at_start()) {
 			json = peek_start();
 			if (*json != start_char) {
-				return incorrect_type_error(incorrect_type_message);
+				return ErrorCode::Incorrect_Type;
 			}
 		} else {
 			assert_at_start();
 			json = this->_json_iter->peek();
 			if (*json != start_char) {
-				return incorrect_type_error(incorrect_type_message);
+				return ErrorCode::Incorrect_Type;
 			}
 			this->_json_iter->return_current_and_advance();
 		}
@@ -3045,10 +3024,6 @@ namespace Jsonifier {
 	inline ErrorCode JsonValueBase::end_container() noexcept {
 		this->_json_iter->ascend_to(depth() - 1);
 		return ErrorCode::Success;
-	}
-
-	inline ErrorCode JsonValueBase::incorrect_type_error(const char* message) const noexcept {
-		return ErrorCode::Incorrect_Type;
 	}
 
 	inline bool JsonValueBase::reset_object() noexcept {
@@ -3093,7 +3068,7 @@ namespace Jsonifier {
 	}
 
 	inline std::string_view JsonValueBase::field_key() noexcept {
-		assert_at_next();
+		//assert_at_next();
 
 		const uint8_t* key = this->_json_iter->return_current_and_advance();
 		if (*(key++) != '"') {

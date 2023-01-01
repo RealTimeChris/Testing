@@ -309,26 +309,18 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 30; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "222003323.0097898" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
-		//for (auto& value : serializer) {
-		//std::cout << "THE TYPE: " << ( int32_t )value.getType() << std::endl;
-		//}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::string stringNew{ serializer.operator std::string&&() };
-		//std::string stringNew{ "{ \"\\\\\\\"Nam[{\": [ 116,\"\\\\\\\\\" , 234, \"true\", false ], \"t\":\"\\\\\\\"\" }" };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			Jsonifier::ObjectBuffer<bool> objectBuffer{};
 			objectBuffer.allocate(512 * 512 * 128);
-			//for (size_t x = 0; x < 34; ++x) {
-				//std::cout << "CURRENT TYPE: "<< (int32_t) objectBuffer[x].getType()<< std::endl;
-			//}
 			objectBuffer.deallocate();
 		}
 
