@@ -87,7 +87,7 @@ namespace Jsonifier {
 		}
 
 		inline void store(uint8_t dst[32]) const {
-			return _mm256_storeu_epi8(dst, this->value);
+			_mm256_storeu_epi8(dst, this->value);
 		}
 
 		inline uint64_t getUint64(size_t index) {

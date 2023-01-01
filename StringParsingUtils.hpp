@@ -235,15 +235,12 @@ namespace Jsonifier {
 		  public:
 			static constexpr uint32_t BYTES_PROCESSED = 32;
 			static inline backslash_and_quote copy_and_find(uint8_t* src, uint8_t* dst) {
-				// this can read up to 15 bytes beyond the buffer size, but we require
-				// SIMDJSON_PADDING of padding
-				static_assert(32 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
+				static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
 				SimdBase256 v(reinterpret_cast<char*>(src));
-				// store to dest unconditionally - we can overwrite the bits we don't like later
 				v.store(dst);
 				return {
 					static_cast<uint32_t>((v == '\\').toBitMask()),
-					static_cast<uint32_t>((v == '"').toBitMask()),
+					static_cast<uint32_t>((v == '\"').toBitMask()),
 				};
 			}
 
@@ -268,6 +265,8 @@ namespace Jsonifier {
 			while (1) {
 				 auto bs_quote = backslash_and_quote<SimdBase256>::copy_and_find(src, dst);
 				if (bs_quote.has_quote_first()) {
+					 std::cout << dst - src << std::endl;
+					std::cout << bs_quote.quote_index() << std::endl;
 					 return dst + bs_quote.quote_index();
 				}
 				if (bs_quote.has_backslash()) {

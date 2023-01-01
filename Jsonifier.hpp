@@ -1979,19 +1979,9 @@ namespace Jsonifier {
 		return RawJsonString(( uint8_t* )json + 1);
 	}
 
-	inline std::string_view RawJsonString::unescape(JsonIterator& iter) const noexcept {
-		auto newValue = ( uint8_t* )(iter.stringBuffer);
+	inline std::string_view RawJsonString::unescape(JsonIterator& iter) noexcept {
+		auto newValue = ( uint8_t* )(iter.parser->getStringBuffer());
 		return iter.unescape(*this);
-	}
-
-	inline std::string_view ValueIterator::unescape(RawJsonString in, uint8_t*& dst) const noexcept {
-		uint8_t* end = StringParser::parseString(in.buf, dst);
-		if (!end) {
-			return "";
-		}
-		std::string_view result(reinterpret_cast<const char*>(dst), end - dst);
-		dst = end;
-		return result;
 	}
 
 	inline const uint8_t* ValueIterator::peek_scalar() noexcept {
@@ -2263,10 +2253,14 @@ namespace Jsonifier {
 		return ErrorCode::TapeError;
 	}
 
-	inline std::string_view JsonIterator::unescape(RawJsonString in) noexcept {
-		auto newValue = StringParser::parseString(reinterpret_cast<uint8_t*>(in.raw()), stringBuffer);
-		std::cout << "NEW STRING: " << newValue << std::endl;
-		return std::string_view{ reinterpret_cast<char*>(newValue) };
+	inline std::string_view JsonIterator::unescape(RawJsonString& in) noexcept {
+		uint8_t* end = StringParser::parseString(in.buf, this->stringBuffer);
+		if (!end) {
+			return "";
+		}
+		std::string_view result(reinterpret_cast<const char*>(this->stringBuffer), end - this->stringBuffer);
+		this->stringBuffer = end;
+		return result;
 	}
 
 	inline JsonIterator& ValueIterator::json_iter() noexcept {

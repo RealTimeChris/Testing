@@ -81,6 +81,7 @@ namespace Jsonifier {
 	};
 
 	class JsonIterator;
+	class ValueIterator;
 
 	class RawJsonString {
 	  public:
@@ -102,11 +103,10 @@ namespace Jsonifier {
 		inline bool alive() const noexcept {
 			return buf != nullptr;
 		}
-		inline std::string_view unescape(JsonIterator& iter) const noexcept;
+		inline std::string_view unescape(JsonIterator& iter) noexcept;
 
 		uint8_t* buf{};
-		friend class field;
-		friend class parser;
+		friend class JsonIterator;
 		friend class ValueIterator;
 	};
 
@@ -193,7 +193,7 @@ namespace Jsonifier {
 		template<int N> inline bool copy_to_buffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept;
 
 		inline uint32_t* position() const noexcept;
-		inline std::string_view unescape(RawJsonString in) noexcept;
+		inline std::string_view unescape(RawJsonString&) noexcept;
 		inline void reenter_child(uint32_t* position, size_t child_depth) noexcept;
 		inline std::string to_string() const noexcept;
 		inline const char* current_location() noexcept;
