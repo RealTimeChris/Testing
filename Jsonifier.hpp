@@ -2149,7 +2149,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
-		std::cout << "CURRENT KEY: " <<token.buf[*token._position] << std::endl;
+ 		std::cout << "CURRENT KEY: " <<token.buf[*token._position] << std::endl;
 		return token.return_current_and_advance();
 	}
 

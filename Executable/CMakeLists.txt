@@ -3,9 +3,8 @@ add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
 	"../Jsonifier.cpp"
-	"../DataParsingFunctions.cpp"
-	
- )
+	"${PRODUCT_INFO}"
+)
 
 if (DEFINED ENV{EnableASAN})
 	if(MSVC)
@@ -17,9 +16,11 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
+find_package(simdjson CONFIG REQUIRED)
+
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
-	simdjson::simdjson
+	$<$<TARGET_EXISTS:simdjson::simdjson>:simdjson::simdjson>
 )
 
 target_compile_options(
@@ -39,23 +40,36 @@ target_compile_options(
 target_compile_features(
 	"${PROJECT_NAME}" PUBLIC
 	"cxx_std_23"
+
+)
+set_target_properties(
+	"${PROJECT_NAME}" PROPERTIES 
+	OUTPUT_NAME "${PROJECT_NAME}-Cpp"
+	VS_GLOBAL_VcpkgEnabled true
+	RUNTIME_OUTPUT_DIRECTORY "${CMAKE_INSTALL_PREFIX}/$<CONFIG>"
+	CXX_STANDARD_REQUIRED 23
 )
 
-if (WIN32)
+if (WIN32 AND NOT EXISTS "${VCPKG_ROOT}")
+	install(
+		FILES 
+		"$<TARGET_PDB_FILE:${PROJECT_NAME}>"
+		DESTINATION "$<CONFIG>"
+	)
 	install(
 		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
-		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+		DESTINATION "$<CONFIG>"
 	)	
 	install(
 		FILES 
 		"$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+		DESTINATION "$<CONFIG>"
 	)
 endif()
 
 install(
-		FILES 
-		"$<TARGET_FILE:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+	FILES 
+	"$<TARGET_FILE:${PROJECT_NAME}>"
+	DESTINATION "$<CONFIG>"
 )
