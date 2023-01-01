@@ -216,7 +216,7 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto fieldNew = value.get<Jsonifier::Field>("TEST_VALUE_11");
+		auto fieldNew = value.get<Jsonifier::Object>();
 		auto objectNewer = fieldNew.getValue();
 		Jsonifier::Array arrayNewer = objectNewer.get<Jsonifier::Array>().getValue();
 

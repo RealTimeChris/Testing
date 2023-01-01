@@ -2599,7 +2599,7 @@ namespace Jsonifier {
 	}
 
 	inline bool JsonValueBase::parseJsonBool() noexcept {
-		assert(*this->peek() == 'f' || this->peek() == 't');
+		assert(*this->peek() == 'f' || *this->peek() == 't');
 		if (*this->peek() == 'f') {
 			this->advance();
 			this->error = ErrorCode::Success;
@@ -2647,19 +2647,19 @@ namespace Jsonifier {
 	}
 
 	inline void JsonValueBase::asserAtFieldStart(size_t amountToOffset) noexcept {
-		assert(*this->peek(amountToOffset) == '"');
+		assert(*this->peek() == '"');
 	}
 
 	inline void JsonValueBase::assertAtObjectStart(size_t amountToOffset) noexcept {
-		assert(*this->peek(amountToOffset) == '{');
+		assert(*this->peek() == '{');
 	}
 
 	inline void JsonValueBase::assertAtArrayStart(size_t amountToOffset) noexcept {
-		assert(*this->peek(amountToOffset) == '[');
+		assert(*this->peek() == '[');
 	}
 
 	inline void JsonValueBase::assertAtStringStart(size_t amountToOffset) noexcept {
-		assert(*this->peek(amountToOffset) == '"');
+		assert(*this->peek() == '"');
 	}
 
 	inline size_t JsonValueBase::getCurrentCount() noexcept {
