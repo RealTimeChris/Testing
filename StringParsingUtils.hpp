@@ -188,7 +188,7 @@ namespace Jsonifier {
 		}
 
 		template<typename SimdBase256> inline static uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
-			SimdBase256 values{ reinterpret_cast<const uint8_t*>(src) };
+			SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
 			values.store(reinterpret_cast<uint8_t*>(dst));
 			for (size_t x = 0; x < 32; ++x) {
