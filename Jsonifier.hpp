@@ -1212,28 +1212,14 @@ namespace Jsonifier {
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValue{};
 			SimdBase256 returnValueReal{};
-			
 			returnValue = _mm256_slli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
 			this->printBits("PRE SHIFT: ");
-			returnValue.printBits("SHIFTED LEFT 01: ");
-			SimdBase256 y = _mm256_permute4x64_epi64(*this, 0b10010011);
-			y.printBits("SHIFTED LEFT 02: ");
-			returnValue = _mm256_srli_epi64(y, 64 - amount);
+			returnValue = _mm256_permute4x64_epi64(*this, 0b10010011);
+			returnValue = _mm256_srli_epi64(returnValue, 64 - amount);
 			returnValueReal |= returnValue;
-			returnValue.printBits("SHIFTED LEFT 03: ");
-			//returnValue = _mm256_slli_epi64(_mm256_srli_si256(*this, 8), (amount % 64));
-			//returnValueReal |= returnValue;
-			//returnValue.printBits("SHIFTED LEFT 04: ");
-			//returnValue = _mm256_slli_epi64(_mm256_srli_si256(*this, 16), (amount % 64));
-			//returnValueReal |= returnValue;
-			//returnValue.printBits("SHIFTED LEFT 05: ");
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
-			//returnValueReal &= ~returnValue;
-			returnValue.printBits("SHIFTED LEFT 06: ");
-			//returnValue = _mm256_slli_si256(*this, (64 - amount % 64) / 8);
-			//returnValueReal |= returnValue;
-			//returnValue.printBits("SHIFTED LEFT 03: ");
+			returnValueReal &= ~returnValue;
 			returnValueReal.printBits("POST SHIFTED LEFT: ");
 			std::cout << "AMOUNT: " << amount << std::endl;
 			return returnValueReal;
@@ -1242,28 +1228,13 @@ namespace Jsonifier {
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValue{};
 			SimdBase256 returnValueReal{};
-
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
 			this->printBits("PRE SHIFT: ");
-			returnValue.printBits("SHIFTED RIGHT 01: ");
-			SimdBase256 y = _mm256_permute4x64_epi64(*this, 0b00111001);
-			y.printBits("SHIFTED RIGHT 02: ");
-			returnValue = _mm256_slli_epi64(y, 64 - amount);
+			returnValue = _mm256_permute4x64_epi64(*this, 0b00111001);
+			returnValue = _mm256_slli_epi64(returnValue, 64 - amount);
 			returnValueReal |= returnValue;
-			returnValue.printBits("SHIFTED RIGHT 03: ");
-			//returnValue = _mm256_srli_epi64(_mm256_slli_si256(*this, 8), (amount % 64));
-			//returnValueReal |= returnValue;
-			//returnValue.printBits("SHIFTED RIGHT 04: ");
-			//returnValue = _mm256_srli_epi64(_mm256_slli_si256(*this, 16), (amount % 64));
-			//returnValueReal |= returnValue;
-			//returnValue.printBits("SHIFTED RIGHT 05: ");
-			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
-			//returnValueReal &= ~returnValue;
-			returnValue.printBits("SHIFTED RIGHT 06: ");
-			//returnValue = _mm256_srli_si256(*this, (64 - amount % 64) / 8);
-			//returnValueReal |= returnValue;
-			//returnValue.printBits("SHIFTED RIGHT 03: ");
+			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << 64-amount) - (1ull << amount));
 			returnValueReal.printBits("POST SHIFTED RIGHT: ");
 			std::cout << "AMOUNT: " << amount << std::endl;
 			return returnValueReal;
@@ -1285,7 +1256,6 @@ namespace Jsonifier {
 			prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
 			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
 			prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
-			std::cout << "PREV IN STRING: " << std::bitset<64>{ prevInString } << std::endl;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
 
@@ -1496,17 +1466,16 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
-			auto nonquoteScalar = ~(this->S256 | this->W256).bitAndNot(this->Q256);
+			this->Q256.printBits("QUOTED BITS: ");
+			auto nonquoteScalar = (~(this->S256) | this->W256).bitAndNot(this->Q256);
 			nonquoteScalar.printBits("NONQUOTE SCALAR: ");
-			auto shiftedNonquoteScalar = nonquoteScalar.shl<1>();
-			shiftedNonquoteScalar.printBits("NONQUOTE SCALAR SHIFTED: ");
-			followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
 			auto string_tail = this->R256 ^ this->Q256;
 			auto scalar = ~(this->S256 | this->W256);
 			scalar.printBits("SCALAR: ");
 			this->prevInScalar.printBits("PREV IN SCALAR: ");
-			auto potential_scalar_start = scalar & ~followsPotentialNonquoteScalar;
-			followsPotentialNonquoteScalar.printBits("FOLLOWS POTENTIAL SCALAR ");
+			auto potential_scalar_start = scalar & ~this->followsPotentialNonquoteScalar;
+			this->followsPotentialNonquoteScalar.printBits("FOLLOWS POTENTIAL SCALAR ");
 			potential_scalar_start.printBits("POTENTIAL SCALAR START: ");
 			auto op = this->S256;
 			auto potential_structural_start = op | potential_scalar_start;
