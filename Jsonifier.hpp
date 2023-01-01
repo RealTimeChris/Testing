@@ -2644,5 +2644,9 @@ namespace Jsonifier {
 		currentDepth = 0;
 	}
 
+	inline const uint8_t* JsonIterator::peek_last() const noexcept {
+		return token.peek(last_position());
+	}
+
 
 };
