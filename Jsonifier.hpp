@@ -2529,8 +2529,12 @@ namespace Jsonifier {
 	}
 
 	inline JsonValueBase& JsonValueBase::operator=(const JsonValueBase& other) noexcept {
+		this->stringBufferLocation = other.stringBufferLocation;
 		this->currentIndex = other.currentIndex;
+		this->stringView = other.stringView;
+		this->position = other.position;
 		this->parser = other.parser;
+		this->root = other.root;
 		return *this;
 	}
 
@@ -2539,8 +2543,12 @@ namespace Jsonifier {
 	}
 
 	inline JsonValueBase& JsonValueBase::operator=(JsonValueBase && other) noexcept {
+		this->stringBufferLocation = other.stringBufferLocation;
 		this->currentIndex = other.currentIndex;
+		this->stringView = other.stringView;
+		this->position = other.position;
 		this->parser = other.parser;
+		this->root = other.root;
 		return *this;
 	}
 
