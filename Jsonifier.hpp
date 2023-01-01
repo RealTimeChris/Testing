@@ -1238,8 +1238,9 @@ namespace Jsonifier {
 			returnValue = _mm256_permute4x64_epi64(*this, 0b00111001);
 			returnValue = _mm256_slli_epi64(returnValue, 64 - amount);
 			returnValueReal |= returnValue;
-			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << 64-amount) - (1ull << amount));
+			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << 64-amount) - (1ull << 0));
 			returnValueReal.printBits("POST SHIFTED RIGHT: ");
+			returnValueReal &= returnValue;
 			std::cout << "AMOUNT: " << amount << std::endl;
 			return returnValueReal;
 		}
