@@ -909,10 +909,8 @@ namespace Jsonifier {
 				return *this;
 			}
 
-			inline bool operator==(ArrayIterator& lhs) noexcept {
-				std::cout << "OFFSET: " << this->ptr->getOffset() << std::endl; 
-				std::cout << "CURRENT COUNT: " << this->ptr->getCurrentCount() << std::endl;
-				return this->ptr->getOffset() >= this->ptr->getCurrentCount();
+			inline friend bool operator==(ArrayIterator& lhs, const ArrayIterator& rhs) noexcept {
+				return lhs.ptr->getOffset() >= lhs.ptr->getCurrentCount();
 			};
 
 		  protected:
@@ -1246,13 +1244,13 @@ namespace Jsonifier {
 		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
 			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
-			prevInString = static_cast<uint64_t>(inString00) >> 63;
+			prevInString = uint64_t(static_cast<int64_t>(inString00) >> 63);
 			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
-			prevInString = static_cast<uint64_t>(inString01) >> 63;
+			prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
 			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
-			prevInString = static_cast<uint64_t>(inString02) >> 63;
+			prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
 			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
-			prevInString = static_cast<uint64_t>(inString03) >> 63;
+			prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
 
@@ -1488,6 +1486,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -1580,7 +1579,7 @@ namespace Jsonifier {
 
 				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
@@ -1591,9 +1590,9 @@ namespace Jsonifier {
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				totalTimePassed += stopWatch.totalTimePassed().count();
+				//totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getStructuralIndexCount() = tapeCurrentIndex;
-				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
 
@@ -2396,8 +2395,8 @@ namespace Jsonifier {
 	}
 
 	inline uint64_t* JsonValueBase::advance() noexcept {
-		//auto newValue = ((*(this->parser->getTape() + this->currentIndex)) >> 56);
-		//std::cout << "CURRENT ADVANCE KEY: " << newValue << std::endl;
+		auto newValue = ((*(this->parser->getTape() + this->currentIndex)) >> 56);
+		std::cout << "CURRENT ADVANCE KEY: " << newValue << std::endl;
 		auto returnValue = &this->parser->getTape()[this->currentIndex];
 		++this->currentIndex;
 		return returnValue;
@@ -2438,7 +2437,7 @@ namespace Jsonifier {
 	}
 
 	inline size_t JsonValueBase::getCurrentCount() noexcept {
-		return uint32_t((*this->parser->getTape() & JSON_VALUE_MASK));
+		return uint32_t((*this->parser->getTape() & JSON_VALUE_MASK)) - (this->parser->getTape() - this->parser->getTape()) - 2;
 	}
 
 	inline uint8_t JsonValueBase::getRootKey() noexcept {
@@ -2524,7 +2523,6 @@ namespace Jsonifier {
 				this->advance();
 			}
 		}
-		dumpRawTape(std::cout, this->getCore()->getTape(), this->getCore()->getStringBuffer());
 		this->asserAtFieldStart(0);
 		return Field{ std::move(newString), this->getCurrentIterator() };
 	}
