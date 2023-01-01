@@ -130,16 +130,6 @@ struct TheValue {
 
 int32_t main() noexcept {
 	try {
-		Jsonifier::SimdBase256 testValueNew{};
-		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b1011111111011111111011111111011111111011111111101111111111111110) }, 0);
-		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b1101111111101111111101111111101111111101111111101111111101111111) }, 1);
-		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b0000000000000000000000000000000000000000000000000000000001111111) }, 2);
-		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b0000000000000000000000000000000000000000000000000000000000000000) }, 3);
-		
-		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIT): ");
-		auto newBits = testValueNew;
-		testValueNew = testValueNew.shl<1>();
-		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
