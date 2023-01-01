@@ -760,14 +760,15 @@ namespace Jsonifier {
 	class JsonValueBase {
 	  public:
 
-		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept = delete;
-		inline JsonValueBase(const JsonValueBase& other) noexcept = delete;
-
+		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept;
+		inline JsonValueBase(const JsonValueBase& other) noexcept;
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept;
 		inline JsonValueBase(JsonValueBase&& other) noexcept;
-		
-		inline JsonValueBase(JsonifierCore* newData) noexcept;
-		
+
+		inline JsonValueBase(JsonifierCore* other) noexcept;
+
+		inline JsonValueBase() noexcept = default;
+
 		inline Field operator[](const char* keyNew) noexcept;
 		
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
@@ -796,7 +797,7 @@ namespace Jsonifier {
 		
 		inline nullptr_t parseJsonNull() noexcept;
 		
-		inline uint64_t* advance(uint32_t value = 1) noexcept;
+		inline uint64_t* advance() noexcept;
 		
 		inline void setPosition(int32_t delta = 0) noexcept;
 		
@@ -874,12 +875,11 @@ namespace Jsonifier {
 		}
 
 		inline Field(std::string_view&& key, JsonValueBase& value)
-			: JsonValueBase{ std::move(value) }, std::pair<std::string_view, JsonValueBase>{ std::move(key), this->getCore() } {
+			: JsonValueBase{ value }, std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {
 			if (this->peek() != '"') {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
 			std::cout << "WERE HERE BUILDING THE FIELD!" << std::endl;
-			this->advance();
 			this->advance();
 		};
 	};
@@ -925,7 +925,7 @@ namespace Jsonifier {
 			return ArrayIterator{ this };
 		}
 
-		inline Array() noexcept : JsonValueBase{ nullptr } {};
+		inline Array() noexcept : JsonValueBase{} {};
 
 		inline Array(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 			if (this->peek() != '[') {
@@ -2280,9 +2280,23 @@ namespace Jsonifier {
 		return { this->parseJsonBool(), std::move(this->error) };
 	}
 
-	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{ nullptr } {};
+	inline Document::Document() noexcept : parser{ nullptr }, JsonValueBase{} {};
 
 	inline Document::Document(JsonifierCore* value) noexcept : parser{ value }, JsonValueBase{ value } {};
+
+	inline JsonValueBase::JsonValueBase(JsonifierCore* other) noexcept {
+		this->parser = other;
+	}
+
+	inline JsonValueBase& JsonValueBase::operator=(const JsonValueBase& other) noexcept {
+		this->currentIndex = other.currentIndex;
+		this->parser = other.parser;
+		return *this;
+	}
+
+	inline JsonValueBase::JsonValueBase(const JsonValueBase& other) noexcept {
+		*this = other;
+	}
 
 	inline JsonValueBase& JsonValueBase::operator=(JsonValueBase && other) noexcept {
 		this->currentIndex = other.currentIndex;
@@ -2292,10 +2306,6 @@ namespace Jsonifier {
 
 	inline JsonValueBase::JsonValueBase(JsonValueBase&& other) noexcept {
 		*this = std::move(other);
-	}
-
-	inline JsonValueBase::JsonValueBase(JsonifierCore* newData) noexcept {
-		this->parser = newData;
 	}
 
 	inline std::string_view JsonValueBase::parseJsonString() noexcept {
@@ -2384,7 +2394,9 @@ namespace Jsonifier {
 		}
 	}
 
-	inline uint64_t* JsonValueBase::advance(uint32_t value) noexcept {
+	inline uint64_t* JsonValueBase::advance() noexcept {
+		auto newValue = ((*(this->parser->getTape() + this->currentIndex)) >> 56);
+		std::cout << "CURRENT ADVANCE KEY: " << newValue << std::endl;
 		auto returnValue = &this->parser->getTape()[this->currentIndex];
 		++this->currentIndex;
 		return returnValue;
@@ -2421,7 +2433,6 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t JsonValueBase::peek(uint32_t index) noexcept {
-		std::cout << "CURRENT PEEK KEY: " << ((*(this->parser->getTape() + this->currentIndex + index)) >> 56) << std::endl;
 		return (*(this->parser->getTape() + this->currentIndex + index)) >> 56;
 	}
 
@@ -2501,14 +2512,16 @@ namespace Jsonifier {
 		}
 		std::cout << "NEW STRING: " << newString << std::endl;
 		std::cout << "KEY NEW: " << keyNew << std::endl;
-		while (this->peek() != '"' || newString != keyNew) {
+		while (newString != keyNew) {
 			std::cout << "NEW STRING: " << newString << std::endl;
 			if (this->peek() == '"') {
+				
 				this->error = ErrorCode::Success;
 				newString = this->parseJsonString();
 				std::cout << "NEW STRING: " << newString << std::endl;
+			} else {
+				this->advance();
 			}
-			this->advance();
 		}
 		this->asserAtFieldStart(0);
 		return Field{ std::move(newString), this->getCurrentIterator() };
@@ -2517,6 +2530,5 @@ namespace Jsonifier {
 	JsonifierCore* JsonValueBase::getCore() noexcept {
 		return this->parser;
 	}
-
 
 };
