@@ -1820,7 +1820,7 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator::JsonIterator(uint8_t* buffer, JsonifierCore* jsonifieriCore) noexcept
-		: token{ jsonifieriCore->getStringBuffer(), jsonifieriCore->getStructuralIndexes() } {
+		: token{ jsonifieriCore->getStringView(), jsonifieriCore->getStructuralIndexes() } {
 		this->rootPosition = jsonifieriCore->getStructuralIndexes();
 		this->stringBuffer = buffer;
 		this->parser = jsonifieriCore;
@@ -2105,6 +2105,7 @@ namespace Jsonifier {
 		this->currentDepth++;
 		return ValueIterator(*this);
 	}
+
 	inline ValueIterator ValueIterator::get_root_value_iterator() noexcept {
 		return resume_value_iterator();
 	}
