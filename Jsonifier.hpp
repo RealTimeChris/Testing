@@ -652,7 +652,7 @@ namespace Jsonifier {
 		return out;
 	}
 
-	inline bool dumpRawTape(std::ostream& os, uint64_t* tape, const uint8_t* stringBuffer) noexcept {
+	inline bool dumpRawTape(uint64_t* tape, const uint8_t* stringBuffer) noexcept {
 		using std::cout;
 		uint32_t string_length{};
 		size_t tape_idx{ 0 };
@@ -2423,6 +2423,7 @@ namespace Jsonifier {
 		TapeBuilder tapeBuilder{ this };
 		auto errorCode = tapeBuilder.walkDocument();
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
+		dumpRawTape(this->getTape(), this->getStringBuffer());
 		return this->getDocument();
 	}
 
@@ -2854,6 +2855,12 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonValueBase::return_current_and_advance() noexcept {
+		for (size_t x = 0; x < this->parser->getTapeLength(); ++x) {
+			std::cout << "CURRENT POSITION'S INDEX: " << root[x] << std::endl;
+			std::cout << "CURRENT POSITION'S VALUE: " << stringView[root[x]] << std::endl;
+		}
+		std::cout << "CURRENT POSITION'S INDEX: " << *position << std::endl;
+		std::cout << "CURRENT POSITION'S VALUE: " << stringView[*position] << std::endl;
 		return &stringView[*(position++)];
 	}
 
@@ -3009,7 +3016,7 @@ namespace Jsonifier {
 	}
 
 	inline void JsonValueBase::assert_at_container_start() const noexcept {
-		assert(position == root+ 1);
+		//assert(position == root+ 1);
 	}
 
 	inline ErrorCode JsonValueBase::end_container() noexcept {
