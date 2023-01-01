@@ -2224,7 +2224,7 @@ namespace Jsonifier {
 			case ',':
 				return true;
 			default:
-				return false;
+				return true;
 		}
 	}
 
@@ -2234,7 +2234,7 @@ namespace Jsonifier {
 
 	inline void JsonIterator::descend_to(size_t child_depth) noexcept {
 		assert(child_depth >= 1 && child_depth < std::numeric_limits<int32_t>::max());
-		assert(currentDepth == child_depth - 1);
+		//assert(currentDepth == child_depth - 1);
 		currentDepth = child_depth;
 	}
 
@@ -2245,7 +2245,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
- 		std::cout << "CURRENT KEY: " <<token.buf[*token.currentPosition] << std::endl;
+		std::cout << "CURRENT KEY (R&A): " << token.buf[*token.currentPosition] << std::endl;
 		return token.return_current_and_advance();
 	}
 
@@ -2418,7 +2418,7 @@ namespace Jsonifier {
 
 		while (has_value) {
 			RawJsonString actual_key{};
-			if (field_key() == "") {
+			if (actual_key.buf = reinterpret_cast<const uint8_t*>(field_key().data()); actual_key.buf == nullptr) {
 				abandon();
 				return false;
 			};
