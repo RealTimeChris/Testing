@@ -131,27 +131,15 @@ struct TheValue {
 int32_t main() noexcept {
 	try {
 		Jsonifier::SimdBase256 testValueNew{};
-		testValueNew.fromUint64(uint64_t{ 0b00000001000000010000000100000001000000010000000100000001000000010000000 });
+		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b1011111111011111111011111111011111111011111111101111111111111110) }, 0);
+		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b1101111111101111111101111111101111111101111111101111111101111111) }, 1);
+		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b0000000000000000000000000000000000000000000000000000000001111111) }, 2);
+		testValueNew.insertInt64(int64_t{ static_cast<int64_t>(0b0000000000000000000000000000000000000000000000000000000000000000) }, 3);
+		
+		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIT): ");
 		auto newBits = testValueNew;
-		testValueNew = testValueNew.shl<24>();
+		testValueNew = testValueNew.shl<5>();
 		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
-		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
-		newBits = newBits.shr<1>();
-		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
-		testValueNew.fromUint64(uint64_t{ 0b1111111011111110111111101111111011111110111111101111111011111110 });
-		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
-		testValueNew = testValueNew.shl<1>();
-		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
-		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
-		newBits = newBits.shr<1>();
-		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
-		testValueNew.fromUint64(uint64_t{ 0b1000000100000001000000010000000100000001000000010000000100000001 });
-		testValueNew.printBits("TESTING BITS (PRE-LEFT-SHIFT): ");
-		testValueNew = testValueNew.shl<1>();
-		testValueNew.printBits("TESTING BITS (POST-LEFT-SHIT): ");
-		newBits.printBits("TESTING BITS (PRE-RIGHT-SHIFT): ");
-		newBits = newBits.shr<1>();
-		newBits.printBits("TESTING BITS (POST-RIGHT-SHIFT): ");
 		Jsonifier::Jsonifier serializer{};
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
@@ -168,7 +156,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
-		for (size_t x = 0; x < 12; ++x) {
+		for (size_t x = 0; x < 13; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
