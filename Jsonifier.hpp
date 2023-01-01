@@ -996,7 +996,7 @@ namespace Jsonifier {
 		inline bool started_array() noexcept;
 		inline bool started_root_array() noexcept;
 		inline bool has_next_element() noexcept;
-		inline JsonValueBase child() const noexcept;
+		inline JsonValueBase child() noexcept;
 
 		inline std::string_view get_string() noexcept;
 		inline RawJsonString get_raw_json_string() noexcept;
@@ -3258,7 +3258,19 @@ namespace Jsonifier {
 		}
 
 		return ErrorCode::TapeError;
-		
+	}
+
+	inline std::string_view json_iterator::unescape(RawJsonString in) noexcept {
+		return std::string_view{ reinterpret_cast<char*>(StringParser::parseString(reinterpret_cast<const uint8_t*>(in.raw()), _string_buf_loc)) };
+	}
+
+	inline json_iterator& JsonValueBase::json_iter() noexcept {
+		return *_json_iter;
+	}
+
+	inline JsonValueBase JsonValueBase::child()  noexcept {
+		assert_at_child();
+		return { _json_iter, static_cast<size_t>(depth() + 1), _json_iter->position() };
 	}
 
 };
