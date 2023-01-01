@@ -3291,4 +3291,15 @@ namespace Jsonifier {
 	inline uint32_t* TokenIterator::position() const noexcept {
 		return _position;
 	}
+
+	inline JsonValueBase::JsonValueBase(json_iterator* iterator, uint64_t depth, uint32_t* rootPosition) {
+		this->iterator = *iterator;
+		this->currentDepth = depth;
+		this->root = rootPosition;
+	}
+
+	inline uint32_t* JsonValueBase::position() const noexcept {
+		return _json_iter->position();
+	}
+
 };
