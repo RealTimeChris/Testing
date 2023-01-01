@@ -904,13 +904,9 @@ namespace Jsonifier {
 		inline JsonifierResult<const char*> current_location() noexcept;
 		inline void rewind() noexcept;
 		inline bool balanced() const noexcept;
-		inline JsonValueBase(const uint8_t* buf, JsonifierCore* parser) noexcept;
 		inline uint32_t* last_position() const noexcept;
 		inline uint32_t* end_position() const noexcept;
 		inline uint32_t* end() const noexcept;
-
-
-		inline JsonValueBase(const uint8_t* buf, uint32_t* position) noexcept;
 		inline uint32_t peek_index(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_index(uint32_t* position) const noexcept;
 		inline void start_document() noexcept;
@@ -973,7 +969,6 @@ namespace Jsonifier {
 		inline bool reset_object() noexcept;
 		inline void move_at_start() noexcept;
 		inline void move_at_container_start() noexcept;
-		inline JsonValueBase(JsonValueBase* json_iter, size_t depth, uint32_t* start_index) noexcept;
 
 		inline bool parse_null(const uint8_t* json) const noexcept;
 		inline bool parse_bool(const uint8_t* json) const noexcept;
@@ -2948,10 +2943,62 @@ namespace Jsonifier {
 	}
 
 	inline JsonValueBase JsonValueBase::resume_value_iterator() noexcept {
-		return JsonValueBase(this, 1, root_position());
+		return JsonValueBase(*this);
 	}
 	inline JsonValueBase JsonValueBase::get_root_value_iterator() noexcept {
 		return resume_value_iterator();
+	}
+
+	inline uint32_t* JsonValueBase::root_position() const noexcept {
+		return root;
+	}
+
+	inline bool JsonValueBase::started_root_object() noexcept {
+		return started_object();
+	}
+
+	inline bool JsonValueBase::started_object() noexcept {
+		assert_at_container_start();
+		if (*this->peek() == '}') {
+			this->return_current_and_advance();
+			end_container();
+			return false;
+		}
+		return true;
+	}
+	
+	inline ErrorCode JsonValueBase::start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept {
+		const uint8_t* json;
+		if (!is_at_start()) {
+			json = peek_start();
+			if (*json != start_char) {
+				return incorrect_type_error(incorrect_type_message);
+			}
+		} else {
+			assert_at_start();
+			json = this->peek();
+			if (*json != start_char) {
+				return incorrect_type_error(incorrect_type_message);
+			}
+			this->return_current_and_advance();
+		}
+
+
+		return ErrorCode::Success;
+	}
+
+	inline void JsonValueBase::assert_at_container_start() const noexcept {
+		assert(position == root+ 1);
+		assert(currentDepth > 0);
+	}
+
+	inline ErrorCode JsonValueBase::end_container() noexcept {
+		this->ascend_to(depth() - 1);
+		return ErrorCode::Success;
+	}
+
+	inline ErrorCode JsonValueBase::incorrect_type_error(const char* message) const noexcept {
+		return ErrorCode::Incorrect_Type;
 	}
 
 };
