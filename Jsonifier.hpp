@@ -745,7 +745,7 @@ namespace Jsonifier {
 
 		template<typename OTy> inline ErrorCode get(OTy& value) noexcept {
 			value = std::move(this->first);
-			return this->second;
+			return std::move(this->second);
 		}
 
 		inline OTy getValue() {
@@ -772,11 +772,11 @@ namespace Jsonifier {
 		
 		template<typename OTy> inline JsonifierResult<OTy> get() noexcept;
 
+		template<typename OTy> inline JsonifierResult<OTy> get(const char*) noexcept;
+
 		inline Field findField(const char* keyNew) noexcept;
 
-		JsonifierCore* getCore() {
-			return this->parser;
-		}
+		inline JsonifierCore* getCore() noexcept;
 
 		inline Object parseJsonObject() noexcept;
 
@@ -884,6 +884,7 @@ namespace Jsonifier {
 				throw JsonifierException{ "Sorry, but this item's type is not field." };
 			}
 			this->advance();
+			this->advance();
 		};
 	};
 
@@ -979,12 +980,11 @@ namespace Jsonifier {
 			return ObjectIterator{ this };
 		}
 
-		inline Object() noexcept : JsonValueBase{ nullptr } {};
-
 		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 			if (this->peek() != '{') {
 				throw JsonifierException{ "Sorry, but this item's type is not object." };
 			}
+			this->advance();
 		};
 	};
 
@@ -2245,15 +2245,17 @@ namespace Jsonifier {
 		this->assertAtObjectStart();
 		if (this->peek() == '{') {
 			std::cout << "PEEKING THE JSONOBJECT:!" << std::endl;
+			this->error = ErrorCode::Success;
 			return Object{ this->getCurrentIterator() };
 		} else {
-			return Object{};
+			return Object{ this->getCurrentIterator() };
 		}
 	}
 
 	inline Array JsonValueBase::parseJsonArray() noexcept {
 		this->assertAtArrayStart();
 		if (this->peek() == '[') {
+			this->error = ErrorCode::Success;
 			return Array{ this->getCurrentIterator() };
 
 		} else {
@@ -2267,6 +2269,10 @@ namespace Jsonifier {
 
 	template<> inline JsonifierResult<Array> JsonValueBase::get<Array>() noexcept {
 		return { this->parseJsonArray(), std::move(this->error) };
+	}
+
+	template<> inline JsonifierResult<Field> JsonValueBase::get<Field>(const char*keyNew) noexcept {
+		return { this->parseJsonField(keyNew), std::move(this->error) };
 	}
 
 	template<> inline JsonifierResult<Object> JsonValueBase::get<Object>() noexcept {
@@ -2510,20 +2516,29 @@ namespace Jsonifier {
 	}
 
 	inline Field JsonValueBase::findField(const char* keyNew) noexcept {
-		int32_t index{};
 		std::string_view newString{};
 		if (this->peek() == '"') {
+			this->error = ErrorCode::Success;
 			newString = this->parseJsonString();
 		}
-		while (this->peek(index) != '"' && newString != keyNew) {
-			if (this->peek(index) == '"') {
+		std::cout << "NEW STRING: " << newString << std::endl;
+		std::cout << "KEY NEW: " << keyNew << std::endl;
+		while (this->peek() != '"' || newString != keyNew) {
+			std::cout << "NEW STRING: " << newString << std::endl;
+			if (this->peek() == '"') {
+				this->error = ErrorCode::Success;
 				newString = this->parseJsonString();
+				std::cout << "NEW STRING: " << newString << std::endl;
 			}
-			++index;
+			this->advance();
 		}
-		this->advance(index);
 		this->asserAtFieldStart(0);
 		return Field{ std::move(newString), this->getCurrentIterator() };
 	}
+
+	JsonifierCore* JsonValueBase::getCore() noexcept {
+		return this->parser;
+	}
+
 
 };

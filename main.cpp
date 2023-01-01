@@ -38,18 +38,9 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
-		auto objectNew = value.get<Jsonifier::Object>();
-		Jsonifier::Object objectNewer{};
-		if (auto result = objectNew.get(objectNewer);result != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object, for the reason: " + std::to_string(( int32_t )result) };
-		}
-		auto fieldNew = objectNewer["TEST_VALUE_11"];
-		Jsonifier::Array arrayNewer{};
-		auto newArray = fieldNew.get<Jsonifier::Array>().get(arrayNewer);
-		if (newArray != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the array, for the reason: " +
-				std::to_string(( int32_t )newArray) };
-		}
+		auto fieldNew = value.get<Jsonifier::Field>("TEST_VALUE_11");
+		auto objectNewer = fieldNew.getValue();
+		Jsonifier::Array arrayNewer = objectNewer.get<Jsonifier::Array>().getValue();
 
 		int32_t index{};
 
