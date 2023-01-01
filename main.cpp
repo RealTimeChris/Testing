@@ -40,8 +40,8 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		auto objectNew = value.get<Jsonifier::Object>();
 		Jsonifier::Object objectNewer{};
-		if (objectNew.get(objectNewer) != Jsonifier::ErrorCode::Success) {
-			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object!" };
+		if (auto result = objectNew.get(objectNewer);result != Jsonifier::ErrorCode::Success) {
+			throw Jsonifier::JsonifierException{ "Sorry, but we failed to collect the object, for the reason: " + std::to_string(( int32_t )result) };
 		}
 		auto fieldNew = objectNewer["TEST_VALUE_11"];
 		Jsonifier::Array arrayNewer{};
@@ -147,7 +147,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 30; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(double{ 2.2003323 });
+			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "222003323" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {
