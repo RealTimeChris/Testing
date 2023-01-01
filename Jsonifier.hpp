@@ -124,13 +124,17 @@ namespace Jsonifier {
 			return this->objects;
 		}
 
+		inline size_t size() noexcept {
+			return this->currentSize;
+		}
+
 		inline ~ObjectBuffer() noexcept {
 			this->deallocate();
 		}
 
 	  protected:
+		size_t currentSize{};
 		OTy* objects{};
-		size_t size{};
 	};
 
 	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
@@ -1542,13 +1546,11 @@ namespace Jsonifier {
 				return ErrorCode::Success;
 			}
 
-			this->stringCapacity = round(5 * this->stringLengthRaw / 3 + 256, 256);
-			this->tapeCapacity = round(this->stringLengthRaw + 3, 256);
-			this->structuralIndexes.allocate(this->tapeCapacity);
-			this->stringBuffer.allocate(this->stringCapacity);
+			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
+			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
+			this->isArray.allocate(this->structuralIndexes.size());
+			this->tape.allocate(this->structuralIndexes.size());
 			this->openContainers.allocate(this->maxDepth);
-			this->isArray.allocate(this->tapeCapacity);
-			this->tape.allocate(this->tapeCapacity);
 			this->stringView = stringViewNew;
 			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
 					this->openContainers.get())) {
@@ -1638,8 +1640,6 @@ namespace Jsonifier {
 		SimdStringSection section{};
 		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
-		size_t stringCapacity{};
-		size_t tapeCapacity{};
 		uint8_t* stringView{};
 		size_t tapeLength{};
 	};
