@@ -113,9 +113,9 @@ namespace Jsonifier {
 		}
 
 		inline void deallocate() {
-			if (this->size > 0 && this->objects) {
+			if (this->currentSize > 0 && this->objects) {
 				ObjectAllocator<OTy> allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, this->size);
+				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
 				this->objects = nullptr;
 			}
 		}
