@@ -789,7 +789,12 @@ namespace Jsonifier {
 	class Document : public JsonValueBase {
 	  public:
 		inline Document() noexcept;
-		inline Document(JsonifierCore* value) noexcept;
+		inline Document(JsonIterator&& _iter) noexcept : iter{ std::forward<JsonIterator>(_iter) } {
+		}
+
+		inline Document start(JsonIterator&& iter) noexcept {
+			return Document(std::forward<JsonIterator>(iter));
+		}
 
 		inline Object start_or_resume_object() noexcept {
 			if (this->_json_iter->at_root()) {
@@ -819,6 +824,7 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		JsonIterator iter{};
 	};
 
 	inline int64_t totalTimePassed{};
@@ -828,7 +834,7 @@ namespace Jsonifier {
 	class JsonifierCore {
 	  public:
 		inline Document getDocument() {
-			Document returnValue{ this };
+			Document returnValue{ JsonIterator{ this->getStringBuffer(), this } };
 			return returnValue;
 		}
 
@@ -1610,8 +1616,6 @@ namespace Jsonifier {
 
 	inline Document::Document() noexcept : JsonValueBase{} {};
 
-	inline Document::Document(JsonifierCore* value) noexcept : JsonValueBase{ value } {};
-
 	inline JsonValueBase::JsonValueBase(JsonifierCore* other) noexcept
 		: root(other->getStructuralIndexes()), stringView(other->getStringView()), stringBufferLocation(other->getStringBuffer()),
 		  _start_position(other->getStructuralIndexes()), _json_iter{ std::make_unique<JsonIterator>(other->getStringView(), other) } {
@@ -1906,9 +1910,9 @@ namespace Jsonifier {
 	}
 		
 	inline void JsonValueBase::assert_at_next() const noexcept {
-		//assert(_json_iter->token.position() > _start_position);
-		//assert(_json_iter->_depth == _depth);
-		//assert(_depth > 0);
+		assert(_json_iter->token.position() > _start_position);
+		assert(_json_iter->_depth == _depth);
+		assert(_depth > 0);
 	}
 
 	inline void JsonValueBase::assert_at_start() const noexcept {
@@ -2407,6 +2411,10 @@ namespace Jsonifier {
 
 	inline uint32_t*JsonIterator::root_position() const noexcept {
 		return _root;
+	}
+
+	inline JsonIterator::JsonIterator(JsonIterator&& other) noexcept {
+		*this = std::move(other);
 	}
 
 	inline Field ObjectIterator::operator*() noexcept {
