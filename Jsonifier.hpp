@@ -108,7 +108,7 @@ namespace Jsonifier {
 			if (newSize != 0) {
 				ObjectAllocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
-				this->size = newSize;
+				this->currentSize = newSize;
 			}
 		}
 
