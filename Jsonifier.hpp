@@ -1235,9 +1235,53 @@ namespace Jsonifier {
 			return Object(iter);
 		}
 
+		static inline Object resume(JsonValueBase&& iter) noexcept {
+			return iter;
+		}
+
 		static inline Object start_root(JsonValueBase& iter) noexcept {
 			iter.start_root_object();
 			return Object(iter);
+		}
+
+		inline Object find_field_unordered(const std::string_view key) & noexcept {
+			bool has_value{ this->find_field_unordered_raw(key) };
+			if (!has_value) {
+				return Object{};
+			}
+			return Object(child());
+		}
+
+		inline Object find_field_unordered(const std::string_view key) && noexcept {
+			bool has_value{ this->find_field_unordered_raw(key) };
+			if (!has_value) {
+				return Object{};
+			}
+			return Object(child());
+		}
+
+		inline Object operator[](const std::string_view key) & noexcept {
+			return find_field_unordered(key);
+		}
+
+		inline Object operator[](const std::string_view key) && noexcept {
+			return std::forward<Object>(*this).find_field_unordered(key);
+		}
+
+		inline Object find_field(const std::string_view key) & noexcept {
+			bool has_value{ this->find_field_raw(key) };
+			if (!has_value) {
+				return Object{};
+			}
+			return Object(child());
+		}
+
+		inline Object find_field(const std::string_view key) && noexcept {
+			bool has_value{ this->find_field_raw(key) };
+			if (!has_value) {
+				return Object{};
+			}
+			return Object(child());
 		}
 
 		inline Object(JsonValueBase&& other) : JsonValueBase{ std::move(other) } {};
@@ -1774,6 +1818,33 @@ namespace Jsonifier {
 	  public:
 		inline Document() noexcept;
 		inline Document(JsonifierCore* value) noexcept;
+
+		inline Object start_or_resume_object() noexcept {
+			if (this->_json_iter->at_root()) {
+				return get_object();
+			} else {
+				return Object::resume(resume_value_iterator());
+			}
+		}
+
+		inline Object find_field(std::string_view key) & noexcept {
+			return start_or_resume_object().find_field(key);
+		}
+		inline Object find_field(const char* key) & noexcept {
+			return start_or_resume_object().find_field(key);
+		}
+		inline Object find_field_unordered(std::string_view key) & noexcept {
+			return start_or_resume_object().find_field_unordered(key);
+		}
+		inline Object find_field_unordered(const char* key) & noexcept {
+			return start_or_resume_object().find_field_unordered(key);
+		}
+		inline Object operator[](std::string_view key) & noexcept {
+			return start_or_resume_object()[key];
+		}
+		inline Object operator[](const char* key) & noexcept {
+			return start_or_resume_object()[key];
+		}
 
 	  protected:
 	};
@@ -3356,6 +3427,14 @@ namespace Jsonifier {
 
 	inline bool JsonValueBase::at_first_field() const noexcept {
 		return _json_iter->token.position() == start_position() + 1;
+	}
+
+	inline bool JsonIterator::at_root() const noexcept {
+		return position() == root_position();
+	}
+
+	inline uint32_t*JsonIterator::root_position() const noexcept {
+		return _root;
 	}
 
 
