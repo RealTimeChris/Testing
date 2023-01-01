@@ -1250,6 +1250,91 @@ namespace Jsonifier {
 			return Object(iter);
 		}
 
+		inline bool find_field_unordered_raw(const std::string_view key) noexcept {
+			ErrorCode error{};
+			bool has_value{};
+			uint32_t* search_start = _json_iter->position();
+			bool at_first = at_first_field();
+			if (at_first) {
+				has_value = true;
+			} else if (!is_open()) {
+
+				reset_object();
+				at_first = true;
+			} else {
+				if (error = skip_child(); error != ErrorCode::Success) {
+					abandon();
+					return false;
+				}
+				search_start = _json_iter->position();
+				if (!has_next_field()) {
+					abandon();
+					return false;
+				}
+
+			}
+
+			while (has_value) {
+
+				RawJsonString actual_key{};
+				if (field_key() == "") {
+					abandon();
+					return false;
+				};
+				if (field_value() != ErrorCode::Success) {
+					abandon();
+					return false;
+				}
+				if (actual_key.unsafe_is_equal(key)) {
+					return true;
+				}
+				skip_child();
+				if (!has_next_field()) {
+					abandon();
+					return false;
+				}
+			}
+			if (at_first) {
+				return false;
+			}
+			reset_object();
+			while (true) {
+				RawJsonString actual_key{};
+				assert(field_key() != "");
+				error = field_value();
+				assert(error == ErrorCode::Success);
+				if (actual_key.unsafe_is_equal(key)) {
+					return true;
+				}
+
+				assert(skip_child() == ErrorCode::Success);
+				if (_json_iter->position() == search_start) {
+					return false;
+				}
+				assert(has_next_field());
+			}
+			return false;
+		}
+
+		inline Object find_field_unordered(const std::string_view key)  noexcept {
+			bool has_value{};
+			this->find_field_unordered_raw(key);
+			if (!has_value) {
+				return Object{};
+			}
+			return Object(this->child());
+		}
+
+		inline Object operator[](const std::string_view key) & noexcept {
+			return find_field_unordered(key);
+		}
+
+		inline Object operator[](const std::string_view key) && noexcept {
+			return std::forward<Object>(*this).find_field_unordered(key);
+		}
+
+		inline Object(JsonValueBase&& other) : JsonValueBase{ std::move(other) } {};
+
 		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {
 		};
 	};
@@ -3018,7 +3103,9 @@ namespace Jsonifier {
 	}
 
 	inline void JsonValueBase::assert_at_container_start() const noexcept {
-		assert(position() == root + 1);
+		assert(_json_iter->token.position() == _start_position + 1);
+		assert(_json_iter->_depth == _depth);
+		assert(_depth > 0);
 	}
 
 	inline ErrorCode JsonValueBase::end_container() noexcept {
