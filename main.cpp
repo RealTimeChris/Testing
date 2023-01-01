@@ -47,10 +47,10 @@ struct TheDJson {
 		for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
 			index++;
 
-			double newValueDouble = iter->get<double>().getValue();
-			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
+			std::string_view newValueDouble = iter->get<std::string_view>().getValue();
+			std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
-		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
+		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -138,7 +138,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 30; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "222003323" });
+			serializer["TEST_VALUE_11"].emplaceBack(arrayValue);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {
@@ -182,7 +182,7 @@ int32_t main() noexcept {
 		Jsonifier::JsonifierCore theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto jsonData = theParser.getJsonData(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			//TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -202,7 +202,7 @@ int32_t main() noexcept {
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
+			//TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;

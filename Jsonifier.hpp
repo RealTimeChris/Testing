@@ -1241,16 +1241,16 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString) {
+		inline SimdBase256 carrylessMultiplication(int64_t& prevInString) {
 			SimdBase128 allOnes{ '\xFF' };
 			auto inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
-			prevInString = uint64_t(static_cast<int64_t>(inString00) >> 63);
+			prevInString = static_cast<uint64_t>(inString00 >> 63);
 			auto inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
-			prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
+			prevInString = static_cast<uint64_t>(inString01 >> 63);
 			auto inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
-			prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
+			prevInString = static_cast<uint64_t>(inString02 >> 63);
 			auto inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
-			prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
+			prevInString = static_cast<uint64_t>(inString03 >> 63);
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
 
@@ -1495,7 +1495,7 @@ namespace Jsonifier {
 		SimdBase256 previousMatch{};
 		SimdBase256 prevInScalar{};
 		SimdBase256 values[8]{};
-		uint64_t prevInString{};
+		int64_t prevInString{};
 		SimdBase256 Q256{};
 		SimdBase256 W256{};
 		SimdBase256 R256{};
