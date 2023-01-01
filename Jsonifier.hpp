@@ -986,7 +986,7 @@ namespace Jsonifier {
 		inline bool started_object() noexcept;
 		inline bool started_root_object() noexcept;
 		inline bool has_next_field() noexcept;
-		inline RawJsonString field_key() noexcept;
+		inline std::string_view field_key() noexcept;
 		inline ErrorCode field_value() noexcept;
 		inline ErrorCode find_field(const std::string_view key) noexcept;
 		inline bool find_field_raw(const std::string_view key) noexcept;
@@ -1098,11 +1098,11 @@ namespace Jsonifier {
 		
 
 		static inline Field start(JsonValueBase& parent_iter) noexcept {
-			RawJsonString key{};
+			std::string_view key{};
 			key = parent_iter.field_key();
-			std::cout << "CURRENT KEY: " << key.raw() << std::endl;
+			std::cout << "CURRENT KEY: " << key << std::endl;
 			parent_iter.field_value();
-			return Field::start(parent_iter, key);
+			return Field::start(parent_iter, RawJsonString{ reinterpret_cast<const uint8_t*>(key.data()) });
 		}
 
 		static inline Field start(JsonValueBase& parent_iter, RawJsonString key) noexcept {
@@ -1128,7 +1128,6 @@ namespace Jsonifier {
 
 		inline Field(std::string_view&& key, JsonValueBase& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {};
 	};
-
 
 	class ObjectIterator {
 	  public:
@@ -2467,7 +2466,6 @@ namespace Jsonifier {
 	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		TapeBuilder tapeBuilder{ this };
-		auto errorCode = tapeBuilder.walkDocument();
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
 		dumpRawTape(this->getTape(), this->getStringBuffer());
 		return this->getDocument();
@@ -2898,7 +2896,9 @@ namespace Jsonifier {
 	}
 		
 	inline void JsonValueBase::assert_at_next() const noexcept {
-		assert(position() > root);
+		assert(_json_iter->token.position() > _start_position);
+		assert(_json_iter->_depth == _depth);
+ 		assert(_depth > 0);
 	}
 
 	inline void JsonValueBase::assert_at_start() const noexcept {
@@ -3092,14 +3092,14 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline RawJsonString JsonValueBase::field_key() noexcept {
+	inline std::string_view JsonValueBase::field_key() noexcept {
 		assert_at_next();
 
 		const uint8_t* key = this->_json_iter->return_current_and_advance();
 		if (*(key++) != '"') {
-			return RawJsonString{};
+			return "";
 		}
-		return RawJsonString{ key };
+		return RawJsonString{ key }.unescape(*this->_json_iter);
 	}
 
 	inline const char* RawJsonString::raw() const noexcept {
@@ -3113,8 +3113,6 @@ namespace Jsonifier {
 	inline bool JsonValueBase::has_next_field() noexcept {
 		assert_at_next();
 
-		// It's illegal to call this unless there are more tokens: anything that ends in } or ] is
-		// obligated to verify there are more tokens if they are not the top level.
 		switch (*this->_json_iter->return_current_and_advance()) {
 			case '}':
 				end_container();
@@ -3231,7 +3229,15 @@ namespace Jsonifier {
 	}
 
 	inline std::string_view json_iterator::unescape(RawJsonString in) noexcept {
-		return std::string_view{ reinterpret_cast<char*>(StringParser::parseString(reinterpret_cast<const uint8_t*>(in.raw()), _string_buf_loc)) };
+		auto newValue = StringParser::parseString(reinterpret_cast<const uint8_t*>(in.raw()), _string_buf_loc);
+		size_t index{};
+		while (1) {
+			index++;
+			if (newValue[index] == '\0') {
+				break;
+			}
+		}
+		return std::string_view{ reinterpret_cast<char*>(newValue), index };
 	}
 
 	inline json_iterator& JsonValueBase::json_iter() noexcept {
