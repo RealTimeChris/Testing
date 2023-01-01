@@ -84,7 +84,7 @@ namespace Jsonifier {
 				return static_cast<OTy*>(malloc(sizeof(OTy) * count));
 			}
 
-			inline void deallocate(OTy* ptr, size_t count) {
+			template<typename OTy> inline void deallocate(OTy* ptr, size_t count) {
 				free(ptr);
 			}
 		};
@@ -1486,6 +1486,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
@@ -1576,7 +1577,7 @@ namespace Jsonifier {
 					}
 				}
 
-				//iterationCount++;
+				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
 				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
@@ -2205,9 +2206,9 @@ namespace Jsonifier {
 	JsonifierResult<Document> JsonifierCore::getJsonData(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		TapeBuilder tapeBuilder{ this };
-		//auto errorCode = tapeBuilder.walkDocument();
+		auto errorCode = tapeBuilder.walkDocument();
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		JsonifierResult<Document> returnValue{ Document{}, ErrorCode{} };
+		JsonifierResult<Document> returnValue{ Document{ this->getDocument() }, std::move(errorCode) };
 		return returnValue;
 	}
 
@@ -2394,6 +2395,8 @@ namespace Jsonifier {
 	}
 
 	inline uint64_t* JsonValueBase::advance() noexcept {
+		auto newValue = ((*(this->parser->getTape() + this->currentIndex)) >> 56);
+		std::cout << "CURRENT ADVANCE KEY: " << newValue << std::endl;
 		auto returnValue = &this->parser->getTape()[this->currentIndex];
 		++this->currentIndex;
 		return returnValue;

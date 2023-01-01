@@ -48,9 +48,9 @@ struct TheDJson {
 			index++;
 
 			std::string_view newValueDouble = iter->get<std::string_view>().getValue();
-			std::cout << "NEW INDEX: " << newValueDouble << std::endl;
+			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
-		std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
+		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -151,8 +151,11 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
-			Jsonifier::ObjectBuffer<Jsonifier::OpenContainer> objectBuffer{};
+			Jsonifier::ObjectBuffer<bool> objectBuffer{};
 			objectBuffer.allocate(512 * 512 * 128);
+			//for (size_t x = 0; x < 34; ++x) {
+				//std::cout << "CURRENT TYPE: "<< (int32_t) objectBuffer[x].getType()<< std::endl;
+			//}
 			objectBuffer.deallocate();
 		}
 
@@ -162,8 +165,8 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		{
-			std::unique_ptr<Jsonifier::OpenContainer[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) Jsonifier::OpenContainer[512 * 512 * 128]);
+			std::unique_ptr<bool[]> objectBuffer{};
+			objectBuffer.reset(new (std::nothrow) bool[512 * 512 * 128]);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
@@ -176,8 +179,8 @@ int32_t main() noexcept {
 		totalTime = 0;
 
 		stopWatch.resetTimer();
+		Jsonifier::JsonifierCore theParser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			Jsonifier::JsonifierCore theParser{};
 			auto jsonData = theParser.getJsonData(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -195,10 +198,9 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
