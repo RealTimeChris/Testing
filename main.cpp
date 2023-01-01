@@ -48,7 +48,6 @@ struct TheDJson {
 			index++;
 
 			std::string_view newValueDouble = iter->get<std::string_view>().getValue();
-			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 			std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 		}
 		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
@@ -139,7 +138,7 @@ int32_t main() noexcept {
 		auto& arrayValue = arrayValueNew;
 		//arrayValueNew["TEST_VALUE_95"] = arrayValue;
 		for (size_t x = 0; x < 30; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "222003323" });
+			serializer["TEST_VALUE_11"].emplaceBack(double{ 222003323.0097898 });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		//for (auto& value : serializer) {

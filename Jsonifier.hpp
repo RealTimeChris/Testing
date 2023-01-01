@@ -1384,7 +1384,7 @@ namespace Jsonifier {
 			return cnt;
 		}
 
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
+		inline SimdBase256 follows(SimdBase256 match, SimdBase256 overflow) {
 			SimdBase256 result = match.shl<1>() | overflow;
 			overflow = match.shr<63>();
 			return result;
@@ -1486,13 +1486,12 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			this->S256.printBits("FINAL BITS: ");
+			//this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:
 		SimdBase256 followsPotentialNonquoteScalar{};
 		size_t currentIndexIntoString{};
-		SimdBase256 previousMatch{};
 		SimdBase256 prevInScalar{};
 		SimdBase256 values[8]{};
 		int64_t prevInString{};
@@ -1579,7 +1578,7 @@ namespace Jsonifier {
 
 				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
@@ -1590,9 +1589,9 @@ namespace Jsonifier {
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				//totalTimePassed += stopWatch.totalTimePassed().count();
-				this->getStructuralIndexCount() = tapeCurrentIndex;
-				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				totalTimePassed += stopWatch.totalTimePassed().count();
+				this->getTapeLength() = tapeCurrentIndex;
+				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
 
@@ -1610,10 +1609,6 @@ namespace Jsonifier {
 
 		inline uint32_t* getStructuralIndexes() {
 			return this->structuralIndexes.get();
-		}
-
-		inline size_t& getStructuralIndexCount() {
-			return this->tapeLength;
 		}
 
 		inline uint64_t* getTape() {
@@ -1641,7 +1636,6 @@ namespace Jsonifier {
 		ObjectBuffer<uint64_t> tape{};
 		ObjectBuffer<bool> isArray{};
 		SimdStringSection section{};
-		uint32_t* lastStructural{};
 		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
 		size_t stringCapacity{};
@@ -1804,11 +1798,11 @@ namespace Jsonifier {
 	}
 
 	inline size_t TapeBuilder::remainingLen() noexcept {
-		return this->masterParser->getStructuralIndexCount() - *this->nextStructural;
+		return this->masterParser->getTapeLength() - *this->nextStructural;
 	}
 
 	inline bool TapeBuilder::atEof() noexcept {
-		return this->nextStructural == &this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1];
+		return this->nextStructural == &this->masterParser->getStructuralIndexes()[this->masterParser->getTapeLength() - 1];
 	}
 
 	inline bool TapeBuilder::atBeginning() noexcept {
@@ -1816,7 +1810,7 @@ namespace Jsonifier {
 	}
 
 	inline uint8_t TapeBuilder::lastStructural() noexcept {
-		return this->masterParser->getStringView()[this->masterParser->getStructuralIndexes()[this->masterParser->getStructuralIndexCount() - 1]];
+		return this->masterParser->getStringView()[this->masterParser->getStructuralIndexes()[this->masterParser->getTapeLength() - 1]];
 	}
 
 	inline ErrorCode TapeBuilder::visitEmptyObject() noexcept {
@@ -2395,8 +2389,6 @@ namespace Jsonifier {
 	}
 
 	inline uint64_t* JsonValueBase::advance() noexcept {
-		auto newValue = ((*(this->parser->getTape() + this->currentIndex)) >> 56);
-		std::cout << "CURRENT ADVANCE KEY: " << newValue << std::endl;
 		auto returnValue = &this->parser->getTape()[this->currentIndex];
 		++this->currentIndex;
 		return returnValue;
