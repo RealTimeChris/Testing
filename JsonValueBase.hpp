@@ -209,6 +209,7 @@ namespace Jsonifier {
 
 		friend class RawJsonString;
 		friend class ValueIterator;
+		friend class Array;
 	};
 
 	class ValueIterator {
@@ -396,6 +397,7 @@ namespace Jsonifier {
 
 		friend class Document;
 		friend class RawJsonString;
+		friend class Array;
 
 	  protected:
 		ErrorCode error{ ErrorCode::Success };

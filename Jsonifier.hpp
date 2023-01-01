@@ -2561,4 +2561,88 @@ namespace Jsonifier {
 		return Array(iter);
 	}
 
+	inline void JsonIterator::rewind() noexcept {
+		this->token.set_position(root_position());
+		this->stringBuffer = this->parser->getStringBuffer();
+		this->currentDepth = 1;
+	}
+
+	inline size_t Array::count_elements() & noexcept {
+		size_t count{ 0 };
+		for (auto v: *this) {
+			count++;
+		}
+		if (iter.getError() != ErrorCode::Success) {
+			return static_cast<size_t>(iter.getError());
+		}
+		iter.reset_array();
+		return count;
+	}
+
+	inline ArrayIterator::ArrayIterator(const ValueIterator& _iter) noexcept : iter{ _iter } {
+	}
+
+	inline Object ArrayIterator::operator*() noexcept {
+		if (iter.getError()!=ErrorCode::Success) {
+			iter.abandon();
+			return Object{};
+		}
+		return Object(iter.child());
+	}
+
+	inline bool ArrayIterator::operator==(const ArrayIterator& other) const noexcept {
+		return !(*this != other);
+	}
+
+	inline bool ArrayIterator::operator!=(const ArrayIterator&) const noexcept {
+		return iter.is_open();
+	}
+
+	inline ArrayIterator& ArrayIterator::operator++() noexcept {
+		ErrorCode error{};
+		if (error = iter.getError(); error != ErrorCode::Success) {
+			return *this;
+		}
+		if (error = iter.skip_child(); error != ErrorCode::Success) {
+			return *this;
+		}
+		if (!iter.has_next_element()) {
+			return *this;
+		}
+		return *this;
+	}
+
+	inline ArrayIterator Array::begin() noexcept {
+		return ArrayIterator{ this->iter };
+	}
+
+	inline ArrayIterator Array::end() noexcept {
+		return ArrayIterator{ this->iter };
+	}
+
+	inline bool ValueIterator::start_root_array() noexcept {
+		start_container('[', "Not an array", "array");
+		return started_root_array();
+	}
+
+	inline bool ValueIterator::started_root_array() noexcept {
+		if (!jsonIterator->streaming()) {
+			if (*jsonIterator->peek_last() != ']') {
+				jsonIterator->abandon();
+				return false;
+			}
+			if ((*jsonIterator->peek(jsonIterator->end_position()) == ']') && (!jsonIterator->balanced())) {
+				jsonIterator->abandon();
+				return false;
+			}
+		}
+		return started_array();
+	}
+
+	inline void JsonIterator::abandon() noexcept {
+		parser = nullptr;
+		currentDepth = 0;
+	}
+
+
 };
