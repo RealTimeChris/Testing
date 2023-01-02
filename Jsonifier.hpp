@@ -1049,15 +1049,10 @@ namespace Jsonifier {
 
 			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
 			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
-			this->isArray.allocate(this->structuralIndexes.size());
-			this->openContainers.allocate(this->maxDepth);
 			this->stringView = stringViewNew;
-			if (!(this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
-					this->openContainers.get())) {
+			if (!(this->structuralIndexes.get() && this->stringBuffer.get())) {
 				this->structuralIndexes.deallocate();
-				this->openContainers.deallocate();
 				this->stringBuffer.deallocate();
-				this->isArray.deallocate();
 				return ErrorCode::Mem_Alloc_Error;
 			}
 
@@ -1104,35 +1099,20 @@ namespace Jsonifier {
 			return this->stringBuffer.get();
 		}
 
-		inline OpenContainer* getOpenContainers() {
-			return this->openContainers.get();
-		}
-
 		inline uint32_t* getStructuralIndexes() {
 			return this->structuralIndexes.get();
 		}
 
 		inline Document parseJson(std::string& string);
 
-		inline uint32_t getMaxDepth() {
-			return this->maxDepth;
-		}
-
 		inline size_t& getTapeLength() {
 			return this->tapeLength;
 		}
 
-		inline bool* getIsArray() {
-			return this->isArray.get();
-		}
-
 	  protected:
-		ObjectBuffer<OpenContainer> openContainers{};
 		ObjectBuffer<uint32_t> structuralIndexes{};
 		ObjectBuffer<uint8_t> stringBuffer{};
-		ObjectBuffer<bool> isArray{};
 		SimdStringSection section{};
-		uint32_t maxDepth{ 512 };
 		size_t stringLengthRaw{};
 		uint8_t* stringView{};
 		size_t tapeLength{};
