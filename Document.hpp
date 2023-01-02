@@ -6,13 +6,13 @@ namespace Jsonifier {
 
 	class Document {
 	  public:
-		inline Document(IteratorBaseBase&& _iter) noexcept;
+		inline Document(JsonIterator&& iteratorNew) noexcept;
 
-		inline Document start(IteratorBaseBase&& iter) noexcept {
-			return Document(std::forward<IteratorBaseBase>(iter));
+		inline Document start(JsonIterator&& iterator) noexcept {
+			return Document(std::forward<JsonIterator>(iterator));
 		}
 
-		template<typename OTy> inline IteratorBaseBase getRootValueIterator() noexcept {
+		template<typename OTy> inline JsonIterator getRootValueIterator() noexcept {
 			return resumeValueIterator<OTy>();
 		}
 
@@ -29,8 +29,8 @@ namespace Jsonifier {
 			}
 		}
 
-		template<typename OTy> inline IteratorBaseBase resumeValueIterator() noexcept {
-			return IteratorBaseBase{ *iterator };
+		template<typename OTy> inline JsonIterator resumeValueIterator() noexcept {
+			return JsonIterator{ *iterator };
 		}
 
 		inline Object findField(std::string_view key) & noexcept {
@@ -58,24 +58,24 @@ namespace Jsonifier {
 		}
 
 		inline void rewind() noexcept {
-			iterator.rewind();
+			this->iterator.rewind();
 		}
 
 		inline std::string toDebugString() noexcept {
-			return iterator.toString();
+			return this->iterator.toString();
 		}
 
 		inline int32_t currentDepth() const noexcept {
-			return iterator.depth();
+			return this->iterator.depth();
 		}
 
 		inline bool isAlive() noexcept {
-			return iterator.isAlive();
+			return this->iterator.isAlive();
 		}
 
 		inline Object getValue() noexcept {
-			iterator.assertAtDocumentDepth();
-			switch (*iterator.peek()) {
+			this->iterator.assertAtDocumentDepth();
+			switch (*this->iterator.peek()) {
 				case '[':
 				case '{':
 					return Object(getRootValueIterator<Object>().operator*());
@@ -224,16 +224,16 @@ namespace Jsonifier {
 			return a.at(index);
 		}
 
-		inline IteratorBaseBase begin() & noexcept {
+		inline JsonIterator begin() & noexcept {
 			return getArray().begin();
 		}
 
-		inline IteratorBaseBase end() & noexcept {
+		inline JsonIterator end() & noexcept {
 			return {};
 		}
 
 	  protected:
-		IteratorBaseBase iterator{};
+		JsonIterator iterator{};
 		JsonifierCore* core{};
 	};
 }

@@ -31,22 +31,22 @@ namespace Jsonifier {
 	class Field;
 	class Array;
 
-	class IteratorBaseBase {
+	class JsonIterator {
 	  public:
-		inline IteratorBaseBase() noexcept = default;
-		inline IteratorBaseBase(IteratorBaseBase&& other) noexcept = default;
-		inline IteratorBaseBase& operator=(IteratorBaseBase&& other) noexcept = default;
-		inline IteratorBaseBase(const IteratorBaseBase& other) noexcept = default;
-		inline IteratorBaseBase& operator=(const IteratorBaseBase& other) noexcept = default;
+		inline JsonIterator() noexcept = default;
+		inline JsonIterator(JsonIterator&& other) noexcept = default;
+		inline JsonIterator& operator=(JsonIterator&& other) noexcept = default;
+		inline JsonIterator(const JsonIterator& other) noexcept = default;
+		inline JsonIterator& operator=(const JsonIterator& other) noexcept = default;
 		inline const uint8_t* returnCurrentAndAdvance() noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
 		inline uint32_t* position() const noexcept;
 		inline void setPosition(uint32_t* target_position) noexcept;
-		inline IteratorBaseBase(const uint8_t* stringView, uint32_t* position) noexcept;
+		inline JsonIterator(const uint8_t* stringView, uint32_t* position) noexcept;
 
 		inline void assertAtContainerStart() const noexcept;
-		inline IteratorBaseBase(JsonifierCore* other) noexcept;
+		inline JsonIterator(JsonifierCore* other) noexcept;
 
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 
@@ -55,11 +55,13 @@ namespace Jsonifier {
 
 		inline Object operator[](const std::string_view key) && noexcept;
 
-		inline IteratorBaseBase resumeValueIterator() noexcept;
+		inline JsonIterator resumeValueIterator() noexcept;
 
-		inline IteratorBaseBase getRootValueIterator() noexcept;
+		inline JsonIterator getRootValueIterator() noexcept;
 
 		inline Field findField(const char* keyNew) noexcept;
+
+		inline uint32_t currentOffset() noexcept;
 
 		inline JsonifierCore* getCore() noexcept;
 
@@ -71,7 +73,7 @@ namespace Jsonifier {
 
 		inline size_t getOffset() noexcept;
 
-		inline IteratorBaseBase& getCurrentIterator() noexcept;
+		inline JsonIterator& getCurrentIterator() noexcept;
 
 		inline void asserAtFieldStart(size_t amountToOffset) noexcept;
 
@@ -108,7 +110,7 @@ namespace Jsonifier {
 
 		inline bool atRoot() const noexcept;
 		inline const uint8_t* peekLast() const noexcept;
-		inline IteratorBaseBase child() noexcept;
+		inline JsonIterator child() noexcept;
 		inline uint32_t* rootPosition() const noexcept;
 		inline void assertAtDocumentDepth() const noexcept;
 		inline bool isAlive() const noexcept;
@@ -142,14 +144,11 @@ namespace Jsonifier {
 		inline bool isRootNull() noexcept;
 		inline ErrorCode getError() noexcept;
 
-		inline void assert_is_valid() const noexcept;
-		inline bool is_valid() const noexcept;
-
 		inline bool resetArray() noexcept;
 		inline bool resetObject() noexcept;
 		inline void moveAtContainerStart() noexcept;
-		inline std::string toString() const noexcept;
-		template<typename OTy> inline IteratorBaseBase(IteratorBaseBase* jsonIter, size_t depth, uint32_t* start_index) noexcept;
+		inline std::string toString() noexcept;
+		template<typename OTy> inline JsonIterator(JsonIterator* jsonIter, size_t depth, uint32_t* start_index) noexcept;
 
 		inline const uint8_t* peekStart() const noexcept;
 
@@ -168,8 +167,8 @@ namespace Jsonifier {
 
 		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
 
-		static inline Array startRoot(IteratorBaseBase& iter) noexcept;
-		static inline Array started(IteratorBaseBase& iter) noexcept;
+		static inline Array startRoot(JsonIterator& iterator) noexcept;
+		static inline Array started(JsonIterator& iterator) noexcept;
 		inline bool startObject() noexcept;
 		inline bool startRootObject() noexcept;
 		inline bool startedObject() noexcept;
@@ -184,12 +183,11 @@ namespace Jsonifier {
 		inline uint32_t* lastPosition() const noexcept;
 		inline uint32_t* endPosition() const noexcept;
 		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
-
 		friend class RawJsonString;
 		inline Object operator*() noexcept;
-		inline bool operator==(const IteratorBaseBase&) const noexcept;
-		inline IteratorBaseBase& operator++() noexcept;
-		inline IteratorBaseBase(const Object& iter) noexcept;
+		inline bool operator==(const JsonIterator&) const noexcept;
+		inline JsonIterator& operator++() noexcept;
+		inline JsonIterator(const Object& iterator) noexcept;
 		JsonifierCore* parser{};
 	  protected:
 		ErrorCode error{ ErrorCode::Success };

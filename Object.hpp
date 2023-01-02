@@ -7,40 +7,40 @@ namespace Jsonifier {
 	class Object : public JsonValueBase {
 	  public:
 		inline auto begin() noexcept {
-			return IteratorBaseBase{ *this };
+			return JsonIterator{ *this };
 		}
 
 		inline auto end() noexcept {
-			return IteratorBaseBase{ *this };
+			return JsonIterator{ *this };
 		}
 		inline size_t countFields() noexcept;
 		inline Object() noexcept = default;
 
-		static inline Object start(IteratorBaseBase& iter) noexcept {
-			iter.startObject();
-			return Object(iter);
+		static inline Object start(JsonIterator& iterator) noexcept {
+			iterator.startObject();
+			return Object(iterator);
 		}
 
-		static inline Object resume(IteratorBaseBase&& iter) noexcept {
-			return iter;
+		static inline Object resume(JsonIterator&& iterator) noexcept {
+			return iterator;
 		}
 
-		static inline Object startRoot(IteratorBaseBase&& iter) noexcept;
+		static inline Object startRoot(JsonIterator&& iterator) noexcept;
 
 		inline Object findFieldUnordered(const std::string_view key) & noexcept {
-			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
+			bool hasValue{ this->iterator->findFieldUnorderedRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(iterator.child());
+			return Object(iterator->child());
 		}
 
 		inline Object findFieldUnordered(const std::string_view key) && noexcept {
-			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
+			bool hasValue{ this->iterator->findFieldUnorderedRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(iterator.child());
+			return Object(iterator->child());
 		}
 
 		inline Object operator[](const std::string_view key) & noexcept {
@@ -52,24 +52,24 @@ namespace Jsonifier {
 		}
 
 		inline Object findField(const std::string_view key) & noexcept {
-			bool hasValue{ this->iterator.findFieldRaw(key) };
+			bool hasValue{ this->iterator->findFieldRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(iterator.child());
+			return Object(iterator->child());
 		}
 
 		inline Object findField(const std::string_view key) && noexcept {
-			bool hasValue{ this->iterator.findFieldRaw(key) };
+			bool hasValue{ this->iterator->findFieldRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(iterator.child());
+			return Object(iterator->child());
 		}
 
-		inline Object(const IteratorBaseBase&) noexcept;
+		inline Object(JsonIterator& other) noexcept;
 
-		inline Object(IteratorBaseBase&&) noexcept;
+		inline Object(JsonIterator&&) noexcept;
 
 		inline Object(JsonValueBase&& other) : JsonValueBase{ std::move(other) } {};
 

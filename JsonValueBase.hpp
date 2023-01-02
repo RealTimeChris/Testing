@@ -12,18 +12,13 @@ namespace Jsonifier {
 
 	class JsonValueBase {
 	  public:
-		ErrorCode error{ ErrorCode::Success };
-		JsonifierCore* parser{};
-		uint8_t* stringBuffer{};
-		size_t currentDepth{};
-		uint32_t* root{};
+		friend class JsonIterator;
 
-	  public:
 		inline ErrorCode getError() noexcept;
 		inline Object getObject() & noexcept;
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 		inline JsonValueBase() noexcept {};
-		inline JsonValueBase(IteratorBaseBase&& other) noexcept;
+		inline JsonValueBase(JsonIterator&& other) noexcept;
 		inline JsonValueBase(JsonifierCore* other) noexcept;
 		inline JsonValueBase(JsonValueBase&& other) noexcept;
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept;
@@ -32,7 +27,7 @@ namespace Jsonifier {
 
 		inline uint32_t* position() const noexcept;
 		inline std::string_view unescape(RawJsonString&) noexcept;
-		inline std::string toString() const noexcept;
+		inline std::string toString() noexcept;
 		inline const char* currentLocation() noexcept;
 
 		inline JsonValueBase(uint8_t* stringView, JsonifierCore* parser) noexcept;
@@ -41,9 +36,12 @@ namespace Jsonifier {
 		inline JsonType type() const noexcept;
 
 	  protected:
-		IteratorBaseBase iterator{};
-		inline uint32_t* lastPosition() const noexcept;
-		inline uint32_t* endPosition() const noexcept;
+		std::unique_ptr<JsonIterator> iterator{ std::make_unique<JsonIterator>() };
+		ErrorCode error{ ErrorCode::Success };
+		JsonifierCore* parser{};
+		uint8_t* stringBuffer{};
+		size_t currentDepth{};
+		uint32_t* root{};
 
 	};
 
