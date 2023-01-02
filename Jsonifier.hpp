@@ -861,7 +861,7 @@ namespace Jsonifier {
 		}
 
 		inline Object getValue() noexcept {
-			iter.assert_at_document_depth();
+			iter.assertAtDocumentDepth();
 			switch (*iter.peek()) {
 				case '[':
 				case '{':
@@ -877,43 +877,43 @@ namespace Jsonifier {
 		}
 
 		inline uint64_t getUint64() noexcept {
-			return getRootValueIterator().get_root_uint64();
+			return getRootValueIterator().getRootUint64();
 		}
 
 		inline uint64_t get_uint64_in_string() noexcept {
-			return getRootValueIterator().get_root_uint64_in_string();
+			return getRootValueIterator().getRootUint64InString();
 		}
 
 		inline int64_t getInt64() noexcept {
-			return getRootValueIterator().get_root_int64();
+			return getRootValueIterator().getRootInt64();
 		}
 
-		inline int64_t get_int64_in_string() noexcept {
-			return getRootValueIterator().get_root_int64_in_string();
+		inline int64_t getInt64InString() noexcept {
+			return getRootValueIterator().getRootInt64InString();
 		}
 
 		inline double getDouble() noexcept {
-			return getRootValueIterator().get_root_double();
+			return getRootValueIterator().getRootDouble();
 		}
 
-		inline double get_double_in_string() noexcept {
-			return getRootValueIterator().get_root_double_in_string();
+		inline double getDoubleInString() noexcept {
+			return getRootValueIterator().getRootDoubleInString();
 		}
 
 		inline std::string_view getString() noexcept {
-			return getRootValueIterator().get_root_string();
+			return getRootValueIterator().getRootString();
 		}
 
 		inline RawJsonString getRawJsonString() noexcept {
-			return getRootValueIterator().get_root_raw_json_string();
+			return getRootValueIterator().getRootRawJsonString();
 		}
 
 		inline bool getBool() noexcept {
-			return getRootValueIterator().get_root_bool();
+			return getRootValueIterator().getRootBool();
 		}
 
 		inline bool is_null() noexcept {
-			return getRootValueIterator().is_root_null();
+			return getRootValueIterator().isRootNull();
 		}
 
 		template<typename OTy> inline OTy get() & noexcept;
