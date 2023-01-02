@@ -1744,12 +1744,28 @@ namespace Jsonifier {
 		this->parser = other;
 	}
 
-	inline JsonIterator::JsonIterator(uint8_t* buffer, JsonifierCore* jsonifieriCore) noexcept
-		: token{ jsonifieriCore->getStringView(), jsonifieriCore->getStructuralIndexes() }, currentDepth{1} {
-		this->root = jsonifieriCore->getStructuralIndexes();
-		this->parser = jsonifieriCore;
-		this->stringBuffer = buffer;
+	inline JsonIterator::JsonIterator(JsonIterator&& other) noexcept
+		: token(std::forward<TokenIterator>(other.token)), parser{ other.parser },
+		  stringBuffer{ other.stringBuffer }, error{ other.error },
+		  currentDepth{ other.currentDepth }, root{ other.root }{
+		other.parser = nullptr;
 	}
+
+	inline JsonIterator& JsonIterator::operator=(JsonIterator&& other) noexcept {
+		token = other.token;
+		parser = other.parser;
+		this->stringBuffer = other.stringBuffer;
+		error = other.error;
+		currentDepth = other.currentDepth;
+		root = other.root;
+		other.parser = nullptr;
+		return *this;
+	}
+
+	inline JsonIterator::JsonIterator(uint8_t* buf, JsonifierCore* _parser) noexcept
+		: token(buf, &_parser->getStructuralIndexes()[0]), parser{ _parser }, stringBuffer{ parser->getStringBuffer() }, currentDepth{ 1 }, root{
+			  parser->getStructuralIndexes()
+		  } {};
 
 	inline ValueIterator& ValueIterator::operator=(const ValueIterator& other) noexcept {
 		this->stringBufferLocation = other.stringBufferLocation;
@@ -2390,20 +2406,6 @@ namespace Jsonifier {
 
 	inline uint32_t*JsonIterator::rootPosition() const noexcept {
 		return root;
-	}
-
-	inline JsonIterator& JsonIterator::operator=(JsonIterator&& other) noexcept {
-		this->stringBuffer = other.stringBuffer;
-		this->currentDepth = other.currentDepth;
-		this->parser = other.parser;
-		this->error = other.error;
-		this->token = other.token;
-		this->root = other.root;
-		return *this;
-	}
-
-	inline JsonIterator::JsonIterator(JsonIterator&& other) noexcept : token{ other.token }, currentDepth{1} {
-		*this = std::move(other);
 	}
 
 	inline Field ObjectIterator::operator*() noexcept {
