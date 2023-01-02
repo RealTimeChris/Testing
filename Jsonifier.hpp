@@ -1745,7 +1745,7 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator::JsonIterator(uint8_t* buffer, JsonifierCore* jsonifieriCore) noexcept
-		: token{ jsonifieriCore->getStringView(), jsonifieriCore->getStructuralIndexes() } {
+		: token{ jsonifieriCore->getStringView(), jsonifieriCore->getStructuralIndexes() }, currentDepth{1} {
 		this->rootPosition = jsonifieriCore->getStructuralIndexes();
 		this->parser = jsonifieriCore;
 		this->stringBuffer = buffer;
@@ -2430,7 +2430,7 @@ namespace Jsonifier {
 		return *this;
 	}
 
-	inline JsonIterator::JsonIterator(JsonIterator&& other) noexcept : token{other.token} {
+	inline JsonIterator::JsonIterator(JsonIterator&& other) noexcept : token{ other.token }, currentDepth{1} {
 		*this = std::move(other);
 	}
 
