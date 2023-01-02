@@ -140,7 +140,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 30; ++x) {
+		for (size_t x = 0; x < 3000; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(arrayValue);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
@@ -177,8 +177,8 @@ int32_t main() noexcept {
 
 		Jsonifier::JsonifierCore parserOld{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
-			parserOld.parseJson(stringNew);
-			//TheValueJson value{ std::move(jsonData) };
+			auto jsonData = parserOld.parseJson(stringNew);
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -199,7 +199,7 @@ int32_t main() noexcept {
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1ull; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			//TheValue value{ newDocument };
+			TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;

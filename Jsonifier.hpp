@@ -770,7 +770,7 @@ namespace Jsonifier {
 			return this->structuralIndexes.get();
 		}
 
-		inline void parseJson(std::string& string);
+		inline Document parseJson(std::string& string);
 
 		inline size_t& getTapeLength() {
 			return this->tapeLength;
@@ -1338,9 +1338,9 @@ namespace Jsonifier {
 		}
 	}
 	*/
-	void JsonifierCore::parseJson(std::string& string) {
+	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		return;
+		return this->getDocument();
 	}
 	template<> inline ErrorCode JsonValueBase::get<Object>(Object& value) noexcept {
 		value = this->getObject();
