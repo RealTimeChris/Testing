@@ -2229,28 +2229,28 @@ namespace Jsonifier {
 
 	inline bool ValueIterator::findFieldUnorderedRaw(const std::string_view key) noexcept {
 		ErrorCode error;
-		bool has_value{};
-		uint32_t* search_start = jsonIterator->position();
-		bool at_first = atFirstField();
-		if (at_first) {
-			has_value = true;
+		bool hasValue{};
+		uint32_t* searchStart = jsonIterator->position();
+		bool atFirst = atFirstField();
+		if (atFirst) {
+			hasValue = true;
 		} else if (!isOpen()) {
-			has_value = resetObject();
-			at_first = true;
+			hasValue = resetObject();
+			atFirst = true;
 		} else {
 			if (error = skipChild(); error != ErrorCode::Success) {
 				abandon();
 				return false;
 			}
-			search_start = jsonIterator->position();
+			searchStart = jsonIterator->position();
 			if (!hasNextField()) {
 				abandon();
 				return false;
 			}
 		}
-		while (has_value) {
+		while (hasValue) {
 			assert(jsonIterator->depth() == currentDepth);
-			RawJsonString actual_key{};
+			RawJsonString actualKey{};
 			if (fieldKey() == "") {
 				abandon();
 				return false;
@@ -2259,34 +2259,34 @@ namespace Jsonifier {
 				abandon();
 				return false;
 			}
-			if (actual_key.unsafeIsEqual(key)) {
+			if (actualKey.unsafeIsEqual(key)) {
 				return true;
 			}
 			skipChild();
-			if (has_value = hasNextField();!has_value) {
+			if (hasValue = hasNextField();!hasValue) {
 				abandon();
 				return false;
 			}
 		}
-		if (at_first) {
+		if (atFirst) {
 			return false;
 		}
-		has_value = resetObject();
+		hasValue = resetObject();
 		while (true) {
-			has_value;
+			hasValue;
 			assert(jsonIterator->depth() == currentDepth);
 
-			RawJsonString actual_key{ ( uint8_t* )(fieldKey().data()) };
+			RawJsonString actualKey{ ( uint8_t* )(fieldKey().data()) };
 			error = fieldValue();
 			//assert(error == ErrorCode::Success);
-			if (actual_key.unsafeIsEqual(key)) {
+			if (actualKey.unsafeIsEqual(key)) {
 				return true;
 			}
 			assert(skipChild() == ErrorCode::Success);
-			if (jsonIterator->position() == search_start) {
+			if (jsonIterator->position() == searchStart) {
 				return false;
 			}
-			has_value = hasNextField();
+			hasValue = hasNextField();
 		}
 		return false;
 	}
