@@ -6,11 +6,11 @@ namespace Jsonifier {
 
 	class Document {
 	  public:
-		inline Document(JsonValueBase&& _iter) noexcept : iter{ std::forward<JsonValueBase>(_iter) } {
+		inline Document(IteratorBaseBase&& _iter) noexcept : iter{ &_iter } {
 		}
 
-		inline Document start(JsonValueBase&& iter) noexcept {
-			return Document(std::forward<JsonValueBase>(iter));
+		inline Document start(IteratorBaseBase&& iter) noexcept {
+			return Document(std::forward<IteratorBaseBase>(iter));
 		}
 
 		template<typename OTy> inline JsonIteratorBase<OTy> getRootValueIterator() noexcept {
@@ -19,18 +19,18 @@ namespace Jsonifier {
 
 		inline Object getObject() & noexcept {
 			auto value = getRootValueIterator<Object>();
-			return Object::startRoot(value.operator*());
+			return Object::startRoot(std::move(value));
 		}
 
 		inline Object startOrResumeObject() noexcept {
-			if (this->iter.atRoot()) {
+			if (this->iter->atRoot()) {
 				return getObject();
 			} else {
-				return Object::resume(resumeValueIterator<Object>());
+				return Object::resume(std::move(resumeValueIterator<Object>()));
 			}
 		}
 
-		template<typename OTy> inline OTy resumeValueIterator() noexcept {
+		template<typename OTy> inline JsonIteratorBase<OTy> resumeValueIterator() noexcept {
 			return JsonIteratorBase<Object>(&iter, 1, iter.rootPosition());
 		}
 
@@ -59,28 +59,24 @@ namespace Jsonifier {
 		}
 
 		inline void rewind() noexcept {
-			iter.rewind();
+			iter->rewind();
 		}
 
 		inline std::string toDebugString() noexcept {
-			return iter.toString();
-		}
-
-		inline const char* currentLocation() noexcept {
-			return iter.currentLocation();
+			return iter->toString();
 		}
 
 		inline int32_t currentDepth() const noexcept {
-			return iter.depth();
+			return iter->depth();
 		}
 
 		inline bool isAlive() noexcept {
-			return iter.isAlive();
+			return iter->isAlive();
 		}
 
 		inline Object getValue() noexcept {
-			iter.assertAtDocumentDepth();
-			switch (*iter.peek()) {
+			iter->assertAtDocumentDepth();
+			switch (*iter->peek()) {
 				case '[':
 				case '{':
 					return Object(getRootValueIterator<Object>().operator*());
@@ -238,6 +234,6 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		JsonValueBase iter;
+		IteratorBaseBase* iter{};
 	};
 }

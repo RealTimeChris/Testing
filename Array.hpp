@@ -15,13 +15,9 @@ namespace Jsonifier {
 		inline Object atPointer(std::string_view json_pointer) noexcept;
 		inline std::string_view rawJson() noexcept;
 		inline Object at(size_t index) noexcept;
-		inline Array(const JsonIteratorBase<Array>& iter) noexcept;
-		static inline Array startRoot(JsonIteratorBase<Array>& iter) noexcept;
-		static inline Array started(JsonIteratorBase<Array>& iter) noexcept;
-
+		inline Array(IteratorBaseBase&) noexcept;
 	  protected:
 		inline ErrorCode consume() noexcept;
-		static inline Array start(JsonIteratorBase<Array>& iter) noexcept;
 
 		JsonIteratorBase<Array> iter{};
 	};

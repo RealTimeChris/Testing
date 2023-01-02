@@ -65,34 +65,34 @@ namespace Jsonifier {
 		inline size_t countFields() noexcept;
 		inline Object() noexcept = default;
 
-		static inline Object start(JsonValueBase& iter) noexcept {
+		static inline Object start(IteratorBaseBase& iter) noexcept {
 			iter.startObject();
 			return Object(iter);
 		}
 
-		static inline Object resume(JsonValueBase&& iter) noexcept {
+		static inline Object resume(IteratorBaseBase&& iter) noexcept {
 			return iter;
 		}
 
-		static inline Object startRoot(JsonValueBase&& iter) noexcept {
+		static inline Object startRoot(IteratorBaseBase&& iter) noexcept {
 			iter.startRootObject();
 			return Object(iter);
 		}
 
 		inline Object findFieldUnordered(const std::string_view key) & noexcept {
-			bool hasValue{ this->findFieldUnorderedRaw(key) };
+			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(child<Object>());
+			return Object(iterator.child());
 		}
 
 		inline Object findFieldUnordered(const std::string_view key) && noexcept {
-			bool hasValue{ this->findFieldUnorderedRaw(key) };
+			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(child<Object>());
+			return Object(iterator.child());
 		}
 
 		inline Object operator[](const std::string_view key) & noexcept {
@@ -104,20 +104,22 @@ namespace Jsonifier {
 		}
 
 		inline Object findField(const std::string_view key) & noexcept {
-			bool hasValue{ this->findFieldRaw(key) };
+			bool hasValue{ this->iterator.findFieldRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(child<Object>());
+			return Object(iterator.child());
 		}
 
 		inline Object findField(const std::string_view key) && noexcept {
-			bool hasValue{ this->findFieldRaw(key) };
+			bool hasValue{ this->iterator.findFieldRaw(key) };
 			if (!hasValue) {
 				return Object{};
 			}
-			return Object(child<Object>());
+			return Object(iterator.child());
 		}
+
+		inline Object(IteratorBaseBase&) noexcept;
 
 		inline Object(JsonValueBase&& other) : JsonValueBase{ std::move(other) } {};
 

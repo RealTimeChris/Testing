@@ -4,6 +4,8 @@
 
 namespace Jsonifier {
 
+	class IteratorBaseBase;
+
 	class EnumStringConverter {
 	  public:
 		inline EnumStringConverter(ErrorCode error) {
@@ -90,6 +92,7 @@ namespace Jsonifier {
 		inline bool is_equal(const char* target) const noexcept;
 		static inline bool is_free_from_unescaped_quote(std::string_view target) noexcept;
 		static inline bool is_free_from_unescaped_quote(const char* target) noexcept;
+		template<typename OTy> inline std::string_view unescape(IteratorBaseBase& iter) noexcept;
 
 	  protected:
 		inline void consume() noexcept {
@@ -98,9 +101,9 @@ namespace Jsonifier {
 		inline bool alive() const noexcept {
 			return stringView != nullptr;
 		}
-		template<typename OTy> inline std::string_view unescape(IteratorBaseBase& iter) noexcept;
-
 		uint8_t* stringView{};
+		friend class IteratorBaseBase;
+		friend class JsonValueBase;
 		friend class JsonIterator;
 	};
 
