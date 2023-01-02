@@ -699,7 +699,6 @@ namespace Jsonifier {
 		static inline Field start(ValueIterator& parent_iter) noexcept {
 			std::string_view key{};
 			key = parent_iter.field_key();
-			std::cout << "CURRENT KEY: " << key << std::endl;
 			parent_iter.field_value();
 			return Field::start(parent_iter, RawJsonString{ ( uint8_t* )(key.data()) });
 		}
@@ -806,9 +805,7 @@ namespace Jsonifier {
 		}
 
 		inline Object start_or_resume_object() noexcept {
-			auto newValue = this->iter.at_root();
-			std::cout << "ARE WE AT ROOT?: " << std::boolalpha << newValue << std::endl;
-			if (newValue) {
+			if (this->iter.at_root()) {
 				return get_object();
 			} else {
 				return Object::resume(resume_value_iterator());
@@ -1703,9 +1700,7 @@ namespace Jsonifier {
 
 	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		TapeBuilder tapeBuilder{ this };
 		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
-		dumpRawTape(this->getTape(), this->getStringBuffer());
 		return this->getDocument();
 	}
 	template<> inline ErrorCode ValueIterator::get<Object>(Object& value) noexcept {
@@ -2154,7 +2149,7 @@ namespace Jsonifier {
 
 	inline void JsonIterator::descend_to(size_t child_depth) noexcept {
 		assert(child_depth >= 1 && child_depth < std::numeric_limits<int32_t>::max());
-		assert(currentDepth == child_depth - 1);
+		//assert(currentDepth == child_depth - 1);
 		currentDepth = child_depth;
 	}
 

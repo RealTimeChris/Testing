@@ -194,7 +194,6 @@ namespace Jsonifier {
 			for (size_t x = 0; x < 32; ++x) {
 				
 				if (dst[x] == '"') {
-					std::cout << "WERRE HERE THIS IS IT: " << dst[x] << std::endl;
 					dst[x] = '\0';
 					return x;
 				}
@@ -207,8 +206,6 @@ namespace Jsonifier {
 			int32_t index{};
 			while (length > 0) {
 				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
-					std::cout << "WERRE HERE THIS IS IT: (REAL) " << src[index] << std::endl;
-					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << index + result << std::endl;
 					return dst;
 				}
 				length -= 32;
@@ -265,8 +262,6 @@ namespace Jsonifier {
 			while (1) {
 				 auto bs_quote = backslash_and_quote<SimdBase256>::copy_and_find(src, dst);
 				if (bs_quote.has_quote_first()) {
-					 std::cout << dst - src << std::endl;
-					std::cout << bs_quote.quote_index() << std::endl;
 					 return dst + bs_quote.quote_index();
 				}
 				if (bs_quote.has_backslash()) {
