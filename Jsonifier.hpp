@@ -1752,13 +1752,13 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator& JsonIterator::operator=(JsonIterator&& other) noexcept {
-		token = other.token;
-		parser = other.parser;
 		this->stringBuffer = other.stringBuffer;
-		error = other.error;
 		currentDepth = other.currentDepth;
-		root = other.root;
 		other.parser = nullptr;
+		parser = other.parser;
+		error = other.error;
+		token = other.token;
+		root = other.root;
 		return *this;
 	}
 
