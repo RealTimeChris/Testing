@@ -1739,8 +1739,7 @@ namespace Jsonifier {
 	}
 
 	inline ValueIterator::ValueIterator(JsonifierCore* other) noexcept
-		: rootPosition(other->getStructuralIndexes()), stringView(other->getStringView()),
-		  stringBufferLocation(other->getStringBuffer()), jsonIterator{ std::make_unique<JsonIterator>(other->getStringView(), other) } {
+		: jsonIterator{ std::make_unique<JsonIterator>(other->getStringView(), other) } {
 		this->parser = other;
 	}
 
@@ -1768,11 +1767,9 @@ namespace Jsonifier {
 		  } {};
 
 	inline ValueIterator& ValueIterator::operator=(const ValueIterator& other) noexcept {
-		this->stringBufferLocation = other.stringBufferLocation;
 		*this->jsonIterator = *other.jsonIterator;
-		this->currentDepth = other.currentDepth;
 		this->rootPosition = other.rootPosition;
-		this->stringView = other.stringView;
+		this->currentDepth = other.currentDepth;
 		this->parser = other.parser;
 		this->error = other.error;
 		return *this;
@@ -1783,11 +1780,9 @@ namespace Jsonifier {
 	}
 
 	inline ValueIterator& ValueIterator::operator=(ValueIterator && other) noexcept {
-		this->stringBufferLocation = other.stringBufferLocation;
 		*this->jsonIterator = *other.jsonIterator;
-		this->currentDepth = other.currentDepth;
 		this->rootPosition = other.rootPosition;
-		this->stringView = other.stringView;
+		this->currentDepth = other.currentDepth;
 		this->parser = other.parser;
 		this->error = other.error;
 		return *this;
@@ -1933,7 +1928,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* ValueIterator::peekStart() const noexcept {
-		return &this->stringView[*startPosition()];
+		return &this->parser->getStringView()[*startPosition()];
 	}
 
 	inline size_t ValueIterator::depth() const noexcept {
@@ -2273,11 +2268,8 @@ namespace Jsonifier {
 	}
 
 	inline ValueIterator::ValueIterator(JsonIterator* jsonIterator, uint64_t depth, uint32_t* rootPosition)noexcept {
-		this->stringBufferLocation = jsonIterator->parser->getStringBuffer();
-		this->stringView = jsonIterator->parser->getStringView();
 		*this->jsonIterator = *jsonIterator;
 		this->parser = jsonIterator->parser;
-		this->rootPosition = rootPosition;
 		this->currentDepth = depth;
 	}
 
@@ -2291,7 +2283,7 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::operator!=(const ValueIterator&other) {
-		return (this->stringBufferLocation != other.stringBufferLocation && this->stringView != other.stringView);
+		return (this->currentDepth != other.currentDepth && this->rootPosition != other.rootPosition);
 	}
 
 	inline bool ValueIterator::findFieldUnorderedRaw(const std::string_view key) noexcept {

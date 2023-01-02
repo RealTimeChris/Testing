@@ -401,9 +401,7 @@ namespace Jsonifier {
 
 	  protected:
 		ErrorCode error{ ErrorCode::Success };
-		uint8_t* stringBufferLocation{};
-		JsonifierCore* parser{};
-		uint8_t* stringView{};
 		uint32_t* rootPosition{};
+		JsonifierCore* parser{};
 	};
 }
