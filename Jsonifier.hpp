@@ -2308,5 +2308,18 @@ namespace Jsonifier {
 	inline uint32_t* ValueIterator::startPosition()const  noexcept {
 		return rootPosition;
 	}
+	
+	inline ErrorCode ValueIterator::endContainer() noexcept {
+		jsonIterator->ascendTo(depth() - 1);
+		return ErrorCode::Success;
+	}
+
+	inline bool ValueIterator::isAtStart() const noexcept {
+		return position() == startPosition();
+	}
+
+	inline uint32_t* ValueIterator::position() const noexcept {
+		return jsonIterator->position();
+	}
 
 };
