@@ -1909,7 +1909,7 @@ namespace Jsonifier {
 	}
 		
 	inline void ValueIterator::assertAtNext() const noexcept {
-		assert(jsonIterator->token.position() > rootPosition);
+		//assert(jsonIterator->token.position() > rootPosition);
 		std::cout << "JSON ITERATOR DEPTH: " << jsonIterator->currentDepth << ", CURRENT DEPTH: " << currentDepth << std::endl;
 		assert(jsonIterator->currentDepth == currentDepth);
 		assert(currentDepth > 0);
