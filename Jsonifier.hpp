@@ -804,7 +804,7 @@ namespace Jsonifier {
 			return Object::startRoot(value);
 		}
 
-		inline Object start_or_resume_object() noexcept {
+		inline Object startOrResumeObject() noexcept {
 			if (this->iter.atRoot()) {
 				return getObject();
 			} else {
@@ -816,51 +816,51 @@ namespace Jsonifier {
 			return ValueIterator(&iter, 1, iter.rootPosition());
 		}
 
-		inline Object find_field(std::string_view key) & noexcept {
-			return start_or_resume_object().find_field(key);
+		inline Object findField(std::string_view key) & noexcept {
+			return startOrResumeObject().findField(key);
 		}
 
-		inline Object find_field(const char* key) & noexcept {
-			return start_or_resume_object().find_field(key);
+		inline Object findField(const char* key) & noexcept {
+			return startOrResumeObject().findField(key);
 		}
 
 		inline Object findFieldUnordered(std::string_view key) & noexcept {
-			return start_or_resume_object().findFieldUnordered(key);
+			return startOrResumeObject().findFieldUnordered(key);
 		}
 
 		inline Object findFieldUnordered(const char* key) & noexcept {
-			return start_or_resume_object().findFieldUnordered(key);
+			return startOrResumeObject().findFieldUnordered(key);
 		}
 
 		inline Object operator[](std::string_view key) & noexcept {
-			return start_or_resume_object()[key];
+			return startOrResumeObject()[key];
 		}
 
 		inline Object operator[](const char* key) & noexcept {
-			return start_or_resume_object()[key];
+			return startOrResumeObject()[key];
 		}
 
 		inline void rewind() noexcept {
 			iter.rewind();
 		}
 
-		inline std::string to_debug_string() noexcept {
+		inline std::string toDebugString() noexcept {
 			return iter.to_string();
 		}
 
-		inline const char* current_location() noexcept {
-			return iter.current_location();
+		inline const char* currentLocation() noexcept {
+			return iter.currentLocation();
 		}
 
-		inline int32_t current_depth() const noexcept {
+		inline int32_t currentDepth() const noexcept {
 			return iter.depth();
 		}
 
-		inline bool is_alive() noexcept {
-			return iter.is_alive();
+		inline bool isAlive() noexcept {
+			return iter.isAlive();
 		}
 
-		inline Object get_value() noexcept {
+		inline Object getValue() noexcept {
 			iter.assert_at_document_depth();
 			switch (*iter.peek()) {
 				case '[':
@@ -871,7 +871,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline Array get_array() & noexcept {
+		inline Array getArray() & noexcept {
 			auto value = getRootValueIterator();
 			return Array::startRoot(value);
 		}
@@ -921,7 +921,7 @@ namespace Jsonifier {
 		template<typename OTy> inline OTy get() && noexcept;
 
 		template<> inline Array get() & noexcept {
-			return get_array();
+			return getArray();
 		}
 
 		template<> inline Object get() & noexcept {
@@ -977,7 +977,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline Object get() && noexcept {
-			return get_value();
+			return getValue();
 		}
 
 		template<typename T> inline ErrorCode get(T& out) & noexcept {
@@ -989,7 +989,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t countElements() & noexcept {
-			auto a = get_array();
+			auto a = getArray();
 			size_t answer = a.countElements();
 			if (answer != 0) {
 				rewind();
@@ -1007,12 +1007,12 @@ namespace Jsonifier {
 		}
 
 		inline Object at(size_t index) & noexcept {
-			auto a = get_array();
+			auto a = getArray();
 			return a.at(index);
 		}
 
 		inline ArrayIterator begin() & noexcept {
-			return get_array().begin();
+			return getArray().begin();
 		}
 
 		inline ArrayIterator end() & noexcept {

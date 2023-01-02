@@ -170,7 +170,7 @@ namespace Jsonifier {
 		inline void assert_at_document_depth() const noexcept;
 		inline void assert_at_root() const noexcept;
 		inline bool at_end() const noexcept;
-		inline bool is_alive() const noexcept;
+		inline bool isAlive() const noexcept;
 		inline void abandon() noexcept;
 		inline const uint8_t* returnCurrentAndAdvance() noexcept;
 		inline bool is_single_token() const noexcept;
@@ -196,7 +196,7 @@ namespace Jsonifier {
 		inline std::string_view unescape(RawJsonString&) noexcept;
 		inline void reenter_child(uint32_t* position, size_t child_depth) noexcept;
 		inline std::string to_string() const noexcept;
-		inline const char* current_location() noexcept;
+		inline const char* currentLocation() noexcept;
 		inline void rewind() noexcept;
 		inline bool balanced() const noexcept;
 
@@ -309,7 +309,7 @@ namespace Jsonifier {
 		inline bool hasNextField() noexcept;
 		inline std::string_view fieldKey() noexcept;
 		inline ErrorCode fieldValue() noexcept;
-		inline ErrorCode find_field(const std::string_view key) noexcept;
+		inline ErrorCode findField(const std::string_view key) noexcept;
 		inline bool find_field_raw(const std::string_view key) noexcept;
 		inline bool start_array() noexcept;
 		inline bool startRootArray() noexcept;
