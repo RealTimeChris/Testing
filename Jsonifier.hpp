@@ -1050,16 +1050,14 @@ namespace Jsonifier {
 			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
 			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
 			this->isArray.allocate(this->structuralIndexes.size());
-			this->tape.allocate(this->structuralIndexes.size());
 			this->openContainers.allocate(this->maxDepth);
 			this->stringView = stringViewNew;
-			if (!(this->tape.get() && this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
+			if (!(this->structuralIndexes.get() && this->stringBuffer.get() && this->isArray.get() &&
 					this->openContainers.get())) {
 				this->structuralIndexes.deallocate();
 				this->openContainers.deallocate();
 				this->stringBuffer.deallocate();
 				this->isArray.deallocate();
-				this->tape.deallocate();
 				return ErrorCode::Mem_Alloc_Error;
 			}
 
@@ -1114,10 +1112,6 @@ namespace Jsonifier {
 			return this->structuralIndexes.get();
 		}
 
-		inline uint64_t* getTape() {
-			return this->tape.get();
-		}
-
 		inline Document parseJson(std::string& string);
 
 		inline uint32_t getMaxDepth() {
@@ -1136,7 +1130,6 @@ namespace Jsonifier {
 		ObjectBuffer<OpenContainer> openContainers{};
 		ObjectBuffer<uint32_t> structuralIndexes{};
 		ObjectBuffer<uint8_t> stringBuffer{};
-		ObjectBuffer<uint64_t> tape{};
 		ObjectBuffer<bool> isArray{};
 		SimdStringSection section{};
 		uint32_t maxDepth{ 512 };
@@ -1217,7 +1210,7 @@ namespace Jsonifier {
 	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(uint8_t(t))) << 56);
 	}
-
+	/*
 	struct TapeBuilder {
 
 		inline TapeBuilder(JsonifierCore* doc) noexcept;
@@ -1697,10 +1690,9 @@ namespace Jsonifier {
 					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 	}
-
+	*/
 	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		this->getTapeLength() = (this->getTape()[0] & JSON_VALUE_MASK);
 		return this->getDocument();
 	}
 	template<> inline ErrorCode ValueIterator::get<Object>(Object& value) noexcept {
@@ -1810,36 +1802,6 @@ namespace Jsonifier {
 
 	inline void ValueIterator::assertAtStringStart(size_t amountToOffset) noexcept {
 		assert(*this->jsonIterator->peek() == '"');
-	}
-
-	inline size_t ValueIterator::getCurrentCount() noexcept {
-		return uint32_t((*this->parser->getTape() & JSON_VALUE_MASK)) - (this->parser->getTape() - this->parser->getTape()) - 2;
-	}
-
-	inline uint8_t ValueIterator::getRootKey() noexcept {
-		return (*this->parser->getTape() >> 56);
-	}
-
-	inline size_t ValueIterator::size() noexcept {
-		switch (this->getRootKey()) {
-			case 'r': {
-				[[fallthrough]];
-			}
-			case '[': {
-				[[fallthrough]];
-			}
-			case '{': {
-				return (((*(this->parser->getTape()) & JSON_VALUE_MASK) >> 32) & JSON_COUNT_MASK);
-			}
-			case '"': {
-				size_t stringLength{};
-				std::memcpy(&stringLength, this->parser->getStringBuffer() + ((*this->parser->getTape()) & JSON_VALUE_MASK), sizeof(uint32_t));
-				return stringLength;
-			}
-			default: {
-				return 1;
-			}
-		}
 	}
 
 	inline JsonType ValueIterator::type() noexcept {

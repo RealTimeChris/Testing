@@ -832,14 +832,14 @@ namespace Jsonifier {
 			uint64_t i = 0;
 			const uint8_t* p = src;
 			p += parseDigit(*p, i);
-			bool leading_zero = (i == 0);
+			bool leadingZero = (i == 0);
 			while (parseDigit(*p, i)) {
 				p++;
 			}
 			if (p == src) {
 				return INCORRECT_TYPE;
 			}
-			if ((leading_zero && p != src + 1)) {
+			if ((leadingZero && p != src + 1)) {
 				return NUMBER_ERROR;
 			}
 
@@ -847,7 +847,7 @@ namespace Jsonifier {
 			bool overflow;
 			if (*p == '.') {
 				p++;
-				const uint8_t* start_decimal_digits = p;
+				const uint8_t* startDecimalDigits = p;
 				if (!parseDigit(*p, i)) {
 					return NUMBER_ERROR;
 				}
@@ -855,9 +855,9 @@ namespace Jsonifier {
 				while (parseDigit(*p, i)) {
 					p++;
 				}
-				exponent = -(p - start_decimal_digits);
+				exponent = -(p - startDecimalDigits);
 				overflow = p - src - 1 > 19;
-				if (overflow && leading_zero) {
+				if (overflow && leadingZero) {
 					const uint8_t* startDigits = src + 2;
 					while (*startDigits == '0') {
 						startDigits++;
@@ -870,19 +870,19 @@ namespace Jsonifier {
 
 			if (*p == 'e' || *p == 'E') {
 				p++;
-				bool exp_neg = *p == '-';
-				p += exp_neg || *p == '+';
+				bool expNeg = *p == '-';
+				p += expNeg || *p == '+';
 
 				uint64_t exp = 0;
-				const uint8_t* start_exp_digits = p;
+				const uint8_t* startExpDigits = p;
 				while (parseDigit(*p, exp)) {
 					p++;
 				}
-				if (p - start_exp_digits == 0 || p - start_exp_digits > 19) {
+				if (p - startExpDigits == 0 || p - startExpDigits > 19) {
 					return NUMBER_ERROR;
 				}
 
-				exponent += exp_neg ? 0 - exp : exp;
+				exponent += expNeg ? 0 - exp : exp;
 			}
 
 			if (isNotStructuralOrWhitespace(*p)) {
@@ -905,53 +905,24 @@ namespace Jsonifier {
 
 		static inline uint64_t parseUnsigned(const uint8_t* const src) noexcept {
 			const uint8_t* p = src;
-			//
-			// Parse the integer part.
-			//
-			// PERF NOTE: we don't use is_made_of_eight_digits_fast because large integers like 123456789 are rare
-			const uint8_t* const start_digits = p;
+			const uint8_t* const startDigits = p;
 			uint64_t i = 0;
 			while (parseDigit(*p, i)) {
 				p++;
 			}
 
-			// If there were no digits, or if the integer starts with 0 and has more than one digit, it's an error.
-			// Optimization note: size_t is expected to be unsigned.
-			size_t digit_count = size_t(p - start_digits);
-			// The longest positive 64-bit number is 20 digits.
-			// We do it this way so we don't trigger this branch unless we must.
-			// Optimization note: the compiler can probably merge
-			// ((digit_count == 0) || (digit_count > 20))
-			// into a single  branch since digit_count is unsigned.
-			if ((digit_count == 0) || (digit_count > 20)) {
+			size_t digitCount = size_t(p - startDigits);
+			if ((digitCount == 0) || (digitCount > 20)) {
 				return INCORRECT_TYPE;
 			}
-			// Here digit_count > 0.
-			if (('0' == *start_digits) && (digit_count > 1)) {
+			if (('0' == *startDigits) && (digitCount > 1)) {
 				return NUMBER_ERROR;
 			}
-			// We can do the following...
-			// if (!jsoncharutils::is_structural_or_whitespace(*p)) {
-			//  return (*p == '.' || *p == 'e' || *p == 'E') ? INCORRECT_TYPE : NUMBER_ERROR;
-			// }
-			// as a single table lookup:
 			if (integerStringFinisher[*p] != SUCCESS) {
 				return static_cast<uint64_t>(ErrorCode::Invalid_Number);
 			}
 
-			if (digit_count == 20) {
-				// Positive overflow check:
-				// - A 20 digit number starting with 2-9 is overflow, because 18,446,744,073,709,551,615 is the
-				//   biggest uint64_t.
-				// - A 20 digit number starting with 1 is overflow if it is less than INT64_MAX.
-				//   If we got here, it's a 20 digit number starting with the digit "1".
-				// - If a 20 digit number starting with 1 overflowed (i*10+digit), the result will be smaller
-				//   than 1,553,255,926,290,448,384.
-				// - That is smaller than the smallest possible 20-digit number the user could write:
-				//   10,000,000,000,000,000,000.
-				// - Therefore, if the number is positive and lower than that, it's overflow.
-				// - The value we are looking at is less than or equal to INT64_MAX.
-				//
+			if (digitCount == 20) {
 				if (src[0] != uint8_t('1') || i <= uint64_t(INT64_MAX)) {
 					return INCORRECT_TYPE;
 				}
