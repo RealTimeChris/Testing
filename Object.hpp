@@ -38,7 +38,7 @@ namespace Jsonifier {
 		inline Object() noexcept = default;
 
 		static inline Object start(ValueIterator& iter) noexcept {
-			iter.start_object();
+			iter.startObject();
 			return Object(iter);
 		}
 
@@ -47,7 +47,7 @@ namespace Jsonifier {
 		}
 
 		static inline Object startRoot(ValueIterator& iter) noexcept {
-			iter.start_root_object();
+			iter.startRootObject();
 			return Object(iter);
 		}
 

@@ -203,7 +203,7 @@ namespace Jsonifier {
 		inline JsonIterator(uint8_t* buf, JsonifierCore* parser) noexcept;
 
 	  protected:
-		inline uint32_t* last_position() const noexcept;
+		inline uint32_t* lastPosition() const noexcept;
 		inline uint32_t* endPosition() const noexcept;
 		inline uint32_t* end() const noexcept;
 
@@ -237,9 +237,9 @@ namespace Jsonifier {
 
 		inline Object operator[](const std::string_view key) && noexcept;
 
-		inline ValueIterator resume_value_iterator() noexcept;
+		inline ValueIterator resumeValueIterator() noexcept;
 
-		inline ValueIterator get_root_value_iterator() noexcept;
+		inline ValueIterator getRootValueIterator() noexcept;
 
 		inline Field findField(const char* keyNew) noexcept;
 
@@ -302,10 +302,10 @@ namespace Jsonifier {
 		inline ValueIterator child_value() const noexcept;
 		inline size_t depth() const noexcept;
 		inline JsonType type() const noexcept;
-		inline bool start_object() noexcept;
-		inline bool start_root_object() noexcept;
+		inline bool startObject() noexcept;
+		inline bool startRootObject() noexcept;
 		inline bool startedObject() noexcept;
-		inline bool started_root_object() noexcept;
+		inline bool startedRootObject() noexcept;
 		inline bool hasNextField() noexcept;
 		inline std::string_view fieldKey() noexcept;
 		inline ErrorCode fieldValue() noexcept;
@@ -313,13 +313,13 @@ namespace Jsonifier {
 		inline bool find_field_raw(const std::string_view key) noexcept;
 		inline bool start_array() noexcept;
 		inline bool startRootArray() noexcept;
-		inline bool started_array() noexcept;
+		inline bool startedArray() noexcept;
 		inline bool startedRootArray() noexcept;
 		inline bool hasNextElement() noexcept;
 		inline ValueIterator child() noexcept;
 
 		inline std::string_view getString() noexcept;
-		inline RawJsonString get_raw_json_string() noexcept;
+		inline RawJsonString getRawJsonString() noexcept;
 		inline uint64_t getUint64() noexcept;
 		inline uint64_t get_uint64_in_string() noexcept;
 		inline int64_t getInt64() noexcept;
@@ -351,7 +351,7 @@ namespace Jsonifier {
 		inline bool is_valid() const noexcept;
 
 	  protected:
-		inline bool reset_array() noexcept;
+		inline bool resetArray() noexcept;
 		inline bool resetObject() noexcept;
 		inline void move_at_start() noexcept;
 		inline void moveAtContainerStart() noexcept;
@@ -363,11 +363,11 @@ namespace Jsonifier {
 		inline const uint8_t* peekStart() const noexcept;
 		inline uint32_t peek_start_length() const noexcept;
 
-		inline void advance_scalar() noexcept;
+		inline void advanceScalar() noexcept;
 		inline void advance_root_scalar() noexcept;
 		inline void advanceNonRootScalar() noexcept;
 
-		inline const uint8_t* peek_scalar() noexcept;
+		inline const uint8_t* peekScalar() noexcept;
 		inline const uint8_t* peek_root_scalar() noexcept;
 		inline const uint8_t* peekNonRootScalar() noexcept;
 
@@ -391,7 +391,7 @@ namespace Jsonifier {
 		inline uint32_t* startPosition() const noexcept;
 
 		inline uint32_t* position() const noexcept;
-		inline uint32_t* last_position() const noexcept;
+		inline uint32_t* lastPosition() const noexcept;
 		inline uint32_t* endPosition() const noexcept;
 		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
 
