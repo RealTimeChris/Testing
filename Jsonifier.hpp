@@ -2127,7 +2127,7 @@ namespace Jsonifier {
 	}
 
 	inline void JsonIterator::ascendTo(size_t parent_depth) noexcept {
-		assert(parent_depth >= 0 && parent_depth < std::numeric_limits<int32_t>::max() - 1);
+		assert(parent_depth >= 0 && parent_depth < std::numeric_limits<int32_t>::max() - 1ull);
 		assert(currentDepth == parent_depth + 1);
 		currentDepth = parent_depth;
 	}
