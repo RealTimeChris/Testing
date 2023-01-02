@@ -799,14 +799,14 @@ namespace Jsonifier {
 			return resume_value_iterator();
 		}
 
-		inline Object get_object() & noexcept {
+		inline Object getObject() & noexcept {
 			auto value = get_root_value_iterator();
 			return Object::startRoot(value);
 		}
 
 		inline Object start_or_resume_object() noexcept {
 			if (this->iter.atRoot()) {
-				return get_object();
+				return getObject();
 			} else {
 				return Object::resume(resume_value_iterator());
 			}
@@ -876,7 +876,7 @@ namespace Jsonifier {
 			return Array::startRoot(value);
 		}
 
-		inline uint64_t get_uint64() noexcept {
+		inline uint64_t getUint64() noexcept {
 			return get_root_value_iterator().get_root_uint64();
 		}
 
@@ -884,7 +884,7 @@ namespace Jsonifier {
 			return get_root_value_iterator().get_root_uint64_in_string();
 		}
 
-		inline int64_t get_int64() noexcept {
+		inline int64_t getInt64() noexcept {
 			return get_root_value_iterator().get_root_int64();
 		}
 
@@ -900,7 +900,7 @@ namespace Jsonifier {
 			return get_root_value_iterator().get_root_double_in_string();
 		}
 
-		inline std::string_view get_string() noexcept {
+		inline std::string_view getString() noexcept {
 			return get_root_value_iterator().get_root_string();
 		}
 
@@ -908,7 +908,7 @@ namespace Jsonifier {
 			return get_root_value_iterator().get_root_raw_json_string();
 		}
 
-		inline bool get_bool() noexcept {
+		inline bool getBool() noexcept {
 			return get_root_value_iterator().get_root_bool();
 		}
 
@@ -925,7 +925,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline Object get() & noexcept {
-			return get_object();
+			return getObject();
 		}
 
 		template<> inline RawJsonString get() & noexcept {
@@ -933,7 +933,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline std::string_view get() & noexcept {
-			return get_string();
+			return getString();
 		}
 
 		template<> inline double get() & noexcept {
@@ -941,15 +941,15 @@ namespace Jsonifier {
 		}
 
 		template<> inline uint64_t get() & noexcept {
-			return get_uint64();
+			return getUint64();
 		}
 
 		template<> inline int64_t get() & noexcept {
-			return get_int64();
+			return getInt64();
 		}
 
 		template<> inline bool get() & noexcept {
-			return get_bool();
+			return getBool();
 		}
 
 		template<> inline RawJsonString get() && noexcept {
@@ -957,7 +957,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline std::string_view get() && noexcept {
-			return get_string();
+			return getString();
 		}
 
 		template<> inline double get() && noexcept {
@@ -965,15 +965,15 @@ namespace Jsonifier {
 		}
 
 		template<> inline uint64_t get() && noexcept {
-			return std::forward<Document>(*this).get_uint64();
+			return std::forward<Document>(*this).getUint64();
 		}
 
 		template<> inline int64_t get() && noexcept {
-			return std::forward<Document>(*this).get_int64();
+			return std::forward<Document>(*this).getInt64();
 		}
 
 		template<> inline bool get() && noexcept {
-			return std::forward<Document>(*this).get_bool();
+			return std::forward<Document>(*this).getBool();
 		}
 
 		template<> inline Object get() && noexcept {
@@ -998,7 +998,7 @@ namespace Jsonifier {
 		}
 
 		inline size_t countFields() & noexcept {
-			auto a = get_object();
+			auto a = getObject();
 			size_t answer = a.countFields();
 			if (answer != 0) {
 				rewind();
@@ -1060,7 +1060,7 @@ namespace Jsonifier {
 				this->stringBuffer.deallocate();
 				this->isArray.deallocate();
 				this->tape.deallocate();
-				return ErrorCode::MemAlloc;
+				return ErrorCode::Mem_Alloc_Error;
 			}
 
 			return ErrorCode::Success;
@@ -1363,7 +1363,7 @@ namespace Jsonifier {
 		dst01 = StringParser::parseString(reinterpret_cast<const uint8_t*>(value) + 1ull, reinterpret_cast<uint8_t*>(dst01),
 			(*this->nextStructural + 1ull) - (*this->nextStructural));
 		if (dst01 == nullptr) {
-			return ErrorCode::StringError;
+			return ErrorCode::String_Error;
 		}
 		return onEndString(dst01);
 	}
@@ -1379,7 +1379,7 @@ namespace Jsonifier {
 	inline ErrorCode TapeBuilder::visitRootNumber(const uint8_t* value) noexcept {
 		std::unique_ptr<uint8_t[]> copy(new (std::nothrow) uint8_t[this->remainingLen() + 256]);
 		if (copy.get() == nullptr) {
-			return ErrorCode::MemAlloc;
+			return ErrorCode::Mem_Alloc_Error;
 		}
 		std::memcpy(copy.get(), value, this->remainingLen());
 		std::memset(copy.get() + this->remainingLen(), ' ', 256);
@@ -1388,7 +1388,7 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitTrueAtom(const uint8_t* value) noexcept {
 		if (!StringParser::isValidTrueAtom(value)) {
-			return ErrorCode::TAtomError;
+			return ErrorCode::TAtom_Error;
 		}
 		this->tape.append(0, TapeType::True_Value);
 		return ErrorCode::Success;
@@ -1396,7 +1396,7 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitRootTrueAtom(const uint8_t* value) noexcept {
 		if (!StringParser::isValidTrueAtom(value)) {
-			return ErrorCode::NAtomError;
+			return ErrorCode::NAtom_Error;
 		}
 		this->tape.append(0, TapeType::True_Value);
 		return ErrorCode::Success;
@@ -1404,7 +1404,7 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitFalseAtom(const uint8_t* value) noexcept {
 		if (!StringParser::isValidFalseAtom(value)) {
-			return ErrorCode::FAtomError;
+			return ErrorCode::FAtom_Error;
 		}
 		this->tape.append(0, TapeType::False_Value);
 		return ErrorCode::Success;
@@ -1412,7 +1412,7 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitRootFalseAtom(const uint8_t* value) noexcept {
 		if (!StringParser::isValidFalseAtom(value)) {
-			return ErrorCode::FAtomError;
+			return ErrorCode::FAtom_Error;
 		}
 		this->tape.append(0, TapeType::False_Value);
 		return ErrorCode::Success;
@@ -1420,7 +1420,7 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitNullAtom(const uint8_t* value) noexcept {
 		if (!StringParser::isValidNullAtom(value)) {
-			return ErrorCode::NAtomError;
+			return ErrorCode::NAtom_Error;
 		}
 		this->tape.append(0, TapeType::Null_Value);
 		return ErrorCode::Success;
@@ -1428,7 +1428,7 @@ namespace Jsonifier {
 
 	inline ErrorCode TapeBuilder::visitRootNullAtom(const uint8_t* value) noexcept {
 		if (!StringParser::isValidNullAtom(value)) {
-			return ErrorCode::NAtomError;
+			return ErrorCode::NAtom_Error;
 		}
 		this->tape.append(0, TapeType::Null_Value);
 		return ErrorCode::Success;
@@ -1505,13 +1505,13 @@ namespace Jsonifier {
 	Object_Begin : {
 		this->depth++;
 		if (this->depth >= masterParser->getMaxDepth()) {
-			return ErrorCode::DepthError;
+			return ErrorCode::Depth_Error;
 		}
 		this->masterParser->getIsArray()[this->depth] = false;
 		this->visitObjectStart();
 		auto key = this->advance();
 		if (*key != '"') {
-			return ErrorCode::TapeError;
+			return ErrorCode::Tape_Error;
 		}
 		this->visitKey(key);
 		this->incrementCount();
@@ -1520,7 +1520,7 @@ namespace Jsonifier {
 	Object_Field : {
 		auto newValue = *this->advance();
 		if (newValue != ':') {
-			return ErrorCode::TapeError;
+			return ErrorCode::Tape_Error;
 		}
 		auto Object = this->advance();
 		switch (*value) {
@@ -1554,7 +1554,7 @@ namespace Jsonifier {
 				{
 					auto key = this->advance();
 					if (*key != '"') {
-						return ErrorCode::TapeError;
+						return ErrorCode::Tape_Error;
 					}
 					this->visitKey(key);
 				}
@@ -1563,7 +1563,7 @@ namespace Jsonifier {
 				this->visitObjectEnd();
 				goto Scope_End;
 			default:
-				return ErrorCode::TapeError;
+				return ErrorCode::Tape_Error;
 		}
 	}
 
@@ -1581,7 +1581,7 @@ namespace Jsonifier {
 	Array_Begin : {
 		this->depth++;
 		if (this->depth >= masterParser->getMaxDepth()) {
-			return ErrorCode::DepthError;
+			return ErrorCode::Depth_Error;
 		}
 		this->masterParser->getIsArray()[this->depth] = true;
 		this->visitArrayStart();
@@ -1624,7 +1624,7 @@ namespace Jsonifier {
 				this->visitArrayEnd();
 				goto Scope_End;
 			default:
-				return ErrorCode::TapeError;
+				return ErrorCode::Tape_Error;
 		}
 	}
 
@@ -1634,7 +1634,7 @@ namespace Jsonifier {
 		auto nextStructuralIndex = uint32_t(this->nextStructural - &this->masterParser->getStructuralIndexes()[0]);
 
 		if (nextStructuralIndex != this->masterParser->getTapeLength()) {
-			return ErrorCode::TapeError;
+			return ErrorCode::Tape_Error;
 		}
 	}
 		return ErrorCode::Success;
@@ -1664,7 +1664,7 @@ namespace Jsonifier {
 				return this->visitRootNumber(value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::Tape_Error) } +
 					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 	}
@@ -1693,7 +1693,7 @@ namespace Jsonifier {
 				return this->visitNumber(value);
 			default:
 				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-					std::string{ static_cast<EnumStringConverter>(ErrorCode::TapeError) } +
+					std::string{ static_cast<EnumStringConverter>(ErrorCode::Tape_Error) } +
 					", at the following index into the string: " + std::to_string(*this->nextStructural) };
 		}
 	}
@@ -1704,7 +1704,7 @@ namespace Jsonifier {
 		return this->getDocument();
 	}
 	template<> inline ErrorCode ValueIterator::get<Object>(Object& value) noexcept {
-		value = this->get_object();
+		value = this->getObject();
 		return std::move(this->error);
 	}
 
@@ -1714,27 +1714,27 @@ namespace Jsonifier {
 	}
 
 	template<> inline ErrorCode ValueIterator::get<bool>(bool& value) noexcept {
-		value = this->get_bool();
+		value = this->getBool();
 		return std::move(this->error);
 	}
 
 	template<> inline ErrorCode ValueIterator::get<int64_t>(int64_t& value) noexcept {
-		value = this->get_int64();
+		value = this->getInt64();
 		return std::move(this->error);
 	}
 
 	template<> inline ErrorCode ValueIterator::get<uint64_t>(uint64_t& value) noexcept {
-		value = this->get_uint64();
+		value = this->getUint64();
 		return std::move(this->error);
 	}
 
 	template<> inline ErrorCode ValueIterator::get<std::string>(std::string& value) noexcept {
-		value = this->get_string();
+		value = this->getString();
 		return std::move(this->error);
 	}
 
 	template<> inline ErrorCode ValueIterator::get<std::string_view>(std::string_view& value) noexcept {
-		value = this->get_string();
+		value = this->getString();
 		return std::move(this->error);
 	}
 
@@ -1934,7 +1934,7 @@ namespace Jsonifier {
 		this->iter = iterNew;
 	}
 
-	inline std::string_view ValueIterator::get_string() noexcept {
+	inline std::string_view ValueIterator::getString() noexcept {
 		return get_raw_json_string().unescape(json_iter());
 	}
 
@@ -1985,7 +1985,7 @@ namespace Jsonifier {
 		return started_root_object();
 	}
 
-	inline Object ValueIterator::get_object() &  noexcept {
+	inline Object ValueIterator::getObject() &  noexcept {
 		return Object::start(*this);
 	}
 
@@ -2078,7 +2078,7 @@ namespace Jsonifier {
 		assertAtNext();
 
 		if (*this->jsonIterator->returnCurrentAndAdvance() != ':') {
-			return ErrorCode::TapeError;
+			return ErrorCode::Tape_Error;
 		}
 		this->jsonIterator->descendTo(depth() + 1);
 		return ErrorCode::Success;
@@ -2216,7 +2216,7 @@ namespace Jsonifier {
 			}
 		}
 
-		return ErrorCode::TapeError;
+		return ErrorCode::Tape_Error;
 	}
 
 	inline std::string_view JsonIterator::unescape(RawJsonString& in) noexcept {

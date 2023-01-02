@@ -40,7 +40,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		Jsonifier::Object objectNew{};
 		//std::cout << "ELEMENTS TOTAL: " << value.countElements() << std::endl;
-		std::cout << "CURRENT SIZE: " << ( int32_t )value.get_object().findFieldUnordered("TEST_VALUE_11").countFields() << std::endl;
+		std::cout << "CURRENT SIZE: " << ( int32_t )value.getObject().findFieldUnordered("TEST_VALUE_11").countFields() << std::endl;
 		auto newKey = value["TEST_VALUE_11"].fieldKey();
 		
 		std::cout << "CURRENT KEY: " << newKey << std::endl;

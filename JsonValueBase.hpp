@@ -14,34 +14,34 @@ namespace Jsonifier {
 				case ErrorCode::Empty: {
 					return "Empty";
 				}
-				case ErrorCode::TapeError: {
+				case ErrorCode::Tape_Error: {
 					return "Tape Error";
 				}
-				case ErrorCode::DepthError: {
+				case ErrorCode::Depth_Error: {
 					return "Depth Error";
 				}
 				case ErrorCode::Success: {
 					return "Success";
 				}
-				case ErrorCode::ParseError: {
+				case ErrorCode::Parse_Error: {
 					return "Parse Error";
 				}
-				case ErrorCode::StringError: {
+				case ErrorCode::String_Error: {
 					return "String Error";
 				}
-				case ErrorCode::TAtomError: {
+				case ErrorCode::TAtom_Error: {
 					return "TAtom Error";
 				}
-				case ErrorCode::FAtomError: {
+				case ErrorCode::FAtom_Error: {
 					return "FAtom Error";
 				}
-				case ErrorCode::NAtomError: {
+				case ErrorCode::NAtom_Error: {
 					return "NAtom Error";
 				}
-				case ErrorCode::MemAlloc: {
+				case ErrorCode::Mem_Alloc_Error: {
 					return "Mem Alloc";
 				}
-				case ErrorCode::InvalidNumber: {
+				case ErrorCode::Invalid_Number: {
 					return "Invalid Number";
 				}
 				default: {
@@ -245,7 +245,7 @@ namespace Jsonifier {
 
 		inline JsonifierCore* getCore() noexcept;
 
-		inline Object get_object() & noexcept;
+		inline Object getObject() & noexcept;
 
 		inline Object parseJsonObject() noexcept;
 
@@ -318,15 +318,15 @@ namespace Jsonifier {
 		inline bool hasNextElement() noexcept;
 		inline ValueIterator child() noexcept;
 
-		inline std::string_view get_string() noexcept;
+		inline std::string_view getString() noexcept;
 		inline RawJsonString get_raw_json_string() noexcept;
-		inline uint64_t get_uint64() noexcept;
+		inline uint64_t getUint64() noexcept;
 		inline uint64_t get_uint64_in_string() noexcept;
-		inline int64_t get_int64() noexcept;
+		inline int64_t getInt64() noexcept;
 		inline int64_t get_int64_in_string() noexcept;
 		inline double getDouble() noexcept;
 		inline double get_double_in_string() noexcept;
-		inline bool get_bool() noexcept;
+		inline bool getBool() noexcept;
 		inline bool is_null() noexcept;
 		inline bool is_negative() noexcept;
 		inline bool is_integer() noexcept;
