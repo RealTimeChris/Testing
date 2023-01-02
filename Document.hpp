@@ -80,7 +80,7 @@ namespace Jsonifier {
 				case '{':
 					return Object(getRootValueIterator<Object>().operator*());
 				default:
-					return Object{};
+					return Object(getRootValueIterator<Object>().operator*());
 			}
 		}
 
@@ -229,7 +229,7 @@ namespace Jsonifier {
 		}
 
 		inline JsonIterator end() & noexcept {
-			return {};
+			return getArray().end();
 		}
 
 	  protected:

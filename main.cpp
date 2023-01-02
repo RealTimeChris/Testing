@@ -43,7 +43,8 @@ struct TheDJson {
 		std::cout << "CURRENT KEY: " << objectNew.countFields() << std::endl;
 		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
 		for (auto iterator = objectNew.begin(); iterator != objectNew.end(); ++iterator) {
-			std::cout << "CURRENT TYPE: " << ( int32_t )iterator.type() << std::endl;
+			auto newValue = *iterator;
+			std::cout << "CURRENT TYPE: " << newValue.getKey() << std::endl;
 		}
 		auto newArray = objectNew.getArray();
 		std::cout << "CURRENT COUNT OF THE ARRAY: " << newArray.countElements() << std::endl;
@@ -140,7 +141,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 3000; ++x) {
+		for (size_t x = 0; x < 30; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(arrayValue);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;

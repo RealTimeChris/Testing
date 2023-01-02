@@ -18,12 +18,11 @@ namespace Jsonifier {
 		inline Object getObject() noexcept;
 		inline Array getArray() noexcept;
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
-		inline JsonValueBase() noexcept {};
 		inline JsonValueBase(JsonIterator&& other) noexcept;
 		inline JsonValueBase(JsonValueBase&& other) noexcept = default;
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept = default;
 		inline JsonValueBase(const JsonValueBase& other) noexcept = default;
-		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept = default;
+		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept;
 		inline std::string_view unescape(RawJsonString&) noexcept;
 		inline std::string toString() noexcept;
 

@@ -4,7 +4,7 @@
 
 namespace Jsonifier {
 
-	class Field : protected std::pair<std::string_view, JsonValueBase> {
+	class Field : public JsonValueBase, protected std::pair<std::string_view, JsonValueBase> {
 	  public:
 
 		static inline Field start(JsonIterator& iteratorNew, RawJsonString key) noexcept {
@@ -24,7 +24,7 @@ namespace Jsonifier {
 		}
 
 		inline Field(RawJsonString key, JsonIterator&& value) noexcept
-			: std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), std::move(value) } {};
+			: std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), std::move(value) }, JsonValueBase{ std::move(value) } {};
 	};
 
 	

@@ -12,7 +12,7 @@ namespace Jsonifier {
 		inline bool operator!=(const ObjectIterator&) const noexcept;
 		inline ObjectIterator& operator++() noexcept;
 
-		inline ObjectIterator(Object* iter) noexcept;
+		inline ObjectIterator(JsonIterator& iter) noexcept;
 	};
 
 	class Object : public JsonValueBase {
@@ -23,11 +23,11 @@ namespace Jsonifier {
 		inline Object() noexcept = default;
 
 		auto end() noexcept {
-			return ObjectIterator{ this };
+			return ObjectIterator{ this->iterator };
 		}
 
 		auto begin() noexcept {
-			return ObjectIterator{ this };
+			return ObjectIterator{ this->iterator };
 		}
 
 		static inline Object start(JsonIterator& iterator) noexcept {
@@ -44,7 +44,7 @@ namespace Jsonifier {
 		inline Object findFieldUnordered(const std::string_view key) & noexcept {
 			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
 			if (!hasValue) {
-				return Object{};
+				return Object(iterator.child());
 			}
 			return Object(iterator.child());
 		}
@@ -52,7 +52,7 @@ namespace Jsonifier {
 		inline Object findFieldUnordered(const std::string_view key) && noexcept {
 			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
 			if (!hasValue) {
-				return Object{};
+				return Object(iterator.child());
 			}
 			return Object(iterator.child());
 		}
@@ -68,7 +68,7 @@ namespace Jsonifier {
 		inline Object findField(const std::string_view key) & noexcept {
 			bool hasValue{ this->iterator.findFieldRaw(key) };
 			if (!hasValue) {
-				return Object{};
+				return Object(iterator.child());
 			}
 			return Object(iterator.child());
 		}
@@ -76,7 +76,7 @@ namespace Jsonifier {
 		inline Object findField(const std::string_view key) && noexcept {
 			bool hasValue{ this->iterator.findFieldRaw(key) };
 			if (!hasValue) {
-				return Object{};
+				return Object(iterator.child());
 			}
 			return Object(iterator.child());
 		}

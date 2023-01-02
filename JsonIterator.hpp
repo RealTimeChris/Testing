@@ -105,15 +105,11 @@ namespace Jsonifier {
 
 		inline void ascendTo(size_t parentDepth) noexcept;
 		inline void descendTo(size_t child_depth) noexcept;
-		inline void descendTo(size_t child_depth, int32_t delta) noexcept;
 		inline std::string_view getString() noexcept;
 		inline RawJsonString getRawJsonString() noexcept;
 		inline uint64_t getUint64() noexcept;
-		inline uint64_t get_uint64_in_string() noexcept;
 		inline int64_t getInt64() noexcept;
-		inline int64_t getInt64InString() noexcept;
 		inline double getDouble() noexcept;
-		inline double getDoubleInString() noexcept;
 		inline bool getBool() noexcept;
 
 		inline bool atRoot() const noexcept;

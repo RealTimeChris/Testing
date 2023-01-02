@@ -35,7 +35,7 @@
 namespace Jsonifier {
 
 	struct ObjectReturnDataJson {
-		Object object{};
+		//Object object{};
 		bool didItSucceed{ false };
 	};
 
