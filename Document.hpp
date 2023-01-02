@@ -16,10 +16,6 @@ namespace Jsonifier {
 			return this->resumeValueIterator<OTy>();
 		}
 
-		inline Object getObject() & noexcept {
-			auto value = getRootValueIterator<Object>();
-			return Object::startRoot(std::move(value));
-		}
 
 		inline Object startOrResumeObject() noexcept {
 			if (this->iterator.atRoot()) {
@@ -86,48 +82,43 @@ namespace Jsonifier {
 
 		inline Array getArray() & noexcept {
 			auto value = getRootValueIterator<Array>();
-			return iterator.startRoot(value);
+			return Array::startRoot(value);
 		}
-
+		inline Object getObject() & noexcept {
+			auto value = getRootValueIterator<Object>();
+			return Object::startRoot(std::move(value));
+		}
 		inline uint64_t getUint64() noexcept {
-			return getRootValueIterator<uint64_t>().getRootUint64();
-		}
-
-		inline uint64_t get_uint64_in_string() noexcept {
 			return getRootValueIterator<uint64_t>().getRootUint64InString();
 		}
-
+		inline uint64_t getUint64_in_string() noexcept {
+			return getRootValueIterator<int64_t>().getRootInt64InString();
+		}
 		inline int64_t getInt64() noexcept {
 			return getRootValueIterator<int64_t>().getRootInt64();
 		}
-
 		inline int64_t getInt64InString() noexcept {
-			return getRootValueIterator<int64_t>().getRootInt64InString();
+			return getRootValueIterator<std::string>().getRootInt64InString();
 		}
-
 		inline double getDouble() noexcept {
 			return getRootValueIterator<double>().getRootDouble();
 		}
-
-		inline double getDoubleInString() noexcept {
+		inline double getDouble_in_string() noexcept {
 			return getRootValueIterator<double>().getRootDoubleInString();
 		}
-
 		inline std::string_view getString() noexcept {
 			return getRootValueIterator<std::string_view>().getRootString();
 		}
-
 		inline RawJsonString getRawJsonString() noexcept {
 			return getRootValueIterator<RawJsonString>().getRootRawJsonString();
 		}
-
 		inline bool getBool() noexcept {
 			return getRootValueIterator<bool>().getRootBool();
 		}
-
 		inline bool is_null() noexcept {
 			return getRootValueIterator<bool>().isRootNull();
 		}
+
 
 		template<typename OTy> inline OTy get() & noexcept;
 

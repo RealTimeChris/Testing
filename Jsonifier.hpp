@@ -32,10 +32,7 @@ namespace Jsonifier {
 			inline ObjectAllocator() noexcept = default;
 
 			inline OTy* allocate(size_t count) {
-				OTy* newPtr{};
-				newPtr = new OTy[count];
-				//std::cout << "ALLOCATING: " << 4 * sizeof *newPtr << " BYTES!" << std::endl;
-				return newPtr;
+				return new OTy[count];
 			}
 
 			template<typename OTy> inline void deallocate(OTy* ptr, size_t count) {
@@ -1340,10 +1337,10 @@ namespace Jsonifier {
 	*/
 	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
-		std::cout << "CURRENT TAPE: ";
+		//std::cout << "CURRENT TAPE: ";
 		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
-					  << std::endl;
+			//std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
+			//<< std::endl;
 		}
 		return std::forward<Document>(this->getDocument());
 	}
@@ -1395,7 +1392,13 @@ namespace Jsonifier {
 	inline JsonValueBase::JsonValueBase(JsonIterator&& other) noexcept {
 		this->error = other.error;
 		this->iterator = other;
-		std::cout << "CURRENT DEPTH IS: " << this->iterator.currentDepth << std::endl;
+		//std::cout << "CURRENT DEPTH IS: " << this->iterator.currentDepth << std::endl;
+	}
+
+	inline JsonValueBase::JsonValueBase(JsonIterator& other) noexcept {
+		this->error = other.error;
+		this->iterator = other;
+		//std::cout << "CURRENT DEPTH IS: " << this->iterator.currentDepth << std::endl;
 	}
 
 	inline JsonIterator& JsonIterator::getCurrentIterator() noexcept {
@@ -1473,10 +1476,10 @@ namespace Jsonifier {
 	}
 		
 	inline void JsonIterator::assertAtNext() const noexcept {
-		//assert(this->position() > rootPosition());
-		//std::cout << "JSON ITERATOR DEPTH: " << this->currentDepth << ", CURRENT DEPTH: " << this->currentDepth << std::endl;
+		assert(this->position() > rootPosition());
+		std::cout << "JSON ITERATOR DEPTH: " << this->currentDepth << ", CURRENT DEPTH: " << this->currentDepth << std::endl;
 		assert(this->currentDepth == this->currentDepth);
-		//assert(this->currentDepth > 0);
+		assert(this->currentDepth > 0);
 	}
 
 	inline void JsonIterator::assertAtStart() const noexcept {
@@ -1578,7 +1581,7 @@ namespace Jsonifier {
 		return JsonIterator{ *this };
 	}
 
-	inline Array::Array(JsonIterator& other) noexcept : JsonValueBase{ std::move(other) } {
+	inline Array::Array(JsonIterator& other) noexcept : JsonValueBase{ other } {
 		*this->iterator = std::move(other);
 	}
 
@@ -1728,6 +1731,10 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::returnCurrentAndAdvance() noexcept {
+		if (this->currentStructural - this->rootStructural > this->structuralCount) {
+			throw JsonifierException{ "Sorry, but you've run out of structurals to parse!" };
+		}
+		std::cout << "CURRENT ADVANCE'S VALUE: " << this->rootStringView[*(this->currentStructural)] << std::endl;
 		return &this->rootStringView[*(this->currentStructural++)];
 	}
 
@@ -1804,11 +1811,11 @@ namespace Jsonifier {
 	}
 
 	inline void JsonIterator::moveAtContainerStart() noexcept {
-		this->currentDepth = this->currentDepth;
 		this->setPosition(this->rootStructural + 1);
 	}
 
 	inline void JsonIterator::setPosition(uint32_t* target_position) noexcept {
+		std::cout << "NEW POSITION: " << *target_position << std::endl;
 		this->currentStructural = target_position;
 	}
 
@@ -2060,7 +2067,7 @@ namespace Jsonifier {
 		this->iterator.rootStringBuffer = other.rootStringBuffer;
 		this->iterator.rootStringView = other.rootStringView;
 		this->iterator.rootStructural = other.rootStructural;
-		this->iterator.currentDepth = other.currentDepth;
+		//this->iterator.currentDepth = other.currentDepth;
 		this->iterator.error = other.error;
 	}
 
@@ -2070,7 +2077,7 @@ namespace Jsonifier {
 		this->iterator.rootStringBuffer = other.rootStringBuffer;
 		this->iterator.rootStringView = other.rootStringView;
 		this->iterator.rootStructural = other.rootStructural;
-		this->iterator.currentDepth = other.currentDepth;
+		//this->iterator.currentDepth = other.currentDepth;
 		this->iterator.error = other.error;
 	}
 
@@ -2252,6 +2259,22 @@ namespace Jsonifier {
 			return *this;
 		}
 		return *this;
+	}
+
+	inline Array Array::startRoot(JsonIterator& iter) noexcept {
+		assert(iter.startRootArray());
+		return Array(iter);
+	}
+
+
+	inline std::string_view JsonIterator::unescape(RawJsonString in, uint8_t*& dst) const noexcept {
+		uint8_t* end = StringParser::parseString(in.stringView, dst);
+		if (!end) {
+			return "";
+		}
+		std::string_view result(reinterpret_cast<const char*>(dst), end - dst);
+		dst = end;
+		return result;
 	}
 
 };

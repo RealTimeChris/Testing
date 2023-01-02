@@ -19,6 +19,7 @@ namespace Jsonifier {
 		inline Array getArray() noexcept;
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 		inline JsonValueBase(JsonIterator&& other) noexcept;
+		inline JsonValueBase(JsonIterator& other) noexcept;
 		inline JsonValueBase(JsonValueBase&& other) noexcept = default;
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept = default;
 		inline JsonValueBase(const JsonValueBase& other) noexcept = default;

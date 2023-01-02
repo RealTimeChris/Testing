@@ -21,6 +21,8 @@ namespace Jsonifier {
 		static inline Array start(JsonIterator& iter) noexcept;
 		inline size_t countElements() & noexcept;
 		inline Object at(size_t index) noexcept;
+		static Array startRoot(JsonIterator& iter) noexcept;
+
 	};
 
 }

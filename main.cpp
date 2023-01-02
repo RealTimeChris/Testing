@@ -40,13 +40,16 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
 		Jsonifier::Object objectNew{ value["TEST_VALUE_11"] };
-		std::cout << "CURRENT KEY: " << objectNew.countFields() << std::endl;
-		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
-		for (auto iterator = objectNew.begin(); iterator != objectNew.end(); ++iterator) {
-			auto newValue = *iterator;
-			std::cout << "CURRENT TYPE: " << newValue.getKey() << std::endl;
-		}
 		auto newArray = objectNew.getArray();
+		//std::cout << "CURRENT SIZE: " << newArray.countElements() << std::endl;
+		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
+		for (auto iterator = newArray.begin(); iterator != newArray.end(); ++iterator) {
+			//std::cout << "CURRENT SIZE: " << newArray.countElements() << std::endl;
+			auto newValue = *iterator;
+			std::string_view theValueNew{};
+			(int32_t) newValue.get<std::string_view>(theValueNew);
+			std::cout << "CURRENT TYPE: " << theValueNew << std::endl;
+		}
 		std::cout << "CURRENT COUNT OF THE ARRAY: " << newArray.countElements() << std::endl;
 		//std::cout << "CURRENT SIZE: " << ( int32_t )value.getObject().findFieldUnordered("TEST_VALUE_11").countFields() << std::endl;
 		//auto newKey = value["TEST_VALUE_11"].fieldKey();
@@ -141,8 +144,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 30; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(arrayValue);
+		for (size_t x = 0; x < 32; ++x) {
+			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "TESTING VALUES" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);

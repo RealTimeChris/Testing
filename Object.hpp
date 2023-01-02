@@ -22,11 +22,11 @@ namespace Jsonifier {
 		inline size_t countFields() noexcept;
 		inline Object() noexcept = default;
 
-		auto end() noexcept {
+		ObjectIterator end() noexcept {
 			return ObjectIterator{ this->iterator };
 		}
 
-		auto begin() noexcept {
+		ObjectIterator begin() noexcept {
 			return ObjectIterator{ this->iterator };
 		}
 
