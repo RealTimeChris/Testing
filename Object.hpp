@@ -34,7 +34,7 @@ namespace Jsonifier {
 		inline auto end() noexcept {
 			return ObjectIterator{ *this };
 		}
-		inline size_t count_fields() noexcept;
+		inline size_t countFields() noexcept;
 		inline Object() noexcept = default;
 
 		static inline Object start(ValueIterator& iter) noexcept {
@@ -46,21 +46,21 @@ namespace Jsonifier {
 			return iter;
 		}
 
-		static inline Object start_root(ValueIterator& iter) noexcept {
+		static inline Object startRoot(ValueIterator& iter) noexcept {
 			iter.start_root_object();
 			return Object(iter);
 		}
 
-		inline Object find_field_unordered(const std::string_view key) & noexcept {
-			bool has_value{ this->find_field_unordered_raw(key) };
+		inline Object findFieldUnordered(const std::string_view key) & noexcept {
+			bool has_value{ this->findFieldUnorderedRaw(key) };
 			if (!has_value) {
 				return Object{};
 			}
 			return Object(child());
 		}
 
-		inline Object find_field_unordered(const std::string_view key) && noexcept {
-			bool has_value{ this->find_field_unordered_raw(key) };
+		inline Object findFieldUnordered(const std::string_view key) && noexcept {
+			bool has_value{ this->findFieldUnorderedRaw(key) };
 			if (!has_value) {
 				return Object{};
 			}
@@ -68,11 +68,11 @@ namespace Jsonifier {
 		}
 
 		inline Object operator[](const std::string_view key) & noexcept {
-			return find_field_unordered(key);
+			return findFieldUnordered(key);
 		}
 
 		inline Object operator[](const std::string_view key) && noexcept {
-			return std::forward<Object>(*this).find_field_unordered(key);
+			return std::forward<Object>(*this).findFieldUnordered(key);
 		}
 
 		inline Object find_field(const std::string_view key) & noexcept {
