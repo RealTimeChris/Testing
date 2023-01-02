@@ -97,6 +97,124 @@ namespace Jsonifier {
 		friend class JsonIterator;
 	};
 
+	class ValueIterator {
+	  protected:
+		JsonIterator* _json_iter{};
+		size_t _depth{};
+		uint32_t* _start_position{};
+
+	  public:
+		inline ValueIterator() noexcept = default;
+		inline void startDocument() noexcept;
+		inline ErrorCode skipChild() noexcept;
+		inline bool atEnd() const noexcept;
+		inline bool atStart() const noexcept;
+		inline bool isOpen() const noexcept;
+		inline bool atFirstField() const noexcept;
+		inline void abandon() noexcept;
+		inline ValueIterator childValue() const noexcept;
+		inline int32_t depth() const noexcept;
+		inline JsonType  type() const noexcept;
+		inline bool startObject() noexcept;
+		inline bool startRootObject() noexcept;
+		inline bool startedObject() noexcept;
+		inline bool startedRootObject() noexcept;
+		inline bool hasNextField() noexcept;
+		inline RawJsonString fieldKey() noexcept;
+		inline ErrorCode fieldValue() noexcept;
+		inline ErrorCode findField(const std::string_view key) noexcept;
+		inline bool findFieldRaw(const std::string_view key) noexcept;
+		inline bool findFieldUnorderedRaw(const std::string_view key) noexcept;
+		inline bool startArray() noexcept;
+		inline bool startRootArray() noexcept;
+		inline bool startedArray() noexcept;
+		inline bool startedRootArray() noexcept;
+		inline bool hasNextElement() noexcept;
+		inline ValueIterator child() const noexcept;
+
+		inline std::string_view getString() noexcept;
+		inline RawJsonString getRawJsonString() noexcept;
+		inline uint64_t getUint64() noexcept;
+		inline uint64_t getUint64InString() noexcept;
+		inline int64_t getInt64() noexcept;
+		inline int64_t getInt64InString() noexcept;
+		inline double getDouble() noexcept;
+		inline double getDoubleInString() noexcept;
+		inline bool getBool() noexcept;
+		inline bool isNull() noexcept;
+		inline bool isNegative() noexcept;
+		inline bool isInteger() noexcept;
+
+		inline std::string_view getRootString() noexcept;
+		inline RawJsonString getRootRawJsonString() noexcept;
+		inline uint64_t getRootUint64() noexcept;
+		inline uint64_t getRootUint64InString() noexcept;
+		inline int64_t getRootInt64() noexcept;
+		inline int64_t getRootInt64InString() noexcept;
+		inline double getRootDouble() noexcept;
+		inline double getRootDoubleInString() noexcept;
+		inline bool getRootBool() noexcept;
+		inline bool isRootNegative() noexcept;
+		inline bool isRootInteger() noexcept;
+		inline bool isRootNull() noexcept;
+
+		inline ErrorCode error() const noexcept;
+		inline uint8_t*& stringBufLoc() noexcept;
+		inline const JsonIterator& jsonIter() const noexcept;
+		inline JsonIterator& jsonIter() noexcept;
+
+		inline void assertIsValid() const noexcept;
+		inline bool isValid() const noexcept;
+	  protected:
+		inline bool reset_array() noexcept;
+		inline bool reset_object() noexcept;
+		inline void move_at_start() noexcept;
+		inline void move_at_container_start() noexcept;
+		inline std::string to_string() const noexcept;
+		inline ValueIterator(JsonIterator* json_iter, size_t depth, uint32_t* start_index) noexcept;
+
+		inline bool parse_null(const uint8_t* json) const noexcept;
+		inline bool parse_bool(const uint8_t* json) const noexcept;
+		inline const uint8_t* peek_start() const noexcept;
+		inline uint32_t peek_start_length() const noexcept;
+
+		inline void advance_scalar(const char* type) noexcept;
+		inline void advance_root_scalar(const char* type) noexcept;
+		inline void advance_non_root_scalar(const char* type) noexcept;
+
+		inline const uint8_t* peek_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
+
+
+		inline ErrorCode start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
+		inline ErrorCode end_container() noexcept;
+		inline const uint8_t* advance_to_value() noexcept;
+
+		inline ErrorCode incorrect_type_error(const char* message) const noexcept;
+		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
+
+		inline bool is_at_start() const noexcept;
+		inline bool is_at_iterator_start() const noexcept;
+		inline bool is_at_key() const noexcept;
+
+		inline void assert_at_start() const noexcept;
+		inline void assert_at_container_start() const noexcept;
+		inline void assert_at_root() const noexcept;
+		inline void assert_at_child() const noexcept;
+		inline void assert_at_next() const noexcept;
+		inline void assert_at_non_root_start() const noexcept;
+		inline uint32_t* start_position() const noexcept;
+		inline uint32_t* position() const noexcept;
+		inline uint32_t* last_position() const noexcept;
+		inline uint32_t* end_position() const noexcept;
+		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
+
+		friend class Document;
+		friend class Object;
+		friend class Array;
+		friend class JsonIterator;
+	};
 	
 	
 }

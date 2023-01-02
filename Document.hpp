@@ -11,12 +11,12 @@ namespace Jsonifier {
 		inline Document start(JsonifierCore* iteratorNew) noexcept {
 			return Document(std::forward<Document>(iteratorNew));
 		}
-
+		/*
 		template<typename OTy> inline JsonIterator getRootValueIterator() noexcept {
 			return this->resumeValueIterator<OTy>();
 		}
 
-
+		/*
 		inline Object startOrResumeObject() noexcept {
 			if (this->iterator.atRoot()) {
 				return getObject();
@@ -24,11 +24,20 @@ namespace Jsonifier {
 				return Object::resume(std::move(resumeValueIterator<Object>()));
 			}
 		}
+		*/
+		inline ValueIterator getRootValueIterator() noexcept {
+			return resumeValueIterator();
+		}
 
+		inline ValueIterator resumeValueIterator() noexcept {
+			std::cout << "WERE HERE THIS IS IT!" << std::endl;
+			return ValueIterator(&iterator, 1, iterator.rootPosition());
+		}
+		/*
 		template<typename OTy> inline JsonIterator resumeValueIterator() noexcept {
 			return JsonIterator{ *iterator };
 		}
-
+		
 		inline Object findField(std::string_view key) & noexcept {
 			return startOrResumeObject().findField(key);
 		}
@@ -52,11 +61,14 @@ namespace Jsonifier {
 		inline Object operator[](const char* key) & noexcept {
 			return startOrResumeObject()[key];
 		}
-
+		*/
 		inline void rewind() noexcept {
 			this->iterator.rewind();
 		}
-
+		inline Object getObject() & noexcept {
+			auto value = getRootValueIterator();
+			return Object::startRoot(std::move(value));
+		}
 		inline std::string toDebugString() noexcept {
 			return this->iterator.toString();
 		}
@@ -68,7 +80,7 @@ namespace Jsonifier {
 		inline bool isAlive() noexcept {
 			return this->iterator.isAlive();
 		}
-
+		/*
 		inline Object getValue() noexcept {
 			this->iterator.assertAtDocumentDepth();
 			switch (*this->iterator.peek()) {
@@ -84,10 +96,7 @@ namespace Jsonifier {
 			auto value = getRootValueIterator<Array>();
 			return Array::startRoot(value);
 		}
-		inline Object getObject() & noexcept {
-			auto value = getRootValueIterator<Object>();
-			return Object::startRoot(std::move(value));
-		}
+		
 		inline uint64_t getUint64() noexcept {
 			return getRootValueIterator<uint64_t>().getRootUint64InString();
 		}
@@ -119,7 +128,7 @@ namespace Jsonifier {
 			return getRootValueIterator<bool>().isRootNull();
 		}
 
-
+		*/
 		template<typename OTy> inline OTy get() & noexcept;
 
 		template<typename OTy> inline OTy get() && noexcept;

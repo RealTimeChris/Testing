@@ -39,18 +39,18 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
-		Jsonifier::Object objectNew{ value["TEST_VALUE_11"] };
-		auto newArray = objectNew.getArray();
+		Jsonifier::Object objectNew{ value.getObject() };
+		//auto newArray = objectNew.getArray();
 		//std::cout << "CURRENT SIZE: " << newArray.countElements() << std::endl;
-		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
-		for (auto iterator = newArray.begin(); iterator != newArray.end(); ++iterator) {
+		//		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
+		//for (auto iterator = newArray.begin(); iterator != newArray.end(); ++iterator) {
 			//std::cout << "CURRENT SIZE: " << newArray.countElements() << std::endl;
-			auto newValue = *iterator;
-			std::string_view theValueNew{};
-			(int32_t) newValue.get<std::string_view>(theValueNew);
-			std::cout << "CURRENT TYPE: " << theValueNew << std::endl;
-		}
-		std::cout << "CURRENT COUNT OF THE ARRAY: " << newArray.countElements() << std::endl;
+		//auto newValue = *iterator;
+		//			std::string_view theValueNew{};
+		////			(int32_t) newValue.get<std::string_view>(theValueNew);
+		//			std::cout << "CURRENT TYPE: " << theValueNew << std::endl;
+		//}
+		//std::cout << "CURRENT COUNT OF THE ARRAY: " << newArray.countElements() << std::endl;
 		//std::cout << "CURRENT SIZE: " << ( int32_t )value.getObject().findFieldUnordered("TEST_VALUE_11").countFields() << std::endl;
 		//auto newKey = value["TEST_VALUE_11"].fieldKey();
 		
@@ -154,9 +154,8 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
-			Jsonifier::ObjectBuffer<uint32_t> objectBuffer{};
-			objectBuffer.allocate(512 * 512 * 1);
-			objectBuffer.deallocate();
+			std::unique_ptr<Jsonifier::Jsonifier[]> objectBuffer{};
+			objectBuffer.reset(new (std::nothrow) Jsonifier::Jsonifier[4096ull * 2048ull]);
 		}
 
 		totalTime += stopWatch.totalTimePassed().count();
@@ -165,8 +164,9 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		{
-			std::unique_ptr<uint32_t[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) uint32_t[512 * 512 * 1]);
+			Jsonifier::ObjectBuffer<Jsonifier::Jsonifier> objectBuffer{};
+			objectBuffer.allocate(4096ull * 2048ull);
+			objectBuffer.deallocate();
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;

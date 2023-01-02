@@ -15,7 +15,7 @@ namespace Jsonifier {
 		inline ObjectIterator(JsonIterator& iter) noexcept;
 	};
 
-	class Object : public JsonValueBase {
+	class Object {
 	  public:
 		friend class JsonIterator;
 
@@ -39,7 +39,13 @@ namespace Jsonifier {
 			return iterator;
 		}
 
-		static inline Object startRoot(JsonIterator&& iterator) noexcept;
+		inline Object(const ValueIterator& _iter) noexcept : iterator{ _iter } {
+		}
+
+		inline Object startRoot(ValueIterator& iter) noexcept {
+			iter.start_root_object();
+			return Object(iter);
+		}
 
 		inline Object findFieldUnordered(const std::string_view key) & noexcept {
 			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };
@@ -88,5 +94,8 @@ namespace Jsonifier {
 		inline Object(JsonIterator&& other) noexcept;
 
 		inline Object(JsonIterator& other) noexcept;
+
+	  protected:
+		ValueIterator iterator{};
 	};
 }
