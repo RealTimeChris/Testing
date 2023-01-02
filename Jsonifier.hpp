@@ -1735,8 +1735,8 @@ namespace Jsonifier {
 		return &this->rootStringView[*(this->currentStructural++)];
 	}
 
-	inline const uint8_t* JsonIterator::peek(int32_t delta) const noexcept {
-		return &this->rootStringView[*this->currentStructural];
+	inline const uint8_t* JsonIterator::peek(uint32_t* delta) const noexcept {
+		return &this->rootStringView[*(delta)];
 	}
 
 	inline ErrorCode JsonIterator::skipChild(size_t parentDepth) noexcept {
@@ -2008,8 +2008,8 @@ namespace Jsonifier {
 		return this->peek(lastPosition());
 	}
 
-	inline const uint8_t* JsonIterator::peek(uint32_t* position) const noexcept {
-		return this->peek(position);
+	inline const uint8_t* JsonIterator::peek(int32_t delta) const noexcept {
+		return &rootStringView[*(currentStructural + delta)];
 	}
 
 	inline bool JsonIterator::startedArray() noexcept {
