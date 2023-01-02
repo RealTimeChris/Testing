@@ -1747,8 +1747,8 @@ namespace Jsonifier {
 	inline JsonIterator::JsonIterator(uint8_t* buffer, JsonifierCore* jsonifieriCore) noexcept
 		: token{ jsonifieriCore->getStringView(), jsonifieriCore->getStructuralIndexes() } {
 		this->rootPosition = jsonifieriCore->getStructuralIndexes();
-		this->stringBuffer = buffer;
 		this->parser = jsonifieriCore;
+		this->stringBuffer = buffer;
 	}
 
 	inline ValueIterator& ValueIterator::operator=(const ValueIterator& other) noexcept {
@@ -1926,9 +1926,10 @@ namespace Jsonifier {
 	}
 		
 	inline void ValueIterator::assert_at_next() const noexcept {
-		//assert(jsonIterator->token.position() > rootPosition);
-		//		assert(jsonIterator->currentDepth == currentDepth);
-		//assert(currentDepth > 0);
+		assert(jsonIterator->token.position() > rootPosition);
+		std::cout << "JSON ITERATOR DEPTH: " << jsonIterator->currentDepth << ", CURRENT DEPTH: " << currentDepth << std::endl;
+		assert(jsonIterator->currentDepth == currentDepth);
+		assert(currentDepth > 0);
 	}
 
 	inline void ValueIterator::assert_at_start() const noexcept {
@@ -2003,12 +2004,12 @@ namespace Jsonifier {
 	}
 	
 	inline bool ValueIterator::start_object() noexcept {
-		start_container('{', "Not an object", "object");
+		start_container('{');
 		return started_object();
 	}
 
 	inline bool ValueIterator::start_root_object() noexcept {
-		start_container('{', "Not an object", "object");
+		start_container('{');
 		return started_root_object();
 	}
 
@@ -2039,7 +2040,7 @@ namespace Jsonifier {
 		return true;
 	}
 	
-	inline ErrorCode ValueIterator::start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept {
+	inline ErrorCode ValueIterator::start_container(uint8_t start_char) noexcept {
 		const uint8_t* json;
 		if (!is_at_start()) {
 			json = peek_start();
@@ -2533,7 +2534,7 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::start_root_array() noexcept {
-		start_container('[', "Not an array", "array");
+		start_container('[');
 		return started_root_array();
 	}
 

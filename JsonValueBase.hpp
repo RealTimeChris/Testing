@@ -372,7 +372,7 @@ namespace Jsonifier {
 		inline const uint8_t* peek_non_root_scalar() noexcept;
 
 
-		inline ErrorCode start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
+		inline ErrorCode start_container(uint8_t start_char) noexcept;
 		inline ErrorCode end_container() noexcept;
 		inline const uint8_t* advance_to_value() noexcept;
 
