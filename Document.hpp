@@ -73,7 +73,7 @@ namespace Jsonifier {
 			return this->iterator.toString();
 		}
 
-		inline int32_t currentDepth() const noexcept {
+		inline int32_t currentDepth() noexcept {
 			return this->iterator.depth();
 		}
 

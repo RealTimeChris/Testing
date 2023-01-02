@@ -26,11 +26,11 @@ namespace Jsonifier {
 			return result;
 		}
 
-		inline bool operator==(const ObjectIterator& other) const noexcept {
+		inline bool operator==(const ObjectIterator& other) noexcept {
 			return !(*this != other);
 		}
 
-		inline bool operator!=(const ObjectIterator&) const noexcept {
+		inline bool operator!=(const ObjectIterator&) noexcept {
 			return iterator.isOpen();
 		}
 

@@ -7,7 +7,7 @@ namespace Jsonifier {
 	class Field : protected std::pair<RawJsonString, ValueIterator> {
 	  public:
 
-		inline RawJsonString key() const noexcept {
+		inline RawJsonString key() noexcept {
 			assert(first.stringView != nullptr);
 			return first;
 		}
@@ -20,7 +20,7 @@ namespace Jsonifier {
 			return Field::start(parent_iter, key);
 		}
 
-		static inline Field start(const ValueIterator& parent_iter, RawJsonString key) noexcept {
+		static inline Field start(ValueIterator& parent_iter, RawJsonString key) noexcept {
 			return Field(key, parent_iter.child());
 		}
 

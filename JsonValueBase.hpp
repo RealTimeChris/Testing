@@ -29,7 +29,7 @@ namespace Jsonifier {
 
 		JsonIterator begin() noexcept;
 		JsonIterator end() noexcept;
-		inline JsonType type() const noexcept;
+		inline JsonType type() noexcept;
 
 	  protected:
 		JsonIterator iterator{};

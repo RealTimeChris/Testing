@@ -13,15 +13,15 @@ namespace Jsonifier {
 		*static_cast<std::runtime_error*>(this) = std::runtime_error{ stream.str() };
 	}
 
-	EnumConverter::operator std::vector<uint64_t>() const noexcept {
+	EnumConverter::operator std::vector<uint64_t>() noexcept {
 		return this->vector;
 	}
 
-	EnumConverter::operator uint64_t() const noexcept {
+	EnumConverter::operator uint64_t() noexcept {
 		return this->integer;
 	}
 
-	bool EnumConverter::isItAVector() const noexcept {
+	bool EnumConverter::isItAVector() noexcept {
 		return this->vectorType;
 	}
 
@@ -146,7 +146,7 @@ namespace Jsonifier {
 		*this = std::move(data);
 	}
 
-	Jsonifier& Jsonifier::operator=(const EnumConverter& data) noexcept {
+	Jsonifier& Jsonifier::operator=(EnumConverter& data) noexcept {
 		if (data.isItAVector()) {
 			this->setValue(JsonType::Array);
 			for (auto& value: data.operator std::vector<uint64_t>()) {
@@ -159,7 +159,7 @@ namespace Jsonifier {
 		return *this;
 	}
 
-	Jsonifier::Jsonifier(const EnumConverter& data) noexcept {
+	Jsonifier::Jsonifier(EnumConverter& data) noexcept {
 		*this = data;
 	}
 

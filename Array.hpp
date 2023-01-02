@@ -8,8 +8,8 @@ namespace Jsonifier {
 	  public:
 		inline ArrayIterator() noexcept = default;
 		inline Object operator*() noexcept;
-		inline bool operator==(const ArrayIterator&) const noexcept;
-		inline bool operator!=(const ArrayIterator&) const noexcept;
+		inline bool operator==(const ArrayIterator&) noexcept;
+		inline bool operator!=(const ArrayIterator&) noexcept;
 		inline ArrayIterator& operator++() noexcept;
 
 		inline ArrayIterator(JsonIterator& iter) noexcept;
