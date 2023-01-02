@@ -2228,64 +2228,65 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::findFieldUnorderedRaw(const std::string_view key) noexcept {
-		ErrorCode error{};
-		bool hasValue{};
-		uint32_t* searchStart = jsonIterator->position();
-		bool atFirst = atFirstField();
-		if (atFirst) {
-			hasValue = true;
+		ErrorCode error;
+		bool has_value;
+		uint32_t* search_start = jsonIterator->position();
+		bool at_first = atFirstField();
+		if (at_first) {
+			has_value = true;
 		} else if (!isOpen()) {
-			resetObject();
-			atFirst = true;
+			has_value = resetObject();
+			at_first = true;
 		} else {
 			if (error = skipChild(); error != ErrorCode::Success) {
 				abandon();
 				return false;
 			}
-			searchStart = jsonIterator->position();
+			search_start = jsonIterator->position();
 			if (!hasNextField()) {
 				abandon();
 				return false;
 			}
 		}
-
-		while (hasValue) {
-			RawJsonString actualKey{};
-			uint8_t* newPtr = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(fieldKey().data()));
-			if (actualKey.stringView = newPtr; actualKey.stringView == nullptr) {
+		while (has_value) {
+			jsonIterator->depth() == currentDepth;
+			RawJsonString actual_key{};
+			if (fieldKey() == "") {
 				abandon();
 				return false;
 			};
-			if (fieldValue() != ErrorCode::Success) {
+			if (error = fieldValue(); error != ErrorCode::Success) {
 				abandon();
 				return false;
 			}
-			if (actualKey.unsafeIsEqual(key)) {
+			if (actual_key.unsafeIsEqual(key)) {
 				return true;
 			}
 			skipChild();
-			if (!hasNextField()) {
+			if (has_value = hasNextField();!has_value) {
 				abandon();
 				return false;
 			}
 		}
-		if (atFirst) {
+		if (at_first) {
 			return false;
 		}
-		resetObject();
+		has_value = resetObject();
 		while (true) {
-			RawJsonString actualKey{};
+			has_value;
+			jsonIterator->depth() == currentDepth;
+
+			RawJsonString actual_key{ ( uint8_t* )(fieldKey().data()) };
 			error = fieldValue();
-			//assert(error == ErrorCode::Success);
-			if (actualKey.unsafeIsEqual(key)) {
+			assert(error == ErrorCode::Success);
+			if (actual_key.unsafeIsEqual(key)) {
 				return true;
 			}
-
-			//assert(skipChild() == ErrorCode::Success);
-			if (jsonIterator->position() == searchStart) {
+			assert(skipChild() == ErrorCode::Success);
+			if (jsonIterator->position() == search_start) {
 				return false;
 			}
-			assert(hasNextField());
+			has_value = hasNextField();
 		}
 		return false;
 	}
