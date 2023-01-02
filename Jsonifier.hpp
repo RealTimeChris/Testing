@@ -1843,8 +1843,8 @@ namespace Jsonifier {
 		}
 		while (hasValue) {
 			assert(this->depth() == currentDepth);
-			RawJsonString actualKey{};
-			if (fieldKey() == "") {
+			RawJsonString actualKey{ ( uint8_t* )(fieldKey().data()) };
+			if (actualKey.raw() == "") {
 				abandon();
 				return false;
 			};
@@ -2077,12 +2077,14 @@ namespace Jsonifier {
 	}
 
 	inline Object::Object(const IteratorBaseBase& other)noexcept  {
+		this->parser = other.parser;
 		this->iterator = other;
 		this->root = other.parser->getStructuralIndexes();
 		this->stringBuffer = other.parser->getStringBuffer();
 	}
 
 	inline Object::Object(IteratorBaseBase&& other) noexcept {
+		this->parser = other.parser;
 		this->iterator = other;
 		this->root = other.parser->getStructuralIndexes();
 		this->stringBuffer = other.parser->getStringBuffer();
@@ -2107,6 +2109,16 @@ namespace Jsonifier {
 		assertAtChild();
 		this->currentDepth++;
 		return *this;
+	}
+
+	inline Document::Document(IteratorBaseBase&& _iter) noexcept : iterator{ _iter }, core{ _iter.parser } {
+		_iter.parser->getStructuralIndexes();
+	};
+
+	inline Object Object::startRoot(IteratorBaseBase&& iter) noexcept {
+		iter.startRootObject();
+		iter.parser->getStructuralIndexes();
+		return Object(iter);
 	}
 
 };

@@ -25,10 +25,7 @@ namespace Jsonifier {
 			return iter;
 		}
 
-		static inline Object startRoot(IteratorBaseBase&& iter) noexcept {
-			iter.startRootObject();
-			return Object(iter);
-		}
+		static inline Object startRoot(IteratorBaseBase&& iter) noexcept;
 
 		inline Object findFieldUnordered(const std::string_view key) & noexcept {
 			bool hasValue{ this->iterator.findFieldUnorderedRaw(key) };

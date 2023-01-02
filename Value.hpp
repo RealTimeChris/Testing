@@ -88,10 +88,6 @@ namespace Jsonifier {
 		inline bool unsafeIsEqual(size_t length, std::string_view target) const noexcept;
 		inline bool unsafeIsEqual(std::string_view target) const noexcept;
 		inline bool unsafeIsEqual(const char* target) const noexcept;
-		inline bool is_equal(std::string_view target) const noexcept;
-		inline bool is_equal(const char* target) const noexcept;
-		static inline bool is_free_from_unescaped_quote(std::string_view target) noexcept;
-		static inline bool is_free_from_unescaped_quote(const char* target) noexcept;
 		inline std::string_view unescape(IteratorBaseBase& iter) noexcept;
 
 	  protected:

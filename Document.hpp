@@ -6,7 +6,7 @@ namespace Jsonifier {
 
 	class Document {
 	  public:
-		inline Document(IteratorBaseBase&& _iter) noexcept : iterator{ _iter }, core{ _iter.parser } {};
+		inline Document(IteratorBaseBase&& _iter) noexcept;
 
 		inline Document start(IteratorBaseBase&& iter) noexcept {
 			return Document(std::forward<IteratorBaseBase>(iter));

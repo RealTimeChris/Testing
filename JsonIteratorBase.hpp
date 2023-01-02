@@ -196,6 +196,6 @@ namespace Jsonifier {
 		uint32_t* currentPosition{};
 		uint32_t* rootPositionVal{};
 		const uint8_t* stringView{};
-		size_t currentDepth{};
+		size_t currentDepth{1};
 	};
 }

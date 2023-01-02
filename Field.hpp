@@ -38,11 +38,11 @@ namespace Jsonifier {
 		inline Field(RawJsonString&& key, IteratorBaseBase&& value) noexcept
 			: std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), std::move(value) } {};
 
-		inline Field(RawJsonString&& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), Object{} } {};
+		inline Field(RawJsonString&& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), value } {};
 
-		inline Field(std::string_view&& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), Object{} } {};
+		inline Field(std::string_view&& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {};
 
-		inline Field(std::string_view& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), Object{} } {};
+		inline Field(std::string_view& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key), value } {};
 
 	  protected:
 		IteratorBaseBase* iterator{};
