@@ -2154,7 +2154,7 @@ namespace Jsonifier {
 
 	inline void JsonIterator::descend_to(size_t child_depth) noexcept {
 		assert(child_depth >= 1 && child_depth < std::numeric_limits<int32_t>::max());
-		//assert(currentDepth == child_depth - 1);
+		assert(currentDepth == child_depth - 1);
 		currentDepth = child_depth;
 	}
 
@@ -2165,7 +2165,6 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
-		std::cout << "CURRENT KEY (R&A): " << token.buf[*token.currentPosition] << std::endl;
 		return token.return_current_and_advance();
 	}
 
@@ -2186,9 +2185,8 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode ValueIterator::skip_child() noexcept {
-		//assert(jsonIterator->position() > rootPosition);
-		//assert(jsonIterator->depth() >= currentDepth);
-
+		assert(jsonIterator->position() > rootPosition);
+		assert(jsonIterator->depth() >= currentDepth);
 		return jsonIterator->skip_child(depth());
 	}
 
