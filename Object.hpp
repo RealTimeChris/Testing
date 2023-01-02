@@ -69,11 +69,6 @@ namespace Jsonifier {
 			return ObjectIterator{ this->iterator };
 		}
 
-		static inline Object start(JsonIterator& iterator) noexcept {
-			iterator.startObject();
-			return Object(iterator);
-		}
-
 		static inline Object resume(JsonIterator&& iterator) noexcept {
 			return iterator;
 		}
