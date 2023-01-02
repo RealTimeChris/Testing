@@ -1030,8 +1030,7 @@ namespace Jsonifier {
 	class JsonifierCore {
 	  public:
 		inline Document getDocument() {
-			Document returnValue{ JsonIterator{ this->getStringBuffer(), this } };
-			return returnValue;
+			return std::forward<Document>(Document{ std::forward<JsonIterator>(JsonIterator{ this->getStringBuffer(), this }) });
 		}
 
 		inline JsonifierCore& operator=(JsonifierCore&&) = default;
@@ -1072,9 +1071,9 @@ namespace Jsonifier {
 					}
 				}
 
-				//iterationCount++;
+				iterationCount++;
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
-				//StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
@@ -1085,9 +1084,9 @@ namespace Jsonifier {
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
 				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
-				//totalTimePassed += stopWatch.totalTimePassed().count();
+				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
-				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
 			}
 		}
 
