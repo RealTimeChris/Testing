@@ -1152,7 +1152,7 @@ namespace Jsonifier {
 		False_Value = 'f',
 		Null_Value = 'n'
 	};
-
+	/*
 	struct TapeWriter {
 		TapeWriter(uint64_t* ptr) {
 			this->nextTapeLocation = ptr;
@@ -1210,7 +1210,7 @@ namespace Jsonifier {
 	inline void TapeWriter::write(uint64_t& tape_loc, uint64_t val, TapeType t) noexcept {
 		tape_loc = val | ((uint64_t(uint8_t(t))) << 56);
 	}
-	/*
+	
 	struct TapeBuilder {
 
 		inline TapeBuilder(JsonifierCore* doc) noexcept;
