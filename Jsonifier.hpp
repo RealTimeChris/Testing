@@ -2379,4 +2379,10 @@ namespace Jsonifier {
 		 return { jsonIterator, static_cast<size_t>(depth() + 1), jsonIterator->position() };
 	}
 
+	 inline void ValueIterator::assertAtChild() noexcept {
+		assert(jsonIterator->position() > rootPosition);
+		assert(jsonIterator->depth() == currentDepth + 1);
+		assert(currentDepth > 0);
+	}
+
 };
