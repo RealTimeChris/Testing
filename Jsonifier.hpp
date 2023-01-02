@@ -32,7 +32,9 @@ namespace Jsonifier {
 			inline ObjectAllocator() noexcept = default;
 
 			inline OTy* allocate(size_t count) {
-				return static_cast<OTy*>(malloc(sizeof(OTy) * count));
+				OTy* newPtr{};
+				newPtr = static_cast<OTy*>(malloc(4 * sizeof *newPtr));
+				return newPtr;
 			}
 
 			template<typename OTy> inline void deallocate(OTy* ptr, size_t count) {
