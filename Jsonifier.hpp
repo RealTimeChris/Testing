@@ -892,7 +892,7 @@ namespace Jsonifier {
 			return get_root_value_iterator().get_root_int64_in_string();
 		}
 
-		inline double get_double() noexcept {
+		inline double getDouble() noexcept {
 			return get_root_value_iterator().get_root_double();
 		}
 
@@ -937,7 +937,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline double get() & noexcept {
-			return get_double();
+			return getDouble();
 		}
 
 		template<> inline uint64_t get() & noexcept {
@@ -961,7 +961,7 @@ namespace Jsonifier {
 		}
 
 		template<> inline double get() && noexcept {
-			return std::forward<Document>(*this).get_double();
+			return std::forward<Document>(*this).getDouble();
 		}
 
 		template<> inline uint64_t get() && noexcept {
@@ -1709,7 +1709,7 @@ namespace Jsonifier {
 	}
 
 	template<> inline ErrorCode ValueIterator::get<double>(double& value) noexcept {
-		value = this->get_double();
+		value = this->getDouble();
 		return std::move(this->error);
 	}
 
@@ -1873,88 +1873,60 @@ namespace Jsonifier {
 		return this->parser;
 	}
 
-	inline uint64_t ValueIterator::get_uint64() noexcept {
-		auto result = NumberParser::parseUnsigned(peek_non_root_scalar());
-		advance_non_root_scalar();
-		return result;
-	}
-
-	inline const uint8_t* ValueIterator::peek_non_root_scalar() noexcept {
-		if (!is_at_start()) {
-			return peek_start();
+	inline const uint8_t* ValueIterator::peekNonRootScalar() noexcept {
+		if (!isAtStart()) {
+			return peekStart();
 		}
 
-		assert_at_non_root_start();
+		assertAtNonRootStart();
 		return this->jsonIterator->peek();
 	}
 
-	inline int64_t ValueIterator::get_int64() noexcept {
-		auto result = NumberParser::parseInteger(peek_non_root_scalar());
-		advance_non_root_scalar();
-		return result;
-	}
-
-	inline bool ValueIterator::get_bool() noexcept {
-		auto result = parse_bool(peek_non_root_scalar());
-		advance_non_root_scalar();
-		return result;
-	}
-
-	inline bool ValueIterator::parse_bool(const uint8_t* json) const noexcept {
-		auto not_true = StringParser::str4ncmp(json, "true");
-		auto not_false = StringParser::str4ncmp(json, "fals") | (json[4] ^ 'e');
-		bool error = (not_true && not_false) || NumberParser::isNotStructuralOrWhitespace(json[not_true ? 5 : 4]);
-		if (error) {
-			return false;
-		}
-		return bool{ !not_true };
-	}
-
-	inline void ValueIterator::advance_non_root_scalar() noexcept {
-		if (!is_at_start()) {
+	inline void ValueIterator::advanceNonRootScalar() noexcept {
+		if (!isAtStart()) {
 			return;
 		}
 
-		assert_at_non_root_start();
-		this->jsonIterator->return_current_and_advance();
-		this->jsonIterator->ascend_to(depth() - 1);
+		assertAtNonRootStart();
+		this->jsonIterator->returnCurrentAndAdvance();
+		this->jsonIterator->ascendTo(depth() - 1);
 	}
 
-	inline void ValueIterator::assert_at_non_root_start() const noexcept {
-		assert_at_start();
+	inline void ValueIterator::assertAtNonRootStart() const noexcept {
+		assertAtStart();
 		assert(currentDepth > 1);
 	}
 		
-	inline void ValueIterator::assert_at_next() const noexcept {
+	inline void ValueIterator::assertAtNext() const noexcept {
 		assert(jsonIterator->token.position() > rootPosition);
 		std::cout << "JSON ITERATOR DEPTH: " << jsonIterator->currentDepth << ", CURRENT DEPTH: " << currentDepth << std::endl;
 		assert(jsonIterator->currentDepth == currentDepth);
 		assert(currentDepth > 0);
 	}
 
-	inline void ValueIterator::assert_at_start() const noexcept {
+	inline void ValueIterator::assertAtStart() const noexcept {
 		assert(position() == rootPosition);
 	}
 
-	inline bool ValueIterator::is_at_start() const noexcept {
-		return position() == start_position();
+	inline bool ValueIterator::isAtStart() const noexcept {
+		return position() == startPosition();
 	}
 
-	inline uint32_t* ValueIterator::start_position() const noexcept {
+	inline uint32_t* ValueIterator::startPosition() const noexcept {
 		return rootPosition;
 	}
 
-	inline const uint8_t* ValueIterator::peek_start() const noexcept {
-		return &this->stringView[*start_position()];
+	inline const uint8_t* ValueIterator::peekStart() const noexcept {
+		return &this->stringView[*startPosition()];
 	}
 
 	inline int32_t ValueIterator::depth() const noexcept {
 		return currentDepth;
 	}
 
-	inline double ValueIterator::get_double() noexcept {
-		auto result = NumberParser::parseDouble(peek_non_root_scalar());
-		advance_non_root_scalar();
+	inline double ValueIterator::getDouble() noexcept {
+		auto result = NumberParser::parseDouble(peekNonRootScalar());
+		advanceNonRootScalar();
 		return result;
 	}
 
@@ -1981,22 +1953,22 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* ValueIterator::peek_scalar() noexcept {
-		if (!is_at_start()) {
-			return peek_start();
+		if (!isAtStart()) {
+			return peekStart();
 		}
 
-		assert_at_start();
+		assertAtStart();
 		return this->jsonIterator->peek();
 	}
 
 	inline void ValueIterator::advance_scalar() noexcept {
-		if (!is_at_start()) {
+		if (!isAtStart()) {
 			return;
 		}
 
-		assert_at_start();
-		this->jsonIterator->return_current_and_advance();
-		this->jsonIterator->ascend_to(depth() - 1);
+		assertAtStart();
+		this->jsonIterator->returnCurrentAndAdvance();
+		this->jsonIterator->ascendTo(depth() - 1);
 	}
 
 	inline RawJsonString::RawJsonString(uint8_t* bufNew) noexcept {
@@ -2033,7 +2005,7 @@ namespace Jsonifier {
 	inline bool ValueIterator::started_object() noexcept {
 		assert_at_container_start();
 		if (*this->jsonIterator->peek() == '}') {
-			this->jsonIterator->return_current_and_advance();
+			this->jsonIterator->returnCurrentAndAdvance();
 			end_container();
 			return false;
 		}
@@ -2042,18 +2014,18 @@ namespace Jsonifier {
 	
 	inline ErrorCode ValueIterator::start_container(uint8_t start_char) noexcept {
 		const uint8_t* json;
-		if (!is_at_start()) {
-			json = peek_start();
+		if (!isAtStart()) {
+			json = peekStart();
 			if (*json != start_char) {
 				return ErrorCode::Incorrect_Type;
 			}
 		} else {
-			assert_at_start();
+			assertAtStart();
 			json = this->jsonIterator->peek();
 			if (*json != start_char) {
 				return ErrorCode::Incorrect_Type;
 			}
-			this->jsonIterator->return_current_and_advance();
+			this->jsonIterator->returnCurrentAndAdvance();
 		}
 
 
@@ -2067,7 +2039,7 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode ValueIterator::end_container() noexcept {
-		this->jsonIterator->ascend_to(depth() - 1);
+		this->jsonIterator->ascendTo(depth() - 1);
 		return ErrorCode::Success;
 	}
 
@@ -2103,19 +2075,19 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode ValueIterator::field_value() noexcept {
-		assert_at_next();
+		assertAtNext();
 
-		if (*this->jsonIterator->return_current_and_advance() != ':') {
+		if (*this->jsonIterator->returnCurrentAndAdvance() != ':') {
 			return ErrorCode::TapeError;
 		}
-		this->jsonIterator->descend_to(depth() + 1);
+		this->jsonIterator->descendTo(depth() + 1);
 		return ErrorCode::Success;
 	}
 
 	inline std::string_view ValueIterator::field_key() noexcept {
-		assert_at_next();
+		assertAtNext();
 
-		const uint8_t* key = this->jsonIterator->return_current_and_advance();
+		const uint8_t* key = this->jsonIterator->returnCurrentAndAdvance();
 		if (*(key++) != '"') {
 			return "";
 		}
@@ -2131,9 +2103,9 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::has_next_field() noexcept {
-		assert_at_next();
+		assertAtNext();
 
-		switch (*this->jsonIterator->return_current_and_advance()) {
+		switch (*this->jsonIterator->returnCurrentAndAdvance()) {
 			case '}':
 				end_container();
 				return false;
@@ -2145,26 +2117,26 @@ namespace Jsonifier {
 	}
 
 	inline void ValueIterator::assert_at_child() const noexcept {
-		assert(position() > start_position());
+		assert(position() > startPosition());
 	}
 
-	inline void JsonIterator::descend_to(size_t child_depth) noexcept {
+	inline void JsonIterator::descendTo(size_t child_depth) noexcept {
 		assert(child_depth >= 1 && child_depth < std::numeric_limits<int32_t>::max());
 		//assert(currentDepth == child_depth - 1);
 		currentDepth = child_depth;
 	}
 
-	inline void JsonIterator::ascend_to(size_t parent_depth) noexcept {
+	inline void JsonIterator::ascendTo(size_t parent_depth) noexcept {
 		assert(parent_depth >= 0 && parent_depth < std::numeric_limits<int32_t>::max() - 1);
 		assert(currentDepth == parent_depth + 1);
 		currentDepth = parent_depth;
 	}
 
-	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
-		return token.return_current_and_advance();
+	inline const uint8_t* JsonIterator::returnCurrentAndAdvance() noexcept {
+		return token.returnCurrentAndAdvance();
 	}
 
-	inline const uint8_t* TokenIterator::return_current_and_advance() noexcept {
+	inline const uint8_t* TokenIterator::returnCurrentAndAdvance() noexcept {
 		return &buf[*(currentPosition++)];
 	}
 
@@ -2198,7 +2170,7 @@ namespace Jsonifier {
 		if (depth() <= parent_depth) {
 			return ErrorCode::Success;
 		}
-		switch (*return_current_and_advance()) {
+		switch (*returnCurrentAndAdvance()) {
 			case '[':
 			case '{':
 			case ':':
@@ -2214,7 +2186,7 @@ namespace Jsonifier {
 				break;
 			case '"':
 				if (*peek() == ':') {
-					return_current_and_advance();
+					returnCurrentAndAdvance();
 					break;
 				}
 				[[fallthrough]];
@@ -2227,7 +2199,7 @@ namespace Jsonifier {
 		}
 
 		while (position() < end_position()) {
-			switch (*return_current_and_advance()) {
+			switch (*returnCurrentAndAdvance()) {
 				case '[':
 				case '{':
 					currentDepth++;
@@ -2409,7 +2381,7 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::at_first_field() const noexcept {
-		return jsonIterator->token.position() == start_position() + 1;
+		return jsonIterator->token.position() == startPosition() + 1;
 	}
 
 	inline bool JsonIterator::at_root() const noexcept {
@@ -2566,23 +2538,23 @@ namespace Jsonifier {
 	inline bool ValueIterator::started_array() noexcept {
 		assert_at_container_start();
 		if (*jsonIterator->peek() == ']') {
-			jsonIterator->return_current_and_advance();
+			jsonIterator->returnCurrentAndAdvance();
 			end_container();
 			return false;
 		}
-		jsonIterator->descend_to(depth() + 1);
+		jsonIterator->descendTo(depth() + 1);
 		return true;
 	}
 
 	inline bool ValueIterator::has_next_element() noexcept {
-		assert_at_next();
+		assertAtNext();
 
-		switch (*jsonIterator->return_current_and_advance()) {
+		switch (*jsonIterator->returnCurrentAndAdvance()) {
 			case ']':
 				end_container();
 				return false;
 			case ',':
-				jsonIterator->descend_to(depth() + 1);
+				jsonIterator->descendTo(depth() + 1);
 				return true;
 			default:
 				return false;
@@ -2594,7 +2566,7 @@ namespace Jsonifier {
 		int32_t count{ 0 };
 		ti.set_position(root_position());
 		while (ti.peek() <= peek_last()) {
-			switch (*ti.return_current_and_advance()) {
+			switch (*ti.returnCurrentAndAdvance()) {
 				case '[':
 				case '{':
 					count++;

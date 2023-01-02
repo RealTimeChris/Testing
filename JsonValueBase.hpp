@@ -117,7 +117,7 @@ namespace Jsonifier {
 		inline TokenIterator& operator=(TokenIterator&& other) noexcept = default;
 		inline TokenIterator(const TokenIterator& other) noexcept = default;
 		inline TokenIterator& operator=(const TokenIterator& other) noexcept = default;
-		inline const uint8_t* return_current_and_advance() noexcept;
+		inline const uint8_t* returnCurrentAndAdvance() noexcept;
 		inline uint32_t current_offset() const noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
@@ -172,7 +172,7 @@ namespace Jsonifier {
 		inline bool at_end() const noexcept;
 		inline bool is_alive() const noexcept;
 		inline void abandon() noexcept;
-		inline const uint8_t* return_current_and_advance() noexcept;
+		inline const uint8_t* returnCurrentAndAdvance() noexcept;
 		inline bool is_single_token() const noexcept;
 		inline void assert_more_tokens(uint32_t required_tokens = 1) const noexcept;
 		inline void assert_valid_position(uint32_t* position) const noexcept;
@@ -182,9 +182,9 @@ namespace Jsonifier {
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
 		inline uint32_t peek_length(uint32_t* position) const noexcept;
 		inline const uint8_t* peek_last() const noexcept;
-		inline void ascend_to(size_t parent_depth) noexcept;
-		inline void descend_to(size_t child_depth) noexcept;
-		inline void descend_to(size_t child_depth, int32_t delta) noexcept;
+		inline void ascendTo(size_t parent_depth) noexcept;
+		inline void descendTo(size_t child_depth) noexcept;
+		inline void descendTo(size_t child_depth, int32_t delta) noexcept;
 		inline size_t depth() const noexcept;
 		inline uint8_t*& string_buf_loc() noexcept;
 		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
@@ -324,7 +324,7 @@ namespace Jsonifier {
 		inline uint64_t get_uint64_in_string() noexcept;
 		inline int64_t get_int64() noexcept;
 		inline int64_t get_int64_in_string() noexcept;
-		inline double get_double() noexcept;
+		inline double getDouble() noexcept;
 		inline double get_double_in_string() noexcept;
 		inline bool get_bool() noexcept;
 		inline bool is_null() noexcept;
@@ -360,16 +360,16 @@ namespace Jsonifier {
 
 		inline bool parse_null(const uint8_t* json) const noexcept;
 		inline bool parse_bool(const uint8_t* json) const noexcept;
-		inline const uint8_t* peek_start() const noexcept;
+		inline const uint8_t* peekStart() const noexcept;
 		inline uint32_t peek_start_length() const noexcept;
 
 		inline void advance_scalar() noexcept;
 		inline void advance_root_scalar() noexcept;
-		inline void advance_non_root_scalar() noexcept;
+		inline void advanceNonRootScalar() noexcept;
 
 		inline const uint8_t* peek_scalar() noexcept;
 		inline const uint8_t* peek_root_scalar() noexcept;
-		inline const uint8_t* peek_non_root_scalar() noexcept;
+		inline const uint8_t* peekNonRootScalar() noexcept;
 
 
 		inline ErrorCode start_container(uint8_t start_char) noexcept;
@@ -378,17 +378,17 @@ namespace Jsonifier {
 
 		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
 
-		inline bool is_at_start() const noexcept;
+		inline bool isAtStart() const noexcept;
 		inline bool is_at_iterator_start() const noexcept;
 		inline bool is_at_key() const noexcept;
 
-		inline void assert_at_start() const noexcept;
+		inline void assertAtStart() const noexcept;
 		inline void assert_at_container_start() const noexcept;
 		inline void assert_at_root() const noexcept;
 		inline void assert_at_child() const noexcept;
-		inline void assert_at_next() const noexcept;
-		inline void assert_at_non_root_start() const noexcept;
-		inline uint32_t* start_position() const noexcept;
+		inline void assertAtNext() const noexcept;
+		inline void assertAtNonRootStart() const noexcept;
+		inline uint32_t* startPosition() const noexcept;
 
 		inline uint32_t* position() const noexcept;
 		inline uint32_t* last_position() const noexcept;
