@@ -387,7 +387,7 @@ namespace Jsonifier {
 			*theValue = string;
 		}
 
-		inline uint64_t addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape,
+		inline void addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape,
 			size_t stringLength) {
 			int cnt = static_cast<int>(__popcnt64(*theBits));
 			int64_t newValue{};
@@ -396,7 +396,7 @@ namespace Jsonifier {
 
 				if (newValue > stringLength) {
 					currentIndexIntoTape += i;
-					return i;
+					return;
 
 				} else {
 					tapePtrs[i + currentIndexIntoTape] = newValue;
@@ -404,7 +404,7 @@ namespace Jsonifier {
 				}
 			}
 			currentIndexIntoTape += cnt;
-			return cnt;
+			return;
 		}
 
 		inline SimdBase256 follows(SimdBase256 match, SimdBase256 overflow) {
@@ -413,14 +413,13 @@ namespace Jsonifier {
 			return result;
 		}
 
-		inline size_t getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
-			size_t returnValue{};
+		inline void getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
 			for (size_t x = 0; x < 4; ++x) {
 				auto newValue = this->S256.getUint64(x);
-				returnValue += this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoTape, stringLength);
+				this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoTape, stringLength);
 			}
 			this->currentIndexIntoString += 256;
-			return returnValue;
+			return;
 		}
 
 		inline SimdBase256 collectWhiteSpace() {

@@ -40,7 +40,7 @@ namespace Jsonifier {
 	};
 
 	struct ArrayReturnDataJson {
-		Array arrayValue{};
+		//Array arrayValue{};
 		bool didItSucceed{ false };
 	};
 

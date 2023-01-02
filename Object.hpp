@@ -6,13 +6,6 @@ namespace Jsonifier {
 
 	class Object : public JsonValueBase {
 	  public:
-		inline auto begin() noexcept {
-			return JsonIterator{ *this };
-		}
-
-		inline auto end() noexcept {
-			return JsonIterator{ *this };
-		}
 		inline size_t countFields() noexcept;
 		inline Object() noexcept = default;
 
@@ -67,12 +60,12 @@ namespace Jsonifier {
 			return Object(iterator->child());
 		}
 
+		inline Object(JsonValueBase&& other) noexcept;
+
+		inline Object(JsonValueBase& other) noexcept;
+
+		inline Object(JsonIterator&& other) noexcept;
+
 		inline Object(JsonIterator& other) noexcept;
-
-		inline Object(JsonIterator&&) noexcept;
-
-		inline Object(JsonValueBase&& other) : JsonValueBase{ std::move(other) } {};
-
-		inline Object(JsonValueBase& other) : JsonValueBase{ std::move(other) } {};
 	};
 }

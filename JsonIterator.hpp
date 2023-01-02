@@ -44,6 +44,7 @@ namespace Jsonifier {
 
 	class JsonIterator {
 	  public:
+		friend class JsonValueBase;
 		inline JsonIterator() noexcept = default;
 		inline JsonIterator(JsonIterator&& other) noexcept = default;
 		inline JsonIterator& operator=(JsonIterator&& other) noexcept = default;
@@ -178,6 +179,7 @@ namespace Jsonifier {
 
 		static inline Array startRoot(JsonIterator& iterator) noexcept;
 		static inline Array started(JsonIterator& iterator) noexcept;
+		inline bool startArray() noexcept;
 		inline bool startObject() noexcept;
 		inline bool startRootObject() noexcept;
 		inline bool startedObject() noexcept;
@@ -203,6 +205,6 @@ namespace Jsonifier {
 		uint32_t* currentPosition{};
 		uint32_t* rootPositionVal{};
 		const uint8_t* stringView{};
-		size_t currentDepth{1};
+		size_t currentDepth{ 1 };
 	};
 }

@@ -15,7 +15,8 @@ namespace Jsonifier {
 		friend class JsonIterator;
 
 		inline ErrorCode getError() noexcept;
-		inline Object getObject() & noexcept;
+		inline Object getObject() noexcept;
+		inline Array getArray() noexcept;
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 		inline JsonValueBase() noexcept {};
 		inline JsonValueBase(JsonIterator&& other) noexcept;
@@ -36,9 +37,8 @@ namespace Jsonifier {
 	  protected:
 		std::unique_ptr<JsonIterator> iterator{ std::make_unique<JsonIterator>() };
 		ErrorCode error{ ErrorCode::Success };
-		JsonifierCore* parser{};
-		size_t currentDepth{};
 		uint8_t* stringBufferLocation{};
+		JsonifierCore* parser{};
 
 		inline uint8_t*& getStringBuffer() noexcept;
 		

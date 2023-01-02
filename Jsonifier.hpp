@@ -742,13 +742,13 @@ namespace Jsonifier {
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
-					auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+					section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 					stringReader.advance();
 				}
 				char block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
-				auto indexCount = section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+				section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
@@ -1381,11 +1381,10 @@ namespace Jsonifier {
 	}
 
 	inline JsonValueBase::JsonValueBase(uint8_t* stringView, JsonifierCore* _parser) noexcept
-		: parser{ _parser }, stringBufferLocation{ parser->getStringBuffer() }, currentDepth{ 1 } {};
+		: parser{ _parser }, stringBufferLocation{ parser->getStringBuffer() } {};
 
 	inline JsonValueBase& JsonValueBase::operator=(const JsonValueBase& other) noexcept {
 		this->stringBufferLocation = other.stringBufferLocation;
-		this->currentDepth = other.currentDepth;
 		*this->iterator = *other.iterator;
 		this->parser = other.parser;
 		this->error = other.error;
@@ -1398,7 +1397,6 @@ namespace Jsonifier {
 
 	inline JsonValueBase& JsonValueBase::operator=(JsonValueBase && other) noexcept {
 		this->stringBufferLocation = other.stringBufferLocation;
-		this->currentDepth = other.currentDepth;
 		*this->iterator = *other.iterator;
 		this->parser = other.parser;
 		this->error = other.error;
@@ -1488,10 +1486,10 @@ namespace Jsonifier {
 	}
 		
 	inline void JsonIterator::assertAtNext() const noexcept {
-		//assert(jsonIterator->token.position() > rootPosition);
+		//assert(this->position() > rootPosition());
 		//std::cout << "JSON ITERATOR DEPTH: " << this->currentDepth << ", CURRENT DEPTH: " << this->currentDepth << std::endl;
 		assert(this->currentDepth == this->currentDepth);
-		assert(this->currentDepth > 0);
+		//assert(this->currentDepth > 0);
 	}
 
 	inline void JsonIterator::assertAtStart() const noexcept {
@@ -1571,8 +1569,34 @@ namespace Jsonifier {
 		return startedRootObject();
 	}
 
-	inline Object JsonValueBase::getObject() &  noexcept {
+	inline Object JsonValueBase::getObject()  noexcept {
 		return Object::start(*this->iterator);
+	}
+
+	inline Array Array::start(JsonIterator& iter) noexcept {
+		iter.startArray();
+		return Array(iter);
+	}
+
+	inline bool JsonIterator::startArray() noexcept {
+		startContainer('[');
+		return startedArray();
+	}
+
+	inline JsonIterator JsonValueBase::begin() noexcept {
+		return JsonIterator{ *this };
+	}
+
+	inline JsonIterator JsonValueBase::end() noexcept {
+		return JsonIterator{ *this };
+	}
+
+	inline Array::Array(JsonIterator& other) noexcept {
+		*this->iterator = other;
+	}
+
+	inline Array JsonValueBase::getArray() noexcept {
+		return Array::start(*this->iterator);
 	}
 
 	inline JsonIterator JsonIterator::resumeValueIterator() noexcept {
@@ -1599,7 +1623,7 @@ namespace Jsonifier {
 	}
 	
 	inline ErrorCode JsonIterator::startContainer(uint8_t start_char) noexcept {
-		const uint8_t* json;
+		const uint8_t* json{};
 		if (!isAtStart()) {
 			json = peekStart();
 			if (*json != start_char) {
@@ -1614,14 +1638,13 @@ namespace Jsonifier {
 			this->returnCurrentAndAdvance();
 		}
 
-
 		return ErrorCode::Success;
 	}
 
 	inline void JsonIterator::assertAtContainerStart() const noexcept {
-		//assert(jsonIterator->token.position() == rootPosition + 1);
-		//assert(jsonIterator->currentDepth == currentDepth);
-		//assert(currentDepth > 0);
+		//assert(this->position() == rootPosition() + 1);
+		assert(this->currentDepth == currentDepth);
+		assert(currentDepth > 0);
 	}
 
 	inline ErrorCode JsonIterator::endContainer() noexcept {
@@ -1708,7 +1731,7 @@ namespace Jsonifier {
 
 	inline void JsonIterator::descendTo(size_t child_depth) noexcept {
 		assert(child_depth >= 1 && child_depth < std::numeric_limits<int32_t>::max());
-		//assert(currentDepth == child_depth - 1);
+		assert(currentDepth == child_depth - 1);
 		this->currentDepth = child_depth;
 	}
 
@@ -1854,7 +1877,7 @@ namespace Jsonifier {
 
 			RawJsonString actualKey{ ( uint8_t* )(fieldKey().data()) };
 			error = fieldValue();
-			//assert(error == ErrorCode::Success);
+			assert(error == ErrorCode::Success);
 			if (actualKey.unsafeIsEqual(key)) {
 				return true;
 			}
@@ -2055,19 +2078,21 @@ namespace Jsonifier {
 	inline JsonIterator::JsonIterator(const Object& ptrNew) noexcept {
 		this->parser = ptrNew.parser;
 		this->rootPositionVal = ptrNew.parser->getStructuralIndices();
-		this->currentPosition = ptrNew.parser->getStructuralIndices();
+		this->currentPosition = ptrNew.parser->getStructuralIndices() + ptrNew.iterator->currentDepth;
 		this->currentDepth = ptrNew.iterator->currentDepth;
 		this->stringView = ptrNew.parser->getStringView();
 	}
 
 	inline Object::Object(JsonIterator& other)noexcept  {
 		this->parser = other.parser;
+		this->parser->getStructuralIndices();
 		*this->iterator = other;
 		this->stringBufferLocation = other.parser->getStringBuffer();
 	}
 
 	inline Object::Object(JsonIterator&& other) noexcept {
 		this->parser = other.parser;
+		this->parser->getStructuralIndices();
 		*this->iterator = other;
 		this->stringBufferLocation = other.parser->getStringBuffer();
 	}
@@ -2112,7 +2137,7 @@ namespace Jsonifier {
 			return "dead json_iterator instance";
 		}
 		const char* current_structural = reinterpret_cast<const char*>(this->iterator->peek());
-		return std::string("json_iterator [ depth : ") + std::to_string(this->currentDepth) + std::string(", structural : '") +
+		return std::string("json_iterator [ depth : ") + std::to_string(this->iterator->currentDepth) + std::string(", structural : '") +
 			std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(this->iterator->currentOffset()) +
 			std::string("', error : ") + std::to_string(( int32_t )error) + std::string(" ]");
 	}
@@ -2169,5 +2194,18 @@ namespace Jsonifier {
 		}
 	}
 
+	inline Object::Object(JsonValueBase&& other) noexcept: JsonValueBase{ other } {
+		this->stringBufferLocation = static_cast<Object*>(&other)->stringBufferLocation;
+		*this->iterator = *static_cast<Object*>(&other)->iterator;
+		this->parser = static_cast<Object*>(&other)->parser;
+		this->error = static_cast<Object*>(&other)->error;
+	};
+
+	inline Object::Object(JsonValueBase& other) noexcept : JsonValueBase{ other } {
+		this->stringBufferLocation = static_cast<Object*>(&other)->stringBufferLocation;
+		*this->iterator = *static_cast<Object*>(&other)->iterator;
+		this->parser = static_cast<Object*>(&other)->parser;
+		this->error = static_cast<Object*>(&other)->error;
+	};
 
 };
