@@ -40,6 +40,7 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
 		Jsonifier::Object objectNew{ value.getObject() };
+		std::cout << "CURRENT FIELD COUNT: " << objectNew.countFields() << std::endl;
 		//auto newArray = objectNew.getArray();
 		//std::cout << "CURRENT SIZE: " << newArray.countElements() << std::endl;
 		//		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
@@ -155,7 +156,7 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			std::unique_ptr<Jsonifier::Jsonifier[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) Jsonifier::Jsonifier[4096ull * 2048ull]);
+			objectBuffer.reset(new (std::nothrow) Jsonifier::Jsonifier[4096ull ]);
 		}
 
 		totalTime += stopWatch.totalTimePassed().count();
@@ -165,7 +166,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		{
 			Jsonifier::ObjectBuffer<Jsonifier::Jsonifier> objectBuffer{};
-			objectBuffer.allocate(4096ull * 2048ull);
+			objectBuffer.allocate(4096ull );
 			objectBuffer.deallocate();
 		};
 		totalTime += stopWatch.totalTimePassed().count();

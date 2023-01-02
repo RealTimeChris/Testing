@@ -1498,7 +1498,7 @@ namespace Jsonifier {
 		return &this->rootStringView[*startPosition()];
 	}
 
-	inline size_t JsonIterator::depth() const noexcept {
+	inline size_t& JsonIterator::depth()  noexcept {
 		return this->currentDepth;
 	}
 
@@ -2320,6 +2320,26 @@ namespace Jsonifier {
 
 	inline uint32_t* ValueIterator::position() const noexcept {
 		return jsonIterator->position();
+	}
+
+	inline void ValueIterator::moveAtStart() noexcept {
+		jsonIterator->depth() = currentDepth;
+		jsonIterator->setPosition(rootPosition);
+	}
+
+	inline void ValueIterator::moveAtContainerStart() noexcept {
+		jsonIterator->depth() = currentDepth;
+		jsonIterator->setPosition(rootPosition+ 1);
+	}
+
+	inline bool ValueIterator::resetArray() noexcept {
+		moveAtContainerStart();
+		return startedArray();
+	}
+
+	inline bool ValueIterator::resetObject() noexcept {
+		moveAtContainerStart();
+		return startedObject();
 	}
 
 };

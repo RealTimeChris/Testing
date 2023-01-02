@@ -59,8 +59,6 @@ namespace Jsonifier {
 	class Object {
 	  public:
 		friend class JsonIterator;
-
-		inline size_t countFields() noexcept;
 		inline Object() noexcept = default;
 
 		ObjectIterator end() noexcept {
@@ -126,6 +124,19 @@ namespace Jsonifier {
 				return Object(iterator.child());
 			}
 			return Object(iterator.child());
+		}
+
+		
+		inline size_t countFields() & noexcept {
+			size_t count{ 0 };
+			for (auto v: *this) {
+				count++;
+			}
+			if (iterator.getError()!=ErrorCode::Success) {
+				return -1;
+			}
+			iterator.resetObject();
+			return count;
 		}
 
 		inline Object(JsonValueBase&& other) noexcept;

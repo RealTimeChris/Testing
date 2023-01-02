@@ -100,7 +100,7 @@ namespace Jsonifier {
 
 		inline JsonType type() noexcept;
 
-		inline size_t depth() const noexcept;
+		inline size_t& depth() noexcept;
 		inline void rewind() noexcept;
 
 		inline void ascendTo(size_t parentDepth) noexcept;
