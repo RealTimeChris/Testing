@@ -6,6 +6,7 @@
 
 #include "NumberParsingUtils.hpp"
 #include "StringParsingUtils.hpp"
+#include "Value.hpp"
 #include "Object.hpp"
 #include "Simd.hpp"
 #include <iterator>
@@ -687,8 +688,6 @@ namespace Jsonifier {
 	class Object;
 	class Array;
 	class Field;
-
-	
 
 	class ObjectIterator;
 
@@ -1955,7 +1954,7 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::startedObject() noexcept {
-		assert_at_container_start();
+		assertAtContainerStart();
 		if (*this->jsonIterator->peek() == '}') {
 			this->jsonIterator->returnCurrentAndAdvance();
 			endContainer();
@@ -1984,7 +1983,7 @@ namespace Jsonifier {
 		return ErrorCode::Success;
 	}
 
-	inline void ValueIterator::assert_at_container_start() const noexcept {
+	inline void ValueIterator::assertAtContainerStart() const noexcept {
 		//assert(jsonIterator->token.position() == rootPosition + 1);
 		//assert(jsonIterator->currentDepth == currentDepth);
 		//assert(currentDepth > 0);
@@ -2229,7 +2228,7 @@ namespace Jsonifier {
 
 	inline bool ValueIterator::findFieldUnorderedRaw(const std::string_view key) noexcept {
 		ErrorCode error;
-		bool has_value;
+		bool has_value{};
 		uint32_t* search_start = jsonIterator->position();
 		bool at_first = atFirstField();
 		if (at_first) {
@@ -2278,7 +2277,7 @@ namespace Jsonifier {
 
 			RawJsonString actual_key{ ( uint8_t* )(fieldKey().data()) };
 			error = fieldValue();
-			assert(error == ErrorCode::Success);
+			//assert(error == ErrorCode::Success);
 			if (actual_key.unsafeIsEqual(key)) {
 				return true;
 			}
@@ -2471,7 +2470,7 @@ namespace Jsonifier {
 	}
 
 	inline bool ValueIterator::startedArray() noexcept {
-		assert_at_container_start();
+		assertAtContainerStart();
 		if (*jsonIterator->peek() == ']') {
 			jsonIterator->returnCurrentAndAdvance();
 			endContainer();

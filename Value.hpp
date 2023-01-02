@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Jsonifier.hpp"
-
 namespace Jsonifier {
 
 	class EnumStringConverter {
@@ -128,12 +126,9 @@ namespace Jsonifier {
 		inline bool operator>=(const TokenIterator& other) noexcept;
 		inline bool operator<(const TokenIterator& other) noexcept;
 		inline bool operator<=(const TokenIterator& other) noexcept;
-		
 
 	  protected:
 		inline TokenIterator(const uint8_t* buf, uint32_t* position) noexcept;
-		inline uint32_t peek_index(int32_t delta = 0) const noexcept;
-		inline uint32_t peek_index(uint32_t* position) const noexcept;
 
 		uint32_t* currentPosition{};
 		const uint8_t* buf{};
@@ -276,12 +271,9 @@ namespace Jsonifier {
 
 		inline void start_document() noexcept;
 		inline ErrorCode skipChild() noexcept;
-		inline bool at_end() const noexcept;
-		inline bool at_start() const noexcept;
 		inline bool isOpen() const noexcept;
 		inline bool atFirstField() const noexcept;
 		inline void abandon() noexcept;
-		inline ValueIterator child_value() const noexcept;
 		inline size_t depth() const noexcept;
 		inline JsonType type() const noexcept;
 		inline bool startObject() noexcept;
@@ -292,8 +284,8 @@ namespace Jsonifier {
 		inline std::string_view fieldKey() noexcept;
 		inline ErrorCode fieldValue() noexcept;
 		inline ErrorCode findField(const std::string_view key) noexcept;
-		inline bool find_field_raw(const std::string_view key) noexcept;
-		inline bool start_array() noexcept;
+		inline bool findFieldRaw(const std::string_view key) noexcept;
+		inline void assertAtContainerStart() const noexcept;
 		inline bool startRootArray() noexcept;
 		inline bool startedArray() noexcept;
 		inline bool startedRootArray() noexcept;
@@ -309,9 +301,6 @@ namespace Jsonifier {
 		inline double getDouble() noexcept;
 		inline double getDoubleInString() noexcept;
 		inline bool getBool() noexcept;
-		inline bool is_null() noexcept;
-		inline bool is_negative() noexcept;
-		inline bool is_integer() noexcept;
 
 		inline std::string_view getRootString() noexcept;
 		inline RawJsonString getRootRawJsonString() noexcept;
@@ -322,11 +311,8 @@ namespace Jsonifier {
 		inline double getRootDouble() noexcept;
 		inline double getRootDoubleInString() noexcept;
 		inline bool getRootBool() noexcept;
-		inline bool is_root_negative() noexcept;
-		inline bool is_root_integer() noexcept;
 		inline bool isRootNull() noexcept;
 		inline ErrorCode getError() noexcept;
-		inline uint8_t*& string_buf_loc() noexcept;
 		inline JsonIterator& jsonIter() noexcept;
 
 		inline void assert_is_valid() const noexcept;
@@ -335,22 +321,16 @@ namespace Jsonifier {
 	  protected:
 		inline bool resetArray() noexcept;
 		inline bool resetObject() noexcept;
-		inline void move_at_start() noexcept;
 		inline void moveAtContainerStart() noexcept;
 		inline std::string toString() const noexcept;
 		inline ValueIterator(JsonIterator* jsonIter, size_t depth, uint32_t* start_index) noexcept;
 
-		inline bool parse_null(const uint8_t* json) const noexcept;
-		inline bool parse_bool(const uint8_t* json) const noexcept;
 		inline const uint8_t* peekStart() const noexcept;
-		inline uint32_t peek_start_length() const noexcept;
 
 		inline void advanceScalar() noexcept;
-		inline void advance_root_scalar() noexcept;
 		inline void advanceNonRootScalar() noexcept;
 
 		inline const uint8_t* peekScalar() noexcept;
-		inline const uint8_t* peek_root_scalar() noexcept;
 		inline const uint8_t* peekNonRootScalar() noexcept;
 
 
@@ -361,12 +341,8 @@ namespace Jsonifier {
 		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
 
 		inline bool isAtStart() const noexcept;
-		inline bool is_at_iterator_start() const noexcept;
-		inline bool is_at_key() const noexcept;
 
 		inline void assertAtStart() const noexcept;
-		inline void assert_at_container_start() const noexcept;
-		inline void assert_at_root() const noexcept;
 		inline void assertAtChild() const noexcept;
 		inline void assertAtNext() const noexcept;
 		inline void assertAtNonRootStart() const noexcept;
