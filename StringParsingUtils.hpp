@@ -228,10 +228,10 @@ namespace Jsonifier {
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 		template<typename SimdBase256>
-		struct backslash_and_quote {
+		struct BackslashAndQuote {
 		  public:
 			static constexpr uint32_t BYTES_PROCESSED = 32;
-			static inline backslash_and_quote copy_and_find(uint8_t* src, uint8_t* dst) {
+			static inline BackslashAndQuote copyAndFind(uint8_t* src, uint8_t* dst) {
 				static_assert(256 >= (BYTES_PROCESSED - 1), "backslash and quote finder must process fewer than SIMDJSON_PADDING bytes");
 				SimdBase256 v(reinterpret_cast<char*>(src));
 				v.store(dst);
@@ -241,53 +241,52 @@ namespace Jsonifier {
 				};
 			}
 
-			inline bool has_quote_first() {
-				return ((bs_bits - 1) & quote_bits) != 0;
+			inline bool hasQuoteFirst() {
+				return ((bsBits - 1) & quoteBits) != 0;
 			}
-			inline bool has_backslash() {
-				return bs_bits != 0;
+			inline bool hasBackslash() {
+				return bsBits != 0;
 			}
-			inline int quote_index() {
-				return _tzcnt_u64(quote_bits);
+			inline int quoteIndex() {
+				return _tzcnt_u64(quoteBits);
 			}
-			inline int backslash_index() {
-				return _tzcnt_u64(bs_bits);
+			inline int backslashIndex() {
+				return _tzcnt_u64(bsBits);
 			}
 
-			uint32_t bs_bits;
-			uint32_t quote_bits;
+			uint32_t bsBits;
+			uint32_t quoteBits;
 		};
 
 		 static inline uint8_t* parseString(uint8_t* src, uint8_t* dst) {
 			while (1) {
-				 auto bs_quote = backslash_and_quote<SimdBase256>::copy_and_find(src, dst);
-				if (bs_quote.has_quote_first()) {
-					 return dst + bs_quote.quote_index();
+				 auto bsQuote = BackslashAndQuote<SimdBase256>::copyAndFind(src, dst);
+				if (bsQuote.hasQuoteFirst()) {
+					 return dst + bsQuote.quoteIndex();
 				}
-				if (bs_quote.has_backslash()) {
-					auto bs_dist = bs_quote.backslash_index();
-					uint8_t escape_char = src[bs_dist + 1];
-					if (escape_char == 'u') {
-						src += bs_dist;
-						dst += bs_dist;
+				if (bsQuote.hasBackslash()) {
+					auto bsDist = bsQuote.backslashIndex();
+					uint8_t escapeChar = src[bsDist + 1];
+					if (escapeChar == 'u') {
+						src += bsDist;
+						dst += bsDist;
 						if (!handleUnicodeCodepoint(const_cast<const uint8_t**>(&src), &dst)) {
 							return nullptr;
 						}
 					} else {
-						uint8_t escape_result = escapeMap[escape_char];
-						if (escape_result == 0u) {
+						uint8_t escapeResult = escapeMap[escapeChar];
+						if (escapeResult == 0u) {
 							return nullptr;
 						}
-						dst[bs_dist] = escape_result;
-						src += bs_dist + 2;
-						dst += bs_dist + 1;
+						dst[bsDist] = escapeResult;
+						src += bsDist + 2;
+						dst += bsDist + 1;
 					}
 				} else {
-					src += backslash_and_quote<SimdBase256>::BYTES_PROCESSED;
-					dst += backslash_and_quote<SimdBase256>::BYTES_PROCESSED;
+					src += BackslashAndQuote<SimdBase256>::BYTES_PROCESSED;
+					dst += BackslashAndQuote<SimdBase256>::BYTES_PROCESSED;
 				}
 			}
-			/* can't be reached */
 			return nullptr;
 		}
 
