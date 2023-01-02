@@ -2260,4 +2260,53 @@ namespace Jsonifier {
 		return currentDepth;
 	}
 
+	inline ValueIterator::ValueIterator(JsonIterator* json_iter, size_t depth, uint32_t* start_position) noexcept
+		: jsonIterator{ json_iter }, currentDepth{ depth }, rootPosition{ start_position } {};
+
+	inline void ValueIterator::assertAtContainerStart() const noexcept {
+		assert(jsonIterator->position() == rootPosition+ 1);
+		assert(jsonIterator->depth() == currentDepth);
+		assert(currentDepth > 0);
+	}
+
+	inline ErrorCode ValueIterator::startContainer(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept {
+		const uint8_t* json{};
+		if (!isAtStart()) {
+			json = peekStart();
+			if (*json != start_char) {
+				return ErrorCode::Incorrect_Type;
+			}
+		} else {
+			assertAtStart();
+			json = jsonIterator->peek();
+			if (*json != start_char) {
+		 return ErrorCode::Incorrect_Type;
+			}
+			jsonIterator->returnCurrentAndAdvance();
+		}
+
+
+		return ErrorCode::Success;
+	}
+
+	inline void ValueIterator::assertAtStart() const noexcept {
+		assert(jsonIterator->position() == rootPosition);
+		assert(jsonIterator->depth() == currentDepth);
+		assert(currentDepth> 0);
+	}
+
+	inline void ValueIterator::assertAtNext() const noexcept {
+		assert(jsonIterator->position() > rootPosition);
+		assert(jsonIterator->depth() == currentDepth);
+		assert(currentDepth> 0);
+	}
+
+	inline const uint8_t* ValueIterator::peekStart() const noexcept {
+		return jsonIterator->peek(startPosition());
+	}
+
+	inline uint32_t* ValueIterator::startPosition()const  noexcept {
+		return rootPosition;
+	}
+
 };
