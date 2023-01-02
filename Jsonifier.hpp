@@ -2342,4 +2342,41 @@ namespace Jsonifier {
 		jsonIterator->abandon();
 	}
 
+	inline ErrorCode ValueIterator::skipChild() noexcept {
+		assert(jsonIterator->position() > rootPosition);
+		assert(jsonIterator->depth() >= currentDepth);
+
+		return jsonIterator->skipChild(depth());
+	}
+
+	inline ErrorCode ValueIterator::getError() noexcept {
+		return this->jsonIterator->getError();
+	}
+
+	 inline RawJsonString ValueIterator::fieldKey() noexcept {
+		assertAtNext();
+
+		const uint8_t* key = jsonIterator->returnCurrentAndAdvance();
+		if (*(key++) != '"') {
+			return RawJsonString{};
+		}
+		return RawJsonString(( uint8_t* )key);
+	}
+
+	 inline ErrorCode ValueIterator::fieldValue() noexcept {
+		assertAtNext();
+
+		if (*jsonIterator->returnCurrentAndAdvance() != ':') {
+			return ErrorCode::Tape_Error;
+			
+		}
+		jsonIterator->descendTo(depth() + 1);
+		return ErrorCode::Success;
+	}
+
+	 inline ValueIterator ValueIterator::child() noexcept {
+		assertAtChild();
+		 return { jsonIterator, static_cast<size_t>(depth() + 1), jsonIterator->position() };
+	}
+
 };
