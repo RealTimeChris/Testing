@@ -279,8 +279,8 @@ namespace Jsonifier {
 							return nullptr;
 						}
 						dst[bsDist] = escapeResult;
-						src += static_cast<size_t>(bsDist + 2);
-						dst += static_cast<size_t>(bsDist + 1);
+						src += static_cast<size_t>(bsDist + 2ull);
+						dst += static_cast<size_t>(bsDist + 1ull);
 					}
 				} else {
 					src += BackslashAndQuote<SimdBase256>::BYTES_PROCESSED;
