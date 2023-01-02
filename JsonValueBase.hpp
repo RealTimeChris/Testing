@@ -1,6 +1,6 @@
 #pragma once
 
-#include "JsonIteratorBase.hpp"
+#include "JsonIterator.hpp"
 
 namespace Jsonifier {
 
@@ -29,6 +29,9 @@ namespace Jsonifier {
 		inline std::string_view unescape(RawJsonString&) noexcept;
 		inline std::string toString() noexcept;
 		inline const char* currentLocation() noexcept;
+
+		JsonIterator begin() noexcept;
+		JsonIterator end() noexcept;
 
 		inline JsonValueBase(uint8_t* stringView, JsonifierCore* parser) noexcept;
 

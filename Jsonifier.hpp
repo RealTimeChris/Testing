@@ -9,7 +9,6 @@
 #include "Simd.hpp"
 #include "Value.hpp"
 #include "Object.hpp"
-#include "Primitive.hpp"
 #include "Array.hpp"
 #include "Document.hpp"
 #include "Field.hpp"

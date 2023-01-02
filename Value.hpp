@@ -91,12 +91,6 @@ namespace Jsonifier {
 		inline std::string_view unescape(JsonIterator& iterator) noexcept;
 
 	  protected:
-		inline void consume() noexcept {
-			stringView = nullptr;
-		}
-		inline bool alive() const noexcept {
-			return stringView != nullptr;
-		}
 		uint8_t* stringView{};
 		friend class JsonIterator;
 		friend class JsonValueBase;
