@@ -63,7 +63,7 @@ struct TheDJson {
 		//	std::string_view newValueDouble = iter->get<std::string_view>().getValue();
 			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 			//}
-		//std::cout << "NEW INDEX: WERE DONE" << index << std::endl;
+		std::cout << "NEW INDEX: WERE DONE" << std::endl;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
