@@ -7,8 +7,8 @@ namespace Jsonifier {
 	class Array : public JsonValueBase {
 	  public:
 		inline Array() noexcept = default;
-		inline JsonIteratorBase<Array> begin() noexcept;
-		inline JsonIteratorBase<Array> end() noexcept;
+		inline IteratorBaseBase begin() noexcept;
+		inline IteratorBaseBase end() noexcept;
 		inline size_t countElements() & noexcept;
 		inline bool isEmpty() & noexcept;
 		inline bool reset() & noexcept;
@@ -19,7 +19,7 @@ namespace Jsonifier {
 	  protected:
 		inline ErrorCode consume() noexcept;
 
-		JsonIteratorBase<Array> iter{};
+		IteratorBaseBase iter{};
 	};
 
 }

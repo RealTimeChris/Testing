@@ -1382,7 +1382,7 @@ namespace Jsonifier {
 		this->root = other->getStructuralIndexes();
 	}
 
-	inline JsonValueBase::JsonValueBase(uint8_t* buf, JsonifierCore* _parser) noexcept
+	inline JsonValueBase::JsonValueBase(uint8_t* stringView, JsonifierCore* _parser) noexcept
 		: parser{ _parser }, stringBuffer{ parser->getStringBuffer() }, currentDepth{ 1 }, root{ parser->getStructuralIndexes() } {};
 
 	inline JsonValueBase& JsonValueBase::operator=(const JsonValueBase& other) noexcept {
@@ -1731,11 +1731,11 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* IteratorBaseBase::returnCurrentAndAdvance() noexcept {
-		return &buf[*(currentPosition++)];
+		return &stringView[*(currentPosition++)];
 	}
 
 	inline const uint8_t* IteratorBaseBase::peek(int32_t delta) const noexcept {
-		return &buf[*currentPosition];
+		return &stringView[*currentPosition];
 	}
 
 	inline ErrorCode IteratorBaseBase::skipChild(size_t parentDepth) noexcept {
@@ -1934,7 +1934,7 @@ namespace Jsonifier {
 		return rootPositionVal;
 	}
 
-	inline Object JsonIteratorBase<Object>::operator*() noexcept {
+	inline Object IteratorBaseBase::operator*() noexcept {
 		ErrorCode error = this->getError();
 		if (error != ErrorCode::Success) {
 			this->abandon();
@@ -1947,11 +1947,11 @@ namespace Jsonifier {
 		return result;
 	}
 
-	inline bool JsonIteratorBase<Object>::operator==(const JsonIteratorBase<Object>& other) const noexcept {
-		return !(this->iter != other.iter);
+	inline bool IteratorBaseBase::operator==(const IteratorBaseBase& other) const noexcept {
+		return !(this->currentDepth == other.currentDepth && this->rootPositionVal == other.rootPositionVal);
 	}
 
-	inline JsonIteratorBase<Object>& JsonIteratorBase<Object>::operator++() noexcept {
+	inline IteratorBaseBase& IteratorBaseBase::operator++() noexcept {
 		if (!this->isOpen()) {
 			return *this;
 		}
@@ -2062,15 +2062,51 @@ namespace Jsonifier {
 		return count == 0;
 	}
 
+	inline IteratorBaseBase::IteratorBaseBase(JsonifierCore* ptrNew) noexcept {
+		this->parser = ptrNew;
+		this->rootPositionVal = ptrNew->getStructuralIndexes();
+		this->currentPosition = ptrNew->getStructuralIndexes();
+		this->stringView = ptrNew->getStringView();
+	}
+
+	inline IteratorBaseBase::IteratorBaseBase(const Object& ptrNew) noexcept {
+		this->parser = ptrNew.parser;
+		this->rootPositionVal = ptrNew.root;
+		this->currentPosition = ptrNew.parser->getStructuralIndexes();
+		this->stringView = ptrNew.parser->getStringView();
+	}
+
+	inline Object::Object(const IteratorBaseBase& other)noexcept  {
+		this->iterator = other;
+		this->root = other.parser->getStructuralIndexes();
+		this->stringBuffer = other.parser->getStringBuffer();
+	}
+
+	inline Object::Object(IteratorBaseBase&& other) noexcept {
+		this->iterator = other;
+		this->root = other.parser->getStructuralIndexes();
+		this->stringBuffer = other.parser->getStringBuffer();
+	}
+
 	inline uint32_t* JsonValueBase::lastPosition() const noexcept {
 		size_t n_structural_indexes{ parser->getTapeLength() };
 		assert(n_structural_indexes > 0);
 		return &parser->getStructuralIndexes()[n_structural_indexes - 1];
 	}
 
+	inline ErrorCode IteratorBaseBase::getError() noexcept{
+		return this->error;
+	}
+
 	inline bool IteratorBaseBase::resetArray() noexcept {
 		moveAtContainerStart();
 		return startedArray();
+	}
+
+	inline IteratorBaseBase IteratorBaseBase::child() noexcept {
+		assertAtChild();
+		this->currentDepth++;
+		return *this;
 	}
 
 };

@@ -43,13 +43,7 @@ namespace Jsonifier {
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
 		inline uint32_t* position() const noexcept;
 		inline void setPosition(uint32_t* target_position) noexcept;
-		inline bool operator==(const IteratorBaseBase& other) noexcept;
-		inline bool operator!=(const IteratorBaseBase& other) noexcept;
-		inline bool operator>(const IteratorBaseBase& other) noexcept;
-		inline bool operator>=(const IteratorBaseBase& other) noexcept;
-		inline bool operator<(const IteratorBaseBase& other) noexcept;
-		inline bool operator<=(const IteratorBaseBase& other) noexcept;
-		inline IteratorBaseBase(const uint8_t* buf, uint32_t* position) noexcept;
+		inline IteratorBaseBase(const uint8_t* stringView, uint32_t* position) noexcept;
 
 		inline void assertAtContainerStart() const noexcept;
 		inline IteratorBaseBase(JsonifierCore* other) noexcept;
@@ -114,7 +108,7 @@ namespace Jsonifier {
 
 		inline bool atRoot() const noexcept;
 		inline const uint8_t* peekLast() const noexcept;
-		inline JsonValueBase child() noexcept;
+		inline IteratorBaseBase child() noexcept;
 		inline uint32_t* rootPosition() const noexcept;
 		inline void assertAtDocumentDepth() const noexcept;
 		inline bool isAlive() const noexcept;
@@ -192,61 +186,16 @@ namespace Jsonifier {
 		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
 
 		friend class RawJsonString;
-
+		inline Object operator*() noexcept;
+		inline bool operator==(const IteratorBaseBase&) const noexcept;
+		inline IteratorBaseBase& operator++() noexcept;
+		inline IteratorBaseBase(const Object& iter) noexcept;
+		JsonifierCore* parser{};
 	  protected:
 		ErrorCode error{ ErrorCode::Success };
 		uint32_t* currentPosition{};
 		uint32_t* rootPositionVal{};
-		JsonifierCore* parser{};
+		const uint8_t* stringView{};
 		size_t currentDepth{};
-		const uint8_t* buf{};
-	};
-
-	
-	template<class = void> class JsonIteratorBase;
-	template<> class JsonIteratorBase<void> : public IteratorBaseBase {};
-
-	template<> class JsonIteratorBase<uint64_t> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<int64_t> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<double> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<std::string_view> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<std::string> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<bool> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<RawJsonString> : public IteratorBaseBase {};
-	template<> class JsonIteratorBase<Object> : public IteratorBaseBase {
-	  public:
-		inline JsonIteratorBase<Object>() noexcept = default;
-		inline Object operator*() noexcept;
-		inline bool operator==(const JsonIteratorBase<Object>&) const noexcept;
-		inline bool operator!=(const JsonIteratorBase<Object>&) const noexcept;
-		inline JsonIteratorBase<Object>& operator++() noexcept;
-		inline JsonIteratorBase<Object>(const Object& iter) noexcept;
-
-	  protected:
-		JsonValueBase* iter{};
-	};
-	template<> class JsonIteratorBase<Array> : public IteratorBaseBase {
-	  public:
-		inline JsonIteratorBase<Array>() noexcept = default;
-		inline Array operator*() noexcept;
-		inline bool operator==(const JsonIteratorBase<Array>&) const noexcept;
-		inline bool operator!=(const JsonIteratorBase<Array>&) const noexcept;
-		inline JsonIteratorBase<Array>& operator++() noexcept;
-		inline JsonIteratorBase<Array>(const Array& iter) noexcept;
-
-	  protected:
-		JsonValueBase* iter{};
-	};
-	template<> class JsonIteratorBase<Field> : public IteratorBaseBase {
-	  public:
-		inline JsonIteratorBase<Field>() noexcept = default;
-		inline Field operator*() noexcept;
-		inline bool operator==(const JsonIteratorBase<Field>&) const noexcept;
-		inline bool operator!=(const JsonIteratorBase<Field>&) const noexcept;
-		inline JsonIteratorBase<Field>& operator++() noexcept;
-		inline JsonIteratorBase<Field>(const Field& iter) noexcept;
-
-	  protected:
-		JsonValueBase* iter{};
 	};
 }

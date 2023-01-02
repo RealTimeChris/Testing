@@ -21,12 +21,12 @@ namespace Jsonifier {
 			return this->second.getError();
 		}
 
-		inline JsonIteratorBase<Object> end() noexcept {
-			return JsonIteratorBase<Object>{ this->second };
+		inline IteratorBaseBase end() noexcept {
+			return IteratorBaseBase{ this->second };
 		}
 
-		inline JsonIteratorBase<Object> begin() noexcept {
-			return JsonIteratorBase<Object>{ this->second };
+		inline IteratorBaseBase begin() noexcept {
+			return IteratorBaseBase{ this->second };
 		}
 
 		inline std::string_view getKey() {
@@ -34,6 +34,9 @@ namespace Jsonifier {
 		}
 
 		inline Field() noexcept = default;
+
+		inline Field(RawJsonString&& key, IteratorBaseBase&& value) noexcept
+			: std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), std::move(value) } {};
 
 		inline Field(RawJsonString&& key, JsonValueBase&& value) : std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), Object{} } {};
 

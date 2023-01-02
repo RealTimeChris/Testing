@@ -23,6 +23,7 @@ namespace Jsonifier {
 		inline Object getObject() & noexcept;
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 		inline JsonValueBase() noexcept {};
+		inline JsonValueBase(IteratorBaseBase&& other) noexcept;
 		inline JsonValueBase(JsonifierCore* other) noexcept;
 		inline JsonValueBase(JsonValueBase&& other) noexcept;
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept;
@@ -34,13 +35,13 @@ namespace Jsonifier {
 		inline std::string toString() const noexcept;
 		inline const char* currentLocation() noexcept;
 
-		inline JsonValueBase(uint8_t* buf, JsonifierCore* parser) noexcept;
+		inline JsonValueBase(uint8_t* stringView, JsonifierCore* parser) noexcept;
 
 		inline void start_document() noexcept;
 		inline JsonType type() const noexcept;
 
 	  protected:
-		JsonIteratorBase<> iterator{};
+		IteratorBaseBase iterator{};
 		inline uint32_t* lastPosition() const noexcept;
 		inline uint32_t* endPosition() const noexcept;
 
