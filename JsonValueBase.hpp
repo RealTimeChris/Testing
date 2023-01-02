@@ -24,28 +24,25 @@ namespace Jsonifier {
 		inline JsonValueBase& operator=(JsonValueBase&& other) noexcept;
 		inline JsonValueBase(const JsonValueBase& other) noexcept;
 		inline JsonValueBase& operator=(const JsonValueBase& other) noexcept;
-
-		inline uint32_t* position() const noexcept;
 		inline std::string_view unescape(RawJsonString&) noexcept;
 		inline std::string toString() noexcept;
-		inline const char* currentLocation() noexcept;
 
 		JsonIterator begin() noexcept;
 		JsonIterator end() noexcept;
 
 		inline JsonValueBase(uint8_t* stringView, JsonifierCore* parser) noexcept;
-
-		inline void start_document() noexcept;
 		inline JsonType type() const noexcept;
 
 	  protected:
 		std::unique_ptr<JsonIterator> iterator{ std::make_unique<JsonIterator>() };
 		ErrorCode error{ ErrorCode::Success };
 		JsonifierCore* parser{};
-		uint8_t* stringBuffer{};
 		size_t currentDepth{};
-		uint32_t* root{};
+		uint8_t* stringBufferLocation{};
 
+		inline uint8_t*& getStringBuffer() noexcept;
+		
+		inline uint32_t* getStructuralIndices() noexcept;
 	};
 
 }
