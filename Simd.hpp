@@ -342,7 +342,7 @@ namespace Jsonifier {
 		inline size_t blockIndex();
 		inline void advance();
 
-	  private:
+	  protected:
 		const uint8_t* stringBuffer{};
 		const size_t length{};
 		const size_t lengthMinusStep{};

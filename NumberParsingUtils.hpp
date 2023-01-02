@@ -21,8 +21,6 @@
 
 namespace Jsonifier {
 
-	class Jsonifier;
-
 	enum class ErrorCode : int8_t {
 		Empty = 0,
 		Tape_Error = 1,
