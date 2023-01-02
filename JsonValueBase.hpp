@@ -345,7 +345,7 @@ namespace Jsonifier {
 		inline bool is_root_null() noexcept;
 		inline ErrorCode getError() noexcept;
 		inline uint8_t*& string_buf_loc() noexcept;
-		inline JsonIterator& json_iter() noexcept;
+		inline JsonIterator& jsonIter() noexcept;
 
 		inline void assert_is_valid() const noexcept;
 		inline bool is_valid() const noexcept;
@@ -356,7 +356,7 @@ namespace Jsonifier {
 		inline void move_at_start() noexcept;
 		inline void moveAtContainerStart() noexcept;
 		inline std::string to_string() const noexcept;
-		inline ValueIterator(JsonIterator* json_iter, size_t depth, uint32_t* start_index) noexcept;
+		inline ValueIterator(JsonIterator* jsonIter, size_t depth, uint32_t* start_index) noexcept;
 
 		inline bool parse_null(const uint8_t* json) const noexcept;
 		inline bool parse_bool(const uint8_t* json) const noexcept;
@@ -385,7 +385,7 @@ namespace Jsonifier {
 		inline void assertAtStart() const noexcept;
 		inline void assert_at_container_start() const noexcept;
 		inline void assert_at_root() const noexcept;
-		inline void assert_at_child() const noexcept;
+		inline void assertAtChild() const noexcept;
 		inline void assertAtNext() const noexcept;
 		inline void assertAtNonRootStart() const noexcept;
 		inline uint32_t* startPosition() const noexcept;

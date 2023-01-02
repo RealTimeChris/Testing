@@ -1946,7 +1946,7 @@ namespace Jsonifier {
 	}
 
 	inline std::string_view ValueIterator::getString() noexcept {
-		return get_raw_json_string().unescape(json_iter());
+		return get_raw_json_string().unescape(jsonIter());
 	}
 
 	inline RawJsonString ValueIterator::get_raw_json_string() noexcept {
@@ -2127,7 +2127,7 @@ namespace Jsonifier {
 		}
 	}
 
-	inline void ValueIterator::assert_at_child() const noexcept {
+	inline void ValueIterator::assertAtChild() const noexcept {
 		assert(position() > startPosition());
 	}
 
@@ -2239,12 +2239,12 @@ namespace Jsonifier {
 		return result;
 	}
 
-	inline JsonIterator& ValueIterator::json_iter() noexcept {
+	inline JsonIterator& ValueIterator::jsonIter() noexcept {
 		return *jsonIterator;
 	}
 
 	inline ValueIterator ValueIterator::child()  noexcept {
-		assert_at_child();
+		assertAtChild();
 		return ValueIterator{ jsonIterator.get(), static_cast<size_t>(depth() + 1), jsonIterator->token.position() };
 	}
 
@@ -2288,11 +2288,11 @@ namespace Jsonifier {
 
 	inline bool ValueIterator::findFieldUnorderedRaw(const std::string_view key) noexcept {
 		ErrorCode error{};
-		bool has_value{};
-		uint32_t* search_start = jsonIterator->position();
+		bool hasValue{};
+		uint32_t* searchStart = jsonIterator->position();
 		bool at_first = atFirstField();
 		if (at_first) {
-			has_value = true;
+			hasValue = true;
 		} else if (!isOpen()) {
 			resetObject();
 			at_first = true;
@@ -2301,17 +2301,17 @@ namespace Jsonifier {
 				abandon();
 				return false;
 			}
-			search_start = jsonIterator->position();
+			searchStart = jsonIterator->position();
 			if (!hasNextField()) {
 				abandon();
 				return false;
 			}
 		}
 
-		while (has_value) {
-			RawJsonString actual_key{};
+		while (hasValue) {
+			RawJsonString actualKey{};
 			uint8_t* newPtr = const_cast<uint8_t*>(reinterpret_cast<const uint8_t*>(fieldKey().data()));
-			if (actual_key.stringView = newPtr; actual_key.stringView == nullptr) {
+			if (actualKey.stringView = newPtr; actualKey.stringView == nullptr) {
 				abandon();
 				return false;
 			};
@@ -2319,7 +2319,7 @@ namespace Jsonifier {
 				abandon();
 				return false;
 			}
-			if (actual_key.unsafeIsEqual(key)) {
+			if (actualKey.unsafeIsEqual(key)) {
 				return true;
 			}
 			skipChild();
@@ -2333,16 +2333,15 @@ namespace Jsonifier {
 		}
 		resetObject();
 		while (true) {
-			RawJsonString actual_key{};
-			assert(fieldKey() != "");
+			RawJsonString actualKey{};
 			error = fieldValue();
 			assert(error == ErrorCode::Success);
-			if (actual_key.unsafeIsEqual(key)) {
+			if (actualKey.unsafeIsEqual(key)) {
 				return true;
 			}
 
 			assert(skipChild() == ErrorCode::Success);
-			if (jsonIterator->position() == search_start) {
+			if (jsonIterator->position() == searchStart) {
 				return false;
 			}
 			assert(hasNextField());
@@ -2351,9 +2350,9 @@ namespace Jsonifier {
 	}
 
 	inline Object ValueIterator::findFieldUnordered(const std::string_view key) noexcept {
-		bool has_value{};
+		bool hasValue{};
 		this->findFieldUnorderedRaw(key);
-		if (!has_value) {
+		if (!hasValue) {
 			return Object{};
 		}
 		return Object(this->child());
@@ -2427,7 +2426,7 @@ namespace Jsonifier {
 			return *this;
 		}
 
-		bool has_value{};
+		bool hasValue{};
 		if (!iter.hasNextField()) {
 			return *this;
 		};
@@ -2435,7 +2434,7 @@ namespace Jsonifier {
 	}
 
 	inline Array Array::startRoot(ValueIterator& iter) noexcept {
-		bool has_value{};
+		bool hasValue{};
 		iter.startRootArray();
 		return Array(iter);
 	}

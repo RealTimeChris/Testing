@@ -52,16 +52,16 @@ namespace Jsonifier {
 		}
 
 		inline Object findFieldUnordered(const std::string_view key) & noexcept {
-			bool has_value{ this->findFieldUnorderedRaw(key) };
-			if (!has_value) {
+			bool hasValue{ this->findFieldUnorderedRaw(key) };
+			if (!hasValue) {
 				return Object{};
 			}
 			return Object(child());
 		}
 
 		inline Object findFieldUnordered(const std::string_view key) && noexcept {
-			bool has_value{ this->findFieldUnorderedRaw(key) };
-			if (!has_value) {
+			bool hasValue{ this->findFieldUnorderedRaw(key) };
+			if (!hasValue) {
 				return Object{};
 			}
 			return Object(child());
@@ -76,16 +76,16 @@ namespace Jsonifier {
 		}
 
 		inline Object find_field(const std::string_view key) & noexcept {
-			bool has_value{ this->find_field_raw(key) };
-			if (!has_value) {
+			bool hasValue{ this->find_field_raw(key) };
+			if (!hasValue) {
 				return Object{};
 			}
 			return Object(child());
 		}
 
 		inline Object find_field(const std::string_view key) && noexcept {
-			bool has_value{ this->find_field_raw(key) };
-			if (!has_value) {
+			bool hasValue{ this->find_field_raw(key) };
+			if (!hasValue) {
 				return Object{};
 			}
 			return Object(child());
