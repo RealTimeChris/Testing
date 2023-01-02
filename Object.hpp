@@ -1,18 +1,59 @@
 #pragma once
 
 #include "JsonValueBase.hpp"
+#include "Field.hpp"
 
 namespace Jsonifier {
 
 	class ObjectIterator : public JsonIterator {
 	  public:
 		inline ObjectIterator() noexcept = default;
-		inline Field operator*() noexcept;
-		inline bool operator==(const ObjectIterator&) const noexcept;
-		inline bool operator!=(const ObjectIterator&) const noexcept;
-		inline ObjectIterator& operator++() noexcept;
 
 		inline ObjectIterator(JsonIterator& iter) noexcept;
+
+		inline ObjectIterator(const ValueIterator& _iter) noexcept : iterator{ _iter } {};
+
+		inline Field operator*() noexcept {
+			ErrorCode error = iterator.getError();
+			if (error != ErrorCode::Success) {
+				iterator.abandon();
+				return Field{};
+			}
+			auto result = Field::start(iterator);
+			if (result.key().raw() == "") {
+				iterator.abandon();
+			}
+			return result;
+		}
+
+		inline bool operator==(const ObjectIterator& other) const noexcept {
+			return !(*this != other);
+		}
+
+		inline bool operator!=(const ObjectIterator&) const noexcept {
+			return iterator.isOpen();
+		}
+
+		inline ObjectIterator& operator++() noexcept {
+			if (!iterator.isOpen()) {
+				return *this;
+			}
+
+			ErrorCode error{};
+			if (error = iterator.skipChild(); error != ErrorCode::Success) {
+				return *this;
+			}
+
+			bool has_value{};
+			if (!iterator.hasNextField()) {
+				return *this;
+			};
+			return *this;
+		}
+
+	  protected:
+		ValueIterator iterator{};
+
 	};
 
 	class Object {
@@ -42,8 +83,8 @@ namespace Jsonifier {
 		inline Object(const ValueIterator& _iter) noexcept : iterator{ _iter } {
 		}
 
-		inline Object startRoot(ValueIterator& iter) noexcept {
-			iter.start_root_object();
+		static inline Object startRoot(ValueIterator& iter) noexcept {
+			iter.startRootObject();
 			return Object(iter);
 		}
 

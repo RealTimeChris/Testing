@@ -67,7 +67,7 @@ namespace Jsonifier {
 		}
 		inline Object getObject() & noexcept {
 			auto value = getRootValueIterator();
-			return Object::startRoot(std::move(value));
+			return Object::startRoot(value);
 		}
 		inline std::string toDebugString() noexcept {
 			return this->iterator.toString();
@@ -132,7 +132,7 @@ namespace Jsonifier {
 		template<typename OTy> inline OTy get() & noexcept;
 
 		template<typename OTy> inline OTy get() && noexcept;
-
+		/*
 		template<> inline Array get() & noexcept {
 			return getArray();
 		}
@@ -230,7 +230,7 @@ namespace Jsonifier {
 
 		inline JsonIterator end() & noexcept {
 			return getArray().end();
-		}
+		}*/
 
 	  protected:
 		uint8_t* rootStringBuffer{};

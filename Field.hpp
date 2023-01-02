@@ -4,27 +4,27 @@
 
 namespace Jsonifier {
 
-	class Field : public JsonValueBase, protected std::pair<std::string_view, JsonValueBase> {
+	class Field : protected std::pair<RawJsonString, ValueIterator> {
 	  public:
 
-		static inline Field start(JsonIterator& iteratorNew, RawJsonString key) noexcept {
-			return Field(std::move(key), iteratorNew.child());
+		inline RawJsonString key() const noexcept {
+			assert(first.stringView != nullptr);
+			return first;
 		}
-
-		inline std::string_view getKey() {
-			return this->first;
-		}
-
 		inline Field() noexcept = default;
 
-		static inline Field start(JsonIterator& parent_iter) noexcept {
-			RawJsonString key{ ( uint8_t* )(parent_iter.fieldKey().data()) };
+		static inline Field start(ValueIterator& parent_iter) noexcept {
+			RawJsonString key{};
+			key = parent_iter.fieldKey();
 			parent_iter.fieldValue();
 			return Field::start(parent_iter, key);
 		}
 
-		inline Field(RawJsonString key, JsonIterator&& value) noexcept
-			: std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), std::move(value) }, JsonValueBase{ std::move(value) } {};
+		static inline Field start(const ValueIterator& parent_iter, RawJsonString key) noexcept {
+			return Field(key, parent_iter.child());
+		}
+
+		inline Field(RawJsonString key, ValueIterator&& value) noexcept : std::pair<RawJsonString, ValueIterator>{ key, std::move(value) } {};
 	};
 
 	

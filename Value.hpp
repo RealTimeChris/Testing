@@ -1,6 +1,7 @@
 #pragma once
 
 #include "JsonValueBase.hpp"
+#include "Array.hpp"
 
 namespace Jsonifier {
 
@@ -94,14 +95,16 @@ namespace Jsonifier {
 		uint8_t* stringView{};
 		friend class JsonIterator;
 		friend class JsonValueBase;
+		friend class Field;
 		friend class JsonIterator;
 	};
 
 	class ValueIterator {
 	  protected:
-		JsonIterator* _json_iter{};
-		size_t _depth{};
-		uint32_t* _start_position{};
+		JsonIterator* jsonIterator{};
+		uint32_t* rootPosition{};
+		size_t currentDepth{};
+		
 
 	  public:
 		inline ValueIterator() noexcept = default;
@@ -158,7 +161,7 @@ namespace Jsonifier {
 		inline bool isRootInteger() noexcept;
 		inline bool isRootNull() noexcept;
 
-		inline ErrorCode error() const noexcept;
+		inline ErrorCode getError() const noexcept;
 		inline uint8_t*& stringBufLoc() noexcept;
 		inline const JsonIterator& jsonIter() const noexcept;
 		inline JsonIterator& jsonIter() noexcept;
@@ -166,55 +169,109 @@ namespace Jsonifier {
 		inline void assertIsValid() const noexcept;
 		inline bool isValid() const noexcept;
 	  protected:
-		inline bool reset_array() noexcept;
-		inline bool reset_object() noexcept;
-		inline void move_at_start() noexcept;
-		inline void move_at_container_start() noexcept;
-		inline std::string to_string() const noexcept;
+		inline bool resetArray() noexcept;
+		inline bool resetObject() noexcept;
+		inline void moveAtStart() noexcept;
+		inline void moveAtContainerStart() noexcept;
+		inline std::string toString() const noexcept;
 		inline ValueIterator(JsonIterator* json_iter, size_t depth, uint32_t* start_index) noexcept;
 
-		inline bool parse_null(const uint8_t* json) const noexcept;
-		inline bool parse_bool(const uint8_t* json) const noexcept;
-		inline const uint8_t* peek_start() const noexcept;
-		inline uint32_t peek_start_length() const noexcept;
+		inline bool parseNull(const uint8_t* json) const noexcept;
+		inline bool parseBool(const uint8_t* json) const noexcept;
+		inline const uint8_t* peekStart() const noexcept;
+		inline uint32_t peekStartLength() const noexcept;
 
-		inline void advance_scalar(const char* type) noexcept;
-		inline void advance_root_scalar(const char* type) noexcept;
-		inline void advance_non_root_scalar(const char* type) noexcept;
+		inline void advanceScalar(const char* type) noexcept;
+		inline void advanceRootScalar(const char* type) noexcept;
+		inline void advanceNonRootScalar(const char* type) noexcept;
 
-		inline const uint8_t* peek_scalar(const char* type) noexcept;
-		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
-		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
+		inline const uint8_t* peekScalar(const char* type) noexcept;
+		inline const uint8_t* peekRootScalar(const char* type) noexcept;
+		inline const uint8_t* peekNonRootScalar(const char* type) noexcept;
 
 
-		inline ErrorCode start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
-		inline ErrorCode end_container() noexcept;
-		inline const uint8_t* advance_to_value() noexcept;
+		inline ErrorCode startContainer(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
+		inline ErrorCode endContainer() noexcept;
+		inline const uint8_t* advanceToValue() noexcept;
 
-		inline ErrorCode incorrect_type_error(const char* message) const noexcept;
-		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
+		inline bool isAtStart() const noexcept;
+		inline bool isAtIteratorStart() const noexcept;
+		inline bool isAtKey() const noexcept;
 
-		inline bool is_at_start() const noexcept;
-		inline bool is_at_iterator_start() const noexcept;
-		inline bool is_at_key() const noexcept;
-
-		inline void assert_at_start() const noexcept;
-		inline void assert_at_container_start() const noexcept;
-		inline void assert_at_root() const noexcept;
-		inline void assert_at_child() const noexcept;
-		inline void assert_at_next() const noexcept;
-		inline void assert_at_non_root_start() const noexcept;
-		inline uint32_t* start_position() const noexcept;
+		inline void assertAtStart() const noexcept;
+		inline void assertAtContainerStart() const noexcept;
+		inline void assertAtRoot() const noexcept;
+		inline void assertAtChild() const noexcept;
+		inline void assertAtNext() const noexcept;
+		inline void assertAtNonRootStart() const noexcept;
+		inline uint32_t* startPosition() const noexcept;
 		inline uint32_t* position() const noexcept;
-		inline uint32_t* last_position() const noexcept;
-		inline uint32_t* end_position() const noexcept;
-		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
+		inline uint32_t* lastPosition() const noexcept;
+		inline uint32_t* endPosition() const noexcept;
+		inline ErrorCode reportError(ErrorCode error, const char* message) noexcept;
 
 		friend class Document;
 		friend class Object;
 		friend class Array;
 		friend class JsonIterator;
 	};
-	
+
+	class Value {
+	  public:
+		inline Value() noexcept = default;
+		template<typename T> inline T get() noexcept {
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
+		}
+
+		template<typename T> inline ErrorCode get(T& out) noexcept;
+		inline Array getArray() noexcept;
+		inline Object getObject() noexcept;
+		inline uint64_t getUint64() noexcept;
+		inline uint64_t getUint64InString() noexcept;
+		inline int64_t getInt64() noexcept;
+		inline int64_t getInt64InString() noexcept;
+		inline double getDouble() noexcept;
+		inline double getDoubleInString() noexcept;
+		inline std::string_view getString() noexcept;
+		inline RawJsonString getRawJsonString() noexcept;
+		inline bool getBool() noexcept;
+		inline bool isNull() noexcept;
+		inline ArrayIterator begin() & noexcept;
+		inline ArrayIterator end() & noexcept;
+		inline size_t  countElements() & noexcept;
+		inline size_t countFields() & noexcept;
+		inline Value at(size_t index) noexcept;
+		inline Value findField(std::string_view key) noexcept;
+		inline Value findField(const char* key) noexcept;
+		inline Value findFieldUnordered(std::string_view key) noexcept;
+		inline Value findFieldUnordered(const char* key) noexcept;
+		inline Value operator[](std::string_view key) noexcept;
+		inline Value operator[](const char* key) noexcept;
+		inline JsonType type() noexcept;
+		inline bool isScalar() noexcept;
+		inline bool isNegative() noexcept;
+		inline bool isInteger() noexcept;
+		inline std::string_view rawJsonToken() noexcept;
+		inline const char* currentLocation() noexcept;
+		inline int32_t currentDepth() const noexcept;
+
+		inline Value atPointer(std::string_view json_pointer) noexcept;
+
+	  protected:
+		inline Value(const ValueIterator& iter) noexcept;
+		inline void skip() noexcept;
+		static inline Value start(const ValueIterator& iter) noexcept;
+		static inline Value resume(const ValueIterator& iter) noexcept;
+		inline Object  startOrResumeObject() noexcept;
+
+		ValueIterator iterator{};
+
+		friend class Document;
+		friend class ArrayIterator;
+		friend class Field;
+		friend class Object;
+		friend struct Value;
+		friend struct field;
+	};
 	
 }
