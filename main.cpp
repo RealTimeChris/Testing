@@ -40,7 +40,10 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document&& value) {
 		Jsonifier::Object objectNew{ value["TEST_VALUE_11"] };
 		std::cout << "CURRENT KEY: " << objectNew.countFields() << std::endl;
-		std::cout << "TO STRING: " << objectNew.toString() << std::endl;
+		std::cout << "CURRENT TYPE: " << ( int32_t )objectNew.type() << std::endl;
+		for (auto iterator = objectNew.begin(); iterator != objectNew.end(); ++iterator) {
+			std::cout << "CURRENT TYPE: " << ( int32_t )iterator.type() << std::endl;
+		}
 		//std::cout << "CURRENT SIZE: " << ( int32_t )value.getObject().findFieldUnordered("TEST_VALUE_11").countFields() << std::endl;
 		//auto newKey = value["TEST_VALUE_11"].fieldKey();
 		
@@ -134,7 +137,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 300; ++x) {
+		for (size_t x = 0; x < 30; ++x) {
 			serializer["TEST_VALUE_11"].emplaceBack(arrayValue);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;

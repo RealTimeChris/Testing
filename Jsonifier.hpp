@@ -1430,40 +1430,32 @@ namespace Jsonifier {
 	}
 
 	inline JsonType JsonIterator::type() noexcept {
-		switch (this->getRootKey()) {
-			case 'r': {
-				return JsonType::Document;
-			}
-			case '{': {
+		switch (*this->peekStart()) {
+			case '{':
 				return JsonType::Object;
-			}
-			case '[': {
+			case '[':
 				return JsonType::Array;
-			}
-			case 'l': {
-				return JsonType::Int64;
-			}
-			case 'u': {
-				return JsonType::Uint64;
-			}
-			case 'd': {
-				return JsonType::Float;
-			}
-			case '"': {
+			case '"':
 				return JsonType::String;
-			}
-			case 't': {
-				[[fallthrough]];
-			}
-			case 'f': {
+			case 'n':
+				return JsonType::Null;
+			case 't':
+			case 'f':
 				return JsonType::Bool;
-			}
-			case 'n': {
-				return JsonType::Null;
-			}
-			default: {
-				return JsonType::Null;
-			}
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return JsonType::Number;
+			default:
+				return static_cast<JsonType>(ErrorCode::Parse_Error);
 		}
 	}
 
@@ -2145,6 +2137,36 @@ namespace Jsonifier {
 
 	inline uint32_t* JsonValueBase::getStructuralIndices() noexcept {
 		return this->parser->getStructuralIndices();
+	}
+
+	inline JsonType JsonValueBase::type() const noexcept {
+		switch (*this->iterator->peekStart()) {
+			case '{':
+				return JsonType::Object;
+			case '[':
+				return JsonType::Array;
+			case '"':
+				return JsonType::String;
+			case 'n':
+				return JsonType::Null;
+			case 't':
+			case 'f':
+				return JsonType::Bool;
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return JsonType::Number;
+			default:
+				return static_cast<JsonType>(ErrorCode::Parse_Error);
+		}
 	}
 
 

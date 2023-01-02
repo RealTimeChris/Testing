@@ -22,7 +22,18 @@
 
 namespace Jsonifier {
 
-	enum class JsonType : uint8_t { Document = 0, Object = 1, Array = 2, String = 3, Float = 4, Uint64 = 5, Int64 = 6, Bool = 7, Null = 8 };
+	enum class JsonType : uint8_t {
+		Document = 0,
+		Object = 1,
+		Array = 2,
+		String = 3,
+		Float = 4,
+		Number = 5,
+		Uint64 = 6,
+		Int64 = 7,
+		Bool = 8,
+		Null = 9
+	};
 
 	class JsonValueBase;
 	class RawJsonString;
@@ -84,8 +95,6 @@ namespace Jsonifier {
 		inline void assertAtStringStart(size_t amountToOffset = 0) noexcept;
 
 		inline size_t getCurrentCount() noexcept;
-
-		inline uint8_t getRootKey() noexcept;
 
 		inline size_t size() noexcept;
 		inline std::string_view unescape(RawJsonString in, uint8_t*& dst) const noexcept;
