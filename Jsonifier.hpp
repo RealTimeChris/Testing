@@ -2289,8 +2289,8 @@ namespace Jsonifier {
 		this->stringView = jsonIterator->parser->getStringView();
 		*this->jsonIterator = *jsonIterator;
 		this->parser = jsonIterator->parser;
-		this->currentDepth = depth;
 		this->rootPosition = rootPosition;
+		this->currentDepth = depth;
 	}
 
 	inline uint32_t* ValueIterator::position() const noexcept {
