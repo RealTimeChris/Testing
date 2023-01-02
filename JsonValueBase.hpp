@@ -118,19 +118,17 @@ namespace Jsonifier {
 		inline TokenIterator(const TokenIterator& other) noexcept = default;
 		inline TokenIterator& operator=(const TokenIterator& other) noexcept = default;
 		inline const uint8_t* returnCurrentAndAdvance() noexcept;
-		inline uint32_t current_offset() const noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
-		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
-		inline uint32_t peek_length(uint32_t* position) const noexcept;
 		inline uint32_t* position() const noexcept;
 		inline void setPosition(uint32_t* target_position) noexcept;
-		inline bool operator==(const TokenIterator& other) const noexcept;
-		inline bool operator!=(const TokenIterator& other) const noexcept;
-		inline bool operator>(const TokenIterator& other) const noexcept;
-		inline bool operator>=(const TokenIterator& other) const noexcept;
-		inline bool operator<(const TokenIterator& other) const noexcept;
-		inline bool operator<=(const TokenIterator& other) const noexcept;
+		inline bool operator==(const TokenIterator& other) noexcept;
+		inline bool operator!=(const TokenIterator& other) noexcept;
+		inline bool operator>(const TokenIterator& other) noexcept;
+		inline bool operator>=(const TokenIterator& other) noexcept;
+		inline bool operator<(const TokenIterator& other) noexcept;
+		inline bool operator<=(const TokenIterator& other) noexcept;
+		
 
 	  protected:
 		inline TokenIterator(const uint8_t* buf, uint32_t* position) noexcept;

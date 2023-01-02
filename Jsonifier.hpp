@@ -2527,5 +2527,28 @@ namespace Jsonifier {
 		return startedArray();
 	}
 
+	inline bool TokenIterator::operator==(const TokenIterator& other) noexcept {
+		return currentPosition == other.currentPosition;
+	}
+
+	inline bool TokenIterator::operator!=(const TokenIterator& other) noexcept {
+		return currentPosition != other.currentPosition;
+	}
+
+	inline bool TokenIterator::operator>(const TokenIterator& other) noexcept {
+		return currentPosition > other.currentPosition;
+	}
+
+	inline bool TokenIterator::operator>=(const TokenIterator& other) noexcept {
+		return currentPosition >= other.currentPosition;
+	}
+
+	inline bool TokenIterator::operator<(const TokenIterator& other) noexcept {
+		return currentPosition < other.currentPosition;
+	}
+
+	inline bool TokenIterator::operator<=(const TokenIterator& other) noexcept {
+		return currentPosition <= other.currentPosition;
+	}
 
 };
