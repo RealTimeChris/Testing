@@ -155,8 +155,8 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
-			std::unique_ptr<Jsonifier::Jsonifier[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) Jsonifier::Jsonifier[4096ull ]);
+			std::unique_ptr<uint32_t[]> objectBuffer{};
+			objectBuffer.reset(new (std::nothrow) uint32_t[4096ull]);
 		}
 
 		totalTime += stopWatch.totalTimePassed().count();
@@ -165,7 +165,7 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		{
-			Jsonifier::ObjectBuffer<Jsonifier::Jsonifier> objectBuffer{};
+			Jsonifier::ObjectBuffer<uint32_t> objectBuffer{};
 			objectBuffer.allocate(4096ull );
 			objectBuffer.deallocate();
 		};
