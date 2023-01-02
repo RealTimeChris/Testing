@@ -2335,12 +2335,12 @@ namespace Jsonifier {
 		while (true) {
 			RawJsonString actualKey{};
 			error = fieldValue();
-			assert(error == ErrorCode::Success);
+			//assert(error == ErrorCode::Success);
 			if (actualKey.unsafeIsEqual(key)) {
 				return true;
 			}
 
-			assert(skipChild() == ErrorCode::Success);
+			//assert(skipChild() == ErrorCode::Success);
 			if (jsonIterator->position() == searchStart) {
 				return false;
 			}

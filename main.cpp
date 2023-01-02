@@ -143,7 +143,7 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
-			Jsonifier::ObjectBuffer<bool> objectBuffer{};
+			Jsonifier::ObjectBuffer<Jsonifier::OpenContainer> objectBuffer{};
 			objectBuffer.allocate(512 * 512 * 512);
 			objectBuffer.deallocate();
 		}
@@ -154,8 +154,8 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		{
-			std::unique_ptr<bool[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) bool[512 * 512 * 512]);
+			std::unique_ptr<Jsonifier::OpenContainer[]> objectBuffer{};
+			objectBuffer.reset(new (std::nothrow) Jsonifier::OpenContainer[512 * 512 * 512]);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
