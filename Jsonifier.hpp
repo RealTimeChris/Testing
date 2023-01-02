@@ -2164,7 +2164,6 @@ namespace Jsonifier {
 	}
 
 	inline ErrorCode ValueIterator::skipChild() noexcept {
-		assert(jsonIterator->position() > rootPosition);
 		assert(jsonIterator->depth() >= currentDepth);
 		return jsonIterator->skipChild(depth());
 	}
@@ -2267,9 +2266,10 @@ namespace Jsonifier {
 		return currentPosition;
 	}
 
-	inline ValueIterator::ValueIterator(JsonIterator* jsonIterator, uint64_t depth, uint32_t* rootPosition)noexcept {
+	inline ValueIterator::ValueIterator(JsonIterator* jsonIterator, uint64_t depth, uint32_t* rootPositionNew) noexcept {
 		*this->jsonIterator = *jsonIterator;
 		this->parser = jsonIterator->parser;
+		this->rootPosition = rootPositionNew;
 		this->currentDepth = depth;
 	}
 
