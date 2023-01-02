@@ -19,7 +19,7 @@ namespace Jsonifier {
 		uint32_t* root{};
 
 	  public:
-		inline ErrorCode getError();
+		inline ErrorCode getError() noexcept;
 		inline Object getObject() & noexcept;
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 		inline JsonValueBase() noexcept {};

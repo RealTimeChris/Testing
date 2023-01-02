@@ -92,7 +92,7 @@ namespace Jsonifier {
 		inline bool is_equal(const char* target) const noexcept;
 		static inline bool is_free_from_unescaped_quote(std::string_view target) noexcept;
 		static inline bool is_free_from_unescaped_quote(const char* target) noexcept;
-		template<typename OTy> inline std::string_view unescape(IteratorBaseBase& iter) noexcept;
+		inline std::string_view unescape(IteratorBaseBase& iter) noexcept;
 
 	  protected:
 		inline void consume() noexcept {

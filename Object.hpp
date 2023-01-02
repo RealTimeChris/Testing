@@ -11,7 +11,6 @@ namespace Jsonifier {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
 		template<typename T> inline ErrorCode get(T& out) noexcept;
-		inline Array getArray() noexcept;
 		inline Object getObject() noexcept;
 		inline uint64_t getUint64() noexcept;
 		inline uint64_t getUint64InString() noexcept;

@@ -14,7 +14,7 @@ namespace Jsonifier {
 		}
 
 		template<typename OTy> inline JsonIteratorBase<OTy> getRootValueIterator() noexcept {
-			return resumeValueIterator();
+			return resumeValueIterator<OTy>();
 		}
 
 		inline Object getObject() & noexcept {
@@ -31,7 +31,7 @@ namespace Jsonifier {
 		}
 
 		template<typename OTy> inline JsonIteratorBase<OTy> resumeValueIterator() noexcept {
-			return JsonIteratorBase<Object>(&iter, 1, iter.rootPosition());
+			return JsonIteratorBase<OTy>{ *iter };
 		}
 
 		inline Object findField(std::string_view key) & noexcept {
@@ -87,7 +87,7 @@ namespace Jsonifier {
 
 		inline Array getArray() & noexcept {
 			auto value = getRootValueIterator<Array>();
-			return Array::startRoot(value);
+			return this->iter->startRoot(value);
 		}
 
 		inline uint64_t getUint64() noexcept {

@@ -56,6 +56,7 @@ namespace Jsonifier {
 
 		template<typename OTy> inline ErrorCode get(OTy&) noexcept;
 
+		inline Array getArray() noexcept;
 		inline Object operator[](const std::string_view key) & noexcept;
 
 		inline Object operator[](const std::string_view key) && noexcept;
@@ -113,7 +114,7 @@ namespace Jsonifier {
 
 		inline bool atRoot() const noexcept;
 		inline const uint8_t* peekLast() const noexcept;
-		inline IteratorBaseBase& child() noexcept;
+		inline JsonValueBase child() noexcept;
 		inline uint32_t* rootPosition() const noexcept;
 		inline void assertAtDocumentDepth() const noexcept;
 		inline bool isAlive() const noexcept;
@@ -189,6 +190,8 @@ namespace Jsonifier {
 		inline uint32_t* lastPosition() const noexcept;
 		inline uint32_t* endPosition() const noexcept;
 		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
+
+		friend class RawJsonString;
 
 	  protected:
 		ErrorCode error{ ErrorCode::Success };

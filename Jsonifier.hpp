@@ -230,7 +230,7 @@ namespace Jsonifier {
 	};
 
 	enum class JsonifierSerializeType { Etf = 0, Json = 1 };
-	/*
+	
 	class Jsonifier;
 
 	template<typename Ty>
@@ -549,7 +549,7 @@ namespace Jsonifier {
 	template<> inline Jsonifier::BoolType& Jsonifier::getValue() {
 		return this->jsonValue.boolean;
 	}
-	*/
+	
 	class EscapeJsonString {
 	  public:
 		inline EscapeJsonString(std::string_view _str) noexcept : str{ _str } {
@@ -696,7 +696,7 @@ namespace Jsonifier {
 	class JsonifierCore {
 	  public:
 		inline Document getDocument() {
-			return std::forward<Document>(Document{ std::forward<JsonValueBase>(JsonValueBase{ this->getStringBuffer(), this }) });
+			return std::forward<Document>(Document{ std::forward<IteratorBaseBase>(IteratorBaseBase{ this }) });
 		}
 
 		inline JsonifierCore& operator=(JsonifierCore&&) = default;
@@ -1547,7 +1547,7 @@ namespace Jsonifier {
 
 	inline std::string_view RawJsonString::unescape(IteratorBaseBase& iter) noexcept {
 		auto newValue = ( uint8_t* )(iter.parser->getStringBuffer());
-		return iter.unescape(*this);
+		return iter.unescape(*this, newValue);
 	}
 
 	inline const uint8_t* IteratorBaseBase::peekScalar() noexcept {
@@ -1792,10 +1792,6 @@ namespace Jsonifier {
 		return ErrorCode::Tape_Error;
 	}
 
-	inline size_t IteratorBaseBase::depth() const noexcept {
-		return this->currentDepth;
-	}
-
 	inline uint32_t* IteratorBaseBase::position() const noexcept {
 		return this->currentPosition;
 	}
@@ -1822,10 +1818,6 @@ namespace Jsonifier {
 
 	inline void IteratorBaseBase::setPosition(uint32_t* target_position) noexcept {
 		currentPosition = target_position;
-	}
-
-	inline uint32_t* IteratorBaseBase::position() const noexcept {
-		return this->rootPositionVal;
 	}
 
 	inline bool IteratorBaseBase::findFieldUnorderedRaw(const std::string_view key) noexcept {
@@ -2014,11 +2006,6 @@ namespace Jsonifier {
 			return false;
 		}
 		return startedArray();
-	}
-
-	inline void IteratorBaseBase::abandon() noexcept {
-		parser = nullptr;
-		currentDepth = 0;
 	}
 
 	inline const uint8_t* IteratorBaseBase::peekLast() const noexcept {
