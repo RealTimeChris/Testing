@@ -845,7 +845,7 @@ namespace Jsonifier {
 		}
 
 		inline std::string toDebugString() noexcept {
-			return iter.to_string();
+			return iter.toString();
 		}
 
 		inline const char* currentLocation() noexcept {
