@@ -127,7 +127,31 @@ struct TheValue {
 	}
 	TheD theD{};
 };
+class TestClass {
+  public:
+	inline static int32_t counter{};
+	TestClass() {
+		counter++;
+		//std::cout << "I'M BEING CONSTRUCTED!:  NUMBER: " << counter << std::endl;
+	}
+	~TestClass() {
+		counter--;
+		//std::cout << "I'M BEING DESTROYED!:  NUMBER: " << counter << std::endl;
+	}
+};
 
+class TestClass02 {
+  public:
+	inline static int32_t counter{};
+	TestClass02() {
+		counter++;
+		//std::cout << "I'M BEING CONSTRUCTED! (SECOND):  NUMBER: "<< counter << std::endl;
+	}
+	~TestClass02() {
+		counter--;
+		//std::cout << "I'M BEING DESTROYED! (SECOND):  NUMBER: " << counter << std::endl;
+	}
+};
 int32_t main() noexcept {
 	try {
 		Jsonifier::Jsonifier serializer{};
@@ -155,8 +179,8 @@ int32_t main() noexcept {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
-			std::unique_ptr<uint32_t[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) uint32_t[4096ull]);
+			std::unique_ptr<uint64_t[]> objectBuffer{};
+			objectBuffer.reset(new (std::nothrow) uint64_t[1024 * 1024]{ 0 });
 		}
 
 		totalTime += stopWatch.totalTimePassed().count();
@@ -165,8 +189,8 @@ int32_t main() noexcept {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		{
-			Jsonifier::ObjectBuffer<uint32_t> objectBuffer{};
-			objectBuffer.allocate(4096ull );
+			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
+			objectBuffer.allocate(1024 * 1024);
 			objectBuffer.deallocate();
 		};
 		totalTime += stopWatch.totalTimePassed().count();
