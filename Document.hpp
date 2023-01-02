@@ -6,14 +6,14 @@ namespace Jsonifier {
 
 	class Document {
 	  public:
-		inline Document(JsonIterator&& iteratorNew) noexcept;
+		inline Document(JsonifierCore* iteratorNew) noexcept;
 
-		inline Document start(JsonIterator&& iterator) noexcept {
-			return Document(std::forward<JsonIterator>(iterator));
+		inline Document start(JsonifierCore* iteratorNew) noexcept {
+			return Document(std::forward<Document>(iteratorNew));
 		}
 
 		template<typename OTy> inline JsonIterator getRootValueIterator() noexcept {
-			return resumeValueIterator<OTy>();
+			return this->resumeValueIterator<OTy>();
 		}
 
 		inline Object getObject() & noexcept {
@@ -233,7 +233,9 @@ namespace Jsonifier {
 		}
 
 	  protected:
+		uint8_t* rootStringBuffer{};
+		uint32_t* rootStructural{};
+		uint8_t* rootStringView{};
 		JsonIterator iterator{};
-		JsonifierCore* core{};
 	};
 }

@@ -17,7 +17,13 @@ namespace Jsonifier {
 
 		inline Field() noexcept = default;
 
-		inline Field(RawJsonString&& key, JsonIterator&& value) noexcept
+		static inline Field start(JsonIterator& parent_iter) noexcept {
+			RawJsonString key{ ( uint8_t* )(parent_iter.fieldKey().data()) };
+			parent_iter.fieldValue();
+			return Field::start(parent_iter, key);
+		}
+
+		inline Field(RawJsonString key, JsonIterator&& value) noexcept
 			: std::pair<std::string_view, JsonValueBase>{ std::move(key.raw()), std::move(value) } {};
 	};
 
