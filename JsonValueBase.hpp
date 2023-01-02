@@ -300,7 +300,7 @@ namespace Jsonifier {
 		inline bool atFirstField() const noexcept;
 		inline void abandon() noexcept;
 		inline ValueIterator child_value() const noexcept;
-		inline int32_t depth() const noexcept;
+		inline size_t depth() const noexcept;
 		inline JsonType type() const noexcept;
 		inline bool start_object() noexcept;
 		inline bool start_root_object() noexcept;

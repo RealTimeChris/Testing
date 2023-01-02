@@ -1920,7 +1920,7 @@ namespace Jsonifier {
 		return &this->stringView[*startPosition()];
 	}
 
-	inline int32_t ValueIterator::depth() const noexcept {
+	inline size_t ValueIterator::depth() const noexcept {
 		return currentDepth;
 	}
 
