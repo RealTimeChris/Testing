@@ -17,9 +17,9 @@ namespace Jsonifier {
 		inline Array getArray() noexcept;
 		inline Object getObject() noexcept;
 		inline uint64_t getUint64() noexcept;
-		inline uint64_t getUint64_in_string() noexcept;
+		inline uint64_t getUint64InString() noexcept;
 		inline int64_t getInt64() noexcept;
-		inline int64_t getInt64_in_string() noexcept;
+		inline int64_t getInt64InString() noexcept;
 		inline double getDouble() noexcept;
 		inline double getDoubleInString() noexcept;
 		inline std::string_view getString() noexcept;
@@ -52,12 +52,9 @@ namespace Jsonifier {
 		inline Object startOrResumeObject() noexcept;
 		ValueIterator iter{};
 
-		friend class document;
-		friend class Array_iterator;
-		friend class field;
+		friend class ArrayIterator;
 		friend class Object;
 		friend struct Value;
-		friend struct field;
 	};
 
 	class Field;

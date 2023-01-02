@@ -6,10 +6,11 @@
 
 #include "NumberParsingUtils.hpp"
 #include "StringParsingUtils.hpp"
+#include "Simd.hpp"
 #include "Value.hpp"
 #include "Object.hpp"
-#include "Simd.hpp"
-#include <iterator>
+#include "Primitive.hpp"
+#include "Array.hpp"
 
 namespace Jsonifier {
 
@@ -2248,7 +2249,7 @@ namespace Jsonifier {
 			}
 		}
 		while (has_value) {
-			jsonIterator->depth() == currentDepth;
+			assert(jsonIterator->depth() == currentDepth);
 			RawJsonString actual_key{};
 			if (fieldKey() == "") {
 				abandon();
@@ -2273,7 +2274,7 @@ namespace Jsonifier {
 		has_value = resetObject();
 		while (true) {
 			has_value;
-			jsonIterator->depth() == currentDepth;
+			assert(jsonIterator->depth() == currentDepth);
 
 			RawJsonString actual_key{ ( uint8_t* )(fieldKey().data()) };
 			error = fieldValue();
