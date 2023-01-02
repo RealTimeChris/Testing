@@ -197,6 +197,6 @@ namespace Jsonifier {
 		uint32_t* rootStructural{};
 		uint8_t* rootStringView{};
 		size_t structuralCount{};
-		size_t currentDepth{ 1 };
+		size_t currentDepth{ 0 };
 	};
 }

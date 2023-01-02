@@ -103,7 +103,7 @@ namespace Jsonifier {
 	  protected:
 		JsonIterator* jsonIterator{};
 		uint32_t* rootPosition{};
-		size_t currentDepth{};
+		size_t currentDepth{ 1 };
 		
 
 	  public:

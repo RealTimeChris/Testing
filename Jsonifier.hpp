@@ -2385,4 +2385,23 @@ namespace Jsonifier {
 		assert(currentDepth > 0);
 	}
 
+	 inline bool ValueIterator::isOpen() noexcept {
+		return jsonIterator->depth() >= depth();
+	}
+
+	inline bool ValueIterator::hasNextField() noexcept {
+		assertAtNext();
+
+		switch (*jsonIterator->returnCurrentAndAdvance()) {
+			case '}':
+				endContainer();
+				return false;
+			case ',':
+				return true;
+			default:
+				return false;
+		}
+	}
+
+
 };
