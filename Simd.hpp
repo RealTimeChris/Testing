@@ -235,6 +235,7 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValueReal{};
+			//this->printBits("PRE LEFT SHIFT: ");
 			SimdBase256 returnValue{};
 			returnValue = _mm256_slli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
@@ -243,19 +244,22 @@ namespace Jsonifier {
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
 			returnValueReal &= ~returnValue;
+			//returnValueReal.printBits("POST LEFT SHIFT: ");
 			return returnValueReal;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValueReal{};
 			SimdBase256 returnValue{};
+			this->printBits("PRE RIGHT SHIFT: ");
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
 			returnValue = _mm256_permute4x64_epi64(*this, 0b00111001);
 			returnValue = _mm256_slli_epi64(returnValue, 64 - amount);
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << 64 - amount) - (1ull << 0));
-			returnValueReal &= returnValue;
+			returnValueReal &= ~returnValue;
+			returnValueReal.printBits("POST RIGHT SHIFT: ");
 			return returnValueReal;
 		}
 
@@ -456,15 +460,15 @@ namespace Jsonifier {
 			SimdBase256 E{ _mm256_set1_epi8(0b01010101) };
 			SimdBase256 O{ _mm256_set1_epi8(0b10101010) };
 
-			auto S = B256 & ~(B256.shl<1>());
+			auto S = B256.bitAndNot(B256.shl<1>());
 			auto ES = S & E;
 			SimdBase256 EC{};
 			B256.collectCarries(ES, &EC);
 			auto ECE = EC.bitAndNot(B256);
-			auto OD1 = ECE & ~E;
+			auto OD1 = ECE.bitAndNot(E);
 			auto OS = S & O;
 			auto OC = B256 + OS;
-			auto OCE = OC & ~B256;
+			auto OCE = OC.bitAndNot(B256);
 			auto OD2 = OCE & E;
 			auto OD = OD1 | OD2;
 			auto R = Q256.bitAndNot(OD);
@@ -486,10 +490,10 @@ namespace Jsonifier {
 			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
 			auto string_tail = this->R256 ^ this->Q256;
 			auto scalar = ~(this->S256 | this->W256);
-			auto potential_scalar_start = scalar & ~this->followsPotentialNonquoteScalar;
+			auto potential_scalar_start = scalar.bitAndNot(this->followsPotentialNonquoteScalar);
 			auto op = this->S256;
 			auto potential_structural_start = op | potential_scalar_start;
-			auto structuralStart = potential_structural_start & ~string_tail;
+			auto structuralStart = potential_structural_start.bitAndNot(string_tail);
 			return structuralStart;
 		}
 
@@ -507,6 +511,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
+			//this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:

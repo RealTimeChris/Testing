@@ -41,12 +41,13 @@ struct TheDJson {
 		Jsonifier::Array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
 		std::cout << "ELEMENT COUNT: " << valueNew.count_elements().value_unsafe() << std::endl;
-		for (auto value: valueNew) {
-			std::cout << "THE TYPE: " << ( int32_t )value.type().value_unsafe() << std::endl;
-			strings.emplace_back(value.get_object().value_unsafe());
+		for (auto valueNewer: valueNew) {
+			std::cout << "FIELD COUNT: " << +valueNewer.count_fields().error() << std::endl;
+			std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
+			strings.emplace_back(valueNewer.get_string().value_unsafe());
 		}
 	}
-	std::vector<ActivitiesJson> strings{};
+	std::vector<std::string> strings{};
 };
 
 struct TheValueJson {
@@ -131,8 +132,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 273; ++x) {
-			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
+		for (size_t x = 0; x < 27; ++x) {
+			serializer["TEST_VALUE_11"]["d"].emplaceBack(std::string{ "STRING STRING STRING" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		FileLoader jsonFile{ "C:/users/chris/downloads/refsnp-unsupported35000.json" };
@@ -159,7 +160,7 @@ int32_t main() noexcept {
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		size_t oldSize = stringNew.size();
 
-		//std::cout << "THE STRING: " << stringNew << std::endl;
+		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
 
