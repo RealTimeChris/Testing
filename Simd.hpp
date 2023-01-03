@@ -511,7 +511,7 @@ namespace Jsonifier {
 			this->W256 = this->collectWhiteSpace();
 			this->S256 = this->collectStructuralCharacters();
 			this->S256 = this->collectFinalStructurals();
-			//this->S256.printBits("FINAL BITS: ");
+			this->S256.printBits("FINAL BITS: ");
 		}
 
 	  protected:

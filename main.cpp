@@ -133,7 +133,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		for (size_t x = 0; x < 27; ++x) {
-			serializer["TEST_VALUE_11"]["d"].emplaceBack(std::string{ "STRING STRING STRING" });
+			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		FileLoader jsonFile{ "C:/users/chris/downloads/refsnp-unsupported35000.json" };
