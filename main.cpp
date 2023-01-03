@@ -204,6 +204,7 @@ int32_t main() noexcept {
 		
 		totalSize = 0;
 		totalTime = 0;		
+					
 
 		stopWatch.resetTimer();
 		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
@@ -227,6 +228,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		
 		
+			
 		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
 			Jsonifier::JsonifierCore parserOld{};	
 			auto jsonData = parserOld.parseJson(stringNew);
