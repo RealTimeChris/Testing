@@ -38,7 +38,7 @@ namespace Jsonifier {
 			return false;
 		}
 
-		uint32_t toBitMask() {
+		int32_t toBitMask() {
 			return _mm256_movemask_epi8(*this);
 		}
 
@@ -240,7 +240,7 @@ namespace Jsonifier {
 			returnValue = _mm256_slli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
 			returnValue = _mm256_permute4x64_epi64(*this, 0b10010011);
-			returnValue = _mm256_srli_epi64(returnValue, 64 - amount);
+			returnValue = _mm256_srli_epi64(returnValue, 64 - (amount % 64));
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
 			returnValueReal &= ~returnValue;
@@ -250,16 +250,18 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shr() {
 			SimdBase256 returnValueReal{};
+			//this->printBits("PRE RIGHT SHIFT: ");
 			SimdBase256 returnValue{};
-			this->printBits("PRE RIGHT SHIFT: ");
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
+			//returnValue.printBits("POST SHIFT 01: ");
 			returnValueReal |= returnValue;
 			returnValue = _mm256_permute4x64_epi64(*this, 0b00111001);
-			returnValue = _mm256_slli_epi64(returnValue, 64 - amount);
-			returnValueReal |= returnValue;
-			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << 64 - amount) - (1ull << 0));
-			returnValueReal &= ~returnValue;
-			returnValueReal.printBits("POST RIGHT SHIFT: ");
+			//returnValue.printBits("POST SHIFT 02: ");
+			returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
+			//returnValue.printBits("POST SHIFT 03: ");
+			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
+			returnValueReal &= returnValue;
+			//returnValueReal.printBits("POST RIGHT SHIFT: ");
 			return returnValueReal;
 		}
 
@@ -410,13 +412,15 @@ namespace Jsonifier {
 			return;
 		}
 
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256 overflow) {
+		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
 			SimdBase256 result = match.shl<1>() | overflow;
+			match.printBits("MATCH PRE SHIFT: ");
 			overflow = match.shr<63>();
+			overflow.printBits("MATCH POST SHIFT: ");
 			return result;
 		}
 
-		inline void getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
+		inline void getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) { 
 			for (size_t x = 0; x < 4; ++x) {
 				auto newValue = this->S256.getUint64(x);
 				this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoTape, stringLength);
@@ -487,10 +491,12 @@ namespace Jsonifier {
 
 		inline SimdBase256 collectFinalStructurals() {
 			auto nonquoteScalar = ~(this->S256 | this->W256).bitAndNot(this->Q256);
-			this->followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			auto followsPotentialNonquoteScalar = follows(nonquoteScalar, this->prevInScalar);
+			followsPotentialNonquoteScalar.printBits("FOLLOWS POTENTIAL NONQUOTE SCALAR: ");
+			this->prevInScalar.printBits("PREV IN SCALAR: ");
 			auto string_tail = this->R256 ^ this->Q256;
 			auto scalar = ~(this->S256 | this->W256);
-			auto potential_scalar_start = scalar.bitAndNot(this->followsPotentialNonquoteScalar);
+			auto potential_scalar_start = scalar.bitAndNot(followsPotentialNonquoteScalar);
 			auto op = this->S256;
 			auto potential_structural_start = op | potential_scalar_start;
 			auto structuralStart = potential_structural_start.bitAndNot(string_tail);

@@ -14,7 +14,6 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Object&& value){
-		std::cout << "FIELD COUNT: " << value.count_fields().value_unsafe() << std::endl;
 		this->TEST_VALUE_04 = value["TEST_VALUE_00"].get_double().value_unsafe();
 		this->TEST_VALUE_05 = value["TEST_VALUE_01"].get_bool().value_unsafe();
 		this->TEST_VALUE_06 = value["TEST_VALUE_02"].get_string().value_unsafe();
@@ -40,14 +39,14 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document value) {
 		Jsonifier::Array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
-		std::cout << "ELEMENT COUNT: " << valueNew.count_elements().value_unsafe() << std::endl;
+		//std::cout << "ELEMENT COUNT: " << valueNew.count_elements().value_unsafe() << std::endl;
 		for (auto valueNewer: valueNew) {
-			std::cout << "FIELD COUNT: " << +valueNewer.count_fields().error() << std::endl;
-			std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
-			strings.emplace_back(valueNewer.get_string().value_unsafe());
+			//std::cout << "FIELD COUNT: " << +valueNewer.count_fields().error() << std::endl;
+			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
+			strings.emplace_back(valueNewer.get_object().value_unsafe());
 		}
 	}
-	std::vector<std::string> strings{};
+	std::vector<ActivitiesJson> strings{};
 };
 
 struct TheValueJson {
@@ -136,7 +135,7 @@ int32_t main() noexcept {
 			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
-		FileLoader jsonFile{ "C:/users/chris/downloads/refsnp-unsupported35000.json" };
+		//FileLoader jsonFile{ "C:/users/chris/downloads/refsnp-unsupported35000.json" };
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
@@ -144,7 +143,7 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			std::unique_ptr<uint64_t[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) uint64_t[1024 * 1024]);
+			//objectBuffer.reset(new (std::nothrow) uint64_t[1024 * 1024]);
 		}
 
 		totalTime += stopWatch.totalTimePassed().count();
@@ -154,7 +153,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		{
 			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
-			objectBuffer.reset(1024 * 1024);
+			//objectBuffer.reset(1024 * 1024);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;

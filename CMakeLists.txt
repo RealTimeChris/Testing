@@ -1,5 +1,5 @@
 
-set(simdjson_DIR "C:/Program Files/simdjson")
+set(simdjson_DIR "C:/Program Files (x86)/simdjson")
 
 set(DOWNLOAD_EXTRACT_TIMESTAMP true)
 
