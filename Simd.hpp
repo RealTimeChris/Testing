@@ -251,7 +251,7 @@ namespace Jsonifier {
 			returnValue = _mm256_srli_epi64(returnValue, 64 - (amount % 64));
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
-			returnValueReal &= ~returnValue;
+			//returnValueReal &= ~returnValue;
 			//returnValueReal.printBits("POST LEFT SHIFT: ");
 			return returnValueReal;
 		}
@@ -266,10 +266,10 @@ namespace Jsonifier {
 			//returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
 			//returnValue.printBits("POST SHIFT 03: ");
 			//returnValueReal |= returnValue;
-			//returnValue = _mm256_set_epi64x((1ll << 64) - (1ll << 64 - amount), 0, 0, 0);
-			//returnValue.printBits("MATCH BITS: ");
-			//returnValueReal &= ~returnValue;
-			//returnValue.printBits("POST RIGHT SHIFT: ");
+			returnValue = _mm256_set_epi64x((1ll << 64) - (1ll << 64 - amount), 0, 0, 0);
+			returnValue.printBits("MATCH BITS: ");
+			returnValue = returnValue & ~returnValue;
+			returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
 
@@ -505,16 +505,15 @@ namespace Jsonifier {
 			this->backslash = this->collectBackslashes();
 			this->collectEscapedCharacters();
 			this->quote = this->collectQuotes().bitAndNot(this->escaped);
-			this->quote.printBits("QUOTED BITS: ");
 			this->inString = this->quote.carrylessMultiplication(this->prevInString);
-			this->inString.printBits("IN STRING BITS: ");
 			this->collectJsonCharacters();
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			this->followsNonQuoteScalar = follows(nonQuoteScalar, this->prevInScalar);
 			this->followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
 			auto potentialStructuralStart = this->op | (~(this->op | this->whitespace) & ~this->followsNonQuoteScalar);
-			auto structuralStart = potentialStructuralStart & ~(this->inString ^ this->quote);
-			return structuralStart;
+			this->op.printBits("OP BITS: ");
+			potentialStructuralStart.printBits("potentialStructuralStart BITS: ");
+			return potentialStructuralStart & ~(this->inString ^ this->quote);
 		}
 
 		void submitDataForProcessing(const char* valueNew) {

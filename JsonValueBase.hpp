@@ -39,14 +39,14 @@ namespace Jsonifier {
 
 	  protected:
 		inline void consume() noexcept {
-			buf = nullptr;
+			stringView = nullptr;
 		}
 		inline bool alive() const noexcept {
-			return buf != nullptr;
+			return stringView != nullptr;
 		}
 		inline JsonifierResult<std::string_view> unescape(JsonIterator& iterator) const noexcept;
 
-		const uint8_t* buf{};
+		const uint8_t* stringView{};
 		friend class object;
 		friend class Field;
 		friend class parser;
@@ -76,12 +76,12 @@ namespace Jsonifier {
 		inline bool operator<=(const TokenIterator& other) const noexcept;
 
 	  protected:
-		inline TokenIterator(const uint8_t* buf, uint32_t* position) noexcept;
+		inline TokenIterator(const uint8_t* stringView, uint32_t* position) noexcept;
 		inline uint32_t peek_index(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_index(uint32_t* position) const noexcept;
 
-		const uint8_t* buf{};
-		uint32_t* _position{};
+		const uint8_t* stringView{};
+		uint32_t* currentPosition{};
 
 		friend class JsonIterator;
 		friend class ValueIterator;
