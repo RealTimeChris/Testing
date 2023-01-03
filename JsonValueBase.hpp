@@ -187,4 +187,18 @@ namespace Jsonifier {
 		friend class ValueIterator;
 	};
 
+	template<>
+	struct JsonifierResult<RawJsonString>
+		: public JsonifierResultBase<RawJsonString> {
+	  public:
+		JsonifierResult(RawJsonString&& value) noexcept;
+		JsonifierResult(ErrorCode error) noexcept;
+		JsonifierResult() noexcept = default;
+		~JsonifierResult() noexcept = default;
+
+		JsonifierResult<const char*> raw() const noexcept;
+		JsonifierResult<std::string_view> unescape(
+			JsonIterator& iter) const noexcept;
+	};
+
 }

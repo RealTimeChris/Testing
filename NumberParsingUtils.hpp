@@ -21,7 +21,7 @@
 
 namespace Jsonifier {
 
-	enum class ErrorCode : int8_t {
+	enum ErrorCode : int8_t {
 		Empty = 0,
 		Tape_Error = 1,
 		Depth_Error = 2,
@@ -34,7 +34,13 @@ namespace Jsonifier {
 		Mem_Alloc_Error = 9,
 		Invalid_Number = 10,
 		Incorrect_Type = 11,
-		Uninitialized = 12
+		Uninitialized = 12,
+		Out_Of_Bounds = 13,
+		Invalid_Json_Pointer = 14,
+		No_Such_Field = 15,
+		Number_Error = 16,
+		Trailing_Content = 17,
+		Out_Of_Order_Iteration = 18
 	};
 
 	class JsonifierError : public std::runtime_error {

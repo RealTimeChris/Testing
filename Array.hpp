@@ -50,4 +50,20 @@ namespace Jsonifier {
 		friend struct JsonifierResult<Array>;
 		friend class ArrayIterator;
 	};
+
+	
+	template<>
+	struct JsonifierResult<ArrayIterator>
+		: public JsonifierResultBase<ArrayIterator> {
+	  public:
+		inline JsonifierResult(ArrayIterator&& value) noexcept;
+		inline JsonifierResult(ErrorCode) noexcept;
+		inline JsonifierResult() noexcept = default;
+
+		inline JsonifierResult<Value>
+		operator*() noexcept;
+		inline bool operator==(const JsonifierResult<ArrayIterator>&) const noexcept;
+		inline bool operator!=(const JsonifierResult<ArrayIterator>&) const noexcept;
+		inline JsonifierResult<ArrayIterator>& operator++() noexcept;
+	};
 }

@@ -18,7 +18,7 @@ namespace Jsonifier {
 		static inline JsonifierResult<Field> start(ValueIterator& parent_iter) noexcept;
 		static inline JsonifierResult<Field> start(const ValueIterator& parent_iter, RawJsonString key) noexcept;
 		friend struct JsonifierResult<Field>;
-		friend class object_iterator;
+		friend class ObjectIterator;
 	};
 
 	

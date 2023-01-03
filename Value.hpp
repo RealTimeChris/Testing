@@ -63,12 +63,14 @@ namespace Jsonifier {
 
 	class ValueIterator {
 	  protected:
-		JsonIterator* _json_iter{};
+		JsonIterator* jsonIterator{};
 		size_t currentDepth{};
-		uint32_t* _start_position{};
+		uint32_t* rootPosition{};
 
 	  public:
-		inline ValueIterator() noexcept = default;
+		inline ValueIterator() noexcept {
+			;
+		}
 		inline void start_document() noexcept;
 		inline ErrorCode skip_child() noexcept;
 		inline bool at_end() const noexcept;

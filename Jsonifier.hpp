@@ -1332,8 +1332,8 @@ namespace Jsonifier {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		//std::cout << "CURRENT TAPE: ";
 		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			//std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
-			//<< std::endl;
+			std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
+			<< std::endl;
 		}
 		return std::forward<Document>(this->getDocument());
 	}
@@ -1501,12 +1501,1846 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator::JsonIterator(JsonifierCore* _parser) noexcept
-		: token(parser->getStringView(), &_parser->getStructuralIndices()[0]), parser{ _parser }, stringBuffer{ parser->getStringBuffer() },
+		: token(parser->getStringView(), _parser->getStructuralIndices()), parser{ _parser }, stringBuffer{ parser->getStringBuffer() },
 		  currentDepth{ 1 }, rootPosition{ parser->getStructuralIndices() }
 
 		  {};
 
 	inline TokenIterator::TokenIterator(const uint8_t* _buf, uint32_t* position) noexcept : buf{ _buf }, _position{ position } {
+	}
+
+	inline void JsonIterator::rewind() noexcept {
+		token.set_position(root_position());
+		stringBuffer = parser->getStringBuffer();
+		currentDepth = 1;
+	}
+
+	inline bool JsonIterator::balanced() const noexcept {
+		TokenIterator ti(token);
+		int32_t count{ 0 };
+		ti.set_position(root_position());
+		while (ti.peek() <= peek_last()) {
+			switch (*ti.return_current_and_advance()) {
+				case '[':
+				case '{':
+					count++;
+					break;
+				case ']':
+				case '}':
+					count--;
+					break;
+				default:
+					break;
+			}
+		}
+		return count == 0;
+	}
+
+	inline ErrorCode JsonIterator::skip_child(size_t parent_depth) noexcept {
+		if (depth() <= parent_depth) {
+			return ErrorCode::Success;
+		}
+		switch (*return_current_and_advance()) {\
+			case '[':
+			case '{':
+			case ':':
+				break;
+			case ',':
+				break;
+			case ']':
+			case '}':
+				currentDepth--;
+				if (depth() <= parent_depth) {
+					return ErrorCode::Success;
+				}
+				break;
+			case '"':
+				if (*peek() == ':') {
+					return_current_and_advance();
+					break;
+				}
+				[[fallthrough]];
+			default:
+				currentDepth--;
+				if (depth() <= parent_depth) {
+					return ErrorCode::Success;
+				}
+				break;
+		}
+
+		while (position() < end_position()) {
+			switch (*return_current_and_advance()) {
+				case '[':
+				case '{':
+					currentDepth++;
+					break;
+				case ']':
+				case '}':
+					currentDepth--;
+					if (depth() <= parent_depth) {
+						return ErrorCode::Success;
+					}
+					break;
+				default:
+					break;
+			}
+		}
+
+		return report_error(ErrorCode::Tape_Error, "not enough close braces");
+	}
+
+	inline bool JsonIterator::at_root() const noexcept {
+		return position() == root_position();
+	}
+
+	inline bool JsonIterator::is_single_token() const noexcept {
+		return parser->getTapeLength() == 1;
+	}
+
+	inline uint32_t* JsonIterator::root_position() const noexcept {
+		return rootPosition;
+	}
+
+	inline void JsonIterator::assert_at_document_depth() const noexcept {
+		assert(currentDepth == 1);
+	}
+
+	inline void JsonIterator::assert_at_root() const noexcept {
+		assert(currentDepth == 1);
+	}
+
+	inline void JsonIterator::assert_more_tokens(uint32_t required_tokens) const noexcept {
+		assert_valid_position(token._position + required_tokens - 1);
+	}
+
+	inline void JsonIterator::assert_valid_position(uint32_t* position) const noexcept {
+#ifndef SIMDJSON_CLANG_VISUAL_STUDIO
+		assert(position >= &parser->getStructuralIndices()[0]);
+		assert(position < &parser->getStructuralIndices()[parser->getTapeLength()]);
+#endif
+	}
+
+	inline bool JsonIterator::at_end() const noexcept {
+		return position() == end_position();
+	}
+	inline uint32_t* JsonIterator::end_position() const noexcept {
+		size_t n_structural_indexes{ parser->getTapeLength() };
+		return &parser->getStructuralIndices()[n_structural_indexes];
+	}
+
+	inline std::string JsonIterator::to_string() const noexcept {
+		if (!is_alive()) {
+			return "dead JsonIterator instance";
+		}
+		const char* current_structural = reinterpret_cast<const char*>(token.peek());
+		return std::string("JsonIterator [ depth : ") + std::to_string(currentDepth) + std::string(", structural : '") +
+			std::string(current_structural, 1) + std::string("', offset : ") + std::to_string(token.current_offset()) + std::string("', error : ") +
+			std::to_string(( int32_t )error) + std::string(" ]");
+	}
+
+	inline JsonifierResult<const char*> JsonIterator::current_location() noexcept {
+		if (!is_alive()) {// Unrecoverable error
+			if (!at_root()) {
+				return reinterpret_cast<const char*>(token.peek(-1));
+			} else {
+				return reinterpret_cast<const char*>(token.peek());
+			}
+		}
+		if (at_end()) {
+			return ErrorCode::Out_Of_Bounds;
+		}
+		return reinterpret_cast<const char*>(token.peek());
+	}
+
+	inline bool JsonIterator::is_alive() const noexcept {
+		return parser;
+	}
+
+	inline void JsonIterator::abandon() noexcept {
+		parser = nullptr;
+		currentDepth = 0;
+	}
+
+	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
+		return token.return_current_and_advance();
+	}
+
+	inline const uint8_t* JsonIterator::unsafe_pointer() const noexcept {
+		return token.peek(0);
+	}
+
+	inline const uint8_t* JsonIterator::peek(int32_t delta) const noexcept {
+		return token.peek(delta);
+	}
+
+	inline uint32_t JsonIterator::peek_length(int32_t delta) const noexcept {
+		return token.peek_length(delta);
+	}
+
+	inline const uint8_t* JsonIterator::peek(uint32_t* position) const noexcept {
+		return token.peek(position);
+	}
+
+	inline uint32_t JsonIterator::peek_length(uint32_t* position) const noexcept {
+		return token.peek_length(position);
+	}
+
+	inline uint32_t* JsonIterator::last_position() const noexcept {
+		size_t n_structural_indexes{ parser->getTapeLength() };
+		assert(n_structural_indexes > 0);
+		return &parser->getStructuralIndices()[n_structural_indexes - 1];
+	}
+	inline const uint8_t* JsonIterator::peek_last() const noexcept {
+		return token.peek(last_position());
+	}
+
+	inline void JsonIterator::ascend_to(size_t parent_depth) noexcept {
+		assert(parent_depth >= 0 && parent_depth < INT32_MAX - 1);
+		assert(currentDepth == parent_depth + 1);
+		currentDepth = parent_depth;
+	}
+
+	inline void JsonIterator::descend_to(size_t child_depth) noexcept {
+		assert(child_depth >= 1 && child_depth < INT32_MAX);
+		assert(currentDepth == child_depth - 1);
+		currentDepth = child_depth;
+	}
+
+	inline size_t JsonIterator::depth() const noexcept {
+		return currentDepth;
+	}
+
+	inline uint8_t*& JsonIterator::string_buf_loc() noexcept {
+		return stringBuffer;
+	}
+
+	inline ErrorCode JsonIterator::report_error(ErrorCode _error, const char* message) noexcept {
+		assert(_error != ErrorCode::Success && _error != Uninitialized&& _error != Incorrect_Type&& _error != No_Such_Field);
+		error = _error;
+		return error;
+	}
+
+	inline uint32_t* JsonIterator::position() const noexcept {
+		return token.position();
+	}
+
+	inline JsonifierResult<std::string_view> JsonIterator::unescape(RawJsonString in) noexcept {
+		return JsonifierResult<std::string_view>{ reinterpret_cast<const char*>(StringParser::parseString(( uint8_t* )(in.raw()), stringBuffer)) };
+	}
+
+	inline void JsonIterator::reenter_child(uint32_t* position, size_t child_depth) noexcept {
+		assert(child_depth >= 1 && child_depth < INT32_MAX);
+		assert(currentDepth == child_depth - 1);
+	}
+
+	inline ErrorCode JsonIterator::optional_error(ErrorCode _error, const char* message) noexcept {
+		assert(_error == Incorrect_Type || _error == No_Such_Field);
+		return _error;
+	}
+
+	template<int N>
+	inline bool JsonIterator::copy_to_buffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept {
+		if ((N < max_len) || (N == 0)) {
+			return false;
+		}
+		if (max_len > N - 1) {
+			max_len = N - 1;
+		}
+		std::memcpy(tmpbuf, json, max_len);
+		tmpbuf[max_len] = ' ';
+		return true;
+	}
+
+	inline Array::Array(const ValueIterator& _iter) noexcept : iterator{ _iter } {
+	}
+
+	inline JsonifierResult<Array> Array::start(ValueIterator& iterator) noexcept {
+		// We don't need to know if the Array is empty to start iteration, but we do want to know if there
+		// is an error--thus `simdjson_unused`.
+		bool has_value;
+		iterator.start_array().get(has_value);
+		return Array(iterator);
+	}
+	inline JsonifierResult<Array> Array::start_root(ValueIterator& iterator) noexcept {
+		bool has_value;
+		iterator.start_root_array().get(has_value);
+		return Array(iterator);
+	}
+	inline JsonifierResult<Array> Array::started(ValueIterator& iterator) noexcept {
+		bool has_value;
+		iterator.started_array().get(has_value);
+		return Array(iterator);
+	}
+
+	inline JsonifierResult<ArrayIterator> Array::begin() noexcept {
+#if SIMDJSON_DEVELOPMENT_CHECKS
+		if (!iterator.is_at_iterator_start()) {
+			return Out_Of_Order_Iteration;
+		}
+#endif
+		return ArrayIterator(iterator);
+	}
+	inline JsonifierResult<ArrayIterator> Array::end() noexcept {
+		return ArrayIterator(iterator);
+	}
+	inline ErrorCode Array::consume() noexcept {
+		auto error = iterator.json_iter().skip_child(iterator.depth() - 1);
+		if (error) {
+			iterator.abandon();
+		}
+		return error;
+	}
+
+	inline JsonifierResult<std::string_view> Array::raw_json() noexcept {
+		const uint8_t* starting_point{ iterator.peek_start() };
+		auto error = consume();
+		if (error) {
+			return error;
+		}
+		// After 'consume()', we could be left pointing just beyond the document, but that
+		// is ok because we are not going to dereference the final pointer position, we just
+		// use it to compute the length in bytes.
+		const uint8_t* final_point{ iterator.jsonIterator->unsafe_pointer() };
+		return std::string_view(reinterpret_cast<const char*>(starting_point), size_t(final_point - starting_point));
+	}
+
+	inline JsonifierResult<size_t> Array::count_elements() & noexcept {
+		size_t count{ 0 };
+		// Important: we do not consume any of the values.
+		for (auto iterator = this->begin(); iterator != this->end(); ++iterator) {
+			count++;
+		}
+		// The above loop will always succeed, but we want to report errors.
+		if (iterator.error()) {
+			return iterator.error();
+		}
+		// We need to move back at the start because we expect users to iterate through
+		// the Array after counting the number of elements.
+		iterator.reset_array();
+		return count;
+	}
+
+	inline JsonifierResult<bool> Array::is_empty() & noexcept {
+		bool is_not_empty;
+		auto error = iterator.reset_array().get(is_not_empty);
+		if (error) {
+			return error;
+		}
+		return !is_not_empty;
+	}
+
+	inline JsonifierResult<bool> Array::reset() & noexcept {
+		return iterator.reset_array();
+	}
+
+	template<typename T> inline void JsonifierResultBase<T>::tie(T& value, ErrorCode& error) && noexcept {
+		error = this->second;
+		if (!error) {
+			value = std::forward<JsonifierResultBase<T>>(*this).first;
+		}
+	}
+
+	template<typename T> inline ErrorCode JsonifierResultBase<T>::get(T& value) && noexcept {
+		ErrorCode error;
+		std::forward<JsonifierResultBase<T>>(*this).tie(value, error);
+		return error;
+	}
+
+	template<typename T> inline ErrorCode JsonifierResultBase<T>::error() const noexcept {
+		return this->second;
+	}
+
+	template<typename T> inline const T& JsonifierResultBase<T>::value_unsafe() const& noexcept {
+		return this->first;
+	}
+
+	template<typename T> inline T&& JsonifierResultBase<T>::value_unsafe() && noexcept {
+		return std::forward<T>(this->first);
+	}
+
+	template<typename T>
+	inline JsonifierResultBase<T>::JsonifierResultBase(T&& value, ErrorCode error) noexcept
+		: std::pair<T, ErrorCode>(std::forward<T>(value), error) {
+	}
+	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase(ErrorCode error) noexcept : JsonifierResultBase(T{}, error) {
+	}
+	template<typename T>
+	inline JsonifierResultBase<T>::JsonifierResultBase(T&& value) noexcept : JsonifierResultBase(std::forward<T>(value), Success) {
+	}
+	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase() noexcept : JsonifierResultBase(T{}, Uninitialized) {
+	}
+
+	template<typename T> inline void JsonifierResult<T>::tie(T& value, ErrorCode& error) && noexcept {
+		std::forward<JsonifierResultBase<T>>(*this).tie(value, error);
+	}
+
+	template<typename T> inline ErrorCode JsonifierResult<T>::get(T& value) && noexcept {
+		return std::forward<JsonifierResultBase<T>>(*this).get(value);
+	}
+
+	template<typename T> inline ErrorCode JsonifierResult<T>::error() const noexcept {
+		return JsonifierResultBase<T>::error();
+	}
+
+	template<typename T> inline const T& JsonifierResult<T>::value_unsafe() const& noexcept {
+		return JsonifierResultBase<T>::value_unsafe();
+	}
+
+	template<typename T> inline T&& JsonifierResult<T>::value_unsafe() && noexcept {
+		return std::forward<JsonifierResultBase<T>>(*this).value_unsafe();
+	}
+
+	template<typename T>
+	inline JsonifierResult<T>::JsonifierResult(T&& value, ErrorCode error) noexcept
+		: JsonifierResultBase<T>(std::forward<T>(value), error) {
+	}
+	template<typename T> inline JsonifierResult<T>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<T>(error) {
+	}
+	template<typename T>
+	inline JsonifierResult<T>::JsonifierResult(T&& value) noexcept : JsonifierResultBase<T>(std::forward<T>(value)) {
+	}
+	template<typename T> inline JsonifierResult<T>::JsonifierResult() noexcept : JsonifierResultBase<T>() {
+	}
+
+	inline Field::Field() noexcept : std::pair<RawJsonString, Value>() {
+	}
+
+	inline Field::Field(RawJsonString key, Value&& value) noexcept
+		: std::pair<RawJsonString, Value>(key, std::forward<Value>(value)) {
+	}
+
+	inline JsonifierResult<Field> Field::start(ValueIterator& parent_iter) noexcept {
+		RawJsonString key;
+		parent_iter.field_key().get(key);
+		parent_iter.field_value();
+		return Field::start(parent_iter, key);
+	}
+
+	inline JsonifierResult<Field> Field::start(const ValueIterator& parent_iter, RawJsonString key) noexcept {
+		return Field(key, parent_iter.child());
+	}
+
+	inline JsonifierResult<std::string_view> Field::unescaped_key() noexcept {
+		assert(first.buf != nullptr);
+		JsonifierResult<std::string_view> answer = first.unescape(second.iterator.json_iter());
+		first.consume();
+		return answer;
+	}
+
+	inline RawJsonString Field::key() const noexcept {
+		assert(first.buf != nullptr);
+		return first;
+	}
+
+	inline Value& Field::value() & noexcept {
+		return second;
+	}
+
+	inline Value Field::value() && noexcept {
+		return std::forward<Field>(*this).second;
+	}
+
+	inline JsonifierResult<Value> Object::find_field_unordered(const std::string_view key) & noexcept {
+		bool has_value;
+		iterator.find_field_unordered_raw(key).get(has_value);
+		if (!has_value) {
+			return No_Such_Field;
+		}
+		return Value(iterator.child());
+	}
+	inline JsonifierResult<Value> Object::find_field_unordered(const std::string_view key) && noexcept {
+		bool has_value;
+		iterator.find_field_unordered_raw(key).get(has_value);
+		if (!has_value) {
+			return No_Such_Field;
+		}
+		return Value(iterator.child());
+	}
+	inline JsonifierResult<Value> Object::operator[](const std::string_view key) & noexcept {
+		return find_field_unordered(key);
+	}
+	inline JsonifierResult<Value> Object::operator[](const std::string_view key) && noexcept {
+		return std::forward<Object>(*this).find_field_unordered(key);
+	}
+	inline JsonifierResult<Value> Object::find_field(const std::string_view key) & noexcept {
+		bool has_value;
+		iterator.find_field_raw(key).get(has_value);
+		if (!has_value) {
+			return No_Such_Field;
+		}
+		return Value(iterator.child());
+	}
+	inline JsonifierResult<Value> Object::find_field(const std::string_view key) && noexcept {
+		bool has_value;
+		iterator.find_field_raw(key).get(has_value);
+		if (!has_value) {
+			return No_Such_Field;
+		}
+		return Value(iterator.child());
+	}
+
+	inline JsonifierResult<Object> Object::start(ValueIterator& iterator) noexcept {
+		iterator.start_object().error();
+		return Object(iterator);
+	}
+	inline JsonifierResult<Object> Object::start_root(ValueIterator& iterator) noexcept {
+		iterator.start_root_object().error();
+		return Object(iterator);
+	}
+	inline ErrorCode Object::consume() noexcept {
+		if (iterator.is_at_key()) {
+			RawJsonString actual_key;
+			auto error = iterator.field_key().get(actual_key);
+			if (error) {
+				iterator.abandon();
+				return error;
+			};
+			if ((error = iterator.field_value())) {
+				iterator.abandon();
+				return error;
+			}
+		}
+		auto error_skip = iterator.json_iter().skip_child(iterator.depth() - 1);
+		if (error_skip) {
+			iterator.abandon();
+		}
+		return error_skip;
+	}
+
+	inline JsonifierResult<std::string_view> Object::raw_json() noexcept {
+		const uint8_t* starting_point{ iterator.peek_start() };
+		auto error = consume();
+		if (error) {
+			return error;
+		}
+		const uint8_t* final_point{ iterator.jsonIterator->peek(0) };
+		return std::string_view(reinterpret_cast<const char*>(starting_point), size_t(final_point - starting_point));
+	}
+
+	inline JsonifierResult<Object> Object::started(ValueIterator& iterator) noexcept {
+		iterator.started_object().error();
+		return Object(iterator);
+	}
+
+	inline Object Object::resume(const ValueIterator& iterator) noexcept {
+		return iterator;
+	}
+
+	inline Object::Object(const ValueIterator& _iter) noexcept : iterator{ _iter } {
+	}
+
+	inline JsonifierResult<ObjectIterator> Object::begin() noexcept {
+		return ObjectIterator(iterator);
+	}
+	inline JsonifierResult<ObjectIterator> Object::end() noexcept {
+		return ObjectIterator(iterator);
+	}
+
+	inline JsonifierResult<size_t> Object::count_fields() & noexcept {
+		size_t count{ 0 };
+		for (auto v: *this) {
+			count++;
+		}
+		if (iterator.error()) {
+			return iterator.error();
+		}
+		iterator.reset_object();
+		return count;
+	}
+
+	inline JsonifierResult<bool> Object::is_empty() & noexcept {
+		bool is_not_empty;
+		auto error = iterator.reset_object().get(is_not_empty);
+		if (error) {
+			return error;
+		}
+		return !is_not_empty;
+	}
+
+	inline JsonifierResult<bool> Object::reset() & noexcept {
+		return iterator.reset_object();
+	}
+	inline JsonifierResult<ObjectIterator>::JsonifierResult(
+		ObjectIterator&& value) noexcept
+		:JsonifierResultBase<ObjectIterator>(
+			  std::forward<ObjectIterator>(value)) {
+		first.iterator.assert_is_valid();
+	}
+	inline JsonifierResult<ObjectIterator>::JsonifierResult(ErrorCode error) noexcept
+		:JsonifierResultBase<ObjectIterator>({}, error) {
+	}
+
+	inline JsonifierResult<Field>
+	JsonifierResult<ObjectIterator>::operator*() noexcept {
+		if (error()) {
+			return error();
+		}
+		return *first;
+	}
+	// If we're iterating and there is an error, return the error once.
+	inline bool JsonifierResult<ObjectIterator>::operator==(
+		const JsonifierResult<ObjectIterator>& other) const noexcept {
+		if (!first.iterator.is_valid()) {
+			return !error();
+		}
+		return first == other.first;
+	}
+	// If we're iterating and there is an error, return the error once.
+	inline bool JsonifierResult<ObjectIterator>::operator!=(
+		const JsonifierResult<ObjectIterator>& other) const noexcept {
+		if (!first.iterator.is_valid()) {
+			return error();
+		}
+		return first != other.first;
+	}
+	// Checks for ']' and ','
+	inline JsonifierResult<ObjectIterator>&
+	JsonifierResult<ObjectIterator>::operator++() noexcept {
+		// Clear the error if there is one, so we don't yield it twice
+		if (error()) {
+			second = Success;
+			return *this;
+		}
+		++first;
+		return *this;
+	}
+
+	inline ValueIterator::ValueIterator(JsonIterator* json_iter, size_t depth, uint32_t* start_position) noexcept
+		: jsonIterator{ json_iter }, currentDepth{ depth }, rootPosition{ start_position } {
+	}
+
+	inline JsonifierResult<bool> ValueIterator::start_object() noexcept {
+		start_container('{', "Not an object", "object");
+		return started_object();
+	}
+
+	inline JsonifierResult<bool> ValueIterator::start_root_object() noexcept {
+		start_container('{', "Not an object", "object");
+		return started_root_object();
+	}
+
+	inline JsonifierResult<bool> ValueIterator::started_object() noexcept {
+		assert_at_container_start();
+		if (*jsonIterator->peek() == '}') {
+			jsonIterator->return_current_and_advance();
+			end_container();
+			return false;
+		}
+		return true;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::started_root_object() noexcept {
+		return started_object();
+	}
+
+	inline ErrorCode ValueIterator::end_container() noexcept {
+#if SIMDJSON_CHECK_EOF
+		if (depth() > 1 && at_end()) {
+			return report_error(INCOMPLETE_ARRAY_OR_OBJECT, "missing parent ] or }");
+		}
+		// if (depth() <= 1 && !at_end()) { return report_error(INCOMPLETE_ARRAY_OR_OBJECT, "missing [ or { at start"); }
+#endif// SIMDJSON_CHECK_EOF
+		jsonIterator->ascend_to(depth() - 1);
+		return Success;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::has_next_field() noexcept {
+		assert_at_next();
+
+		// It's illegal to call this unless there are more tokens: anything that ends in } or ] is
+		// obligated to verify there are more tokens if they are not the top level.
+		switch (*jsonIterator->return_current_and_advance()) {
+			case '}':
+				end_container();
+				return false;
+			case ',':
+				return true;
+			default:
+				return report_error(Tape_Error, "Missing comma between object fields");
+		}
+	}
+
+	inline JsonifierResult<bool> ValueIterator::find_field_raw(const std::string_view key) noexcept {
+		ErrorCode error;
+		bool has_value;
+		//
+		// Initially, the object can be in one of a few different places:
+		//
+		// 1. The start of the object, at the first Field:
+		//
+		//    ```
+		//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+		//      ^ (depth 2, index 1)
+		//    ```
+		if (at_first_field()) {
+			has_value = true;
+
+			//
+			// 2. When a previous search did not yield a value or the object is empty:
+			//
+			//    ```
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//                                     ^ (depth 0)
+			//    { }
+			//        ^ (depth 0, index 2)
+			//    ```
+			//
+		} else if (!is_open()) {
+#if SIMDJSON_DEVELOPMENT_CHECKS
+			// If we're past the end of the object, we're being iterated out of order.
+			// Note: this isn't perfect detection. It's possible the user is inside some other object; if so,
+			// this object iterator will blithely scan that object for fields.
+			if (jsonIterator->depth() < depth() - 1) {
+				return Out_Of_Order_Iteration;
+			}
+#endif
+			return false;
+
+			// 3. When a previous search found a Field or an iterator yielded a value:
+			//
+			//    ```
+			//    // When a Field was not fully consumed (or not even touched at all)
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//           ^ (depth 2)
+			//    // When a Field was fully consumed
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//                   ^ (depth 1)
+			//    // When the last Field was fully consumed
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//                                   ^ (depth 1)
+			//    ```
+			//
+		} else {
+			if ((error = skip_child())) {
+				abandon();
+				return error;
+			}
+			if ((error = has_next_field().get(has_value))) {
+				abandon();
+				return error;
+			}
+		}
+		while (has_value) {
+			// Get the key and colon, stopping at the value.
+			RawJsonString actual_key;
+			// size_t max_key_length = jsonIterator->peek_length() - 2; // -2 for the two quotes
+			// Note: jsonIterator->peek_length() - 2 might overflow if jsonIterator->peek_length() < 2.
+			// field_key() advances the pointer and checks that '"' is found (corresponding to a key).
+			// The depth is left unchanged by field_key().
+			if ((error = field_key().get(actual_key))) {
+				abandon();
+				return error;
+			};
+			// field_value() will advance and check that we find a ':' separating the
+			// key and the value. It will also increment the depth by one.
+			if ((error = field_value())) {
+				abandon();
+				return error;
+			}
+			// If it matches, stop and return
+			// We could do it this way if we wanted to allow arbitrary
+			// key content (including escaped quotes).
+			//if (actual_key.unsafe_is_equal(max_key_length, key)) {
+			// Instead we do the following which may trigger buffer overruns if the
+			// user provides an adversarial key (containing a well placed unescaped quote
+			// character and being longer than the number of bytes remaining in the JSON
+			// input).
+			if (actual_key.unsafe_is_equal(key)) {
+				// If we return here, then we return while pointing at the ':' that we just checked.
+				return true;
+			}
+
+			// The call to skip_child is meant to skip over the value corresponding to the key.
+			// After skip_child(), we are right before the next comma (',') or the final brace ('}').
+			skip_child();// Skip the value entirely
+			// The has_next_field() advances the pointer and check that either ',' or '}' is found.
+			// It returns true if ',' is found, false otherwise. If anything other than ',' or '}' is found,
+			// then we are in error and we abort.
+			if ((error = has_next_field().get(has_value))) {
+				abandon();
+				return error;
+			}
+		}
+
+		// If the loop ended, we're out of fields to look at.
+		return false;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::find_field_unordered_raw(const std::string_view key) noexcept {
+		/**
+   * When find_field_unordered_raw is called, we can either be pointing at the
+   * first key, pointing outside (at the closing brace) or if a key was matched
+   * we can be either pointing right afterthe ':' right before the value (that we need skip),
+   * or we may have consumed the value and we might be at a comma or at the
+   * final brace (ready for a call to has_next_field()).
+   */
+		ErrorCode error;
+		bool has_value;
+
+		// First, we scan from that point to the end.
+		// If we don't find a match, we may loop back around, and scan from the beginning to that point.
+		uint32_t* search_start = jsonIterator->position();
+
+		// We want to know whether we need to go back to the beginning.
+		bool at_first = at_first_field();
+		///////////////
+		// Initially, the object can be in one of a few different places:
+		//
+		// 1. At the first key:
+		//
+		//    ```
+		//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+		//      ^ (depth 2, index 1)
+		//    ```
+		//
+		if (at_first) {
+			has_value = true;
+
+			// 2. When a previous search did not yield a value or the object is empty:
+			//
+			//    ```
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//                                     ^ (depth 0)
+			//    { }
+			//        ^ (depth 0, index 2)
+			//    ```
+			//
+		} else if (!is_open()) {
+#if SIMDJSON_DEVELOPMENT_CHECKS
+			// If we're past the end of the object, we're being iterated out of order.
+			// Note: this isn't perfect detection. It's possible the user is inside some other object; if so,
+			// this object iterator will blithely scan that object for fields.
+			if (jsonIterator->depth() < depth() - 1) {
+				return Out_Of_Order_Iteration;
+			}
+#endif
+			reset_object().get(has_value);
+			at_first = true;
+			// 3. When a previous search found a Field or an iterator yielded a value:
+			//
+			//    ```
+			//    // When a Field was not fully consumed (or not even touched at all)
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//           ^ (depth 2)
+			//    // When a Field was fully consumed
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//                   ^ (depth 1)
+			//    // When the last Field was fully consumed
+			//    { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+			//                                   ^ (depth 1)
+			//    ```
+			//
+		} else {
+			// If someone queried a key but they not did access the value, then we are left pointing
+			// at the ':' and we need to move forward through the value... If the value was
+			// processed then skip_child() does not move the iterator (but may adjust the depth).
+			if ((error = skip_child())) {
+				abandon();
+				return error;
+			}
+			search_start = jsonIterator->position();
+			if ((error = has_next_field().get(has_value))) {
+				abandon();
+				return error;
+			}
+		}
+
+		// After initial processing, we will be in one of two states:
+		//
+		// ```
+		// // At the beginning of a Field
+		// { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+		//   ^ (depth 1)
+		// { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+		//                  ^ (depth 1)
+		// // At the end of the object
+		// { "a": [ 1, 2 ], "b": [ 3, 4 ] }
+		//                                  ^ (depth 0)
+		// ```
+		//
+		// Next, we find a match starting from the current position.
+		while (has_value) {
+			assert(jsonIterator->currentDepth == currentDepth);// We must be at the start of a Field
+
+			// Get the key and colon, stopping at the value.
+			RawJsonString actual_key;
+			// size_t max_key_length = jsonIterator->peek_length() - 2; // -2 for the two quotes
+			// Note: jsonIterator->peek_length() - 2 might overflow if jsonIterator->peek_length() < 2.
+			// field_key() advances the pointer and checks that '"' is found (corresponding to a key).
+			// The depth is left unchanged by field_key().
+			if ((error = field_key().get(actual_key))) {
+				abandon();
+				return error;
+			};
+			// field_value() will advance and check that we find a ':' separating the
+			// key and the value. It will also increment the depth by one.
+			if ((error = field_value())) {
+				abandon();
+				return error;
+			}
+
+			// If it matches, stop and return
+			// We could do it this way if we wanted to allow arbitrary
+			// key content (including escaped quotes).
+			// if (actual_key.unsafe_is_equal(max_key_length, key)) {
+			// Instead we do the following which may trigger buffer overruns if the
+			// user provides an adversarial key (containing a well placed unescaped quote
+			// character and being longer than the number of bytes remaining in the JSON
+			// input).
+			if (actual_key.unsafe_is_equal(key)) {
+				// If we return here, then we return while pointing at the ':' that we just checked.
+				return true;
+			}
+
+			// No match: skip the value and see if , or } 
+			// The call to skip_child is meant to skip over the value corresponding to the key.
+			// After skip_child(), we are right before the next comma (',') or the final brace ('}').
+			skip_child();
+			// The has_next_field() advances the pointer and check that either ',' or '}' is found.
+			// It returns true if ',' is found, false otherwise. If anything other than ',' or '}' is found,
+			// then we are in error and we abort.
+			if ((error = has_next_field().get(has_value))) {
+				abandon();
+				return error;
+			}
+		}
+		// Performance note: it maybe wasteful to rewind to the beginning when there might be
+		// no other query following. Indeed, it would require reskipping the whole object.
+		// Instead, you can just stay where you are. If there is a new query, there is always time
+		// to rewind.
+		if (at_first) {
+			return false;
+		}
+
+		// If we reach the end without finding a match, search the rest of the fields starting at the
+		// beginning of the object.
+		// (We have already run through the object before, so we've already validated its structure. We
+		// don't check errors in this bit.)
+		reset_object().get(has_value);
+		while (true) {
+			assert(has_value);// we should reach search_start before ever reaching the end of the object
+			assert(jsonIterator->currentDepth == currentDepth);// We must be at the start of a Field
+
+			// Get the key and colon, stopping at the value.
+			RawJsonString actual_key;
+			// size_t max_key_length = jsonIterator->peek_length() - 2; // -2 for the two quotes
+			// Note: jsonIterator->peek_length() - 2 might overflow if jsonIterator->peek_length() < 2.
+			// field_key() advances the pointer and checks that '"' is found (corresponding to a key).
+			// The depth is left unchanged by field_key().
+			error = field_key().get(actual_key);
+			assert(!error);
+			// field_value() will advance and check that we find a ':' separating the
+			// key and the value.  It will also increment the depth by one.
+			error = field_value();
+			assert(!error);
+
+			// If it matches, stop and return
+			// We could do it this way if we wanted to allow arbitrary
+			// key content (including escaped quotes).
+			// if (actual_key.unsafe_is_equal(max_key_length, key)) {
+			// Instead we do the following which may trigger buffer overruns if the
+			// user provides an adversarial key (containing a well placed unescaped quote
+			// character and being longer than the number of bytes remaining in the JSON
+			// input).
+			if (actual_key.unsafe_is_equal(key)) {
+				// If we return here, then we return while pointing at the ':' that we just checked.
+				return true;
+			}
+
+			// No match: skip the value and see if , or } 
+			// The call to skip_child is meant to skip over the value corresponding to the key.
+			// After skip_child(), we are right before the next comma (',') or the final brace ('}').
+			skip_child();
+			// If we reached the end of the key-value pair we started from, then we know
+			// that the key is not there so we return false. We are either right before
+			// the next comma or the final brace.
+			if (jsonIterator->position() == search_start) {
+				return false;
+			}
+			// The has_next_field() advances the pointer and check that either ',' or '}' is found.
+			// It returns true if ',' is found, false otherwise. If anything other than ',' or '}' is found,
+			// then we are in error and we abort.
+			error = has_next_field().get(has_value);
+			assert(!error);
+			// If we make the mistake of exiting here, then we could be left pointing at a key
+			// in the middle of an object. That's not an allowable state.
+		}
+		// If the loop ended, we're out of fields to look at. The program should
+		// never reach this point.
+		return false;
+	}
+
+	inline JsonifierResult<RawJsonString> ValueIterator::field_key() noexcept {
+		assert_at_next();
+
+		const uint8_t* key = jsonIterator->return_current_and_advance();
+		if (*(key++) != '"') {
+			return report_error(Tape_Error, "Object key is not a string");
+		}
+		return RawJsonString(key);
+	}
+
+	inline ErrorCode ValueIterator::field_value() noexcept {
+		assert_at_next();
+
+		if (*jsonIterator->return_current_and_advance() != ':') {
+			return report_error(Tape_Error, "Missing colon in object Field");
+		}
+		jsonIterator->descend_to(depth() + 1);
+		return Success;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::start_array() noexcept {
+		start_container('[', "Not an array", "array");
+		return started_array();
+	}
+
+	inline JsonifierResult<bool> ValueIterator::start_root_array() noexcept {
+		start_container('[', "Not an array", "array");
+		return started_root_array();
+	}
+
+	inline std::string ValueIterator::to_string() const noexcept {
+		auto answer = std::string("ValueIterator [ depth : ") + std::to_string(currentDepth) + std::string(", ");
+		if (jsonIterator != nullptr) {
+			answer += jsonIterator->to_string();
+		}
+		answer += std::string(" ]");
+		return answer;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::started_array() noexcept {
+		assert_at_container_start();
+		if (*jsonIterator->peek() == ']') {
+			jsonIterator->return_current_and_advance();
+			end_container();
+			return false;
+		}
+		jsonIterator->descend_to(depth() + 1);
+		return true;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::started_root_array() noexcept {
+		return started_array();
+	}
+
+	inline JsonifierResult<bool> ValueIterator::has_next_element() noexcept {
+		assert_at_next();
+
+		switch (*jsonIterator->return_current_and_advance()) {
+			case ']':
+				end_container();
+				return false;
+			case ',':
+				jsonIterator->descend_to(depth() + 1);
+				return true;
+			default:
+				return report_error(Tape_Error, "Missing comma between array elements");
+		}
+	}
+
+	inline JsonifierResult<bool> ValueIterator::parse_bool(const uint8_t* json) const noexcept {
+		auto not_true = StringParser::str4ncmp(json, "true");
+		auto not_false = StringParser::str4ncmp(json, "fals") | (json[4] ^ 'e');
+		bool error = (not_true && not_false) || NumberParser::isNotStructuralOrWhitespace(json[not_true ? 5 : 4]);
+		if (error) {
+			return incorrect_type_error("Not a boolean");
+		}
+		return JsonifierResult<bool>(!not_true);
+	}
+	inline JsonifierResult<bool> ValueIterator::parse_null(const uint8_t* json) const noexcept {
+		bool is_null_string = !StringParser::str4ncmp(json, "null") && NumberParser::isNotStructuralOrWhitespace(json[4]);
+		// if we start with 'n', we must be a null
+		if (!is_null_string && json[0] == 'n') {
+			return incorrect_type_error("Not a null but starts with n");
+		}
+		return is_null_string;
+	}
+
+	inline JsonifierResult<std::string_view> ValueIterator::get_string() noexcept {
+		return get_raw_json_string().unescape(json_iter());
+	}
+	inline JsonifierResult<RawJsonString> ValueIterator::get_raw_json_string() noexcept {
+		auto json = peek_scalar("string");
+		if (*json != '"') {
+			return incorrect_type_error("Not a string");
+		}
+		advance_scalar("string");
+		return RawJsonString(json + 1);
+	}
+	inline JsonifierResult<uint64_t> ValueIterator::get_uint64() noexcept {
+		auto result = NumberParser::parseUnsigned(peek_non_root_scalar("uint64"));
+		advance_non_root_scalar("uint64");
+		return result;
+	}
+	inline JsonifierResult<int64_t> ValueIterator::get_int64() noexcept {
+		auto result = NumberParser::parseInteger(peek_non_root_scalar("int64"));
+		advance_non_root_scalar("int64");
+		return result;
+	}
+	inline JsonifierResult<double> ValueIterator::get_double() noexcept {
+		auto result = NumberParser::parseDouble(peek_non_root_scalar("double"));
+		advance_non_root_scalar("double");
+		return result;
+	}
+	inline JsonifierResult<bool> ValueIterator::get_bool() noexcept {
+		auto result = parse_bool(peek_non_root_scalar("bool"));
+		if (result.error() == Success) {
+			advance_non_root_scalar("bool");
+		}
+		return result;
+	}
+	inline JsonifierResult<bool> ValueIterator::is_null() noexcept {
+		bool is_null_value;
+		parse_null(peek_non_root_scalar("null")).get(is_null_value);
+		if (is_null_value) {
+			advance_non_root_scalar("null");
+		}
+		return is_null_value;
+	}
+
+	inline JsonifierResult<std::string_view> ValueIterator::get_root_string() noexcept {
+		return get_string();
+	}
+	inline JsonifierResult<RawJsonString> ValueIterator::get_root_raw_json_string() noexcept {
+		return get_raw_json_string();
+	}
+	inline JsonifierResult<uint64_t> ValueIterator::get_root_uint64() noexcept {
+		auto max_len = peek_start_length();
+		auto json = peek_root_scalar("uint64");
+		uint8_t tmpbuf[20 + 1];// <20 digits> is the longest possible unsigned integer
+		if (!jsonIterator->copy_to_buffer(json, max_len, tmpbuf)) {
+			return Number_Error;
+		}
+		auto result = NumberParser::parseUnsigned(tmpbuf);
+		if (!jsonIterator->is_single_token()) {
+			return Trailing_Content;
+		}
+		advance_root_scalar("uint64");
+		return result;
+	}
+	inline JsonifierResult<int64_t> ValueIterator::get_root_int64() noexcept {
+		auto max_len = peek_start_length();
+		auto json = peek_root_scalar("int64");
+		uint8_t tmpbuf[20 + 1];// -<19 digits> is the longest possible integer
+		if (!jsonIterator->copy_to_buffer(json, max_len, tmpbuf)) {
+			return Number_Error;
+		}
+
+		auto result = NumberParser::parseInteger(tmpbuf);
+		if (!jsonIterator->is_single_token()) {
+			return Trailing_Content;
+		}
+		advance_root_scalar("int64");
+		return result;
+	}
+	inline JsonifierResult<double> ValueIterator::get_root_double() noexcept {
+		auto max_len = peek_start_length();
+		auto json = peek_root_scalar("double");
+		// Per https://www.exploringbinary.com/maximum-number-of-decimal-digits-in-binary-floating-point-numbers/,
+		// 1074 is the maximum number of significant fractional digits. Add 8 more digits for the biggest
+		// number: -0.<fraction>e-308.
+		uint8_t tmpbuf[1074 + 8 + 1];
+		if (!jsonIterator->copy_to_buffer(json, max_len, tmpbuf)) {
+			return Number_Error;
+		}
+		auto result = NumberParser::parseDouble(tmpbuf);
+		if (!jsonIterator->is_single_token()) {
+			return Trailing_Content;
+		}
+		advance_root_scalar("double");
+		return result;
+	}
+
+	inline JsonifierResult<bool> ValueIterator::get_root_bool() noexcept {
+		auto max_len = peek_start_length();
+		auto json = peek_root_scalar("bool");
+		uint8_t tmpbuf[5 + 1];
+		if (!jsonIterator->copy_to_buffer(json, max_len, tmpbuf)) {
+			return incorrect_type_error("Not a boolean");
+		}
+		auto result = parse_bool(tmpbuf);
+		if (result.error() == Success) {
+			if (!jsonIterator->is_single_token()) {
+				return Trailing_Content;
+			}
+			advance_root_scalar("bool");
+		}
+		return result;
+	}
+	inline bool ValueIterator::is_root_null() noexcept {
+		// If there is trailing content, then the document is not null.
+		if (!jsonIterator->is_single_token()) {
+			return false;
+		}
+		auto max_len = peek_start_length();
+		auto json = peek_root_scalar("null");
+		bool result =
+			(max_len >= 4 && !StringParser::str4ncmp(json, "null") && (max_len == 4 || !NumberParser::isNotStructuralOrWhitespace(json[5])));
+		if (result) {
+			advance_root_scalar("null");
+		}
+		return result;
+	}
+
+	inline ErrorCode ValueIterator::skip_child() noexcept {
+		assert(jsonIterator->token._position > rootPosition);
+		assert(jsonIterator->currentDepth >= currentDepth);
+
+		return jsonIterator->skip_child(depth());
+	}
+
+	inline ValueIterator ValueIterator::child() const noexcept {
+		assert_at_child();
+		return { jsonIterator, static_cast<size_t>(depth() + 1), jsonIterator->token.position() };
+	}
+
+	
+	inline bool ValueIterator::is_open() const noexcept {
+		return jsonIterator->depth() >= depth();
+	}
+
+	inline bool ValueIterator::at_end() const noexcept {
+		return jsonIterator->at_end();
+	}
+
+	inline bool ValueIterator::at_start() const noexcept {
+		return jsonIterator->token.position() == start_position();
+	}
+
+	inline bool ValueIterator::at_first_field() const noexcept {
+		assert(jsonIterator->token._position > rootPosition);
+		return jsonIterator->token.position() == start_position() + 1;
+	}
+
+	inline void ValueIterator::abandon() noexcept {
+		jsonIterator->abandon();
+	}
+
+	inline int32_t ValueIterator::depth() const noexcept {
+		return currentDepth;
+	}
+
+	inline ErrorCode ValueIterator::error() const noexcept {
+		return jsonIterator->error;
+	}
+	inline uint8_t*& ValueIterator::string_buf_loc() noexcept {
+		return jsonIterator->string_buf_loc();
+	}
+	inline const JsonIterator& ValueIterator::json_iter() const noexcept {
+		return *jsonIterator;
+	}
+	inline JsonIterator& ValueIterator::json_iter() noexcept {
+		return *jsonIterator;
+	}
+
+	inline const uint8_t* ValueIterator::peek_start() const noexcept {
+		return jsonIterator->peek(start_position());
+	}
+	inline uint32_t ValueIterator::peek_start_length() const noexcept {
+		return jsonIterator->peek_length(start_position());
+	}
+
+	inline const uint8_t* ValueIterator::peek_scalar(const char* type) noexcept {
+		// If we're not at the position anymore, we don't want to advance the cursor.
+		if (!is_at_start()) {
+			return peek_start();
+		}
+
+		// Get the JSON and advance the cursor, decreasing depth to signify that we have retrieved the value.
+		assert_at_start();
+		return jsonIterator->peek();
+	}
+
+	inline void ValueIterator::advance_scalar(const char* type) noexcept {
+		// If we're not at the position anymore, we don't want to advance the cursor.
+		if (!is_at_start()) {
+			return;
+		}
+
+		// Get the JSON and advance the cursor, decreasing depth to signify that we have retrieved the value.
+		assert_at_start();
+		jsonIterator->return_current_and_advance();
+		jsonIterator->ascend_to(depth() - 1);
+	}
+
+	inline ErrorCode ValueIterator::start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept {
+		// If we're not at the position anymore, we don't want to advance the cursor.
+		const uint8_t* json;
+		if (!is_at_start()) {
+#if SIMDJSON_DEVELOPMENT_CHECKS
+			if (!is_at_iterator_start()) {
+				return Out_Of_Order_Iteration;
+			}
+#endif
+			json = peek_start();
+			if (*json != start_char) {
+				return incorrect_type_error(incorrect_type_message);
+			}
+		} else {
+			assert_at_start();
+			/**
+     * We should be prudent. Let us peek. If it is not the right type, we
+     * return an error. Only once we have determined that we have the right
+     * type are we allowed to advance!
+     */
+			json = jsonIterator->peek();
+			if (*json != start_char) {
+				return incorrect_type_error(incorrect_type_message);
+			}
+			jsonIterator->return_current_and_advance();
+		}
+
+
+		return Success;
+	}
+
+
+	inline const uint8_t* ValueIterator::peek_root_scalar(const char* type) noexcept {
+		if (!is_at_start()) {
+			return peek_start();
+		}
+
+		assert_at_root();
+		return jsonIterator->peek();
+	}
+	inline const uint8_t* ValueIterator::peek_non_root_scalar(const char* type) noexcept {
+		if (!is_at_start()) {
+			return peek_start();
+		}
+
+		assert_at_non_root_start();
+		return jsonIterator->peek();
+	}
+
+	inline void ValueIterator::advance_root_scalar(const char* type) noexcept {
+		if (!is_at_start()) {
+			return;
+		}
+
+		assert_at_root();
+		jsonIterator->return_current_and_advance();
+		jsonIterator->ascend_to(depth() - 1);
+	}
+	inline void ValueIterator::advance_non_root_scalar(const char* type) noexcept {
+		if (!is_at_start()) {
+			return;
+		}
+
+		assert_at_non_root_start();
+		jsonIterator->return_current_and_advance();
+		jsonIterator->ascend_to(depth() - 1);
+	}
+
+	inline ErrorCode ValueIterator::incorrect_type_error(const char* message) const noexcept {
+		return Incorrect_Type;
+	}
+
+	inline bool ValueIterator::is_at_start() const noexcept {
+		return position() == start_position();
+	}
+
+	inline bool ValueIterator::is_at_key() const noexcept {
+		// Keys are at the same depth as the object.
+		// Note here that we could be safer and check that we are within an object,
+		// but we do not.
+		return currentDepth == jsonIterator->currentDepth && *jsonIterator->peek() == '"';
+	}
+
+	inline bool ValueIterator::is_at_iterator_start() const noexcept {
+		// We can legitimately be either at the first value ([1]), or after the array if it's empty ([]).
+		auto delta = position() - start_position();
+		return delta == 1 || delta == 2;
+	}
+
+	inline void ValueIterator::assert_at_start() const noexcept {
+		assert(jsonIterator->token._position == rootPosition);
+		assert(jsonIterator->currentDepth == currentDepth);
+		assert(currentDepth > 0);
+	}
+
+	inline void ValueIterator::assert_at_container_start() const noexcept {
+		assert(jsonIterator->token._position == rootPosition + 1);
+		assert(jsonIterator->currentDepth == currentDepth);
+		assert(currentDepth > 0);
+	}
+
+	inline void ValueIterator::assert_at_next() const noexcept {
+		assert(jsonIterator->token._position > rootPosition);
+		assert(jsonIterator->currentDepth == currentDepth);
+		assert(currentDepth > 0);
+	}
+
+	inline void ValueIterator::move_at_start() noexcept {
+		jsonIterator->currentDepth = currentDepth;
+		jsonIterator->token.set_position(rootPosition);
+	}
+
+	inline void ValueIterator::move_at_container_start() noexcept {
+		jsonIterator->currentDepth = currentDepth;
+		jsonIterator->token.set_position(rootPosition + 1);
+	}
+
+	inline JsonifierResult<bool> ValueIterator::reset_array() noexcept {
+		move_at_container_start();
+		return started_array();
+	}
+
+	inline JsonifierResult<bool> ValueIterator::reset_object() noexcept {
+		move_at_container_start();
+		return started_object();
+	}
+
+	inline void ValueIterator::assert_at_child() const noexcept {
+		assert(jsonIterator->token._position > rootPosition);
+		assert(jsonIterator->currentDepth == currentDepth + 1);
+		assert(currentDepth > 0);
+	}
+
+	inline void ValueIterator::assert_at_root() const noexcept {
+		assert_at_start();
+		assert(currentDepth == 1);
+	}
+
+	inline void ValueIterator::assert_at_non_root_start() const noexcept {
+		assert_at_start();
+		assert(currentDepth > 1);
+	}
+
+	inline void ValueIterator::assert_is_valid() const noexcept {
+		assert(jsonIterator != nullptr);
+	}
+
+	inline bool ValueIterator::is_valid() const noexcept {
+		return jsonIterator != nullptr;
+	}
+
+	inline JsonifierResult<JsonType> ValueIterator::type() const noexcept {
+		switch (*peek_start()) {
+			case '{':
+				return JsonType::Object;
+			case '[':
+				return JsonType::Array;
+			case '"':
+				return JsonType::String;
+			case 'n':
+				return JsonType::Null;
+			case 't':
+			case 'f':
+				return JsonType::Bool;
+			case '-':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				return JsonType::Number;
+			default:
+				return Tape_Error;
+		}
+	}
+
+	inline uint32_t* ValueIterator::start_position() const noexcept {
+		return rootPosition;
+	}
+
+	inline uint32_t* ValueIterator::position() const noexcept {
+		return jsonIterator->position();
+	}
+
+	inline uint32_t* ValueIterator::end_position() const noexcept {
+		return jsonIterator->end_position();
+	}
+
+	inline uint32_t* ValueIterator::last_position() const noexcept {
+		return jsonIterator->last_position();
+	}
+
+	inline ErrorCode ValueIterator::report_error(ErrorCode error, const char* message) noexcept {
+		return jsonIterator->report_error(error, message);
+	}
+
+	inline ObjectIterator::ObjectIterator(const ValueIterator& _iter) noexcept : iterator{ _iter } {
+	}
+
+	inline JsonifierResult<Field> ObjectIterator::operator*() noexcept {
+		ErrorCode error = iterator.error();
+		if (error) {
+			iterator.abandon();
+			return error;
+		}
+		auto result = Field::start(iterator);
+		// TODO this is a safety rail ... users should exit loops as soon as they receive an error.
+		// Nonetheless, let's see if performance is OK with this if statement--the compiler may give it to us for free.
+		if (result.error()) {
+			iterator.abandon();
+		}
+		return result;
+	}
+	inline bool ObjectIterator::operator==(const ObjectIterator& other) const noexcept {
+		return !(*this != other);
+	}
+	inline bool ObjectIterator::operator!=(const ObjectIterator&) const noexcept {
+		return iterator.is_open();
+	}
+
+	inline ObjectIterator& ObjectIterator::operator++() noexcept {
+		// TODO this is a safety rail ... users should exit loops as soon as they receive an error.
+		// Nonetheless, let's see if performance is OK with this if statement--the compiler may give it to us for free.
+		if (!iterator.is_open()) {
+			return *this;
+		}// Iterator will be released if there is an error
+
+		ErrorCode error;
+		if ((error = iterator.skip_child())) {
+			return *this;
+		}
+
+		bool has_value;
+		if ((error = iterator.has_next_field().get(has_value))) {
+			return *this;
+		};
+		return *this;
+	}
+
+	inline uint32_t TokenIterator::current_offset() const noexcept {
+		return *(_position);
+	}
+
+
+	inline const uint8_t* TokenIterator::return_current_and_advance() noexcept {
+		return &buf[*(_position++)];
+	}
+
+	inline const uint8_t* TokenIterator::peek(uint32_t* position) const noexcept {
+		return &buf[*position];
+	}
+	inline uint32_t TokenIterator::peek_index(uint32_t* position) const noexcept {
+		return *position;
+	}
+	inline uint32_t TokenIterator::peek_length(uint32_t* position) const noexcept {
+		return *(position + 1) - *position;
+	}
+
+	inline const uint8_t* TokenIterator::peek(int32_t delta) const noexcept {
+		return &buf[*(_position + delta)];
+	}
+	inline uint32_t TokenIterator::peek_index(int32_t delta) const noexcept {
+		return *(_position + delta);
+	}
+	inline uint32_t TokenIterator::peek_length(int32_t delta) const noexcept {
+		return *(_position + delta + 1) - *(_position + delta);
+	}
+
+	inline uint32_t* TokenIterator::position() const noexcept {
+		return _position;
+	}
+	inline void TokenIterator::set_position(uint32_t* target_position) noexcept {
+		_position = target_position;
+	}
+
+	inline bool TokenIterator::operator==(const TokenIterator& other) const noexcept {
+		return _position == other._position;
+	}
+	inline bool TokenIterator::operator!=(const TokenIterator& other) const noexcept {
+		return _position != other._position;
+	}
+	inline bool TokenIterator::operator>(const TokenIterator& other) const noexcept {
+		return _position > other._position;
+	}
+	inline bool TokenIterator::operator>=(const TokenIterator& other) const noexcept {
+		return _position >= other._position;
+	}
+	inline bool TokenIterator::operator<(const TokenIterator& other) const noexcept {
+		return _position < other._position;
+	}
+	inline bool TokenIterator::operator<=(const TokenIterator& other) const noexcept {
+		return _position <= other._position;
+	}
+
+	
+	inline JsonifierResult<RawJsonString>::JsonifierResult(
+		RawJsonString&& value) noexcept
+		: JsonifierResultBase<RawJsonString>(
+			  std::forward<RawJsonString>(value)) {
+	}
+	inline JsonifierResult<RawJsonString>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<RawJsonString>(error) {
+	}
+
+	inline JsonifierResult<const char*> JsonifierResult<RawJsonString>::raw() const noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.raw();
+	}
+	inline JsonifierResult<std::string_view>
+	JsonifierResult<RawJsonString>::unescape(
+		JsonIterator& iterator) const noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.unescape(iterator);
+	}
+
+	inline RawJsonString::RawJsonString(const uint8_t* _buf) noexcept : buf{ _buf } {
+	}
+
+	inline const char* RawJsonString::raw() const noexcept {
+		return reinterpret_cast<const char*>(buf);
+	}
+
+
+	inline bool RawJsonString::is_free_from_unescaped_quote(std::string_view target) noexcept {
+		size_t pos{ 0 };
+		// if the content has no escape character, just scan through it quickly!
+		for (; pos < target.size() && target[pos] != '\\'; pos++) {}
+		// slow path may begin.
+		bool escaping{ false };
+		for (; pos < target.size(); pos++) {
+			if ((target[pos] == '"') && !escaping) {
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::is_free_from_unescaped_quote(const char* target) noexcept {
+		size_t pos{ 0 };
+		// if the content has no escape character, just scan through it quickly!
+		for (; target[pos] && target[pos] != '\\'; pos++) {}
+		// slow path may begin.
+		bool escaping{ false };
+		for (; target[pos]; pos++) {
+			if ((target[pos] == '"') && !escaping) {
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		return true;
+	}
+
+
+	inline bool RawJsonString::unsafe_is_equal(size_t length, std::string_view target) const noexcept {
+		// If we are going to call memcmp, then we must know something about the length of the RawJsonString.
+		return (length >= target.size()) && (raw()[target.size()] == '"') && !memcmp(raw(), target.data(), target.size());
+	}
+
+	inline bool RawJsonString::unsafe_is_equal(std::string_view target) const noexcept {
+		// Assumptions: does not contain unescaped quote characters, and
+		// the raw content is quote terminated within a valid JSON string.
+		if (target.size() <= 256) {
+			return (raw()[target.size()] == '"') && !memcmp(raw(), target.data(), target.size());
+		}
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		for (; pos < target.size(); pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::is_equal(std::string_view target) const noexcept {
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		bool escaping{ false };
+		for (; pos < target.size(); pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+			// if target is a compile-time constant and it is free from
+			// quotes, then the next part could get optimized away through
+			// inlining.
+			if ((target[pos] == '"') && !escaping) {
+				// We have reached the end of the RawJsonString but
+				// the target is not done.
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+
+	inline bool RawJsonString::unsafe_is_equal(const char* target) const noexcept {
+		// Assumptions: 'target' does not contain unescaped quote characters, is null terminated and
+		// the raw content is quote terminated within a valid JSON string.
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		for (; target[pos]; pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline bool RawJsonString::is_equal(const char* target) const noexcept {
+		// Assumptions: does not contain unescaped quote characters, and
+		// the raw content is quote terminated within a valid JSON string.
+		const char* r{ raw() };
+		size_t pos{ 0 };
+		bool escaping{ false };
+		for (; target[pos]; pos++) {
+			if (r[pos] != target[pos]) {
+				return false;
+			}
+			// if target is a compile-time constant and it is free from
+			// quotes, then the next part could get optimized away through
+			// inlining.
+			if ((target[pos] == '"') && !escaping) {
+				// We have reached the end of the RawJsonString but
+				// the target is not done.
+				return false;
+			} else if (target[pos] == '\\') {
+				escaping = !escaping;
+			} else {
+				escaping = false;
+			}
+		}
+		if (r[pos] != '"') {
+			return false;
+		}
+		return true;
+	}
+
+	inline Value::Value(const ValueIterator& _iter) noexcept : iterator{ _iter } {
+	}
+	inline Value Value::start(const ValueIterator& iterator) noexcept {
+		return iterator;
+	}
+	inline Value Value::resume(const ValueIterator& iterator) noexcept {
+		return iterator;
+	}
+
+	inline JsonifierResult<Array> Value::get_array() noexcept {
+		return Array::start(iterator);
+	}
+	inline JsonifierResult<Object> Value::get_object() noexcept {
+		return Object::start(iterator);
+	}
+	inline JsonifierResult<Object> Value::start_or_resume_object() noexcept {
+		if (iterator.at_start()) {
+			return get_object();
+		} else {
+			return Object::resume(iterator);
+		}
+	}
+
+	inline JsonifierResult<RawJsonString> Value::get_raw_json_string() noexcept {
+		return iterator.get_raw_json_string();
+	}
+	inline JsonifierResult<std::string_view> Value::get_string() noexcept {
+		return iterator.get_string();
+	}
+	inline JsonifierResult<double> Value::get_double() noexcept {
+		return iterator.get_double();
+	}
+	inline JsonifierResult<double> Value::get_double_in_string() noexcept {
+		return iterator.get_double_in_string();
+	}
+	inline JsonifierResult<uint64_t> Value::get_uint64() noexcept {
+		return iterator.get_uint64();
+	}
+	inline JsonifierResult<uint64_t> Value::get_uint64_in_string() noexcept {
+		return iterator.get_uint64_in_string();
+	}
+	inline JsonifierResult<int64_t> Value::get_int64() noexcept {
+		return iterator.get_int64();
+	}
+	inline JsonifierResult<int64_t> Value::get_int64_in_string() noexcept {
+		return iterator.get_int64_in_string();
+	}
+	inline JsonifierResult<bool> Value::get_bool() noexcept {
+		return iterator.get_bool();
+	}
+	inline JsonifierResult<bool> Value::is_null() noexcept {
+		return iterator.is_null();
+	}
+	template<> inline JsonifierResult<Array> Value::get() noexcept {
+		return get_array();
+	}
+	template<> inline JsonifierResult<Object> Value::get() noexcept {
+		return get_object();
+	}
+	template<> inline JsonifierResult<RawJsonString> Value::get() noexcept {
+		return get_raw_json_string();
+	}
+	template<> inline JsonifierResult<std::string_view> Value::get() noexcept {
+		return get_string();
+	}
+	template<> inline JsonifierResult<double> Value::get() noexcept {
+		return get_double();
+	}
+	template<> inline JsonifierResult<uint64_t> Value::get() noexcept {
+		return get_uint64();
+	}
+	template<> inline JsonifierResult<int64_t> Value::get() noexcept {
+		return get_int64();
+	}
+	template<> inline JsonifierResult<bool> Value::get() noexcept {
+		return get_bool();
+	}
+
+	template<typename T> inline ErrorCode Value::get(T& out) noexcept {
+		return get<T>().get(out);
+	}
+		inline JsonifierResult<JsonType> Value::type() noexcept {
+		return iterator.type();
+	}
+
+	inline JsonifierResult<bool> Value::is_scalar() noexcept {
+		JsonType this_type;
+		auto error = type().get(this_type);
+		if (error) {
+			return error;
+		}
+		return !((this_type == JsonType::Array) || (this_type == JsonType::Object));
+	}
+
+	inline bool Value::is_negative() noexcept {
+		return iterator.is_negative();
+	}
+
+	inline JsonifierResult<bool> Value::is_integer() noexcept {
+		return iterator.is_integer();
+	}
+
+	inline std::string_view Value::raw_json_token() noexcept {
+		return std::string_view(reinterpret_cast<const char*>(iterator.peek_start()), iterator.peek_start_length());
+	}
+
+	inline JsonifierResult<const char*> Value::current_location() noexcept {
+		return iterator.json_iter().current_location();
+	}
+
+	inline int32_t Value::current_depth() const noexcept {
+		return iterator.json_iter().depth();
 	}
 
 };

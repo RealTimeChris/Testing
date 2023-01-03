@@ -55,4 +55,18 @@ namespace Jsonifier {
 		friend class Document;
 		friend struct JsonifierResult<Object>;
 	};
+
+	template<>
+	struct JsonifierResult<ObjectIterator>
+		: public JsonifierResultBase<ObjectIterator> {
+	  public:
+		inline JsonifierResult(ObjectIterator&& value) noexcept;
+		inline JsonifierResult(ErrorCode error) noexcept;
+		inline JsonifierResult() noexcept = default;
+		inline JsonifierResult<Field>
+		operator*() noexcept;
+		inline bool operator==(const JsonifierResult<ObjectIterator>&) const noexcept;
+		inline bool operator!=(const JsonifierResult<ObjectIterator>&) const noexcept;
+		inline JsonifierResult<ObjectIterator>& operator++() noexcept;
+	};
 }
