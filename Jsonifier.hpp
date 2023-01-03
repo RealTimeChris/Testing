@@ -17,29 +17,7 @@ namespace Jsonifier {
 
 	template<typename OTy> class ObjectBuffer {
 	  public:
-		template<typename OTy> class ObjectAllocator {
-		  public:
-			using value_type = OTy;
-			using pointer = OTy*;
-			using const_pointer = const OTy*;
-			using reference = OTy&;
-			using const_reference = const OTy&;
-			using size_type = std::size_t;
-			using difference_type = std::ptrdiff_t;
-			using propagate_on_container_move_assignment = std::true_type;
-			using is_always_equal = std::true_type;
-			inline ObjectAllocator() noexcept = default;
-
-			inline OTy* allocate(size_t count) {
-				return static_cast<OTy*>(malloc(count * sizeof(OTy)));
-			}
-
-			template<typename OTy> inline void deallocate(OTy* ptr, size_t count) {
-				free(ptr);
-			}
-		};
-
-		using AllocatorTraits = std::allocator_traits<ObjectAllocator<OTy>>;
+		using AllocatorTraits = std::allocator_traits<std::allocator<OTy>>;
 
 		inline ObjectBuffer& operator=(ObjectBuffer&&) = delete;
 		inline ObjectBuffer(ObjectBuffer&&) = delete;
@@ -52,12 +30,11 @@ namespace Jsonifier {
 		inline OTy& operator[](size_t index) noexcept {
 			return this->objects[index];
 		}
-		
 
 		inline void allocate(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
-				ObjectAllocator<OTy> allocator{};
+				std::allocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
 				this->currentSize = newSize;
 			}
@@ -65,7 +42,7 @@ namespace Jsonifier {
 
 		inline void deallocate() {
 			if (this->currentSize > 0 && this->objects) {
-				ObjectAllocator<OTy> allocator{};
+				std::allocator<OTy> allocator{};
 				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
 				this->objects = nullptr;
 			}
