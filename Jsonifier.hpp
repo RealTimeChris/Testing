@@ -59,9 +59,6 @@ namespace Jsonifier {
 			if (newSize != 0) {
 				ObjectAllocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
-				for (size_t x = 0; x < newSize; ++x) {
-					AllocatorTraits::construct(allocator, &this->objects[x]);
-				}
 				this->currentSize = newSize;
 			}
 		}
@@ -69,9 +66,6 @@ namespace Jsonifier {
 		inline void deallocate() {
 			if (this->currentSize > 0 && this->objects) {
 				ObjectAllocator<OTy> allocator{};
-				for (size_t x = 0; x < this->currentSize; ++x) {
-					AllocatorTraits::destroy(allocator, &this->objects[x]);
-				}
 				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
 				this->objects = nullptr;
 			}

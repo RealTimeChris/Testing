@@ -181,7 +181,7 @@ int32_t main() noexcept {
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		{
 			std::unique_ptr<uint64_t[]> objectBuffer{};
-			objectBuffer.reset(new (std::nothrow) uint64_t[1024 * 1024]{ 0 });
+			objectBuffer.reset(new (std::nothrow) uint64_t[1024 * 1024]);
 		}
 
 		totalTime += stopWatch.totalTimePassed().count();
@@ -203,13 +203,12 @@ int32_t main() noexcept {
 		std::string stringNewer = stringNew;
 		
 		totalSize = 0;
-		totalTime = 0;
-		
+		totalTime = 0;		
+
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
-			
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			//TheValue value{ newDocument };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -226,10 +225,10 @@ int32_t main() noexcept {
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		Jsonifier::JsonifierCore parserOld{};
+		
 		
 		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
-			
+			Jsonifier::JsonifierCore parserOld{};	
 			auto jsonData = parserOld.parseJson(stringNew);
 			//TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
