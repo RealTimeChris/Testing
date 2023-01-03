@@ -35,25 +35,13 @@ namespace Jsonifier {
 			return this->objects;
 		}
 
-		inline void allocate(size_t newSize) noexcept {
+		inline void reset(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
 				std::allocator<OTy> allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
 				this->currentSize = newSize;
 			}
-		}
-
-		inline void deallocate() {
-			if (this->currentSize > 0 && this->objects) {
-				std::allocator<OTy> allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
-				this->objects = nullptr;
-			}
-		}
-
-		inline size_t size() noexcept {
-			return this->currentSize;
 		}
 
 		inline ~ObjectBuffer() noexcept {
@@ -63,6 +51,15 @@ namespace Jsonifier {
 	  protected:
 		size_t currentSize{};
 		OTy* objects{};
+		
+		inline void deallocate() {
+			if (this->currentSize > 0 && this->objects) {
+				std::allocator<OTy> allocator{};
+				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
+				this->objects = nullptr;
+				this->currentSize = 0;
+			}
+		}
 	};
 
 	constexpr int64_t JSON_VALUE_MASK{ 0x00FFFFFFFFFFFFFF };
@@ -703,12 +700,12 @@ namespace Jsonifier {
 			if (this->stringLengthRaw == 0) {
 				return ErrorCode::Success;
 			}
-			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
-			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
+			this->stringBuffer.reset(round(5 * this->stringLengthRaw / 3 + 256, 256));
+			this->structuralIndexes.reset(round(this->stringLengthRaw + 3, 256));
 			this->stringView = stringViewNew;
 			if (!(this->structuralIndexes && this->stringBuffer)) {
-				this->stringBuffer.deallocate();
-				this->structuralIndexes.deallocate();
+				this->stringBuffer.reset(0);
+				this->structuralIndexes.reset(0);
 				return ErrorCode::Mem_Alloc_Error;
 			}
 

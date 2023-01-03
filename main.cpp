@@ -191,8 +191,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer(); 
 		{
 			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
-			objectBuffer.allocate(1024 * 1024);
-			objectBuffer.deallocate();
+			objectBuffer.reset(1024 * 1024);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
