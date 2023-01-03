@@ -172,7 +172,7 @@ int32_t main() noexcept {
 		stopWatch.resetTimer();
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 50; ++x) {
+		for (size_t x = 0ull; x < 100; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -194,7 +194,7 @@ int32_t main() noexcept {
 			
 			
 			Jsonifier::JsonifierCore parserOld{};
-		for (size_t x = 0ull; x < 50; ++x) {
+		for (size_t x = 0ull; x < 100; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
