@@ -170,8 +170,8 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 2900; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "TESTING VALUE11" });
+		for (size_t x = 0; x < 273; ++x) {
+			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "TESTING VALUE11111111111" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -188,7 +188,7 @@ int32_t main() noexcept {
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		totalSize = 0;
 		totalTime = 0;
-		stopWatch.resetTimer();
+		stopWatch.resetTimer(); 
 		{
 			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
 			objectBuffer.allocate(1024 * 1024);
