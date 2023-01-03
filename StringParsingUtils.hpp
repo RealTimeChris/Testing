@@ -202,16 +202,17 @@ namespace Jsonifier {
 			return 0;
 		}
 
-		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst, size_t length) {
-			int32_t index{};
-			while (length > 0) {
-				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
-					return dst;
+		static inline uint8_t* parseString(uint8_t* src, uint8_t* dst) {
+			uint32_t index{};
+			uint8_t* returnValue{};
+			while (index == 0) {
+				if (index= copyAndFind<SimdBase256>(src + index, dst + index); index != 0) {
+					returnValue = dst;
+				} else {
+					returnValue = nullptr;
 				}
-				length -= 32;
-				index += 32;
 			}
-			return nullptr;
+			return returnValue;
 		}
 
 		inline static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0x0.
@@ -257,7 +258,7 @@ namespace Jsonifier {
 			uint32_t bsBits;
 			uint32_t quoteBits;
 		};
-
+		/*
 		 static inline uint8_t* parseString(uint8_t* src, uint8_t* dst) {
 			while (1) {
 				 auto bsQuote = BackslashAndQuote<SimdBase256>::copyAndFind(src, dst);
@@ -289,7 +290,7 @@ namespace Jsonifier {
 			}
 			return nullptr;
 		}
-
+		*/
 		 /*
 		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
 			int32_t index{};
