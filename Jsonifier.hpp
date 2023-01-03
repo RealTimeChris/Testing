@@ -30,7 +30,7 @@ namespace Jsonifier {
 			return this->objects[index];
 		}
 
-		operator OTy*() noexcept {
+		inline operator OTy*() noexcept {
 			return this->objects;
 		}
 
