@@ -32,14 +32,14 @@ namespace Jsonifier {
 		}
 
 		inline operator OTy*() noexcept {
-			return this->objects;
+			return this->objects.get();
 		}
 
 		inline void reset(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
-				AllocatorType allocator{};
-				this->objects = AllocatorTraits::allocate(allocator, newSize);
+				//AllocatorType allocator{};
+				this->objects.reset(new (std::nothrow) OTy[newSize]);
 				this->currentSize = newSize;
 			}
 		}
@@ -50,13 +50,13 @@ namespace Jsonifier {
 
 	  protected:
 		size_t currentSize{};
-		OTy* objects{};
+		std::unique_ptr<OTy> objects{};
 		
 		inline void deallocate() {
 			if (this->currentSize > 0 && this->objects) {
-				AllocatorType allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
-				this->objects = nullptr;
+				//AllocatorType allocator{};
+				//AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
+				this->objects.reset(nullptr);
 				this->currentSize = 0;
 			}
 		}
@@ -666,22 +666,6 @@ namespace Jsonifier {
 	inline int64_t totalTimePassed02{};
 	inline int64_t iterationCount{};
 
-	template<typename OTy> inline void allocateNew(size_t newSize, OTy*&objects) noexcept {
-		if (newSize != 0) {
-			std::allocator<OTy> allocator{};
-			using AllocatorTraits = std::allocator_traits<std::allocator<OTy>>;
-			objects = AllocatorTraits::allocate(allocator, newSize);
-		}
-	}
-	template<typename OTy> inline void deallocate(size_t currentSize, OTy* objects) {
-		if (objects) {
-			std::allocator<OTy> allocator{};
-			using AllocatorTraits = std::allocator_traits<std::allocator<OTy>>;
-			AllocatorTraits::deallocate(allocator, objects, currentSize);
-			objects = nullptr;
-		}
-	}
-
 	class JsonifierCore {
 	  public:
 		inline Document getDocument() {
@@ -700,8 +684,8 @@ namespace Jsonifier {
 			if (this->stringLengthRaw == 0) {
 				return ErrorCode::Success;
 			}
-			this->stringBuffer.reset(round(5 * this->stringLengthRaw / 3 + 256, 256));
-			this->structuralIndexes.reset(round(this->stringLengthRaw + 3, 256));
+			this->stringBuffer.reset(new (std::nothrow) uint8_t[round(5 * this->stringLengthRaw / 3 + 256, 256)]);
+			this->structuralIndexes.reset(new (std::nothrow) uint32_t[round(this->stringLengthRaw + 3, 256)]);
 			this->stringView = stringViewNew;
 			if (!(this->structuralIndexes && this->stringBuffer)) {
 				this->stringBuffer.reset(0);
@@ -731,13 +715,13 @@ namespace Jsonifier {
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
-					section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
+					section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 					stringReader.advance();
 				}
 				char block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
-				section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
+				section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				//				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
@@ -753,11 +737,11 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t* getStringBuffer() {
-			return this->stringBuffer;
+			return this->stringBuffer.get();
 		}
 
 		inline uint32_t* getStructuralIndices() {
-			return this->structuralIndexes;
+			return this->structuralIndexes.get();
 		}
 
 		inline Document parseJson(std::string& string);
@@ -767,8 +751,8 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		ObjectBuffer<uint32_t> structuralIndexes{};
-		ObjectBuffer<uint8_t> stringBuffer{};
+		std::unique_ptr<uint32_t[]> structuralIndexes{};
+		std::unique_ptr<uint8_t[]> stringBuffer{};
 		SimdStringSection section{};
 		size_t stringLengthRaw{};
 		uint8_t* stringView{};
@@ -1332,10 +1316,10 @@ namespace Jsonifier {
 	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		//std::cout << "CURRENT TAPE: ";
-		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
 			//std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
 			//<< std::endl;
-		}
+		//}
 		return std::forward<Document>(this->getDocument());
 	}
 
@@ -1507,16 +1491,16 @@ namespace Jsonifier {
 
 		  {
 		//std::cout << "THE INDICES: ";
-		for (size_t x = 0; x < parser->getTapeLength(); ++x) {
+		//for (size_t x = 0; x < parser->getTapeLength(); ++x) {
 			//std::cout << "THE INDEX: " << parser->getStringView()[this->rootPosition[x]] << std::endl;
-		}
+			  //}
 	};
 
 	inline TokenIterator::TokenIterator(const uint8_t* _bufNew, uint32_t* positionNew) noexcept : buf{ _bufNew }, _position{ positionNew } {
 		//std::cout << "THE INDICES REAL: ";
-		for (size_t x = 0; x < 344; ++x) {
+		//for (size_t x = 0; x < 344; ++x) {
 			//			std::cout << "THE VALUE: " << buf[_position[x]] << std::endl;
-		}
+		//}
 	}
 
 	inline void JsonIterator::rewind() noexcept {
@@ -3607,8 +3591,6 @@ inline ArrayIterator::ArrayIterator(const ValueIterator& _iter) noexcept : itera
 	}
 	inline ArrayIterator& ArrayIterator::operator++() noexcept {
 		ErrorCode error{};
-		// PERF NOTE this is a safety rail ... users should exit loops as soon as they receive an error, so we'll never get here.
-		// However, it does not seem to make a perf difference, so we add it out of an abundance of caution.
 		if ((error = iterator.error())) {
 			return *this;
 		}
@@ -3619,5 +3601,17 @@ inline ArrayIterator::ArrayIterator(const ValueIterator& _iter) noexcept : itera
 			return *this;
 		}
 		return *this;
+	}
+
+	inline JsonifierResult<std::string_view> RawJsonString::unescape(JsonIterator& iter) const noexcept {
+		return iter.unescape(*this);
+	}
+
+	inline JsonifierResult<ArrayIterator> Value::begin() & noexcept {
+		return get_array().begin();
+	}
+
+	inline JsonifierResult<ArrayIterator> Value::end() & noexcept {
+		return {};
 	}
 };

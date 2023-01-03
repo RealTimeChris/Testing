@@ -93,19 +93,19 @@ namespace Jsonifier {
 		inline uint64_t getUint64(size_t index) {
 			switch (index) {
 				case 0: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->value, 0));
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 0));
 				}
 				case 1: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->value, 1));
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 1));
 				}
 				case 2: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->value, 2));
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 2));
 				}
 				case 3: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->value, 3));
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 3));
 				}
 				default: {
-					return static_cast<size_t>(_mm256_extract_epi64(this->value, 0));
+					return static_cast<uint64_t>(_mm256_extract_epi64(this->value, 0));
 				}
 			}
 		}
