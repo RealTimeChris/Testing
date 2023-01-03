@@ -48,7 +48,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline OTy* get() noexcept {
+		operator OTy*() noexcept {
 			return this->objects;
 		}
 
@@ -706,7 +706,7 @@ namespace Jsonifier {
 			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
 			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
 			this->stringView = stringViewNew;
-			if (!(this->structuralIndexes.get() && this->stringBuffer.get())) {
+			if (!(this->structuralIndexes && this->stringBuffer)) {
 				this->stringBuffer.deallocate();
 				this->structuralIndexes.deallocate();
 				return ErrorCode::Mem_Alloc_Error;
@@ -734,13 +734,13 @@ namespace Jsonifier {
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
-					section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+					section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
 					stringReader.advance();
 				}
 				char block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
-				section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+				section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
 				//				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
@@ -756,11 +756,11 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t* getStringBuffer() {
-			return this->stringBuffer.get();
+			return this->stringBuffer;
 		}
 
 		inline uint32_t* getStructuralIndices() {
-			return this->structuralIndexes.get();
+			return this->structuralIndexes;
 		}
 
 		inline Document parseJson(std::string& string);
