@@ -85,7 +85,6 @@ namespace Jsonifier {
 
 	class TokenIterator {
 	  public:
-		inline TokenIterator() noexcept = default;
 		inline TokenIterator(TokenIterator&& other) noexcept = default;
 		inline TokenIterator& operator=(TokenIterator&& other) noexcept = default;
 		inline TokenIterator(const TokenIterator& other) noexcept = default;
@@ -122,7 +121,7 @@ namespace Jsonifier {
 
 	class JsonIterator {
 	  protected:
-		TokenIterator token{};
+		TokenIterator token;
 		JsonifierCore* parser{};
 		uint8_t* stringBuffer{};
 		ErrorCode error{ ErrorCode::Success };

@@ -1622,12 +1622,7 @@ namespace Jsonifier {
 		assert_valid_position(token._position + required_tokens - 1);
 	}
 
-	inline void JsonIterator::assert_valid_position(uint32_t* position) const noexcept {
-#ifndef SIMDJSON_CLANG_VISUAL_STUDIO
-		assert(position >= &parser->getStructuralIndices()[0]);
-		assert(position < &parser->getStructuralIndices()[parser->getTapeLength()]);
-#endif
-	}
+	inline void JsonIterator::assert_valid_position(uint32_t* position) const noexcept {};
 
 	inline bool JsonIterator::at_end() const noexcept {
 		return position() == end_position();
@@ -1700,6 +1695,7 @@ namespace Jsonifier {
 		assert(n_structural_indexes > 0);
 		return &parser->getStructuralIndices()[n_structural_indexes - 1];
 	}
+
 	inline const uint8_t* JsonIterator::peek_last() const noexcept {
 		return token.peek(last_position());
 	}

@@ -72,7 +72,7 @@ namespace Jsonifier {
 		inline JsonifierResult<Object> start_or_resume_object() noexcept;
 		static inline Document start(JsonIterator&& iterator) noexcept;
 
-		JsonIterator iterator{};
+		JsonIterator iterator;
 		static constexpr size_t DOCUMENT_DEPTH = 0;
 
 		friend class ArrayIterator;
