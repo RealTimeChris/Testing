@@ -22,10 +22,10 @@
 namespace Jsonifier {
 
 	enum ErrorCode : int8_t {
-		Empty = 0,
+		Success = 0,
 		Tape_Error = 1,
 		Depth_Error = 2,
-		Success = 3,
+		Empty = 3,
 		Parse_Error = 4,
 		String_Error = 5,
 		TAtom_Error = 6,

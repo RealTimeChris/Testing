@@ -38,8 +38,10 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
-		auto newObject = value.raw_json();
-		std::cout << "FIELD COUNT: " << newObject.value_unsafe() << std::endl;
+		auto newObject = value["TEST_VALUE_11"].value_unsafe();
+		
+		std::cout << "FIELD COUNT: " << newObject.count_fields().value_unsafe() << std::endl;
+		std::cout << "THE TYPE: " << ( int32_t )newObject.type().value_unsafe() << std::endl;
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
 		//Jsonifier::Object objectNew{ value.getObject() };
 		//objectNew.findField("TEST_VALUE_11");

@@ -125,7 +125,7 @@ namespace Jsonifier {
 		JsonifierCore* parser{};
 		uint8_t* stringBuffer{};
 		ErrorCode error{ ErrorCode::Success };
-		size_t currentDepth{};
+		size_t currentDepth{1};
 		uint32_t* rootPosition{};
 		public:
 		inline JsonIterator() noexcept = default;

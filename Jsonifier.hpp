@@ -1550,7 +1550,7 @@ namespace Jsonifier {
 		if (depth() <= parent_depth) {
 			return ErrorCode::Success;
 		}
-		switch (*return_current_and_advance()) {\
+		switch (*return_current_and_advance()) {
 			case '[':
 			case '{':
 			case ':':
@@ -3200,7 +3200,6 @@ namespace Jsonifier {
 	inline JsonifierResult<size_t> Document::count_fields() & noexcept {
 		auto a = get_object();
 		JsonifierResult<size_t> answer = a.count_fields();
-		/* If there was an object, we are now left pointing at its first element. */
 		if (answer.error() == Success) {
 			rewind();
 		}
