@@ -37,9 +37,9 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Document&& value) {
-		auto newObject = value.get_object().value_unsafe();
-		std::cout << "FIELD COUNT: " << newObject.count_fields().value_unsafe() << std::endl;
+	TheDJson(Jsonifier::Value value) {
+		auto newObject = value["TEST_VALUE_11"].value_unsafe().get_object().value_unsafe().raw_json();
+		std::cout << "FIELD COUNT: " << newObject.value_unsafe() << std::endl;
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
 		//Jsonifier::Object objectNew{ value.getObject() };
 		//objectNew.findField("TEST_VALUE_11");
@@ -84,7 +84,7 @@ struct TheDJson {
 };
  
 struct TheValueJson {
-	TheValueJson(Jsonifier::Document&& value) {
+	TheValueJson(Jsonifier::Value value) {
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
@@ -126,6 +126,7 @@ struct TheD {
 
 struct TheValue {
 	TheValue(simdjson::ondemand::value value) {
+		std::cout << value.get_object().value_unsafe().raw_json() << std::endl;
 		this->theD = TheD{ value };
 	}
 	TheD theD{};
@@ -232,7 +233,7 @@ int32_t main() noexcept {
 			
 		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
 			Jsonifier::JsonifierCore parserOld{};	
-			auto jsonData = parserOld.parseJson(stringNew);
+			auto jsonData = parserOld.parseJson(stringNew).get_value().value_unsafe();
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;

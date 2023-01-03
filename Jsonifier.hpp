@@ -1501,12 +1501,21 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator::JsonIterator(JsonifierCore* _parser) noexcept
-		: token(parser->getStringView(), _parser->getStructuralIndices()), parser{ _parser }, stringBuffer{ parser->getStringBuffer() },
-		  currentDepth{ 1 }, rootPosition{ parser->getStructuralIndices() }
+		: token(_parser->getStringView(), _parser->getStructuralIndices()), parser{ _parser }, stringBuffer{ _parser->getStringBuffer() },
+		  currentDepth{ 1 }, rootPosition{ _parser->getStructuralIndices() }
 
-		  {};
+		  {
+		std::cout << "THE INDICES: ";
+		for (size_t x = 0; x < parser->getTapeLength(); ++x) {
+			std::cout << "THE INDEX: " << parser->getStringView()[this->rootPosition[x]] << std::endl;
+		}
+	};
 
-	inline TokenIterator::TokenIterator(const uint8_t* _buf, uint32_t* position) noexcept : buf{ _buf }, _position{ position } {
+	inline TokenIterator::TokenIterator(const uint8_t* _bufNew, uint32_t* positionNew) noexcept : buf{ _bufNew }, _position{ positionNew } {
+		std::cout << "THE INDICES REAL: ";
+		for (size_t x = 0; x < 344; ++x) {
+			std::cout << "THE VALUE: " << buf[_position[x]] << std::endl;
+		}
 	}
 
 	inline void JsonIterator::rewind() noexcept {
@@ -1670,6 +1679,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::peek(int32_t delta) const noexcept {
+		std::cout << "CURRENT PEEK VALUE: " << *token.peek(delta) << std::endl;
 		return token.peek(delta);
 	}
 
@@ -1880,11 +1890,14 @@ namespace Jsonifier {
 	inline JsonifierResult<T>::JsonifierResult(T&& value, ErrorCode error) noexcept
 		: JsonifierResultBase<T>(std::forward<T>(value), error) {
 	}
+
 	template<typename T> inline JsonifierResult<T>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<T>(error) {
 	}
+
 	template<typename T>
 	inline JsonifierResult<T>::JsonifierResult(T&& value) noexcept : JsonifierResultBase<T>(std::forward<T>(value)) {
 	}
+
 	template<typename T> inline JsonifierResult<T>::JsonifierResult() noexcept : JsonifierResultBase<T>() {
 	}
 
@@ -3068,4 +3081,150 @@ namespace Jsonifier {
 		return iterator.json_iter().depth();
 	}
 
+	inline JsonifierResult<Value> Document::operator[](std::string_view key) & noexcept {
+		return start_or_resume_object()[key];
+	}
+	inline JsonifierResult<Value> Document::operator[](const char* key) & noexcept {
+		return start_or_resume_object()[key];
+	}
+
+	inline JsonifierResult<Object>::JsonifierResult(
+		Object&& value) noexcept
+		: JsonifierResultBase<Object>(
+			  std::forward<Object>(value)) {
+	}
+	inline JsonifierResult<Object>::JsonifierResult(ErrorCode error) noexcept
+		: JsonifierResultBase<Object>(error) {
+	}
+
+	inline JsonifierResult<ObjectIterator>
+	JsonifierResult<Object>::begin() noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.begin();
+	}
+	inline JsonifierResult<ObjectIterator>
+	JsonifierResult<Object>::end() noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.end();
+	}
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::find_field_unordered(std::string_view key) & noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.find_field_unordered(key);
+	}
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::find_field_unordered(std::string_view key) && noexcept {
+		if (error()) {
+			return error();
+		}
+		return std::forward<Object>(first).find_field_unordered(key);
+	}
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::operator[](std::string_view key) & noexcept {
+		if (error()) {
+			return error();
+		}
+		return first[key];
+	}
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::operator[](std::string_view key) && noexcept {
+		if (error()) {
+			return error();
+		}
+		return std::forward<Object>(first)[key];
+	}
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::find_field(std::string_view key) & noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.find_field(key);
+	}
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::find_field(std::string_view key) && noexcept {
+		if (error()) {
+			return error();
+		}
+		return std::forward<Object>(first).find_field(key);
+	}
+
+	inline JsonifierResult<Value>
+	JsonifierResult<Object>::at_pointer(std::string_view json_pointer) noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.at_pointer(json_pointer);
+	}
+
+	inline JsonifierResult<bool> JsonifierResult<Object>::reset() noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.reset();
+	}
+
+	inline JsonifierResult<bool> JsonifierResult<Object>::is_empty() noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.is_empty();
+	}
+
+	inline JsonifierResult<size_t> JsonifierResult<Object>::count_fields() & noexcept {
+		if (error()) {
+			return error();
+		}
+		return first.count_fields();
+	}
+
+	inline JsonifierResult<size_t> Value::count_fields() & noexcept {
+		JsonifierResult<size_t> answer;
+		auto a = get_object();
+		answer = a.count_fields();
+		iterator.move_at_start();
+		return answer;
+	}
+
+
+	inline JsonifierResult<size_t> Document::count_fields() & noexcept {
+		auto a = get_object();
+		JsonifierResult<size_t> answer = a.count_fields();
+		/* If there was an object, we are now left pointing at its first element. */
+		if (answer.error() == Success) {
+			rewind();
+		}
+		return answer;
+	}
+
+	inline ErrorCode Document::consume() noexcept {
+		auto error = iterator.skip_child(0);
+		if (error) {
+			iterator.abandon();
+		}
+		return error;
+	}
+
+	inline JsonifierResult<std::string_view> Document::raw_json() noexcept {
+		auto _iter = get_root_value_iterator();
+		const uint8_t* starting_point{ _iter.peek_start() };
+		auto error = consume();
+		if (error) {
+			return error;
+		}
+		const uint8_t* final_point{ iterator.unsafe_pointer() };
+		return std::string_view(reinterpret_cast<const char*>(starting_point), size_t(final_point - starting_point));
+	}
+
+	inline JsonifierResult<Value> Value::operator[](std::string_view key) noexcept {
+		return start_or_resume_object()[key];
+	}
+	inline JsonifierResult<Value> Value::operator[](const char* key) noexcept {
+		return start_or_resume_object()[key];
+	}
 };
