@@ -772,6 +772,10 @@ namespace Jsonifier {
 				//				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
+				for (size_t x = 0; x < this->tapeLength; ++x) {
+					std::cout << "CURRENT INDEX: " << this->structuralIndexes[x]
+							  << ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
+				}
 			}
 		}
 
