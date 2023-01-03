@@ -39,8 +39,8 @@ struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document&& value) {
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
-		Jsonifier::Object objectNew{ value.getObject() };
-		objectNew.findField("TEST_VALUE_11");
+		//Jsonifier::Object objectNew{ value.getObject() };
+		//objectNew.findField("TEST_VALUE_11");
 		//std::cout << "CURRENT FIELD COUNT: " << objectNew.countFields() << std::endl;
 		//auto newArray = objectNew.getArray();
 		//std::cout << "CURRENT SIZE: " << newArray.countElements() << std::endl;
@@ -59,10 +59,10 @@ struct TheDJson {
 		//std::cout << "CURRENT KEY: " << newKey << std::endl;
 		//int32_t index{};
 
-		//for (auto iter = arrayNewer.begin(); iter != arrayNewer.end(); ++iter) {
+		//for (auto iterator = arrayNewer.begin(); iterator != arrayNewer.end(); ++iterator) {
 		//index++;
 
-		//	std::string_view newValueDouble = iter->get<std::string_view>().getValue();
+		//	std::string_view newValueDouble = iterator->get<std::string_view>().getValue();
 			//std::cout << "NEW INDEX: " << newValueDouble << std::endl;
 			//}
 		std::cout << "NEW INDEX: WERE DONE" << std::endl;

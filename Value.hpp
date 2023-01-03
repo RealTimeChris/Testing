@@ -1,11 +1,11 @@
 #pragma once
 
 #include "JsonValueBase.hpp"
-#include "Array.hpp"
 
 namespace Jsonifier {
 
 	class JsonIterator;
+	class ArrayIterator;
 
 	class EnumStringConverter {
 	  public:
@@ -61,207 +61,178 @@ namespace Jsonifier {
 		JsonifierException(const std::string&, std::source_location = std::source_location::current()) noexcept;
 	};
 
-	template<typename OTy> class JsonifierResult : protected std::pair<OTy, ErrorCode> {
-	  public:
-		template<typename OTy> inline JsonifierResult() noexcept : std::pair<OTy, ErrorCode>{ OTy{}, ErrorCode::Success } {};
-		template<typename OTy>
-		inline JsonifierResult(OTy&& other, ErrorCode&& error) noexcept : std::pair<OTy, ErrorCode>{ std::move(other), std::move(error) } {};
-
-		template<typename OTy> inline ErrorCode get(OTy& value) noexcept {
-			value = std::move(this->first);
-			return std::move(this->second);
-		}
-
-		inline OTy getValue() {
-			if (this->second != ErrorCode::Success) {
-				throw JsonifierException{ "Sorry, but you've encountered the following error: " +
-					std::string{ static_cast<EnumStringConverter>(this->second) } };
-			}
-			return std::move(this->first);
-		}
-	};
-
-	class RawJsonString {
-	  public:
-		inline RawJsonString() noexcept = default;
-		inline RawJsonString(uint8_t* _buf) noexcept;
-		inline char* raw() noexcept;
-		inline bool unsafeIsEqual(size_t length, std::string_view target) noexcept;
-		inline bool unsafeIsEqual(std::string_view target) noexcept;
-		inline bool unsafeIsEqual(const char* target) noexcept;
-		inline std::string_view unescape(JsonIterator& iterator) noexcept;
-
-	  protected:
-		uint8_t* stringView{};
-		friend class JsonIterator;
-		friend class JsonValueBase;
-		friend class Field;
-		friend class JsonIterator;
-	};
-
 	class ValueIterator {
 	  protected:
-		JsonIterator* jsonIterator{};
-		uint32_t* rootPosition{};
-		size_t currentDepth{ 1 };
-		
+		JsonIterator* _json_iter{};
+		size_t currentDepth{};
+		uint32_t* _start_position{};
 
 	  public:
 		inline ValueIterator() noexcept = default;
-		inline void startDocument() noexcept;
-		inline ErrorCode skipChild() noexcept;
-		inline bool atEnd() noexcept;
-		inline bool atStart() noexcept;
-		inline bool isOpen() noexcept;
-		inline bool atFirstField() noexcept;
+		inline void start_document() noexcept;
+		inline ErrorCode skip_child() noexcept;
+		inline bool at_end() const noexcept;
+		inline bool at_start() const noexcept;
+		inline bool is_open() const noexcept;
+		inline bool at_first_field() const noexcept;
 		inline void abandon() noexcept;
-		inline ValueIterator childValue() noexcept;
-		inline int32_t depth() noexcept;
-		inline JsonType  type() noexcept;
-		inline bool startObject() noexcept;
-		inline bool startRootObject() noexcept;
-		inline bool startedObject() noexcept;
-		inline bool startedRootObject() noexcept;
-		inline bool hasNextField() noexcept;
-		inline RawJsonString fieldKey() noexcept;
-		inline ErrorCode fieldValue() noexcept;
-		inline ErrorCode findField(const std::string_view key) noexcept;
-		inline bool findFieldRaw(const std::string_view key) noexcept;
-		inline bool findFieldUnorderedRaw(const std::string_view key) noexcept;
-		inline bool startArray() noexcept;
-		inline bool startRootArray() noexcept;
-		inline bool startedArray() noexcept;
-		inline bool startedRootArray() noexcept;
-		inline bool hasNextElement() noexcept;
-		inline ValueIterator child() noexcept;
+		inline ValueIterator child_value() const noexcept;
+		inline int32_t depth() const noexcept;
+		inline JsonifierResult<JsonType> type() const noexcept;
+		inline JsonifierResult<bool> start_object() noexcept;
+		inline JsonifierResult<bool> start_root_object() noexcept;
+		inline JsonifierResult<bool> started_object() noexcept;
+		inline JsonifierResult<bool> started_root_object() noexcept;
+		inline JsonifierResult<bool> has_next_field() noexcept;
+		inline JsonifierResult<RawJsonString> field_key() noexcept;
+		inline ErrorCode field_value() noexcept;
+		inline ErrorCode find_field(const std::string_view key) noexcept;
+		inline JsonifierResult<bool> find_field_raw(const std::string_view key) noexcept;
+		inline JsonifierResult<bool> find_field_unordered_raw(const std::string_view key) noexcept;
+		inline JsonifierResult<bool> start_array() noexcept;
+		inline JsonifierResult<bool> start_root_array() noexcept;
+		inline JsonifierResult<bool> started_array() noexcept;
+		inline JsonifierResult<bool> started_root_array() noexcept;
+		inline JsonifierResult<bool> has_next_element() noexcept;
+		inline ValueIterator child() const noexcept;
 
-		inline std::string_view getString() noexcept;
-		inline RawJsonString getRawJsonString() noexcept;
-		inline uint64_t getUint64() noexcept;
-		inline uint64_t getUint64InString() noexcept;
-		inline int64_t getInt64() noexcept;
-		inline int64_t getInt64InString() noexcept;
-		inline double getDouble() noexcept;
-		inline double getDoubleInString() noexcept;
-		inline bool getBool() noexcept;
-		inline bool isNull() noexcept;
-		inline bool isNegative() noexcept;
-		inline bool isInteger() noexcept;
+		inline JsonifierResult<std::string_view> get_string() noexcept;
+		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
+		inline JsonifierResult<uint64_t> get_uint64() noexcept;
+		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
+		inline JsonifierResult<int64_t> get_int64() noexcept;
+		inline JsonifierResult<int64_t> get_int64_in_string() noexcept;
+		inline JsonifierResult<double> get_double() noexcept;
+		inline JsonifierResult<double> get_double_in_string() noexcept;
+		inline JsonifierResult<bool> get_bool() noexcept;
+		inline JsonifierResult<bool> is_null() noexcept;
+		inline bool is_negative() noexcept;
+		inline JsonifierResult<bool> is_integer() noexcept;
+		inline JsonifierResult<NumberType> get_number_type() noexcept;
+		inline JsonifierResult<Number> get_number() noexcept;
 
-		inline std::string_view getRootString() noexcept;
-		inline RawJsonString getRootRawJsonString() noexcept;
-		inline uint64_t getRootUint64() noexcept;
-		inline uint64_t getRootUint64InString() noexcept;
-		inline int64_t getRootInt64() noexcept;
-		inline int64_t getRootInt64InString() noexcept;
-		inline double getRootDouble() noexcept;
-		inline double getRootDoubleInString() noexcept;
-		inline bool getRootBool() noexcept;
-		inline bool isRootNegative() noexcept;
-		inline bool isRootInteger() noexcept;
-		inline bool isRootNull() noexcept;
+		inline JsonifierResult<std::string_view> get_root_string() noexcept;
+		inline JsonifierResult<RawJsonString> get_root_raw_json_string() noexcept;
+		inline JsonifierResult<uint64_t> get_root_uint64() noexcept;
+		inline JsonifierResult<uint64_t> get_root_uint64_in_string() noexcept;
+		inline JsonifierResult<int64_t> get_root_int64() noexcept;
+		inline JsonifierResult<int64_t> get_root_int64_in_string() noexcept;
+		inline JsonifierResult<double> get_root_double() noexcept;
+		inline JsonifierResult<double> get_root_double_in_string() noexcept;
+		inline JsonifierResult<bool> get_root_bool() noexcept;
+		inline bool is_root_negative() noexcept;
+		inline JsonifierResult<bool> is_root_integer() noexcept;
+		inline JsonifierResult<NumberType> get_root_number_type() noexcept;
+		inline JsonifierResult<Number> get_root_number() noexcept;
+		inline bool is_root_null() noexcept;
 
-		inline ErrorCode getError() noexcept;
-		inline uint8_t*& stringBufLoc() noexcept;
-		inline const JsonIterator& jsonIter() noexcept;
+		inline ErrorCode error() const noexcept;
+		inline uint8_t*& string_buf_loc() noexcept;
+		inline const JsonIterator& json_iter() const noexcept;
+		inline JsonIterator& json_iter() noexcept;
 
-		inline void assertIsValid() noexcept;
-		inline bool isValid() noexcept;
+		inline void assert_is_valid() const noexcept;
+		inline bool is_valid() const noexcept;
 	  protected:
-		inline bool resetArray() noexcept;
-		inline bool resetObject() noexcept;
-		inline void moveAtStart() noexcept;
-		inline void moveAtContainerStart() noexcept;
-		inline std::string toString() noexcept;
+		inline JsonifierResult<bool> reset_array() noexcept;
+		inline JsonifierResult<bool> reset_object() noexcept;
+		inline void move_at_start() noexcept;
+		inline void move_at_container_start() noexcept;
+		inline std::string to_string() const noexcept;
 		inline ValueIterator(JsonIterator* json_iter, size_t depth, uint32_t* start_index) noexcept;
 
-		inline bool parseNull(const uint8_t* json) noexcept;
-		inline bool parseBool(const uint8_t* json) noexcept;
-		inline const uint8_t* peekStart() noexcept;
-		inline uint32_t peekStartLength() noexcept;
+		inline JsonifierResult<bool> parse_null(const uint8_t* json) const noexcept;
+		inline JsonifierResult<bool> parse_bool(const uint8_t* json) const noexcept;
+		inline const uint8_t* peek_start() const noexcept;
+		inline uint32_t peek_start_length() const noexcept;
 
-		inline void advanceScalar(const char* type) noexcept;
-		inline void advanceRootScalar(const char* type) noexcept;
-		inline void advanceNonRootScalar(const char* type) noexcept;
+		inline void advance_scalar(const char* type) noexcept;
+		inline void advance_root_scalar(const char* type) noexcept;
+		inline void advance_non_root_scalar(const char* type) noexcept;
 
-		inline const uint8_t* peekScalar(const char* type) noexcept;
-		inline const uint8_t* peekRootScalar(const char* type) noexcept;
-		inline const uint8_t* peekNonRootScalar(const char* type) noexcept;
+		inline const uint8_t* peek_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
 
 
-		inline ErrorCode startContainer(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
-		inline ErrorCode endContainer() noexcept;
-		inline const uint8_t* advanceToValue() noexcept;
+		inline ErrorCode start_container(uint8_t start_char, const char* incorrect_type_message, const char* type) noexcept;
+		inline ErrorCode end_container() noexcept;
+		inline JsonifierResult<const uint8_t*> advance_to_value() noexcept;
 
-		inline bool isAtStart() noexcept;
-		inline bool isAtIteratorStart() noexcept;
-		inline bool isAtKey() noexcept;
+		inline ErrorCode incorrect_type_error(const char* message) const noexcept;
+		inline ErrorCode error_unless_more_tokens(uint32_t tokens = 1) const noexcept;
 
-		inline void assertAtStart() noexcept;
-		inline void assertAtContainerStart() noexcept;
-		inline void assertAtRoot() noexcept;
-		inline void assertAtChild() noexcept;
-		inline void assertAtNext() noexcept;
-		inline void assertAtNonRootStart() noexcept;
-		inline uint32_t* startPosition() noexcept;
-		inline uint32_t* position() noexcept;
-		inline uint32_t* lastPosition() noexcept;
-		inline uint32_t* endPosition() noexcept;
-		inline ErrorCode reportError(ErrorCode error, const char* message) noexcept;
+		inline bool is_at_start() const noexcept;
+		inline bool is_at_iterator_start() const noexcept;
+		inline bool is_at_key() const noexcept;
+
+		inline void assert_at_start() const noexcept;
+		inline void assert_at_container_start() const noexcept;
+		inline void assert_at_root() const noexcept;
+		inline void assert_at_child() const noexcept;
+		inline void assert_at_next() const noexcept;
+		inline void assert_at_non_root_start() const noexcept;
+
+		inline uint32_t* start_position() const noexcept;
+
+		inline uint32_t* position() const noexcept;
+		inline uint32_t* last_position() const noexcept;
+		inline uint32_t* end_position() const noexcept;
+		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
 
 		friend class Document;
 		friend class Object;
 		friend class Array;
-		friend class JsonIterator;
+		friend class Value;
 	};
 
 	class Value {
 	  public:
 		inline Value() noexcept = default;
-		template<typename T> inline T get() noexcept {
+		template<typename T> inline JsonifierResult<T> get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
-
 		template<typename T> inline ErrorCode get(T& out) noexcept;
-		inline Array getArray() noexcept;
-		inline Object getObject() noexcept;
-		inline uint64_t getUint64() noexcept;
-		inline uint64_t getUint64InString() noexcept;
-		inline int64_t getInt64() noexcept;
-		inline int64_t getInt64InString() noexcept;
-		inline double getDouble() noexcept;
-		inline double getDoubleInString() noexcept;
-		inline std::string_view getString() noexcept;
-		inline RawJsonString getRawJsonString() noexcept;
-		inline bool getBool() noexcept;
-		inline bool isNull() noexcept;
-		inline ArrayIterator begin() & noexcept;
-		inline ArrayIterator end() & noexcept;
-		inline size_t  countElements() & noexcept;
-		inline size_t countFields() & noexcept;
-		inline Value at(size_t index) noexcept;
-		inline Value findField(std::string_view key) noexcept;
-		inline Value findField(const char* key) noexcept;
-		inline Value findFieldUnordered(std::string_view key) noexcept;
-		inline Value findFieldUnordered(const char* key) noexcept;
-		inline Value operator[](std::string_view key) noexcept;
-		inline Value operator[](const char* key) noexcept;
-		inline JsonType type() noexcept;
-		inline bool isScalar() noexcept;
-		inline bool isNegative() noexcept;
-		inline bool isInteger() noexcept;
-		inline std::string_view rawJsonToken() noexcept;
-		inline const char* currentLocation() noexcept;
-		inline int32_t currentDepth() noexcept;
-
-		inline Value atPointer(std::string_view json_pointer) noexcept;
+		inline JsonifierResult<Array> get_array() noexcept;
+		inline JsonifierResult<Object> get_object() noexcept;
+		inline JsonifierResult<uint64_t> get_uint64() noexcept;
+		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
+		inline JsonifierResult<int64_t> get_int64() noexcept;
+		inline JsonifierResult<int64_t> get_int64_in_string() noexcept;
+		inline JsonifierResult<double> get_double() noexcept;
+		inline JsonifierResult<double> get_double_in_string() noexcept;
+		inline JsonifierResult<std::string_view> get_string() noexcept;
+		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
+		inline JsonifierResult<bool> get_bool() noexcept;
+		inline JsonifierResult<bool> is_null() noexcept;
+		inline JsonifierResult<ArrayIterator> begin() & noexcept;
+		inline JsonifierResult<ArrayIterator> end() & noexcept;
+		inline JsonifierResult<size_t> count_elements() & noexcept;
+		inline JsonifierResult<size_t> count_fields() & noexcept;
+		inline JsonifierResult<Value> at(size_t index) noexcept;
+		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
+		inline JsonifierResult<Value> find_field(const char* key) noexcept;
+		inline JsonifierResult<Value> find_field_unordered(std::string_view key) noexcept;
+		inline JsonifierResult<Value> find_field_unordered(const char* key) noexcept;
+		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
+		inline JsonifierResult<Value> operator[](const char* key) noexcept;
+		inline JsonifierResult<JsonType> type() noexcept;
+		inline JsonifierResult<bool> is_scalar() noexcept;
+		inline bool is_negative() noexcept;
+		inline JsonifierResult<bool> is_integer() noexcept;
+		inline JsonifierResult<NumberType> get_number_type() noexcept;
+		inline JsonifierResult<Number> get_number() noexcept;
+		inline std::string_view raw_json_token() noexcept;
+		inline JsonifierResult<const char*> current_location() noexcept;
+		inline int32_t current_depth() const noexcept;
+		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
 
 	  protected:
-		inline Value(const ValueIterator& iter) noexcept;
+		inline Value(const ValueIterator& iterator) noexcept;
 		inline void skip() noexcept;
-		static inline Value start(const ValueIterator& iter) noexcept;
-		static inline Value resume(const ValueIterator& iter) noexcept;
-		inline Object  startOrResumeObject() noexcept;
+		static inline Value start(const ValueIterator& iterator) noexcept;
+		static inline Value resume(const ValueIterator& iterator) noexcept;
+		inline JsonifierResult<Object> start_or_resume_object() noexcept;
 
 		ValueIterator iterator{};
 
@@ -269,8 +240,8 @@ namespace Jsonifier {
 		friend class ArrayIterator;
 		friend class Field;
 		friend class Object;
-		friend struct Value;
-		friend struct field;
+		friend struct JsonifierResult<Value>;
+		friend struct JsonifierResult<Field>;
 	};
 	
 }

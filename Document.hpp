@@ -1,237 +1,86 @@
 #pragma once
 
 #include "JsonValueBase.hpp"
+#include "JsonifierResult.hpp"
 
 namespace Jsonifier {
 
 	class Document {
 	  public:
-		inline Document(JsonifierCore* iteratorNew) noexcept;
+		inline Document() noexcept = default;
+		inline Document(const Document& other) noexcept = delete;
+		inline Document(Document&& other) noexcept = default;
+		inline Document& operator=(const Document& other) noexcept = delete;
+		inline Document& operator=(Document&& other) noexcept = default;
 
-		inline Document start(JsonifierCore* iteratorNew) noexcept {
-			return Document(std::forward<Document>(iteratorNew));
+		inline JsonifierResult<Array> get_array() & noexcept;
+		inline JsonifierResult<Object> get_object() & noexcept;
+		inline JsonifierResult<uint64_t> get_uint64() noexcept;
+		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
+		inline JsonifierResult<int64_t> get_int64() noexcept;
+		inline JsonifierResult<int64_t> get_int64_in_string() noexcept;
+		inline JsonifierResult<double> get_double() noexcept;
+		inline JsonifierResult<double> get_double_in_string() noexcept;
+		inline JsonifierResult<std::string_view> get_string() noexcept;
+		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
+		inline JsonifierResult<bool> get_bool() noexcept;
+		inline JsonifierResult<Value> get_value() noexcept;
+		inline JsonifierResult<bool> is_null() noexcept;
+		template<typename T> inline JsonifierResult<T> get() & noexcept {
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the Jsonifier library.");
 		}
-		/*
-		template<typename OTy> inline JsonIterator getRootValueIterator() noexcept {
-			return this->resumeValueIterator<OTy>();
-		}
-
-		/*
-		inline Object startOrResumeObject() noexcept {
-			if (this->iterator.atRoot()) {
-				return getObject();
-			} else {
-				return Object::resume(std::move(resumeValueIterator<Object>()));
-			}
-		}
-		*/
-		inline ValueIterator getRootValueIterator() noexcept {
-			return resumeValueIterator();
-		}
-
-		inline ValueIterator resumeValueIterator() noexcept {
-			std::cout << "WERE HERE THIS IS IT!" << std::endl;
-			return ValueIterator(&iterator, 1, iterator.rootPosition());
-		}
-		/*
-		template<typename OTy> inline JsonIterator resumeValueIterator() noexcept {
-			return JsonIterator{ *iterator };
-		}
-		
-		inline Object findField(std::string_view key) & noexcept {
-			return startOrResumeObject().findField(key);
+		template<typename T> inline JsonifierResult<T> get() && noexcept {
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the Jsonifier library.");
 		}
 
-		inline Object findField(const char* key) & noexcept {
-			return startOrResumeObject().findField(key);
-		}
-
-		inline Object findFieldUnordered(std::string_view key) & noexcept {
-			return startOrResumeObject().findFieldUnordered(key);
-		}
-
-		inline Object findFieldUnordered(const char* key) & noexcept {
-			return startOrResumeObject().findFieldUnordered(key);
-		}
-
-		inline Object operator[](std::string_view key) & noexcept {
-			return startOrResumeObject()[key];
-		}
-
-		inline Object operator[](const char* key) & noexcept {
-			return startOrResumeObject()[key];
-		}
-		*/
-		inline void rewind() noexcept {
-			this->iterator.rewind();
-		}
-		inline Object getObject() & noexcept {
-			auto value = getRootValueIterator();
-			return Object::startRoot(value);
-		}
-		inline std::string toDebugString() noexcept {
-			return this->iterator.toString();
-		}
-
-		inline int32_t currentDepth() noexcept {
-			return this->iterator.depth();
-		}
-
-		inline bool isAlive() noexcept {
-			return this->iterator.isAlive();
-		}
-		/*
-		inline Object getValue() noexcept {
-			this->iterator.assertAtDocumentDepth();
-			switch (*this->iterator.peek()) {
-				case '[':
-				case '{':
-					return Object(getRootValueIterator<Object>().operator*());
-				default:
-					return Object(getRootValueIterator<Object>().operator*());
-			}
-		}
-
-		inline Array getArray() & noexcept {
-			auto value = getRootValueIterator<Array>();
-			return Array::startRoot(value);
-		}
-		
-		inline uint64_t getUint64() noexcept {
-			return getRootValueIterator<uint64_t>().getRootUint64InString();
-		}
-		inline uint64_t getUint64_in_string() noexcept {
-			return getRootValueIterator<int64_t>().getRootInt64InString();
-		}
-		inline int64_t getInt64() noexcept {
-			return getRootValueIterator<int64_t>().getRootInt64();
-		}
-		inline int64_t getInt64InString() noexcept {
-			return getRootValueIterator<std::string>().getRootInt64InString();
-		}
-		inline double getDouble() noexcept {
-			return getRootValueIterator<double>().getRootDouble();
-		}
-		inline double getDouble_in_string() noexcept {
-			return getRootValueIterator<double>().getRootDoubleInString();
-		}
-		inline std::string_view getString() noexcept {
-			return getRootValueIterator<std::string_view>().getRootString();
-		}
-		inline RawJsonString getRawJsonString() noexcept {
-			return getRootValueIterator<RawJsonString>().getRootRawJsonString();
-		}
-		inline bool getBool() noexcept {
-			return getRootValueIterator<bool>().getRootBool();
-		}
-		inline bool is_null() noexcept {
-			return getRootValueIterator<bool>().isRootNull();
-		}
-
-		
-		template<> inline Array get() & noexcept {
-			return getArray();
-		}
-
-		template<> inline Object get() & noexcept {
-			return getObject();
-		}
-
-		template<> inline RawJsonString get() & noexcept {
-			return getRawJsonString();
-		}
-
-		template<> inline std::string_view get() & noexcept {
-			return getString();
-		}
-
-		template<> inline double get() & noexcept {
-			return getDouble();
-		}
-
-		template<> inline uint64_t get() & noexcept {
-			return getUint64();
-		}
-
-		template<> inline int64_t get() & noexcept {
-			return getInt64();
-		}
-
-		template<> inline bool get() & noexcept {
-			return getBool();
-		}
-
-		template<> inline RawJsonString get() && noexcept {
-			return getRawJsonString();
-		}
-
-		template<> inline std::string_view get() && noexcept {
-			return getString();
-		}
-
-		template<> inline double get() && noexcept {
-			return std::forward<Document>(*this).getDouble();
-		}
-
-		template<> inline uint64_t get() && noexcept {
-			return std::forward<Document>(*this).getUint64();
-		}
-
-		template<> inline int64_t get() && noexcept {
-			return std::forward<Document>(*this).getInt64();
-		}
-
-		template<> inline bool get() && noexcept {
-			return std::forward<Document>(*this).getBool();
-		}
-
-		template<> inline Object get() && noexcept {
-			return getValue();
-		}
-
-		template<typename T> inline ErrorCode get(T& out) & noexcept {
-			return get<T>().get(out);
-		}
-
-		template<typename T> inline ErrorCode get(T& out) && noexcept {
-			return std::forward<Document>(*this).get<T>().get(out);
-		}
-
-		inline size_t countElements() & noexcept {
-			auto a = getArray();
-			size_t answer = a.countElements();
-			if (answer != 0) {
-				rewind();
-			}
-			return answer;
-		}
-
-		inline size_t countFields() & noexcept {
-			auto a = getObject();
-			size_t answer = a.countFields();
-			if (answer != 0) {
-				rewind();
-			}
-			return answer;
-		}
-
-		inline Object at(size_t index) & noexcept {
-			auto a = getArray();
-			return a.at(index);
-		}
-
-		inline JsonIterator begin() & noexcept {
-			return getArray().begin();
-		}
-
-		inline JsonIterator end() & noexcept {
-			return getArray().end();
-		}*/
+		template<typename T> inline ErrorCode get(T& out) & noexcept;
+		template<typename T> inline ErrorCode get(T& out) && noexcept;
+		inline JsonifierResult<size_t> count_elements() & noexcept;
+		inline JsonifierResult<size_t> count_fields() & noexcept;
+		inline JsonifierResult<Value> at(size_t index) & noexcept;
+		inline JsonifierResult<ArrayIterator> begin() & noexcept;
+		inline JsonifierResult<ArrayIterator> end() & noexcept;
+		inline JsonifierResult<Value> find_field(std::string_view key) & noexcept;
+		inline JsonifierResult<Value> find_field(const char* key) & noexcept;
+		inline JsonifierResult<Value> find_field_unordered(std::string_view key) & noexcept;
+		inline JsonifierResult<Value> find_field_unordered(const char* key) & noexcept;
+		inline JsonifierResult<Value> operator[](std::string_view key) & noexcept;
+		inline JsonifierResult<Value> operator[](const char* key) & noexcept;
+		inline JsonifierResult<JsonType> type() noexcept;
+		inline JsonifierResult<bool> is_scalar() noexcept;
+		inline bool is_negative() noexcept;
+		inline JsonifierResult<bool> is_integer() noexcept;
+		inline JsonifierResult<NumberType> get_number_type() noexcept;
+		inline JsonifierResult<Number> get_number() noexcept;
+		inline JsonifierResult<std::string_view> raw_json_token() noexcept;
+		inline void rewind() noexcept;
+		inline std::string to_debug_string() noexcept;
+		inline bool is_alive() noexcept;
+		inline JsonifierResult<const char*> current_location() noexcept;
+		inline int32_t current_depth() const noexcept;
+		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
+		inline JsonifierResult<std::string_view> raw_json() noexcept;
 
 	  protected:
-		uint8_t* rootStringBuffer{};
-		uint32_t* rootStructural{};
-		uint8_t* rootStringView{};
+		inline ErrorCode consume() noexcept;
+
+		inline Document(JsonIterator&& iterator) noexcept;
+		inline const uint8_t* text(uint32_t idx) const noexcept;
+
+		inline ValueIterator resume_value_iterator() noexcept;
+		inline ValueIterator get_root_value_iterator() noexcept;
+		inline JsonifierResult<Object> start_or_resume_object() noexcept;
+		static inline Document start(JsonIterator&& iterator) noexcept;
+
 		JsonIterator iterator{};
+		static constexpr size_t DOCUMENT_DEPTH = 0;
+
+		friend class ArrayIterator;
+		friend class JsonifierCore;
+		friend class Object;
+		friend class Value;
+		friend class Array;
+		friend class Field;
+		friend class Token;
 	};
 }

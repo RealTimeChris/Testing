@@ -22,18 +22,7 @@
 
 namespace Jsonifier {
 
-	enum class JsonType : uint8_t {
-		Document = 0,
-		Object = 1,
-		Array = 2,
-		String = 3,
-		Float = 4,
-		Number = 5,
-		Uint64 = 6,
-		Int64 = 7,
-		Bool = 8,
-		Null = 9
-	};
+	
 
 	class JsonValueBase;
 	class RawJsonString;
@@ -81,8 +70,8 @@ namespace Jsonifier {
 		inline void descendTo(size_t child_depth, int32_t delta) noexcept;
 		inline size_t depth() noexcept;
 		inline uint8_t*& stringBufLoc() noexcept;
-		inline ErrorCode reportError(ErrorCode error, const char* message) noexcept;
-		inline ErrorCode optionalError(ErrorCode error, const char* message) noexcept;
+		inline ErrorCode reportError(ErrorCode error, const uint8_t* message) noexcept;
+		inline ErrorCode optionalError(ErrorCode error, const uint8_t* message) noexcept;
 		inline uint32_t currentOffset() const noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline uint32_t peekLength(int32_t delta = 0) const noexcept;
@@ -102,7 +91,7 @@ namespace Jsonifier {
 		inline std::string_view unescape(RawJsonString in) noexcept;
 		inline void reenterChild(uint32_t* position, size_t child_depth) noexcept;
 		inline std::string toString() noexcept;
-		inline const char* currentLocation() noexcept;
+		inline const uint8_t* currentLocation() noexcept;
 		inline void rewind() noexcept;
 		inline bool balanced() noexcept;
 

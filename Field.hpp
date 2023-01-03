@@ -1,30 +1,24 @@
 #pragma once
 
 #include "JsonValueBase.hpp" 
+#include "Value.hpp"
 
 namespace Jsonifier {
 
-	class Field : protected std::pair<RawJsonString, ValueIterator> {
+	class Field : public std::pair<RawJsonString, Value> {
 	  public:
+		inline Field() noexcept;
+		inline JsonifierResult<std::string_view> unescaped_key() noexcept;
+		inline RawJsonString key() const noexcept;
+		inline Value& value() & noexcept;
+		inline Value value() && noexcept;
 
-		inline RawJsonString key() noexcept {
-			assert(first.stringView != nullptr);
-			return first;
-		}
-		inline Field() noexcept = default;
-
-		static inline Field start(ValueIterator& parent_iter) noexcept {
-			RawJsonString key{};
-			key = parent_iter.fieldKey();
-			parent_iter.fieldValue();
-			return Field::start(parent_iter, key);
-		}
-
-		static inline Field start(ValueIterator& parent_iter, RawJsonString key) noexcept {
-			return Field(key, parent_iter.child());
-		}
-
-		inline Field(RawJsonString key, ValueIterator&& value) noexcept : std::pair<RawJsonString, ValueIterator>{ key, std::move(value) } {};
+	  protected:
+		inline Field(RawJsonString key, Value&& Value) noexcept;
+		static inline JsonifierResult<Field> start(ValueIterator& parent_iter) noexcept;
+		static inline JsonifierResult<Field> start(const ValueIterator& parent_iter, RawJsonString key) noexcept;
+		friend struct JsonifierResult<Field>;
+		friend class object_iterator;
 	};
 
 	
