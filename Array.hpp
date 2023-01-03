@@ -66,4 +66,21 @@ namespace Jsonifier {
 		inline bool operator!=(const JsonifierResult<ArrayIterator>&) const noexcept;
 		inline JsonifierResult<ArrayIterator>& operator++() noexcept;
 	};
+
+	template<>
+	struct JsonifierResult<Array>
+		: public JsonifierResultBase<Array> {
+	  public:
+		inline JsonifierResult(Array&& value) noexcept;///< @private
+		inline JsonifierResult(ErrorCode error) noexcept;///< @private
+		inline JsonifierResult() noexcept = default;
+
+		inline JsonifierResult<ArrayIterator> begin() noexcept;
+		inline JsonifierResult<ArrayIterator> end() noexcept;
+		inline JsonifierResult<size_t> count_elements() & noexcept;
+		inline JsonifierResult<bool> is_empty() & noexcept;
+		inline JsonifierResult<bool> reset() & noexcept;
+		inline JsonifierResult<Value> at(size_t index) noexcept;
+		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
+	};
 }
