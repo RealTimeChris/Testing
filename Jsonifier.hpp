@@ -722,21 +722,16 @@ namespace Jsonifier {
 			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
-		~JsonifierCore() {
-			deallocate(round(5 * this->stringLengthRaw / 3 + 256, 256), this->stringBuffer);
-			deallocate(round(this->stringLengthRaw + 3, 256), this->structuralIndexes);
-		}
-
 		inline ErrorCode allocate(uint8_t* stringViewNew) noexcept {
 			if (this->stringLengthRaw == 0) {
 				return ErrorCode::Success;
 			}
-			allocateNew<uint8_t>(round(5 * this->stringLengthRaw / 3 + 256, 256), this->stringBuffer);
-			allocateNew<uint32_t>(round(this->stringLengthRaw + 3, 256), this->structuralIndexes);
+			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
+			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
 			this->stringView = stringViewNew;
-			if (!(this->structuralIndexes && this->stringBuffer)) {
-				deallocate(round(5 * this->stringLengthRaw / 3 + 256, 256), this->stringBuffer);
-				deallocate(round(this->stringLengthRaw + 3, 256), this->structuralIndexes);
+			if (!(this->structuralIndexes.get() && this->stringBuffer.get())) {
+				this->stringBuffer.deallocate();
+				this->structuralIndexes.deallocate();
 				return ErrorCode::Mem_Alloc_Error;
 			}
 
@@ -762,20 +757,20 @@ namespace Jsonifier {
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
-					section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
+					section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 					stringReader.advance();
 				}
 				char block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
-				section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
+				section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
 				//				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
-				for (size_t x = 0; x < this->tapeLength; ++x) {
-					std::cout << "CURRENT INDEX: " << this->structuralIndexes[x]
-							  << ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
-				}
+				//for (size_t x = 0; x < this->tapeLength; ++x) {
+				//std::cout << "CURRENT INDEX: " << this->structuralIndexes[x]
+				//<< ", THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]] << std::endl;
+				//}
 			}
 		}
 
@@ -784,11 +779,11 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t* getStringBuffer() {
-			return this->stringBuffer;
+			return this->stringBuffer.get();
 		}
 
 		inline uint32_t* getStructuralIndices() {
-			return this->structuralIndexes;
+			return this->structuralIndexes.get();
 		}
 
 		inline Document parseJson(std::string& string);
@@ -798,8 +793,8 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		uint32_t* structuralIndexes{};
-		uint8_t* stringBuffer{};
+		ObjectBuffer<uint32_t> structuralIndexes{};
+		ObjectBuffer<uint8_t> stringBuffer{};
 		SimdStringSection section{};
 		size_t stringLengthRaw{};
 		uint8_t* stringView{};
