@@ -16,7 +16,8 @@ namespace Jsonifier {
 
 	template<typename OTy> class ObjectBuffer {
 	  public:
-		using AllocatorTraits = std::allocator_traits<std::allocator<OTy>>;
+		using AllocatorType = std::allocator<OTy>;
+		using AllocatorTraits = std::allocator_traits<AllocatorType>;
 
 		inline ObjectBuffer& operator=(ObjectBuffer&&) = delete;
 		inline ObjectBuffer(ObjectBuffer&&) = delete;
@@ -37,7 +38,7 @@ namespace Jsonifier {
 		inline void reset(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
-				std::allocator<OTy> allocator{};
+				AllocatorType allocator{};
 				this->objects = AllocatorTraits::allocate(allocator, newSize);
 				this->currentSize = newSize;
 			}
@@ -53,7 +54,7 @@ namespace Jsonifier {
 		
 		inline void deallocate() {
 			if (this->currentSize > 0 && this->objects) {
-				std::allocator<OTy> allocator{};
+				AllocatorType allocator{};
 				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
 				this->objects = nullptr;
 				this->currentSize = 0;
@@ -1332,8 +1333,8 @@ namespace Jsonifier {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		//std::cout << "CURRENT TAPE: ";
 		for (size_t x = 0; x < this->getTapeLength(); ++x) {
-			std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
-			<< std::endl;
+			//std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
+			//<< std::endl;
 		}
 		return std::forward<Document>(this->getDocument());
 	}
@@ -1505,16 +1506,16 @@ namespace Jsonifier {
 		  currentDepth{ 1 }, rootPosition{ _parser->getStructuralIndices() }
 
 		  {
-		std::cout << "THE INDICES: ";
+		//std::cout << "THE INDICES: ";
 		for (size_t x = 0; x < parser->getTapeLength(); ++x) {
-			std::cout << "THE INDEX: " << parser->getStringView()[this->rootPosition[x]] << std::endl;
+			//std::cout << "THE INDEX: " << parser->getStringView()[this->rootPosition[x]] << std::endl;
 		}
 	};
 
 	inline TokenIterator::TokenIterator(const uint8_t* _bufNew, uint32_t* positionNew) noexcept : buf{ _bufNew }, _position{ positionNew } {
-		std::cout << "THE INDICES REAL: ";
+		//std::cout << "THE INDICES REAL: ";
 		for (size_t x = 0; x < 344; ++x) {
-			std::cout << "THE VALUE: " << buf[_position[x]] << std::endl;
+			//			std::cout << "THE VALUE: " << buf[_position[x]] << std::endl;
 		}
 	}
 
@@ -1665,16 +1666,24 @@ namespace Jsonifier {
 		currentDepth = 0;
 	}
 
-	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
+	inline const uint8_t* JsonIterator::return_current_and_advance(std::source_location location) noexcept {
+		//std::cout << "Error Report: \n"
+			   //<< "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
+					 //<< ")"
+					 //<< "\nThe Error: \n"
+					 //<< error << std::endl
+					 //<< std::endl;
+		//std::cout << "CURRENT PEEK VALUE: (JSONIFIER): " << *token.peek() << std::endl;
 		return token.return_current_and_advance();
 	}
 
 	inline const uint8_t* JsonIterator::unsafe_pointer() const noexcept {
+		//std::cout << "CURRENT PEEK VALUE: (JSONIFIER): " << *token.peek() << std::endl;
 		return token.peek(0);
 	}
 
 	inline const uint8_t* JsonIterator::peek(int32_t delta) const noexcept {
-		std::cout << "CURRENT PEEK VALUE: " << *token.peek(delta) << std::endl;
+		//std::cout << "CURRENT PEEK VALUE: (JSONIFIER): " << *token.peek(delta) << std::endl;
 		return token.peek(delta);
 	}
 

@@ -38,8 +38,8 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
-		auto newObject = value["TEST_VALUE_11"].value_unsafe();
-		std::cout << "FIELD COUNT: " << newObject.raw_json_token() << std::endl;
+		auto newObject = value.raw_json();
+		std::cout << "FIELD COUNT: " << newObject.value_unsafe() << std::endl;
 		//std::cout << "CURRENT KEY: " << value.countFields() << std::endl;
 		//Jsonifier::Object objectNew{ value.getObject() };
 		//objectNew.findField("TEST_VALUE_11");
@@ -85,6 +85,7 @@ struct TheDJson {
  
 struct TheValueJson {
 	TheValueJson(Jsonifier::Document value) {
+		//std::cout << "THE DATA: " << value.raw_json().value_unsafe() << std::endl;
 		this->theD = TheDJson{ std::move(value) };
 	}
 	TheDJson theD{};
@@ -113,9 +114,9 @@ struct Activities {
 
 struct TheD {
 	TheD() noexcept = default;
-	TheD(simdjson::ondemand::value value) {
+	TheD(simdjson::ondemand::document value) {
 		simdjson::ondemand::array valueNew{};
-		value["TEST_VALUE_11"].get(valueNew);
+		value["TEST_VALUE_11"]["d"].get(valueNew);
 		for (auto value: valueNew) {
 			auto newDouble = value.get_string().take_value();
 		}
@@ -125,9 +126,9 @@ struct TheD {
 };
 
 struct TheValue {
-	TheValue(simdjson::ondemand::value value) {
-		std::cout << value.get_object().value_unsafe().raw_json() << std::endl;
-		this->theD = TheD{ value };
+	TheValue(simdjson::ondemand::document value) {
+		std::cout << value.raw_json() << std::endl;
+		this->theD = TheD{ std::move(value) };
 	}
 	TheD theD{};
 };
@@ -174,7 +175,7 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		for (size_t x = 0; x < 273; ++x) {
-			serializer["TEST_VALUE_11"].emplaceBack(std::string{ "TESTING VALUE11111111111" });
+			serializer["TEST_VALUE_11"]["d"].emplaceBack(std::string{ "TESTING VALUE11111111111" });
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
@@ -209,11 +210,11 @@ int32_t main() noexcept {
 					
 
 		stopWatch.resetTimer();
-		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
+		for (size_t x = 0ull; x < 1ull * 1; ++x) {
 			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ newDocument };
+			TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -231,7 +232,7 @@ int32_t main() noexcept {
 		
 		
 			
-		for (size_t x = 0ull; x < 2048ull * 1; ++x) {
+		for (size_t x = 0ull; x < 1* 1; ++x) {
 			Jsonifier::JsonifierCore parserOld{};	
 			auto jsonData = parserOld.parseJson(stringNew);
 			TheValueJson value{ std::move(jsonData) };

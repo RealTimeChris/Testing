@@ -141,7 +141,7 @@ namespace Jsonifier {
 		inline bool at_end() const noexcept;
 		inline bool is_alive() const noexcept;
 		inline void abandon() noexcept;
-		inline const uint8_t* return_current_and_advance() noexcept;
+		inline const uint8_t* return_current_and_advance(std::source_location = std::source_location::current()) noexcept;
 		inline bool is_single_token() const noexcept;
 		inline void assert_more_tokens(uint32_t required_tokens = 1) const noexcept;
 		inline void assert_valid_position(uint32_t* position) const noexcept;
