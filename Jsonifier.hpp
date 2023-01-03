@@ -31,6 +31,10 @@ namespace Jsonifier {
 			return this->objects[index];
 		}
 
+		operator OTy*() noexcept {
+			return this->objects;
+		}
+
 		inline void allocate(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
@@ -46,10 +50,6 @@ namespace Jsonifier {
 				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
 				this->objects = nullptr;
 			}
-		}
-
-		operator OTy*() noexcept {
-			return this->objects;
 		}
 
 		inline size_t size() noexcept {
