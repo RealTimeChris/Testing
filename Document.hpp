@@ -128,11 +128,7 @@ namespace Jsonifier {
 			return getRootValueIterator<bool>().isRootNull();
 		}
 
-		*/
-		template<typename OTy> inline OTy get() & noexcept;
-
-		template<typename OTy> inline OTy get() && noexcept;
-		/*
+		
 		template<> inline Array get() & noexcept {
 			return getArray();
 		}

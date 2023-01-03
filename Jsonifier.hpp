@@ -28,15 +28,14 @@ namespace Jsonifier {
 			using difference_type = std::ptrdiff_t;
 			using propagate_on_container_move_assignment = std::true_type;
 			using is_always_equal = std::true_type;
-			inline static std::array<OTy, 1024 * 1024> array{};
 			inline ObjectAllocator() noexcept = default;
 
 			inline OTy* allocate(size_t count) {
-				return this->array.data();
+				return static_cast<OTy*>(malloc(count * sizeof(OTy)));
 			}
 
 			template<typename OTy> inline void deallocate(OTy* ptr, size_t count) {
-				//free(ptr);
+				free(ptr);
 			}
 		};
 
@@ -53,6 +52,7 @@ namespace Jsonifier {
 		inline OTy& operator[](size_t index) noexcept {
 			return this->objects[index];
 		}
+		
 
 		inline void allocate(size_t newSize) noexcept {
 			this->deallocate();
@@ -698,6 +698,22 @@ namespace Jsonifier {
 	inline int64_t totalTimePassed02{};
 	inline int64_t iterationCount{};
 
+	template<typename OTy> inline void allocateNew(size_t newSize, OTy*&objects) noexcept {
+		if (newSize != 0) {
+			std::allocator<OTy> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<OTy>>;
+			objects = AllocatorTraits::allocate(allocator, newSize);
+		}
+	}
+	template<typename OTy> inline void deallocate(size_t currentSize, OTy* objects) {
+		if (objects) {
+			std::allocator<OTy> allocator{};
+			using AllocatorTraits = std::allocator_traits<std::allocator<OTy>>;
+			AllocatorTraits::deallocate(allocator, objects, currentSize);
+			objects = nullptr;
+		}
+	}
+
 	class JsonifierCore {
 	  public:
 		inline Document getDocument() {
@@ -708,21 +724,25 @@ namespace Jsonifier {
 		inline JsonifierCore(JsonifierCore&&) = default;
 		inline JsonifierCore(){};
 
-		inline int64_t round(int64_t a, int64_t n) {
+		inline uint64_t round(int64_t a, int64_t n) {
 			return (((a) + (( n )-1)) & ~(( n )-1));
+		}
+
+		~JsonifierCore() {
+			deallocate(round(5 * this->stringLengthRaw / 3 + 256, 256), this->stringBuffer);
+			deallocate(round(this->stringLengthRaw + 3, 256), this->structuralIndexes);
 		}
 
 		inline ErrorCode allocate(uint8_t* stringViewNew) noexcept {
 			if (this->stringLengthRaw == 0) {
 				return ErrorCode::Success;
 			}
-
-			this->stringBuffer.allocate(round(5 * this->stringLengthRaw / 3 + 256, 256));
-			this->structuralIndexes.allocate(round(this->stringLengthRaw + 3, 256));
+			allocateNew<uint8_t>(round(5 * this->stringLengthRaw / 3 + 256, 256), this->stringBuffer);
+			allocateNew<uint32_t>(round(this->stringLengthRaw + 3, 256), this->structuralIndexes);
 			this->stringView = stringViewNew;
-			if (!(this->structuralIndexes.get() && this->stringBuffer.get())) {
-				this->structuralIndexes.deallocate();
-				this->stringBuffer.deallocate();
+			if (!(this->structuralIndexes && this->stringBuffer)) {
+				deallocate(round(5 * this->stringLengthRaw / 3 + 256, 256), this->stringBuffer);
+				deallocate(round(this->stringLengthRaw + 3, 256), this->structuralIndexes);
 				return ErrorCode::Mem_Alloc_Error;
 			}
 
@@ -748,13 +768,13 @@ namespace Jsonifier {
 				size_t tapeCurrentIndex{ 0 };
 				while (stringReader.hasFullBlock()) {
 					this->section.submitDataForProcessing(stringReader.fullBlock());
-					section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+					section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
 					stringReader.advance();
 				}
 				char block[256];
 				stringReader.getRemainder(block);
 				this->section.submitDataForProcessing(block);
-				section.getStructuralIndices(this->structuralIndexes.get(), tapeCurrentIndex, this->stringLengthRaw);
+				section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
 				//				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				//std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
@@ -766,11 +786,11 @@ namespace Jsonifier {
 		}
 
 		inline uint8_t* getStringBuffer() {
-			return this->stringBuffer.get();
+			return this->stringBuffer;
 		}
 
 		inline uint32_t* getStructuralIndices() {
-			return this->structuralIndexes.get();
+			return this->structuralIndexes;
 		}
 
 		inline Document parseJson(std::string& string);
@@ -780,8 +800,8 @@ namespace Jsonifier {
 		}
 
 	  protected:
-		ObjectBuffer<uint32_t> structuralIndexes{};
-		ObjectBuffer<uint8_t> stringBuffer{};
+		uint32_t* structuralIndexes{};
+		uint8_t* stringBuffer{};
 		SimdStringSection section{};
 		size_t stringLengthRaw{};
 		uint8_t* stringView{};
@@ -1826,6 +1846,50 @@ namespace Jsonifier {
 			default:
 				return false;
 		}
+	}
+
+	inline bool ValueIterator::findFieldRaw(const std::string_view key) noexcept {
+		ErrorCode error{};
+		bool has_value{};
+		if (atFirstField()) {
+			has_value = true;
+		} else if (!isOpen()) {
+			return false;
+		} else {
+			if (error = skipChild(); error != ErrorCode::Success) {
+				abandon();
+				return false;
+			}
+			if (hasNextField()) {
+				abandon();
+				return false;
+			}
+		}
+		while (has_value) {
+			RawJsonString actual_key{};
+			if (fieldKey().raw() == "") {
+				abandon();
+				return false;
+			};
+			if (fieldValue()!=ErrorCode::Success) {
+				abandon();
+				return false;
+			}
+			if (actual_key.unsafeIsEqual(key)) {
+				return true;
+			}
+			skipChild();
+			if (!hasNextField()) {
+				abandon();
+				return false;
+			}
+		}
+		return false;
+	}
+
+	inline bool ValueIterator::atFirstField() noexcept {
+		assert(jsonIterator->position() > rootPosition);
+		return jsonIterator->position() == rootPosition + 1;
 	}
 
 
