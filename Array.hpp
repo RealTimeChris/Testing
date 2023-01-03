@@ -50,5 +50,4 @@ namespace Jsonifier {
 		friend struct JsonifierResult<Array>;
 		friend class ArrayIterator;
 	};
-
 }

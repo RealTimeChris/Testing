@@ -1338,4 +1338,175 @@ namespace Jsonifier {
 		return std::forward<Document>(this->getDocument());
 	}
 
+	inline Document::Document(JsonIterator&& _iter) noexcept : iterator{ std::forward<JsonIterator>(_iter) } {
+	}
+
+	inline Document Document::start(JsonIterator&& iterator) noexcept {
+		return Document(std::forward<JsonIterator>(iterator));
+	}
+
+	inline void Document::rewind() noexcept {
+		iterator.rewind();
+	}
+
+	inline std::string Document::to_debug_string() noexcept {
+		return iterator.to_string();
+	}
+
+	inline JsonifierResult<const char*> Document::current_location() noexcept {
+		return iterator.current_location();
+	}
+
+	inline int32_t Document::current_depth() const noexcept {
+		return iterator.depth();
+	}
+
+	inline bool Document::is_alive() noexcept {
+		return iterator.is_alive();
+	}
+	inline ValueIterator Document::resume_value_iterator() noexcept {
+		return ValueIterator(&iterator, 1, iterator.root_position());
+	}
+	inline ValueIterator Document::get_root_value_iterator() noexcept {
+		return resume_value_iterator();
+	}
+	inline JsonifierResult<Object> Document::start_or_resume_object() noexcept {
+		if (iterator.at_root()) {
+			return get_object();
+		} else {
+			return Object::resume(resume_value_iterator());
+		}
+	}
+	inline JsonifierResult<Value> Document::get_value() noexcept {
+		iterator.assert_at_document_depth();
+		switch (*iterator.peek()) {
+			case '[':
+			case '{':
+				return Value(get_root_value_iterator());
+			default:
+				return ErrorCode::Empty;
+		}
+	}
+	inline JsonifierResult<Array> Document::get_array() & noexcept {
+		auto Value = get_root_value_iterator();
+		return Array::start_root(Value);
+	}
+	inline JsonifierResult<Object> Document::get_object() & noexcept {
+		auto Value = get_root_value_iterator();
+		return Object::start_root(Value);
+	}
+	inline JsonifierResult<uint64_t> Document::get_uint64() noexcept {
+		return get_root_value_iterator().get_root_uint64();
+	}
+	inline JsonifierResult<uint64_t> Document::get_uint64_in_string() noexcept {
+		return get_root_value_iterator().get_root_uint64_in_string();
+	}
+	inline JsonifierResult<int64_t> Document::get_int64() noexcept {
+		return get_root_value_iterator().get_root_int64();
+	}
+	inline JsonifierResult<int64_t> Document::get_int64_in_string() noexcept {
+		return get_root_value_iterator().get_root_int64_in_string();
+	}
+	inline JsonifierResult<double> Document::get_double() noexcept {
+		return get_root_value_iterator().get_root_double();
+	}
+	inline JsonifierResult<double> Document::get_double_in_string() noexcept {
+		return get_root_value_iterator().get_root_double_in_string();
+	}
+	inline JsonifierResult<std::string_view> Document::get_string() noexcept {
+		return get_root_value_iterator().get_root_string();
+	}
+	inline JsonifierResult<RawJsonString> Document::get_raw_json_string() noexcept {
+		return get_root_value_iterator().get_root_raw_json_string();
+	}
+	inline JsonifierResult<bool> Document::get_bool() noexcept {
+		return get_root_value_iterator().get_root_bool();
+	}
+	inline JsonifierResult<bool> Document::is_null() noexcept {
+		return get_root_value_iterator().is_root_null();
+	}
+
+	template<> inline JsonifierResult<Array> Document::get() & noexcept {
+		return get_array();
+	}
+	template<> inline JsonifierResult<Object> Document::get() & noexcept {
+		return get_object();
+	}
+	template<> inline JsonifierResult<RawJsonString> Document::get() & noexcept {
+		return get_raw_json_string();
+	}
+	template<> inline JsonifierResult<std::string_view> Document::get() & noexcept {
+		return get_string();
+	}
+	template<> inline JsonifierResult<double> Document::get() & noexcept {
+		return get_double();
+	}
+	template<> inline JsonifierResult<uint64_t> Document::get() & noexcept {
+		return get_uint64();
+	}
+	template<> inline JsonifierResult<int64_t> Document::get() & noexcept {
+		return get_int64();
+	}
+	template<> inline JsonifierResult<bool> Document::get() & noexcept {
+		return get_bool();
+	}
+	template<> inline JsonifierResult<Value> Document::get() & noexcept {
+		return get_value();
+	}
+
+	template<> inline JsonifierResult<RawJsonString> Document::get() && noexcept {
+		return get_raw_json_string();
+	}
+	template<> inline JsonifierResult<std::string_view> Document::get() && noexcept {
+		return get_string();
+	}
+	template<> inline JsonifierResult<double> Document::get() && noexcept {
+		return std::forward<Document>(*this).get_double();
+	}
+	template<> inline JsonifierResult<uint64_t> Document::get() && noexcept {
+		return std::forward<Document>(*this).get_uint64();
+	}
+	template<> inline JsonifierResult<int64_t> Document::get() && noexcept {
+		return std::forward<Document>(*this).get_int64();
+	}
+	template<> inline JsonifierResult<bool> Document::get() && noexcept {
+		return std::forward<Document>(*this).get_bool();
+	}
+	template<> inline JsonifierResult<Value> Document::get() && noexcept {
+		return get_value();
+	}
+
+	template<typename T> inline ErrorCode Document::get(T& out) & noexcept {
+		return get<T>().get(out);
+	}
+	template<typename T> inline ErrorCode Document::get(T& out) && noexcept {
+		return std::forward<Document>(*this).get<T>().get(out);
+	}
+
+	inline JsonIterator::JsonIterator(JsonIterator&& other) noexcept
+		: token(std::forward<TokenIterator>(other.token)), parser{ other.parser }, stringBuffer{ other.stringBuffer }, error{ other.error },
+		  currentDepth{ other.currentDepth }, rootPosition{ other.rootPosition } {
+		other.parser = nullptr;
+	}
+
+	inline JsonIterator& JsonIterator::operator=(JsonIterator&& other) noexcept {
+		token = other.token;
+		parser = other.parser;
+		stringBuffer = other.stringBuffer;
+		error = other.error;
+		currentDepth = other.currentDepth;
+		rootPosition = other.rootPosition;
+		other.parser = nullptr;
+		return *this;
+	}
+
+	inline JsonIterator::JsonIterator(JsonifierCore* _parser) noexcept
+		: token(parser->getStringView(), &_parser->getStructuralIndices()[0]), parser{ _parser }, stringBuffer{ parser->getStringBuffer() },
+		  currentDepth{ 1 }, rootPosition{ parser->getStructuralIndices() }
+
+		  {};
+
+	inline TokenIterator::TokenIterator(const uint8_t* _buf, uint32_t* position) noexcept : buf{ _buf }, _position{ position } {
+	}
+
 };

@@ -5,6 +5,7 @@
 namespace Jsonifier {
 
 	template<typename T> struct JsonifierResultBase : protected std::pair<T, ErrorCode>  {
+	  public:
 		inline JsonifierResultBase() noexcept;
 		inline JsonifierResultBase(ErrorCode error) noexcept;
 		inline JsonifierResultBase(T&& value) noexcept;
@@ -24,7 +25,12 @@ namespace Jsonifier {
 		inline void tie(T& value, ErrorCode& error) && noexcept;
 		inline ErrorCode get(T& value) && noexcept;
 		inline ErrorCode error() const noexcept;
-		inline const T& valueUnsafe() const& noexcept;
-		inline T&& valueUnsafe() && noexcept;
+		inline const T& value_unsafe() const& noexcept;
+		inline T&& value_unsafe() && noexcept;
+
 	};
+
+	template<typename T> inline std::ostream& operator<<(std::ostream& out, JsonifierResult<T> value) {
+		return out << value.value();
+	}
 }
