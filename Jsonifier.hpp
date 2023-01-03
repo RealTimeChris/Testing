@@ -1640,7 +1640,9 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
-		return token.return_current_and_advance();
+		auto newPtr = token.return_current_and_advance();
+		std::cout << "CURRENT ADVANCED TOKEN: " << *newPtr << std::endl;
+		return newPtr;
 	}
 
 	inline const uint8_t* JsonIterator::unsafe_pointer() const noexcept {
@@ -2730,6 +2732,7 @@ namespace Jsonifier {
 
 
 	inline const uint8_t* TokenIterator::return_current_and_advance() noexcept {
+		std::cout << "CURRENT POSITION: " << *_position << std::endl;
 		return &buf[*(_position++)];
 	}
 
@@ -2744,6 +2747,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* TokenIterator::peek(int32_t delta) const noexcept {
+		std::cout << "CURRENT POSITION: " << *_position << std::endl;
 		return &buf[*(_position + delta)];
 	}
 	inline uint32_t TokenIterator::peek_index(int32_t delta) const noexcept {

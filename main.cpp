@@ -124,11 +124,11 @@ int32_t main() noexcept {
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_01"] = true;
-		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE2323";
 		arrayValueNew["TEST_VALUE_03"] = 4325454;
 		arrayValueNew["TEST_VALUE_04"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_05"] = true;
-		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
+		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		for (size_t x = 0; x < 27; ++x) {
