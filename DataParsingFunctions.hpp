@@ -27,10 +27,10 @@
 
 #ifndef DATA_PARSING_FUNCTIONS
 	#define DATA_PARSING_FUNCTIONS
-	
+
 	#include <simdjson.h>
 	#include <map>
-#include"Jsonifier.hpp"
+	#include "Jsonifier.hpp"
 
 namespace Jsonifier {
 

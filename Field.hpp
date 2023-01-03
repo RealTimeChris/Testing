@@ -1,6 +1,6 @@
 #pragma once
 
-#include "JsonValueBase.hpp" 
+#include "JsonValueBase.hpp"
 #include "Value.hpp"
 
 namespace Jsonifier {
@@ -21,5 +21,5 @@ namespace Jsonifier {
 		friend class ObjectIterator;
 	};
 
-	
+
 }

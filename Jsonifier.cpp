@@ -781,5 +781,5 @@ namespace Jsonifier {
 	Jsonifier::~Jsonifier() noexcept {
 		this->destroy();
 	}
-	
+
 }

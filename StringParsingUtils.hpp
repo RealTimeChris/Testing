@@ -192,7 +192,6 @@ namespace Jsonifier {
 
 			values.store(reinterpret_cast<uint8_t*>(dst));
 			for (size_t x = 0; x < 32; ++x) {
-				
 				if (dst[x] == '"') {
 					dst[x] = '\0';
 					return x;
@@ -206,7 +205,7 @@ namespace Jsonifier {
 			uint32_t index{};
 			uint8_t* returnValue{};
 			while (index == 0) {
-				if (index= copyAndFind<SimdBase256>(src + index, dst + index); index != 0) {
+				if (index = copyAndFind<SimdBase256>(src + index, dst + index); index != 0) {
 					returnValue = dst;
 				} else {
 					returnValue = nullptr;
@@ -228,8 +227,7 @@ namespace Jsonifier {
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-		template<typename SimdBase256>
-		struct BackslashAndQuote {
+		template<typename SimdBase256> struct BackslashAndQuote {
 		  public:
 			static constexpr uint32_t BYTES_PROCESSED = 32;
 			static inline BackslashAndQuote copyAndFind(uint8_t* src, uint8_t* dst) {
@@ -291,7 +289,7 @@ namespace Jsonifier {
 			return nullptr;
 		}
 		*/
-		 /*
+		/*
 		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
 			int32_t index{};
 			while (1) {

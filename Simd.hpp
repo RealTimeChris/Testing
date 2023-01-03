@@ -387,8 +387,7 @@ namespace Jsonifier {
 			*theValue = string;
 		}
 
-		inline void addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape,
-			size_t stringLength) {
+		inline void addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape, size_t stringLength) {
 			int cnt = static_cast<int>(__popcnt64(*theBits));
 			int64_t newValue{};
 			for (int i = 0; i < cnt; i++) {

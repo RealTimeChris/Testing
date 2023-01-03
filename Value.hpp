@@ -135,6 +135,7 @@ namespace Jsonifier {
 
 		inline void assert_is_valid() const noexcept;
 		inline bool is_valid() const noexcept;
+
 	  protected:
 		inline JsonifierResult<bool> reset_array() noexcept;
 		inline JsonifierResult<bool> reset_object() noexcept;
@@ -246,12 +247,10 @@ namespace Jsonifier {
 		friend struct JsonifierResult<Field>;
 	};
 
-	template<>
-	struct JsonifierResult<Value>
-		: public JsonifierResultBase<Value> {
+	template<> struct JsonifierResult<Value> : public JsonifierResultBase<Value> {
 	  public:
-		inline JsonifierResult(Value&& value) noexcept;///< @private
-		inline JsonifierResult(ErrorCode error) noexcept;///< @private
+		inline JsonifierResult(Value&& value) noexcept;///< @protected
+		inline JsonifierResult(ErrorCode error) noexcept;///< @protected
 		inline JsonifierResult() noexcept = default;
 
 		inline JsonifierResult<Array> get_array() noexcept;
@@ -291,5 +290,5 @@ namespace Jsonifier {
 		inline JsonifierResult<int32_t> current_depth() const noexcept;
 		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
 	};
-	
+
 }

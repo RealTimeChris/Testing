@@ -4,7 +4,7 @@
 #include "JsonifierResult.hpp"
 
 namespace Jsonifier {
-	
+
 	class JsonifierCore;
 	class JsonIterator;
 	class Object;
@@ -67,7 +67,7 @@ namespace Jsonifier {
 		static inline bool is_free_from_unescaped_quote(std::string_view target) noexcept;
 		static inline bool is_free_from_unescaped_quote(const char* target) noexcept;
 
-	  private:
+	  protected:
 		inline void consume() noexcept {
 			buf = nullptr;
 		}
@@ -125,9 +125,10 @@ namespace Jsonifier {
 		JsonifierCore* parser{};
 		uint8_t* stringBuffer{};
 		ErrorCode error{ ErrorCode::Success };
-		size_t currentDepth{1};
+		size_t currentDepth{ 1 };
 		uint32_t* rootPosition{};
-		public:
+
+	  public:
 		inline JsonIterator() noexcept = default;
 		inline JsonIterator(JsonIterator&& other) noexcept;
 		inline JsonIterator& operator=(JsonIterator&& other) noexcept;
@@ -141,7 +142,7 @@ namespace Jsonifier {
 		inline bool at_end() const noexcept;
 		inline bool is_alive() const noexcept;
 		inline void abandon() noexcept;
-		inline const uint8_t* return_current_and_advance(std::source_location = std::source_location::current()) noexcept;
+		inline const uint8_t* return_current_and_advance() noexcept;
 		inline bool is_single_token() const noexcept;
 		inline void assert_more_tokens(uint32_t required_tokens = 1) const noexcept;
 		inline void assert_valid_position(uint32_t* position) const noexcept;
@@ -159,8 +160,7 @@ namespace Jsonifier {
 		inline ErrorCode report_error(ErrorCode error, const char* message) noexcept;
 		inline ErrorCode optional_error(ErrorCode error, const char* message) noexcept;
 
-		template<int N>
-		inline bool copy_to_buffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept;
+		template<int N> inline bool copy_to_buffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept;
 
 		inline uint32_t* position() const noexcept;
 		inline JsonifierResult<std::string_view> unescape(RawJsonString in) noexcept;
@@ -170,7 +170,7 @@ namespace Jsonifier {
 		inline void rewind() noexcept;
 		inline bool balanced() const noexcept;
 
-		protected:
+	  protected:
 		inline JsonIterator(JsonifierCore* parser) noexcept;
 		inline uint32_t* last_position() const noexcept;
 		inline uint32_t* end_position() const noexcept;
@@ -186,9 +186,7 @@ namespace Jsonifier {
 		friend class ValueIterator;
 	};
 
-	template<>
-	struct JsonifierResult<RawJsonString>
-		: public JsonifierResultBase<RawJsonString> {
+	template<> struct JsonifierResult<RawJsonString> : public JsonifierResultBase<RawJsonString> {
 	  public:
 		JsonifierResult(RawJsonString&& value) noexcept;
 		JsonifierResult(ErrorCode error) noexcept;
@@ -196,8 +194,7 @@ namespace Jsonifier {
 		~JsonifierResult() noexcept = default;
 
 		JsonifierResult<const char*> raw() const noexcept;
-		JsonifierResult<std::string_view> unescape(
-			JsonIterator& iter) const noexcept;
+		JsonifierResult<std::string_view> unescape(JsonIterator& iter) const noexcept;
 	};
 
 }
