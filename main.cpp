@@ -14,16 +14,16 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Object&& value){
-		//this->TEST_VALUE_00 = value["TEST_VALUE_00"].get<double>().getValue();
-		//std::cout << "CURRENT TYPE: " << ( int32_t )value["TEST_VALUE_01"].getType() << std::endl;
-		//this->TEST_VALUE_01 = value["TEST_VALUE_01"].get<bool>().getValue();
-		//this->TEST_VALUE_02 = value["TEST_VALUE_02"].get<std::string>().getValue();
-		//this->TEST_VALUE_03 = value["TEST_VALUE_03"].get<uint64_t>().getValue();
-		//this->TEST_VALUE_04 = value["TEST_VALUE_04"].get<double>().getValue();
-		//std::cout << "CURRENT TYPE: " << ( int32_t )va["TEST_VALUE_05"].getType() << std::endl;
-		//this->TEST_VALUE_05 = value["TEST_VALUE_05"].get<bool>().getValue();
-		//this->TEST_VALUE_06 = value["TEST_VALUE_06"].get<std::string>().getValue();
-		//this->TEST_VALUE_07 = value["TEST_VALUE_07"].get<uint64_t>().getValue();
+		std::cout << "FIELD COUNT: " << value.count_fields().value_unsafe() << std::endl;
+		this->TEST_VALUE_04 = value["TEST_VALUE_00"].get_double().value_unsafe();
+		this->TEST_VALUE_05 = value["TEST_VALUE_01"].get_bool().value_unsafe();
+		this->TEST_VALUE_06 = value["TEST_VALUE_02"].get_string().value_unsafe();
+		this->TEST_VALUE_07 = value["TEST_VALUE_03"].get_int64().value_unsafe();
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get_double().value_unsafe();
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get_bool().value_unsafe();
+		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get_string().value_unsafe();
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get_int64().value_unsafe();
+		std::cout << "CURRENT VALUE: " << this->TEST_VALUE_06 << std::endl;
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -40,11 +40,13 @@ struct TheDJson {
 	TheDJson(Jsonifier::Document value) {
 		Jsonifier::Array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
+		std::cout << "ELEMENT COUNT: " << valueNew.count_elements().value_unsafe() << std::endl;
 		for (auto value: valueNew) {
-			strings.push_back(static_cast<std::string>(value.get_string().value_unsafe()));
+			std::cout << "THE TYPE: " << ( int32_t )value.type().value_unsafe() << std::endl;
+			strings.emplace_back(value.get_object().value_unsafe());
 		}
 	}
-	std::vector<std::string> strings{};
+	std::vector<ActivitiesJson> strings{};
 };
 
 struct TheValueJson {
@@ -128,18 +130,14 @@ int32_t main() noexcept {
 		arrayValueNew["TEST_VALUE_05"] = true;
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE0101";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
-		arrayValueNew["TEST_VALUE_08"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_09"] = true;
-		arrayValueNew["TEST_VALUE_10"] = "TESTING_VALUE0101";
-		arrayValueNew["TEST_VALUE_11"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		for (size_t x = 0; x < 273; ++x) {
-			serializer["TEST_VALUE_11"]["d"].emplaceBack(std::string{ "TESTING VALUE11111111111" });
+			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		FileLoader jsonFile{ "C:/users/chris/downloads/refsnp-unsupported35000.json" };
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ jsonFile.getFileContents() };
+		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -170,11 +168,12 @@ int32_t main() noexcept {
 
 
 		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
+		
 		for (size_t x = 0ull; x < 100; ++x) {
+			stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+			simdjson::ondemand::parser parser{};
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			//TheValue value{ std::move(newDocument) };
+			TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -193,10 +192,11 @@ int32_t main() noexcept {
 
 
 
-		Jsonifier::JsonifierCore parserOld{};
+		
 		for (size_t x = 0ull; x < 100; ++x) {
+			Jsonifier::JsonifierCore parserOld{};
 			auto jsonData = parserOld.parseJson(stringNew);
-			//TheValueJson value{ std::move(jsonData) };
+			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.activities.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.activities.begin().operator*().TEST_VALUE_02 << std::endl;

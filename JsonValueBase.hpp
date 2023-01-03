@@ -24,36 +24,6 @@ namespace Jsonifier {
 		Null = 9
 	};
 
-	enum class NumberType { Floating = 1, Signed, Unsigned };
-
-	struct Number {
-		inline NumberType get_number_type() const noexcept;
-		inline bool is_uint64() const noexcept;
-		inline uint64_t get_uint64() const noexcept;
-		inline operator uint64_t() const noexcept;
-		inline bool is_int64() const noexcept;
-		inline int64_t get_int64() const noexcept;
-		inline operator int64_t() const noexcept;
-		inline bool is_double() const noexcept;
-		inline double get_double() const noexcept;
-		inline operator double() const noexcept;
-		inline double as_double() const noexcept;
-
-
-	  protected:
-		friend class ValueIterator;
-		inline void append_s64(int64_t value) noexcept;
-		inline void append_u64(uint64_t value) noexcept;
-		inline void append_double(double value) noexcept;
-		inline void skip_double() noexcept;
-		union {
-			double floating_point_number;
-			int64_t signed_integer;
-			uint64_t unsigned_integer;
-		} payload{ 0 };
-		NumberType type{ NumberType::Signed };
-	};
-
 	class RawJsonString {
 	  public:
 		inline RawJsonString() noexcept = default;

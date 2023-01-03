@@ -110,8 +110,6 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> is_null() noexcept;
 		inline bool is_negative() noexcept;
 		inline JsonifierResult<bool> is_integer() noexcept;
-		inline JsonifierResult<NumberType> get_number_type() noexcept;
-		inline JsonifierResult<Number> get_number() noexcept;
 
 		inline JsonifierResult<std::string_view> get_root_string() noexcept;
 		inline JsonifierResult<RawJsonString> get_root_raw_json_string() noexcept;
@@ -124,8 +122,6 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> get_root_bool() noexcept;
 		inline bool is_root_negative() noexcept;
 		inline JsonifierResult<bool> is_root_integer() noexcept;
-		inline JsonifierResult<NumberType> get_root_number_type() noexcept;
-		inline JsonifierResult<Number> get_root_number() noexcept;
 		inline bool is_root_null() noexcept;
 
 		inline ErrorCode error() const noexcept;
@@ -223,8 +219,6 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> is_scalar() noexcept;
 		inline bool is_negative() noexcept;
 		inline JsonifierResult<bool> is_integer() noexcept;
-		inline JsonifierResult<NumberType> get_number_type() noexcept;
-		inline JsonifierResult<Number> get_number() noexcept;
 		inline std::string_view raw_json_token() noexcept;
 		inline JsonifierResult<const char*> current_location() noexcept;
 		inline int32_t current_depth() const noexcept;

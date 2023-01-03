@@ -1475,32 +1475,21 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator& JsonIterator::operator=(JsonIterator&& other) noexcept {
-		token = other.token;
-		parser = other.parser;
-		stringBuffer = other.stringBuffer;
-		error = other.error;
 		currentDepth = other.currentDepth;
 		rootPosition = other.rootPosition;
+		stringBuffer = other.stringBuffer;
+		parser = other.parser;
+		error = other.error;
+		token = other.token;
 		other.parser = nullptr;
 		return *this;
 	}
 
 	inline JsonIterator::JsonIterator(JsonifierCore* _parser) noexcept
 		: token(_parser->getStringView(), _parser->getStructuralIndices()), parser{ _parser }, stringBuffer{ _parser->getStringBuffer() },
-		  currentDepth{ 1 }, rootPosition{ _parser->getStructuralIndices() }
-
-		  {
-			  //std::cout << "THE INDICES: ";
-			  //for (size_t x = 0; x < parser->getTapeLength(); ++x) {
-			  //std::cout << "THE INDEX: " << parser->getStringView()[this->rootPosition[x]] << std::endl;
-			  //}
-		  };
+		  currentDepth{ 1 }, rootPosition{ _parser->getStructuralIndices() } {};
 
 	inline TokenIterator::TokenIterator(const uint8_t* _bufNew, uint32_t* positionNew) noexcept : buf{ _bufNew }, _position{ positionNew } {
-		//std::cout << "THE INDICES REAL: ";
-		//for (size_t x = 0; x < 344; ++x) {
-		//			std::cout << "THE VALUE: " << buf[_position[x]] << std::endl;
-		//}
 	}
 
 	inline void JsonIterator::rewind() noexcept {

@@ -50,8 +50,6 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> is_scalar() noexcept;
 		inline bool is_negative() noexcept;
 		inline JsonifierResult<bool> is_integer() noexcept;
-		inline JsonifierResult<NumberType> get_number_type() noexcept;
-		inline JsonifierResult<Number> get_number() noexcept;
 		inline JsonifierResult<std::string_view> raw_json_token() noexcept;
 		inline void rewind() noexcept;
 		inline std::string to_debug_string() noexcept;
