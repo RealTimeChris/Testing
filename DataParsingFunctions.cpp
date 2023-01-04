@@ -378,35 +378,35 @@ namespace Jsonifier {
 	}
 
 	ObjectReturnDataJson getObject(Value jsonData, const char* objectName) {
-		ObjectReturnDataJson value{};
+		ObjectReturnDataJson value{ jsonData };
 		if (jsonData[objectName].get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonData, const char* objectName) {
-		ObjectReturnDataJson value{};
+		ObjectReturnDataJson value{ jsonData.object };
 		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonData, uint64_t objectIndex) {
-		ObjectReturnDataJson value{};
+		ObjectReturnDataJson value{ jsonData.arrayValue };
 		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ArrayReturnDataJson getArray(Value jsonData, const char* arrayName) {
-		ArrayReturnDataJson value{};
+		ArrayReturnDataJson value{ jsonData };
 		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonData, const char* arrayName) {
-		ArrayReturnDataJson value{};
+		ArrayReturnDataJson value{ jsonData.object };
 		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}

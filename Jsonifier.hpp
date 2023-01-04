@@ -1605,7 +1605,7 @@ namespace Jsonifier {
 
 	inline uint32_t* JsonIterator::end_position() const noexcept {
 		size_t n_structural_indexes{ parser->getTapeLength() };
-		return &parser->getStructuralIndices()[n_structural_indexes];
+		return &this->parser->getStructuralIndices()[n_structural_indexes];
 	}
 
 	inline std::string JsonIterator::to_string() const noexcept {
@@ -1643,7 +1643,9 @@ namespace Jsonifier {
 
 	inline const uint8_t* JsonIterator::return_current_and_advance() noexcept {
 		auto newPtr = token.return_current_and_advance();
+		std::cout << "CURRENT ADVANCED TOKEN (PREVIOUS): " << *(newPtr - 1) << std::endl;
 		std::cout << "CURRENT ADVANCED TOKEN: " << *newPtr << std::endl;
+		std::cout << "CURRENT ADVANCED TOKEN (NEXT): " << *(newPtr + 1) << std::endl;
 		return newPtr;
 	}
 
@@ -1651,7 +1653,13 @@ namespace Jsonifier {
 		return token.peek(0);
 	}
 
-	inline const uint8_t* JsonIterator::peek(int32_t delta) const noexcept {
+	inline const uint8_t* JsonIterator::peek(int32_t delta, std::source_location location) const  noexcept {
+		std::cout << "Error Report: \n"
+			   << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
+			   << ")"
+			   << "\nThe Error: \n"
+			   << error << std::endl
+			   << std::endl;
 		return token.peek(delta);
 	}
 
@@ -1834,7 +1842,7 @@ namespace Jsonifier {
 	inline JsonifierResultBase<T>::JsonifierResultBase(T&& value, ErrorCode error) noexcept : std::pair<T, ErrorCode>(std::forward<T>(value), error) {
 	}
 
-	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase(ErrorCode error) noexcept : JsonifierResultBase(T{}, error) {
+	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase(ErrorCode error) noexcept : JsonifierResultBase(T{ this->first }, error) {
 	}
 
 	template<typename T>
@@ -1865,20 +1873,15 @@ namespace Jsonifier {
 	}
 
 	template<typename T>
-	inline JsonifierResult<T>::JsonifierResult(T&& value, ErrorCode error) noexcept : JsonifierResultBase<T>(std::forward<T>(value), error) {
-	}
+	inline JsonifierResult<T>::JsonifierResult(T&& value, ErrorCode error) noexcept : JsonifierResultBase<T>(std::forward<T>(value), error){}
 
-	template<typename T> inline JsonifierResult<T>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<T>(error) {
-	}
+	template<typename T> inline JsonifierResult<T>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<T>(error){}
 
-	template<typename T> inline JsonifierResult<T>::JsonifierResult(T&& value) noexcept : JsonifierResultBase<T>(std::forward<T>(value)) {
-	}
+	template<typename T> inline JsonifierResult<T>::JsonifierResult(T&& value) noexcept : JsonifierResultBase<T>(std::forward<T>(value)){}
 
-	template<typename T> inline JsonifierResult<T>::JsonifierResult() noexcept : JsonifierResultBase<T>() {
-	}
+	template<typename T> inline JsonifierResult<T>::JsonifierResult() noexcept : JsonifierResultBase<T>(){}
 
-	inline Field::Field() noexcept : std::pair<RawJsonString, Value>() {
-	}
+	inline Field::Field() noexcept : std::pair<RawJsonString, Value>(nullptr, ValueIterator{ nullptr, size_t{}, nullptr }){};
 
 	inline Field::Field(RawJsonString key, Value&& value) noexcept : std::pair<RawJsonString, Value>(key, std::forward<Value>(value)) {
 	}
@@ -1910,7 +1913,7 @@ namespace Jsonifier {
 		return std::forward<Field>(*this).second;
 	}
 
-	inline JsonifierResult<Value> Object::find_field_unordered(std::string_view key) noexcept {
+	JsonifierResult<Value> Object::find_field_unordered(const std::string_view key) noexcept {
 		bool has_value;
 		iterator.find_field_unordered_raw(key).get(has_value);
 		if (!has_value) {
@@ -2167,8 +2170,8 @@ namespace Jsonifier {
 			assert(jsonIterator->currentDepth == currentDepth);
 			RawJsonString actual_key;
 			if ((error = field_key().get(actual_key))) {
-				abandon();
-				return error;
+				//abandon();
+				return true;
 			};
 			if ((error = field_value())) {
 				abandon();
@@ -2213,7 +2216,7 @@ namespace Jsonifier {
 
 	inline JsonifierResult<RawJsonString> ValueIterator::field_key() noexcept {
 		assert_at_next();
-
+		std::cout << "FIELDING KEY!" << std::endl;
 		const uint8_t* key = jsonIterator->return_current_and_advance();
 		if (*(key++) != '"') {
 			return report_error(Tape_Error, "Object key is not a string");
@@ -2492,7 +2495,12 @@ namespace Jsonifier {
 		return jsonIterator->peek_length(start_position());
 	}
 
-	inline const uint8_t* ValueIterator::peek_scalar(const char* type) noexcept {
+	inline const uint8_t* ValueIterator::peek_scalar(const char* type, std::source_location location) noexcept  {
+		std::cout << "Error Report: \n"
+				  << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
+				  << ")"
+				  << "\nThe Error: \n"
+				  << std::endl;
 		if (!is_at_start()) {
 			return peek_start();
 		}
@@ -2742,7 +2750,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* TokenIterator::return_current_and_advance() noexcept {
-		std::cout << "CURRENT POSITION: " << *currentPosition << std::endl;
+		std::cout << "CURRENT POSITION: (ADVANCE) " << *currentPosition << std::endl;
 		return &stringView[*(currentPosition++)];
 	}
 
@@ -2758,7 +2766,12 @@ namespace Jsonifier {
 		return *(position + 1) - *position;
 	}
 
-	inline const uint8_t* TokenIterator::peek(int32_t delta) const noexcept {
+	inline const uint8_t* TokenIterator::peek(int32_t delta, std::source_location location) const noexcept {
+		std::cout << "Error Report: \n"
+				  << "Caught in File: " << location.file_name() << " (" << std::to_string(location.line()) << ":" << std::to_string(location.column())
+				  << ")"
+				  << "\nThe Error: \n"
+				  << std::endl;
 		std::cout << "CURRENT POSITION: " << *currentPosition << std::endl;
 		return &stringView[*(currentPosition + delta)];
 	}

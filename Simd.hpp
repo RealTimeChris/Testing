@@ -138,6 +138,31 @@ namespace Jsonifier {
 			}
 		}
 
+		inline void insertUint64(uint64_t value, size_t index) {
+			switch (index) {
+				case 0: {
+					this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value), 0);
+					break;
+				}
+				case 1: {
+					this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value), 1);
+					break;
+				}
+				case 2: {
+					this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value), 2);
+					break;
+				}
+				case 3: {
+					this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value), 3);
+					break;
+				}
+				default: {
+					this->value = _mm256_insert_epi64(this->value, static_cast<int64_t>(value), 0);
+					break;
+				}
+			}
+		}
+
 		inline void insertInt64(int64_t value, size_t index) {
 			switch (index) {
 				case 0: {
@@ -250,13 +275,18 @@ namespace Jsonifier {
 			returnValue = _mm256_permute4x64_epi64(*this, 0b10010011);
 			returnValue = _mm256_srli_epi64(returnValue, 64 - (amount % 64));
 			returnValueReal |= returnValue;
-			returnValue = _mm256_set_epi64x(0, 0, 0, (1ll << amount) - (1ll << 0));
+			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << amount) - (1ull << 0));
 			//returnValueReal &= ~returnValue;
 			//returnValueReal.printBits("POST LEFT SHIFT: ");
 			return returnValueReal;
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
+			uint64_t values[4]{};
+			values[0] = this->getUint64(0);
+			values[1] = this->getUint64(1);
+			values[2] = this->getUint64(2);
+			values[3] = this->getUint64(3);
 			this->printBits("PRE RIGHT SHIFT: ");
 			SimdBase256 returnValue{};
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
@@ -266,7 +296,8 @@ namespace Jsonifier {
 			//returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
 			//returnValue.printBits("POST SHIFT 03: ");
 			//returnValueReal |= returnValue;
-			SimdBase256 returnValueNew = _mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0);
+			SimdBase256 returnValueNew = _mm256_set_epi64x((1ull << 63) - (1ull << amount), (1ull << 63) - (1ull << amount),
+				(1ull << 63) - (1ull << amount), (1ull << 63) - (1ull << amount));
 			returnValueNew.printBits("MATCH BITS: ");
 			//returnValue = returnValue.bitAndNot(returnValue);2
 			returnValue &= returnValueNew;
@@ -276,7 +307,7 @@ namespace Jsonifier {
 
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
-			newValues = _mm256_xor_si256(*this, _mm256_set1_epi64x(-1ll));
+			newValues = _mm256_xor_si256(*this, _mm256_set1_epi64x(-1ull));
 			return newValues;
 		}
 
@@ -529,13 +560,18 @@ namespace Jsonifier {
 			this->collectEscapedCharacters();
 			this->collectStringCharacters();
 			this->collectJsonCharacters();
+			auto scalar = ~(op | whitespace);
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			this->followsNonQuoteScalar = follows(nonQuoteScalar, this->prevInScalar);
+			auto potentialScalarStart = scalar & ~followsNonQuoteScalar;
+			auto stringTail = inString ^ quote;
+			auto potentialStructuralStart = op | potentialScalarStart;
+			auto structuralStart = potentialStructuralStart & ~stringTail;
+			structuralStart.printBits("STRUCTURAL START: ");
 			this->followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
-			auto potentialStructuralStart = this->op | (~(this->op | this->whitespace) & ~this->followsNonQuoteScalar);
 			this->op.printBits("OP BITS: ");
 			potentialStructuralStart.printBits("potentialStructuralStart BITS: ");
-			return potentialStructuralStart & ~(this->inString ^ this->quote);
+			return structuralStart;
 		}
 
 		void submitDataForProcessing(const char* valueNew) {

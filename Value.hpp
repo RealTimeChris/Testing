@@ -68,7 +68,6 @@ namespace Jsonifier {
 		uint32_t* rootPosition{};
 
 	  public:
-		inline ValueIterator() noexcept = default;
 		inline void start_document() noexcept;
 		inline ErrorCode skip_child() noexcept;
 		inline bool at_end() const noexcept;
@@ -147,7 +146,7 @@ namespace Jsonifier {
 		inline void advance_root_scalar(const char* type) noexcept;
 		inline void advance_non_root_scalar(const char* type) noexcept;
 
-		inline const uint8_t* peek_scalar(const char* type) noexcept;
+		inline const uint8_t* peek_scalar(const char* type, std::source_location = std::source_location::current()) noexcept;
 		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
 		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
 
@@ -179,13 +178,13 @@ namespace Jsonifier {
 
 		friend class Document;
 		friend class Object;
+		friend class Field;
 		friend class Array;
 		friend class Value;
 	};
 
 	class Value {
 	  public:
-		inline Value() noexcept = default;
 		template<typename T> inline JsonifierResult<T> get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
@@ -222,6 +221,10 @@ namespace Jsonifier {
 		inline int32_t current_depth() const noexcept;
 		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
 
+		inline operator ValueIterator() noexcept {
+			return this->iterator;
+		}
+
 	  protected:
 		inline Value(const ValueIterator& iterator) noexcept;
 		inline void skip() noexcept;
@@ -229,7 +232,7 @@ namespace Jsonifier {
 		static inline Value resume(const ValueIterator& iterator) noexcept;
 		inline JsonifierResult<Object> start_or_resume_object() noexcept;
 
-		ValueIterator iterator{};
+		ValueIterator iterator;
 
 		friend class Document;
 		friend class ArrayIterator;

@@ -7,14 +7,14 @@ namespace Jsonifier {
 
 	class ObjectIterator {
 	  public:
-		inline ObjectIterator() noexcept = default;
+		inline ObjectIterator() noexcept;
 		inline JsonifierResult<Field> operator*() noexcept;
 		inline bool operator==(const ObjectIterator&) const noexcept;
 		inline bool operator!=(const ObjectIterator&) const noexcept;
 		inline ObjectIterator& operator++() noexcept;
 
 	  protected:
-		ValueIterator iterator{};
+		ValueIterator iterator;
 
 		inline ObjectIterator(const ValueIterator& iterator) noexcept;
 		friend struct JsonifierResult<ObjectIterator>;
@@ -23,8 +23,6 @@ namespace Jsonifier {
 
 	class Object {
 	  public:
-		inline Object() noexcept = default;
-
 		inline JsonifierResult<ObjectIterator> begin() noexcept;
 		inline JsonifierResult<ObjectIterator> end() noexcept;
 		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
@@ -36,17 +34,22 @@ namespace Jsonifier {
 		inline JsonifierResult<size_t> count_fields() noexcept;
 		inline JsonifierResult<std::string_view> raw_json() noexcept;
 
+		inline operator ValueIterator&() {
+			return this->iterator;
+		}
+
+		inline Object(const ValueIterator& iterator) noexcept;
+
 	  protected:
 		inline ErrorCode consume() noexcept;
 		static inline JsonifierResult<Object> start(ValueIterator& iterator) noexcept;
 		static inline JsonifierResult<Object> start_root(ValueIterator& iterator) noexcept;
 		static inline JsonifierResult<Object> started(ValueIterator& iterator) noexcept;
 		static inline Object resume(const ValueIterator& iterator) noexcept;
-		inline Object(const ValueIterator& iterator) noexcept;
 
 		inline ErrorCode find_field_raw(const std::string_view key) noexcept;
 
-		ValueIterator iterator{};
+		ValueIterator iterator;
 
 		friend class Value;
 		friend class Document;

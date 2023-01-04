@@ -12,7 +12,7 @@ int64_t totalTime{};
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
-	ActivitiesJson(Jsonifier::Object&& value) {
+	ActivitiesJson(Jsonifier::Object value) {
 		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
 		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
@@ -21,7 +21,13 @@ struct ActivitiesJson {
 		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
 		this->TEST_VALUE_06 = Jsonifier::getString(value, "TEST_VALUE_06");
 		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
-		std::cout << "CURRENT VALUE: " << this->TEST_VALUE_06 << std::endl;
+		std::cout << "CURRENT VALUE 00: " << this->TEST_VALUE_00 << std::endl;
+		std::cout << "CURRENT VALUE 01: " << this->TEST_VALUE_01 << std::endl;
+		std::cout << "CURRENT VALUE 02: " << this->TEST_VALUE_02 << std::endl;
+		std::cout << "CURRENT VALUE 03: " << this->TEST_VALUE_03 << std::endl;
+		std::cout << "CURRENT VALUE 04: " << this->TEST_VALUE_04 << std::endl;
+		std::cout << "CURRENT VALUE 05: " << this->TEST_VALUE_05 << std::endl;
+		std::cout << "CURRENT VALUE 06: " << this->TEST_VALUE_06 << std::endl;
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -36,7 +42,7 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
-		Jsonifier::Array valueNew{};
+		Jsonifier::Array valueNew{ value.get_value().value_unsafe() };
 		value["TEST_VALUE_11"]["d"].get(valueNew);
 		//std::cout << "ELEMENT COUNT: " << valueNew.count_elements().value_unsafe() << std::endl;
 		for (auto valueNewer: valueNew) {
@@ -117,7 +123,7 @@ int32_t main() {
 		Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_01"] = true;
-		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE2323";
+		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE112323";
 		arrayValueNew["TEST_VALUE_03"] = 4325454;
 		arrayValueNew["TEST_VALUE_04"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_05"] = true;

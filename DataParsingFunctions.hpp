@@ -35,12 +35,14 @@
 namespace Jsonifier {
 
 	struct ObjectReturnDataJson {
-		Object object{};
+		ObjectReturnDataJson(ValueIterator valueIterator) : object{ valueIterator } {};
+		Object object;
 		bool didItSucceed{ false };
 	};
 
 	struct ArrayReturnDataJson {
-		Array arrayValue{};
+		ArrayReturnDataJson(ValueIterator iterator) : arrayValue{ iterator } {};
+		Array arrayValue;
 		bool didItSucceed{ false };
 	};
 

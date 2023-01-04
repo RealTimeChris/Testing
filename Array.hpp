@@ -7,14 +7,14 @@ namespace Jsonifier {
 
 	class ArrayIterator {
 	  public:
-		inline ArrayIterator() noexcept = default;
+		inline ArrayIterator() noexcept;
 		inline JsonifierResult<Value> operator*() noexcept;
 		inline bool operator==(const ArrayIterator&) const noexcept;
 		inline bool operator!=(const ArrayIterator&) const noexcept;
 		inline ArrayIterator& operator++() noexcept;
 
 	  protected:
-		ValueIterator iterator{};
+		ValueIterator iterator;
 
 		inline ArrayIterator(const ValueIterator& iterator) noexcept;
 
@@ -25,7 +25,6 @@ namespace Jsonifier {
 
 	class Array {
 	  public:
-		inline Array() noexcept = default;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
 		inline JsonifierResult<size_t> count_elements() noexcept;
@@ -34,15 +33,19 @@ namespace Jsonifier {
 		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
 		inline JsonifierResult<std::string_view> raw_json() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
+		inline Array(const ValueIterator& iterator) noexcept;
+
+		inline operator ValueIterator&() {
+			return this->iterator;
+		}
 
 	  protected:
 		inline ErrorCode consume() noexcept;
 		static inline JsonifierResult<Array> start(ValueIterator& iterator) noexcept;
 		static inline JsonifierResult<Array> start_root(ValueIterator& iterator) noexcept;
 		static inline JsonifierResult<Array> started(ValueIterator& iterator) noexcept;
-		inline Array(const ValueIterator& iterator) noexcept;
 
-		ValueIterator iterator{};
+		ValueIterator iterator;
 
 		friend class Value;
 		friend class Document;
