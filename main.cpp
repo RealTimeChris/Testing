@@ -5,23 +5,21 @@
 #include "DataParsingFunctions.hpp"
 #include "Jsonifier.hpp"
 #include <simdjson.h>
-#include <fstream>
-
-Jsonifier ::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+#include <fstream>	Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 int64_t iterationCount{};
 int64_t totalTime{};
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Object&& value) {
-		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
-		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
-		this->TEST_VALUE_02 = Jsonifier ::getString(value, "TEST_VALUE_02");
-		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_04 = Jsonifier::getFloat(value, "TEST_VALUE_04");
-		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
-		this->TEST_VALUE_06 = Jsonifier ::getString(value, "TEST_VALUE_06");
-		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
+		this->TEST_VALUE_00 =	Jsonifier::getFloat(value, "TEST_VALUE_00");
+		this->TEST_VALUE_01 =	Jsonifier::getBool(value, "TEST_VALUE_01");
+		this->TEST_VALUE_02 =	Jsonifier::getString(value, "TEST_VALUE_02");
+		this->TEST_VALUE_03 =	Jsonifier::getInt64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_04 =	Jsonifier::getFloat(value, "TEST_VALUE_04");
+		this->TEST_VALUE_05 =	Jsonifier::getBool(value, "TEST_VALUE_05");
+		this->TEST_VALUE_06 =	Jsonifier::getString(value, "TEST_VALUE_06");
+		this->TEST_VALUE_07 =	Jsonifier::getInt64(value, "TEST_VALUE_07");
 		std::cout << "CURRENT VALUE: " << this->TEST_VALUE_06 << std::endl;
 	};
 	double TEST_VALUE_00{};
@@ -36,8 +34,7 @@ struct ActivitiesJson {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Document value) {
-		Jsonifier::Array valueNew{};
+	TheDJson(Jsonifier::Document value) {	Jsonifier::Array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
 		//std::cout << "ELEMENT COUNT: " << valueNew.count_elements().value_unsafe() << std::endl;
 		for (auto valueNewer: valueNew) {
@@ -113,9 +110,7 @@ class TestClass02 {
 };
 
 int32_t main()  {
-	try {
-		Jsonifier::Jsonifier serializer{};
-		Jsonifier::Jsonifier arrayValueNew{};
+	try {	Jsonifier::Jsonifier serializer{};	Jsonifier::Jsonifier arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_01"] = true;
 		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE2323";
@@ -133,16 +128,14 @@ int32_t main()  {
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
-		size_t totalSize{};
-		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
+		size_t totalSize{};	Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		std::unique_ptr<uint64_t[]> objectBuffer{};
 		//objectBuffer.reset(new (std::nothrow) uint64_t[1024 * 1024]);	}totalTime += stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		{
-			Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
+		{	Jsonifier::ObjectBuffer<uint64_t> objectBuffer{};
 			//objectBuffer.reset(1024 * 1024);
 		};
 		totalTime += stopWatch.totalTimePassed().count();
@@ -182,8 +175,7 @@ int32_t main()  {
 
 
 
-		for (size_t x = 0ull; x < 100; ++x) {
-			Jsonifier::JsonifierCore parserOld{};
+		for (size_t x = 0ull; x < 100; ++x) {	Jsonifier::JsonifierCore parserOld{};
 			auto jsonData = parserOld.parseJson(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.activities.begin().operator*().TEST_VALUE_00 << std::endl;

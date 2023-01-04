@@ -27,10 +27,10 @@ namespace Jsonifier {
 		inline JsonifierResult<Value> get_value() noexcept;
 		inline JsonifierResult<bool> is_null() noexcept;
 		template<typename T> inline JsonifierResult<T> get() & noexcept {
-			static_assert(!sizeof(T), "The get method with given type is not implemented by the Jsonifier library.");
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the	Jsonifierlibrary.");
 		}
 		template<typename T> inline JsonifierResult<T> get() && noexcept {
-			static_assert(!sizeof(T), "The get method with given type is not implemented by the Jsonifier library.");
+			static_assert(!sizeof(T), "The get method with given type is not implemented by the	Jsonifierlibrary.");
 		}
 		template<typename T> inline ErrorCode get(T& out) & noexcept;
 		template<typename T> inline ErrorCode get(T& out) && noexcept;
