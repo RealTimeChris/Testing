@@ -25,13 +25,14 @@ namespace Jsonifier {
 
 	class Array {
 	  public:
+		inline Array() noexcept = default;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<size_t> count_elements() noexcept;
-		inline JsonifierResult<bool> is_empty() noexcept;
+		inline JsonifierResult<size_t> countElements() noexcept;
+		inline JsonifierResult<bool> isEmpty() noexcept;
 		inline JsonifierResult<bool> reset() noexcept;
-		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
-		inline JsonifierResult<std::string_view> raw_json() noexcept;
+		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
+		inline JsonifierResult<std::string_view> rawJson() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
 		inline Array(const ValueIterator& iterator) noexcept;
 
@@ -42,7 +43,7 @@ namespace Jsonifier {
 	  protected:
 		inline ErrorCode consume() noexcept;
 		static inline JsonifierResult<Array> start(ValueIterator& iterator) noexcept;
-		static inline JsonifierResult<Array> start_root(ValueIterator& iterator) noexcept;
+		static inline JsonifierResult<Array> startRoot(ValueIterator& iterator) noexcept;
 		static inline JsonifierResult<Array> started(ValueIterator& iterator) noexcept;
 
 		ValueIterator iterator;
@@ -74,10 +75,10 @@ namespace Jsonifier {
 
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<size_t> count_elements() noexcept;
-		inline JsonifierResult<bool> is_empty() noexcept;
+		inline JsonifierResult<size_t> countElements() noexcept;
+		inline JsonifierResult<bool> isEmpty() noexcept;
 		inline JsonifierResult<bool> reset() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
-		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
+		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
 	};
 }

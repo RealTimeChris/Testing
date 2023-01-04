@@ -191,16 +191,12 @@ namespace Jsonifier {
 
 		void setBit(size_t bitIndex, bool setTheBit) {
 			int64_t value{ this->getInt64(bitIndex / 64) };
-			std::cout << "THE BITS PRE SETTING: " << std::bitset<64>{ static_cast<uint64_t>(value) } << std::endl;
 			if (setTheBit) {
 				_bittestandreset64(&value, bitIndex % 64);
 			} else {
 				_bittestandset64(&value, bitIndex % 64);
 			}
-			std::cout << "THE BITS POST SETTING: " << std::bitset<64>{ static_cast<uint64_t>(value) } << std::endl;
-			this->printBits("PRE-SETTING THE BIT: ");
 			this->insertInt64(value, bitIndex / 64);
-			this->printBits("POST-SETTING THE BIT: ");
 		}
 
 		bool getBit(size_t bitIndex) {
@@ -288,7 +284,6 @@ namespace Jsonifier {
 
 		template<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValueReal{};
-			//this->printBits("PRE LEFT SHIFT: ");
 			SimdBase256 returnValue{};
 			returnValue = _mm256_slli_epi64(*this, (amount % 64));
 			returnValueReal |= returnValue;
@@ -296,33 +291,7 @@ namespace Jsonifier {
 			returnValue = _mm256_srli_epi64(returnValue, 64 - (amount % 64));
 			returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << amount) - (1ull << 0));
-			//returnValueReal &= ~returnValue;
-			//returnValueReal.printBits("POST LEFT SHIFT: ");
 			return returnValueReal;
-		}
-
-		template<size_t amount> inline SimdBase256 shr() {
-			this->printBits("PRE RIGHT SHIFT: ");
-			SimdBase256 returnValue{};
-			returnValue = _mm256_srli_epi64(*this, (amount % 64));
-			//returnValue.printBits("POST SHIFT 01: ");
-			SimdBase256 returnValueNewer = _mm256_permute4x64_epi64(*this, 0b00111001);
-			returnValueNewer.printBits("POST SHIFT 02: ");
-			returnValueNewer = _mm256_slli_epi64(returnValueNewer, 64 - (amount % 64));
-			returnValueNewer.printBits("POST SHIFT 03: ");
-			returnValue.printBits("POST SHIFT 04: ");
-			//returnValueReal |= returnValue;
-			SimdBase256 returnValueNew = _mm256_set_epi64x((1ull << amount) - (1ull << 0), (1ull << amount) - (1ull << 0),
-				(1ull << amount) - (1ull << 0),
-				(1ull << amount) - (1ull << 0));
-			(~returnValueNew).printBits("MATCH BITS: ");
-			returnValueNewer &= ~returnValueNew;
-			returnValueNewer |= (returnValue & ~returnValueNew).printBits("POST SHIFT 05: ");
-			returnValueNewer.printBits("POST SHIFT 06: ");
-			//returnValue = returnValue.bitAndNot(returnValue);2
-			//returnValue &= ~returnValueNew;
-			//returnValue.printBits("POST RIGHT SHIFT: ");
-			return returnValueNewer;
 		}
 
 		inline SimdBase256 operator~() {
@@ -336,31 +305,15 @@ namespace Jsonifier {
 			const uint64_t inString00 =
 				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
 			prevInString = uint64_t(static_cast<int64_t>(inString00) >> 63);
-			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString00) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 64<< std::endl;
-			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 64 << std::endl;
 			const uint64_t inString01 =
 				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
 			prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
-			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString01) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 128 << std::endl;
-			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 128 << std::endl;
 			const uint64_t inString02 =
 				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
 			prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
-			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString02) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 192 << std::endl;
-			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 192 << std::endl;
 			const uint64_t inString03 =
 				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
-			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString03) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 256 << std::endl;
 			prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
-			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
-					  << ", FOR INDEX: " << currentIndexIntoString + 256 << std::endl;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
 		}
 
@@ -542,7 +495,7 @@ namespace Jsonifier {
 			backslash &= SimdBase256{ bool{ !this->prevEscaped } };
 			SimdBase256 followsEscape = this->backslash.shl<1>() | SimdBase256{ this->prevEscaped };
 			SimdBase256 evenBits{ _mm256_set1_epi8(0b01010101) };
-			SimdBase256 oddSequenceStarts = this->backslash & ~evenBits & ~followsEscape;
+			SimdBase256 oddSequenceStarts = this->backslash.bitAndNot(evenBits.bitAndNot(followsEscape));
 			SimdBase256 sequencesStartingOnEvenBits{};
 			this->prevEscaped = oddSequenceStarts.collectCarries(this->backslash, sequencesStartingOnEvenBits);
 			SimdBase256 invertMask = sequencesStartingOnEvenBits.shl<1>();
@@ -577,9 +530,9 @@ namespace Jsonifier {
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			auto prevInScalarNew = this->prevInScalar;
 			this->prevInScalar = !nonQuoteScalar.getBit(255);
-			this->followsNonQuoteScalar = nonQuoteScalar.shl<1>();
-			this->followsNonQuoteScalar.setBit(0, prevInScalarNew);
-			auto potentialScalarStart = scalar.bitAndNot(this->followsNonQuoteScalar);
+			auto followsNonQuoteScalar = nonQuoteScalar.shl<1>();
+			followsNonQuoteScalar.setBit(0, prevInScalarNew);
+			auto potentialScalarStart = scalar.bitAndNot(followsNonQuoteScalar);
 			auto stringTail = this->inString ^ this->quote;
 			auto potentialStructuralStart = this->op | potentialScalarStart;
 			auto structuralStart = (potentialStructuralStart.bitAndNot(stringTail));
@@ -596,11 +549,9 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->structurals = this->collectFinalStructurals();
-			this->structurals.printBits("FINAL BITS: ");
 		}
 
 	  protected:
-		SimdBase256 followsNonQuoteScalar{};
 		size_t currentIndexIntoString{};
 		SimdBase256 structurals{};
 		SimdBase256 whitespace{};

@@ -68,24 +68,24 @@ namespace Jsonifier {
 		uint32_t* rootPosition{};
 
 	  public:
-		inline void start_document() noexcept;
-		inline ErrorCode skip_child() noexcept;
-		inline bool at_end() const noexcept;
-		inline bool at_start() const noexcept;
-		inline bool is_open() const noexcept;
-		inline bool at_first_field() const noexcept;
+		inline void startDocument() noexcept;
+		inline ErrorCode skipChild() noexcept;
+		inline bool atEnd() const noexcept;
+		inline bool atStart() const noexcept;
+		inline bool isOpen() const noexcept;
+		inline bool atFirstField() const noexcept;
 		inline void abandon() noexcept;
-		inline ValueIterator child_value() const noexcept;
+		inline ValueIterator childValue() const noexcept;
 		inline int32_t depth() const noexcept;
 		inline JsonifierResult<JsonType> type() const noexcept;
-		inline JsonifierResult<bool> start_object() noexcept;
-		inline JsonifierResult<bool> start_root_object() noexcept;
-		inline JsonifierResult<bool> started_object() noexcept;
-		inline JsonifierResult<bool> started_root_object() noexcept;
-		inline JsonifierResult<bool> has_next_field() noexcept;
-		inline JsonifierResult<RawJsonString> field_key() noexcept;
-		inline ErrorCode field_value() noexcept;
-		inline ErrorCode find_field(const std::string_view key) noexcept;
+		inline JsonifierResult<bool> startObject() noexcept;
+		inline JsonifierResult<bool> startRootObject() noexcept;
+		inline JsonifierResult<bool> startedObject() noexcept;
+		inline JsonifierResult<bool> startedRootObject() noexcept;
+		inline JsonifierResult<bool> hasNextField() noexcept;
+		inline JsonifierResult<RawJsonString> fieldKey() noexcept;
+		inline ErrorCode fieldValue() noexcept;
+		inline ErrorCode findField(const std::string_view key) noexcept;
 		inline JsonifierResult<bool> find_field_raw(const std::string_view key) noexcept;
 		inline JsonifierResult<bool> find_field_unordered_raw(const std::string_view key) noexcept;
 		inline JsonifierResult<bool> start_array() noexcept;
@@ -146,7 +146,7 @@ namespace Jsonifier {
 		inline void advance_root_scalar(const char* type) noexcept;
 		inline void advance_non_root_scalar(const char* type) noexcept;
 
-		inline const uint8_t* peek_scalar(const char* type, std::source_location = std::source_location::current()) noexcept;
+		inline const uint8_t* peek_scalar(const char* type) noexcept;
 		inline const uint8_t* peek_root_scalar(const char* type) noexcept;
 		inline const uint8_t* peek_non_root_scalar(const char* type) noexcept;
 
@@ -203,13 +203,13 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> is_null() noexcept;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<size_t> count_elements() noexcept;
-		inline JsonifierResult<size_t> count_fields() noexcept;
+		inline JsonifierResult<size_t> countElements() noexcept;
+		inline JsonifierResult<size_t> countFields() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
-		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
-		inline JsonifierResult<Value> find_field(const char* key) noexcept;
-		inline JsonifierResult<Value> find_field_unordered(std::string_view key) noexcept;
-		inline JsonifierResult<Value> find_field_unordered(const char* key) noexcept;
+		inline JsonifierResult<Value> findField(std::string_view key) noexcept;
+		inline JsonifierResult<Value> findField(const char* key) noexcept;
+		inline JsonifierResult<Value> findFieldUnordered(std::string_view key) noexcept;
+		inline JsonifierResult<Value> findFieldUnordered(const char* key) noexcept;
 		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
 		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
@@ -219,7 +219,7 @@ namespace Jsonifier {
 		inline std::string_view raw_json_token() noexcept;
 		inline JsonifierResult<const char*> current_location() noexcept;
 		inline int32_t current_depth() const noexcept;
-		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
+		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
 
 		inline operator ValueIterator() noexcept {
 			return this->iterator;
@@ -265,15 +265,15 @@ namespace Jsonifier {
 		template<typename T> inline JsonifierResult<T> get() noexcept;
 
 		template<typename T> inline ErrorCode get(T& out) noexcept;
-		inline JsonifierResult<size_t> count_elements() noexcept;
-		inline JsonifierResult<size_t> count_fields() noexcept;
+		inline JsonifierResult<size_t> countElements() noexcept;
+		inline JsonifierResult<size_t> countFields() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
-		inline JsonifierResult<Value> find_field(const char* key) noexcept;
-		inline JsonifierResult<Value> find_field_unordered(std::string_view key) noexcept;
-		inline JsonifierResult<Value> find_field_unordered(const char* key) noexcept;
+		inline JsonifierResult<Value> findField(std::string_view key) noexcept;
+		inline JsonifierResult<Value> findField(const char* key) noexcept;
+		inline JsonifierResult<Value> findFieldUnordered(std::string_view key) noexcept;
+		inline JsonifierResult<Value> findFieldUnordered(const char* key) noexcept;
 		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
 		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
@@ -283,6 +283,6 @@ namespace Jsonifier {
 		inline JsonifierResult<std::string_view> raw_json_token() noexcept;
 		inline JsonifierResult<const char*> current_location() noexcept;
 		inline JsonifierResult<int32_t> current_depth() const noexcept;
-		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
+		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
 	};
 }

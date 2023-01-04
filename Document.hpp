@@ -30,15 +30,15 @@ namespace Jsonifier {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the	Jsonifierlibrary.");
 		}
 		template<typename T> inline ErrorCode get(T& out) noexcept;
-		inline JsonifierResult<size_t> count_elements() noexcept;
-		inline JsonifierResult<size_t> count_fields() noexcept;
+		inline JsonifierResult<size_t> countElements() noexcept;
+		inline JsonifierResult<size_t> countFields() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
-		inline JsonifierResult<Value> find_field(const char* key) noexcept;
-		inline JsonifierResult<Value> find_field_unordered(std::string_view key) noexcept;
-		inline JsonifierResult<Value> find_field_unordered(const char* key) noexcept;
+		inline JsonifierResult<Value> findField(std::string_view key) noexcept;
+		inline JsonifierResult<Value> findField(const char* key) noexcept;
+		inline JsonifierResult<Value> findFieldUnordered(std::string_view key) noexcept;
+		inline JsonifierResult<Value> findFieldUnordered(const char* key) noexcept;
 		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
 		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
@@ -51,8 +51,8 @@ namespace Jsonifier {
 		inline bool is_alive() noexcept;
 		inline JsonifierResult<const char*> current_location() noexcept;
 		inline int32_t current_depth() const noexcept;
-		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
-		inline JsonifierResult<std::string_view> raw_json() noexcept;
+		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
+		inline JsonifierResult<std::string_view> rawJson() noexcept;
 
 	  protected:
 		inline ErrorCode consume() noexcept;

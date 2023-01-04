@@ -62,7 +62,7 @@ namespace Jsonifier {
 
 		inline const uint8_t* return_current_and_advance() noexcept;
 		inline uint32_t current_offset() const noexcept;
-		inline const uint8_t* peek(int32_t delta = 0, std::source_location = std::source_location::current()) const noexcept;
+		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
 		inline uint32_t peek_length(uint32_t* position) const noexcept;
@@ -101,19 +101,19 @@ namespace Jsonifier {
 	  public:
 		inline JsonIterator(JsonIterator&& other) noexcept;
 		inline JsonIterator& operator=(JsonIterator&& other) noexcept;
-		inline ErrorCode skip_child(size_t parent_depth) noexcept;
+		inline ErrorCode skipChild(size_t parent_depth) noexcept;
 		inline bool at_root() const noexcept;
 		inline uint32_t* root_position() const noexcept;
 		inline void assert_at_document_depth() const noexcept;
 		inline void assert_at_root() const noexcept;
-		inline bool at_end() const noexcept;
+		inline bool atEnd() const noexcept;
 		inline bool is_alive() const noexcept;
 		inline void abandon() noexcept;
 		inline const uint8_t* return_current_and_advance() noexcept;
 		inline bool is_single_token() const noexcept;
 		inline void assert_more_tokens(uint32_t required_tokens = 1) const noexcept;
 		inline void assert_valid_position(uint32_t* position) const noexcept;
-		inline const uint8_t* peek(int32_t delta = 0, std::source_location = std::source_location::current()) const noexcept;
+		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
 		inline const uint8_t* unsafe_pointer() const noexcept;
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
