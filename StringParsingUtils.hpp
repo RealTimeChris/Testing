@@ -33,20 +33,25 @@ namespace Jsonifier {
 			std::memcpy(&val, str, sizeof(uint32_t));
 			return val;
 		}
+
 		static inline uint32_t str4ncmp(const uint8_t* src, const char* atom) {
 			uint32_t srcval{};
 			std::memcpy(&srcval, src, sizeof(uint32_t));
 			return srcval ^ stringToUint32(atom);
 		}
+
 		static inline bool isValidTrueAtom(const uint8_t* src) {
 			return (str4ncmp(src, "true")) == 0;
 		}
+
 		static inline bool isValidFalseAtom(const uint8_t* src) {
 			return (str4ncmp(src, "false")) == 0;
 		}
+
 		static inline bool isValidNullAtom(const uint8_t* src) {
 			return (str4ncmp(src, "null")) == 0;
 		}
+
 		static inline size_t codepointToUtf8(uint32_t cp, uint8_t* c) {
 			if (cp <= 0x7F) {
 				c[0] = uint8_t(cp);
@@ -70,6 +75,7 @@ namespace Jsonifier {
 			}
 			return 0;
 		}
+
 		static inline const uint32_t digitToVal32[886]{ 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
 			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
@@ -155,6 +161,7 @@ namespace Jsonifier {
 			uint32_t v4 = digitToVal32[0 + src[3]];
 			return v1 | v2 | v3 | v4;
 		}
+
 		static inline bool handleUnicodeCodepoint(const uint8_t** srcPtr, uint8_t** dstPtr) {
 			uint32_t codePoint = hexToU32Nocheck(*srcPtr + 2);
 			*srcPtr += 6;
@@ -190,6 +197,7 @@ namespace Jsonifier {
 
 			return 0;
 		}
+
 		static inline uint8_t* parseString(uint8_t* src, uint8_t* dst) {
 			uint32_t index{};
 			uint8_t* returnValue{};
