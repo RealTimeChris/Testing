@@ -189,10 +189,14 @@ namespace Jsonifier {
 			}
 		}
 
-		void setBit(size_t bitIndex) {
+		void setBit(size_t bitIndex, bool setTheBit) {
 			int64_t value{ this->getInt64(bitIndex / 64) };
 			std::cout << "THE BITS PRE SETTING: " << std::bitset<64>{ static_cast<uint64_t>(value) } << std::endl;
-			_bittestandreset64(&value, bitIndex % 64);
+			if (setTheBit) {
+				_bittestandreset64(&value, bitIndex % 64);
+			} else {
+				_bittestandset64(&value, bitIndex % 64);
+			}
 			std::cout << "THE BITS POST SETTING: " << std::bitset<64>{ static_cast<uint64_t>(value) } << std::endl;
 			this->printBits("PRE-SETTING THE BIT: ");
 			this->insertInt64(value, bitIndex / 64);
@@ -573,15 +577,13 @@ namespace Jsonifier {
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			nonQuoteScalar.printBits("NONQUOTE SCALAR BITS: ");
 			auto prevInScalarNew = this->prevInScalar;
-			if (nonQuoteScalar.getBit(255)) {
+			if (nonQuoteScalar.getBit(0)) {
 				this->prevInScalar = true;
 			} else {
 				this->prevInScalar = false;
 			}
 			this->followsNonQuoteScalar = nonQuoteScalar.shl<1>();
-			if (prevInScalarNew) {
-				this->followsNonQuoteScalar.setBit(0);
-			}
+			this->followsNonQuoteScalar.setBit(0, prevInScalarNew);
 			this->followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
 			auto potentialScalarStart = scalar & ~followsNonQuoteScalar;
 			auto stringTail = inString ^ quote;
@@ -602,8 +604,6 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->structurals = this->collectFinalStructurals();
 			this->structurals.printBits("FINAL BITS: ");
-			std::cout << "PREV ESCAPED: " << std::boolalpha << this->prevEscaped << std::endl;
-			std::cout << "PREV IN STRING: " << std::bitset<64>{ this->prevInString } << ", FOR INDEX: " << currentIndexIntoString + 256 << std::endl;
 		}
 
 	  protected:
