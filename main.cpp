@@ -156,7 +156,7 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
 		for (size_t x = 0; x < 5; ++x) {
-			serializer["TEST_VALUE_11"]["d"].emplaceBack(serializer);
+			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValue);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
