@@ -294,35 +294,13 @@ namespace Jsonifier {
 			return returnValueReal;
 		}
 
-		SimdBase256 copyBits(SimdBase256 dest) {
-			SimdBase256 zeroesMask{};
-			SimdBase256 onesMask{ '\xff' };
-			onesMask = onesMask.shr<63>();
-			onesMask = onesMask.shl<64>();
-			zeroesMask = ~onesMask;
-			dest &= zeroesMask;
-			*this &= onesMask;
-			dest |= *this;
-			return dest;
-		}
-
-		template<size_t amount> inline SimdBase256 shr() {
-			SimdBase256 returnValue{};
-			returnValue = _mm256_srli_epi64(*this, (amount % 64));
-			returnValue.printBits("SHIFTED RIGHT: BY AMOUNT: " + std::to_string(amount));
-			SimdBase256 returnValueReal{ _mm256_set_epi64x(0, 0, 0, (1ull << amount) - (1ull << 0)) };
-			returnValueReal.printBits("THE SHIFT MASK: ");
-			returnValue &= returnValueReal;
-			return returnValue;
-		}
-
 		inline SimdBase256 operator~() {
 			SimdBase256 newValues{};
 			newValues = _mm256_xor_si256(*this, _mm256_set1_epi64x(-1ull));
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString) {
+		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString, size_t currentIndexIntoString) {
 			SimdBase128 allOnes{ '\xFF' };
 			const uint64_t inString00 =
 				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
@@ -540,8 +518,8 @@ namespace Jsonifier {
 		}
 
 		inline void collectStringCharacters() {
-			this->quote = this->collectQuotes().bitAndNot(this->escaped);~
-			this->inString = this->quote.carrylessMultiplication(this->prevInString);
+			this->quote = this->collectQuotes().bitAndNot(this->escaped);
+			this->inString = this->quote.carrylessMultiplication(this->prevInString, this->currentIndexIntoString);
 		}
 
 		inline SimdBase256 collectFinalStructurals() {
@@ -551,18 +529,9 @@ namespace Jsonifier {
 			auto scalar = ~(this->op | this->whitespace);
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			auto prevInScalarNew = this->prevInScalar;
-			SimdBase256 shiftMask{ _mm256_set_epi64x((1ull << 64) - (1ull << 63), 0, 0, 0) };
-			//nonQuoteScalar.printBits("NON QUOTE SCALAR: ");
-			//shiftMask.printBits("SHIFT MASK: ");
-			this->prevInScalar = nonQuoteScalar & shiftMask;
-			//prevInScalar.printBits("PREV IN SCALAR 01: ");
-			this->prevInScalar = _mm256_permute4x64_epi64(this->prevInScalar, 0b10010011);
-			//prevInScalar.printBits("PREV IN SCALAR 02: ");
-			this->prevInScalar = _mm256_srli_epi64(this->prevInScalar, 63);
-			//prevInScalar.printBits("PREV IN SCALAR 03: ");
+			this->prevInScalar = !nonQuoteScalar.getBit(255);
 			auto followsNonQuoteScalar = nonQuoteScalar.shl<1>();
-			//prevInScalarNew.printBits("PREV IN SCALAR NEW: ");
-			followsNonQuoteScalar = prevInScalarNew.copyBits(followsNonQuoteScalar);
+			followsNonQuoteScalar.setBit(0, prevInScalarNew);
 			followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
 			auto potentialScalarStart = scalar.bitAndNot(followsNonQuoteScalar);
 			auto stringTail = this->inString ^ this->quote;
@@ -581,12 +550,10 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[6], valueNew + 192);
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->structurals = this->collectFinalStructurals();
-			this->structurals.printBits("FINAL BITS: ");
 		}
 
 	  protected:
 		size_t currentIndexIntoString{};
-		SimdBase256 prevInScalar{};
 		SimdBase256 structurals{};
 		SimdBase256 whitespace{};
 		uint64_t prevInString{};
@@ -595,6 +562,7 @@ namespace Jsonifier {
 		SimdBase256 inString{};
 		SimdBase256 escaped{};
 		SimdBase256 quote{};
+		bool prevInScalar{};
 		bool prevEscaped{};
 		SimdBase256 op{};
 	};
