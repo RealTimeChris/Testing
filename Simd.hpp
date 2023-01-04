@@ -257,7 +257,7 @@ namespace Jsonifier {
 		} 
 	
 	template	<size_t amount> inline SimdBase256 shr() {
-			//this->printBits("PRE RIGHT SHIFT: ");
+			this->printBits("PRE RIGHT SHIFT: ");
 			SimdBase256 returnValue{};
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
 			//returnValue.printBits("POST SHIFT 01: ");
@@ -266,7 +266,7 @@ namespace Jsonifier {
 			//returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
 			//returnValue.printBits("POST SHIFT 03: ");
 			//returnValueReal |= returnValue;
-			returnValue = _mm256_set_epi64x((1ll << 64) - (1ll << 64 - amount), 0, 0, 0);
+			returnValue = _mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0);
 			returnValue.printBits("MATCH BITS: ");
 			returnValue = returnValue & ~returnValue;
 			returnValue.printBits("POST RIGHT SHIFT: ");

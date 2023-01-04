@@ -246,8 +246,8 @@ namespace Jsonifier {
 
 	template<> struct JsonifierResult<Value> : public JsonifierResultBase<Value> {
 	  public:
-		inline JsonifierResult(Value&& value) noexcept;///< @protected
-		inline JsonifierResult(ErrorCode error) noexcept;///< @protected
+		inline JsonifierResult(Value&& value) noexcept;
+		inline JsonifierResult(ErrorCode error) noexcept;
 		inline JsonifierResult() noexcept = default;
 
 		inline JsonifierResult<Array> get_array() noexcept;
