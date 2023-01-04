@@ -23,6 +23,7 @@ namespace Jsonifier {
 
 	class Object {
 	  public:
+		inline Object() noexcept = default;
 		inline JsonifierResult<ObjectIterator> begin() noexcept;
 		inline JsonifierResult<ObjectIterator> end() noexcept;
 		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;

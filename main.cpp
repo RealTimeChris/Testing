@@ -8,7 +8,7 @@
 #include <fstream>	
 Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 int64_t iterationCount{};
-int64_t totalTime{};
+int64_t totalTimeNew{};
 
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
@@ -77,15 +77,15 @@ struct TheDJson {
 		
 		for (auto valueIterator : valueNew) {
 			stopWatch.resetTimer();
-			//std::cout << "FIELD COUNT: " << +valueNewer.count_fields().error() << std::endl;
+			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
 			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
 			strings.emplace_back(valueIterator.valueUnsafe());
-			totalTime += stopWatch.totalTimePassed().count();
+			totalTimeNew += stopWatch.totalTimePassed().count();
 			iterationCount++;
 			
 			
 		}
-		std::cout << "TOTAL TIME PASSED: (JSON) " << totalTime / iterationCount << std::endl;
+		std::cout << "TOTAL TIME PASSED: (JSON) " << totalTimeNew / iterationCount << std::endl;
 	}
 	std::vector<ActivitiesJson> strings{};
 };
@@ -106,13 +106,13 @@ struct TheD {
 
 		for (auto valueNewer: valueNew) {
 			stopWatch.resetTimer();
-			//std::cout << "FIELD COUNT: " << +valueNewer.count_fields().error() << std::endl;
+			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
 			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
 			strings.emplace_back(valueNewer.value_unsafe());
-			totalTime += stopWatch.totalTimePassed().count();
+			totalTimeNew += stopWatch.totalTimePassed().count();
 			iterationCount++;
 		}
-		std::cout << "TOTAL TIME PASSED: " << totalTime / iterationCount << std::endl;
+		std::cout << "TOTAL TIME PASSED: " << totalTimeNew / iterationCount << std::endl;
 	}
 	std::vector<Activities> strings{};
 };
@@ -144,8 +144,8 @@ class FileLoader {
 
 int32_t main() {
 	try {
-		Jsonifier::Jsonifier serializer{};
-		Jsonifier::Jsonifier arrayValueNew{};
+		Jsonifier::Serializer serializer{};
+		Jsonifier::Serializer arrayValueNew{};
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_01"] = true;
 		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE112323";
@@ -192,8 +192,7 @@ int32_t main() {
 		stopWatch.resetTimer();
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 128; ++x) {
-			
+		for (size_t x = 0ull; x < 256; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			//TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -210,10 +209,11 @@ int32_t main() {
 		totalSize = 0;
 		totalTime = 0;
 		iterationCount = 0;
+		totalTimeNew = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		Jsonifier::JsonifierCore parserOld{};
-		for (size_t x = 0ull; x < 128; ++x) {
+		Jsonifier::Parser parserOld{};	
+		for (size_t x = 0ull; x < 256; ++x) {
 			
 			auto jsonData = parserOld.parseJson(stringNew);
 			//TheValueJson value{ std::move(jsonData) };

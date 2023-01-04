@@ -96,16 +96,16 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> has_next_element() noexcept;
 		inline ValueIterator child() const noexcept;
 
-		inline JsonifierResult<std::string_view> get_string() noexcept;
-		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
-		inline JsonifierResult<uint64_t> get_uint64() noexcept;
+		inline JsonifierResult<std::string_view> getString() noexcept;
+		inline JsonifierResult<RawJsonString> getRawJsonString() noexcept;
+		inline JsonifierResult<uint64_t> getUint64() noexcept;
 		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
-		inline JsonifierResult<int64_t> get_int64() noexcept;
+		inline JsonifierResult<int64_t> getInt64() noexcept;
 		inline JsonifierResult<int64_t> get_int64_in_string() noexcept;
-		inline JsonifierResult<double> get_double() noexcept;
+		inline JsonifierResult<double> getDouble() noexcept;
 		inline JsonifierResult<double> get_double_in_string() noexcept;
-		inline JsonifierResult<bool> get_bool() noexcept;
-		inline JsonifierResult<bool> is_null() noexcept;
+		inline JsonifierResult<bool> getBool() noexcept;
+		inline JsonifierResult<bool> isNull() noexcept;
 		inline bool is_negative() noexcept;
 		inline JsonifierResult<bool> is_integer() noexcept;
 
@@ -190,18 +190,18 @@ namespace Jsonifier {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
 		template<typename T> inline ErrorCode get(T& out) noexcept;
-		inline JsonifierResult<Array> get_array() noexcept;
-		inline JsonifierResult<Object> get_object() noexcept;
-		inline JsonifierResult<uint64_t> get_uint64() noexcept;
+		inline JsonifierResult<Array> getArray() noexcept;
+		inline JsonifierResult<Object> getObject() noexcept;
+		inline JsonifierResult<uint64_t> getUint64() noexcept;
 		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
-		inline JsonifierResult<int64_t> get_int64() noexcept;
+		inline JsonifierResult<int64_t> getInt64() noexcept;
 		inline JsonifierResult<int64_t> get_int64_in_string() noexcept;
-		inline JsonifierResult<double> get_double() noexcept;
+		inline JsonifierResult<double> getDouble() noexcept;
 		inline JsonifierResult<double> get_double_in_string() noexcept;
-		inline JsonifierResult<std::string_view> get_string() noexcept;
-		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
-		inline JsonifierResult<bool> get_bool() noexcept;
-		inline JsonifierResult<bool> is_null() noexcept;
+		inline JsonifierResult<std::string_view> getString() noexcept;
+		inline JsonifierResult<RawJsonString> getRawJsonString() noexcept;
+		inline JsonifierResult<bool> getBool() noexcept;
+		inline JsonifierResult<bool> isNull() noexcept;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
 		inline JsonifierResult<size_t> countElements() noexcept;
@@ -214,12 +214,12 @@ namespace Jsonifier {
 		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
 		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
-		inline JsonifierResult<bool> is_scalar() noexcept;
+		inline JsonifierResult<bool> isScalar() noexcept;
 		inline bool is_negative() noexcept;
 		inline JsonifierResult<bool> is_integer() noexcept;
-		inline std::string_view raw_json_token() noexcept;
-		inline JsonifierResult<const char*> current_location() noexcept;
-		inline int32_t current_depth() const noexcept;
+		inline std::string_view rawJsonToken() noexcept;
+		inline JsonifierResult<const char*> currentLocation() noexcept;
+		inline int32_t currentDepth() const noexcept;
 		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
 
 		inline operator ValueIterator() noexcept {
@@ -231,7 +231,7 @@ namespace Jsonifier {
 		inline void skip() noexcept;
 		static inline Value start(const ValueIterator& iterator) noexcept;
 		static inline Value resume(const ValueIterator& iterator) noexcept;
-		inline JsonifierResult<Object> start_or_resume_object() noexcept;
+		inline JsonifierResult<Object> startOrResumeObject() noexcept;
 
 		ValueIterator iterator;
 
@@ -249,19 +249,19 @@ namespace Jsonifier {
 		inline JsonifierResult(ErrorCode error) noexcept;
 		inline JsonifierResult() noexcept = default;
 
-		inline JsonifierResult<Array> get_array() noexcept;
-		inline JsonifierResult<Object> get_object() noexcept;
+		inline JsonifierResult<Array> getArray() noexcept;
+		inline JsonifierResult<Object> getObject() noexcept;
 
-		inline JsonifierResult<uint64_t> get_uint64() noexcept;
+		inline JsonifierResult<uint64_t> getUint64() noexcept;
 		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
-		inline JsonifierResult<int64_t> get_int64() noexcept;
+		inline JsonifierResult<int64_t> getInt64() noexcept;
 		inline JsonifierResult<int64_t> get_int64_in_string() noexcept;
-		inline JsonifierResult<double> get_double() noexcept;
+		inline JsonifierResult<double> getDouble() noexcept;
 		inline JsonifierResult<double> get_double_in_string() noexcept;
-		inline JsonifierResult<std::string_view> get_string() noexcept;
-		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
-		inline JsonifierResult<bool> get_bool() noexcept;
-		inline JsonifierResult<bool> is_null() noexcept;
+		inline JsonifierResult<std::string_view> getString() noexcept;
+		inline JsonifierResult<RawJsonString> getRawJsonString() noexcept;
+		inline JsonifierResult<bool> getBool() noexcept;
+		inline JsonifierResult<bool> isNull() noexcept;
 
 		template<typename T> inline JsonifierResult<T> get() noexcept;
 
@@ -278,12 +278,12 @@ namespace Jsonifier {
 		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
 		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
-		inline JsonifierResult<bool> is_scalar() noexcept;
+		inline JsonifierResult<bool> isScalar() noexcept;
 		inline JsonifierResult<bool> is_negative() noexcept;
 		inline JsonifierResult<bool> is_integer() noexcept;
-		inline JsonifierResult<std::string_view> raw_json_token() noexcept;
-		inline JsonifierResult<const char*> current_location() noexcept;
-		inline JsonifierResult<int32_t> current_depth() const noexcept;
+		inline JsonifierResult<std::string_view> rawJsonToken() noexcept;
+		inline JsonifierResult<const char*> currentLocation() noexcept;
+		inline JsonifierResult<int32_t> currentDepth() const noexcept;
 		inline JsonifierResult<Value> atPointer(std::string_view jsonPointer) noexcept;
 	};
 }

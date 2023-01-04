@@ -5,7 +5,7 @@
 
 namespace Jsonifier {
 
-	class JsonifierCore;
+	class Parser;
 	class JsonIterator;
 	class Object;
 	class Array;
@@ -92,7 +92,7 @@ namespace Jsonifier {
 	class JsonIterator {
 	  protected:
 		TokenIterator token;
-		JsonifierCore* parser{};
+		Parser* parser{};
 		uint8_t* stringBuffer{};
 		ErrorCode error{ ErrorCode::Success };
 		size_t currentDepth{ 1 };
@@ -107,7 +107,7 @@ namespace Jsonifier {
 		inline void assert_at_document_depth() const noexcept;
 		inline void assert_at_root() const noexcept;
 		inline bool atEnd() const noexcept;
-		inline bool is_alive() const noexcept;
+		inline bool isAlive() const noexcept;
 		inline void abandon() noexcept;
 		inline const uint8_t* return_current_and_advance() noexcept;
 		inline bool is_single_token() const noexcept;
@@ -133,12 +133,12 @@ namespace Jsonifier {
 		inline JsonifierResult<std::string_view> unescape(RawJsonString in) noexcept;
 		inline void reenter_child(uint32_t* position, size_t child_depth) noexcept;
 		inline std::string to_string() const noexcept;
-		inline JsonifierResult<const char*> current_location() noexcept;
+		inline JsonifierResult<const char*> currentLocation() noexcept;
 		inline void rewind() noexcept;
 		inline bool balanced() const noexcept;
 
 	  protected:
-		inline JsonIterator(JsonifierCore* parser) noexcept;
+		inline JsonIterator(Parser* parser) noexcept;
 		inline uint32_t* last_position() const noexcept;
 		inline uint32_t* end_position() const noexcept;
 		inline uint32_t* end() const noexcept;
@@ -149,7 +149,7 @@ namespace Jsonifier {
 		friend class Orray;
 		friend class Value;
 		friend class RawJsonString;
-		friend class JsonifierCore;
+		friend class Parser;
 		friend class ValueIterator;
 	};
 

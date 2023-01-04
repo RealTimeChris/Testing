@@ -67,13 +67,22 @@ namespace Jsonifier {
 		inline SimdBase256(char other) {
 			*this = other;
 		}
-
+		
 		inline SimdBase256& operator=(const char* values) {
 			*this = _mm256_loadu_epi8(values);
 			return *this;
 		}
 
 		explicit inline SimdBase256(const char* values) {
+			*this = values;
+		}
+
+		inline SimdBase256& operator=(const uint8_t* values) {
+			*this = _mm256_loadu_epi8(values);
+			return *this;
+		}
+
+		explicit inline SimdBase256(const uint8_t* values) {
 			*this = values;
 		}
 
@@ -398,8 +407,8 @@ namespace Jsonifier {
 	template<size_t StepSize> struct StringBlockReader {
 	  public:
 		inline StringBlockReader(const uint8_t* _buf, size_t _len);
-		inline size_t getRemainder(char* dst) const;
-		inline const char* fullBlock() const;
+		inline size_t getRemainder(uint8_t* dst) const;
+		inline const uint8_t* fullBlock() const;
 		inline bool hasFullBlock() const;
 		inline size_t blockIndex();
 		inline void advance();
@@ -424,11 +433,11 @@ namespace Jsonifier {
 		return index < lengthMinusStep;
 	}
 
-	template<size_t StepSize> inline const char* StringBlockReader<StepSize>::fullBlock() const {
-		return reinterpret_cast<const char*>(&stringBuffer[index]);
+	template<size_t StepSize> inline const uint8_t* StringBlockReader<StepSize>::fullBlock() const {
+		return &stringBuffer[index];
 	}
 
-	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(char* dst) const {
+	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(uint8_t* dst) const {
 		if (length == index) {
 			return 0;
 		}
@@ -445,7 +454,7 @@ namespace Jsonifier {
 	  public:
 		inline SimdStringSection() noexcept = default;
 
-		inline void packStringIntoValue(SimdBase256* theValue, const char string[32]) {
+		inline void packStringIntoValue(SimdBase256* theValue, const uint8_t string[32]) {
 			*theValue = string;
 		}
 
@@ -478,7 +487,8 @@ namespace Jsonifier {
 		}
 
 		inline SimdBase256 collectWhiteSpace() {
-			char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113, 2,
+			char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113,
+				2,
 				100, '\t', '\n', 112, 100, '\r', 100, 100 };
 			SimdBase256 whitespaceTable{ valuesNew };
 			SimdBase256 whiteSpaceReal[8]{};
@@ -569,7 +579,7 @@ namespace Jsonifier {
 			return structuralStart;
 		}
 
-		void submitDataForProcessing(const char* valueNew) {
+		void submitDataForProcessing(const uint8_t* valueNew) {
 			this->packStringIntoValue(&this->values[0], valueNew);
 			this->packStringIntoValue(&this->values[1], valueNew + 32);
 			this->packStringIntoValue(&this->values[2], valueNew + 64);

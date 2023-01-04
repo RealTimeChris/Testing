@@ -184,10 +184,11 @@ namespace Jsonifier {
 			*dstPtr += offset;
 			return offset > 0;
 		}
-		template<typename SimdBase256> static inline uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
-			SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
-			values.store(reinterpret_cast<uint8_t*>(dst));
+		template<typename SimdBase256> static inline uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
+			SimdBase256 values{ src };
+
+			values.store(dst);
 			for (size_t x = 0; x < 32; ++x) {
 				if (dst[x] == '"') {
 					dst[x] = '\0';
