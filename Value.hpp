@@ -68,6 +68,7 @@ namespace Jsonifier {
 		uint32_t* rootPosition{};
 
 	  public:
+		inline ValueIterator() noexcept = default;
 		inline void startDocument() noexcept;
 		inline ErrorCode skipChild() noexcept;
 		inline bool atEnd() const noexcept;

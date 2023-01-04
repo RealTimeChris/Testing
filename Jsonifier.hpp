@@ -2736,7 +2736,6 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* TokenIterator::return_current_and_advance() noexcept {
-		std::cout << "CURRENT INDEX: " << *this->currentPosition << ", THAT INDEXE'S VALUE: " << stringView[*currentPosition] << std::endl;
 		return &stringView[*(currentPosition++)];
 	}
 

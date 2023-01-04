@@ -71,10 +71,9 @@ struct Activities {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
-		Jsonifier::Array valueNew{ value["TEST_VALUE_11"]["d"].valueUnsafe().get_array().valueUnsafe() };
+		Jsonifier::Array valueNew{};
+		value["TEST_VALUE_11"]["d"].get(valueNew);
 		//std::cout << "ELEMENT COUNT: " << valueNew.countElements().value_unsafe() << std::endl;
-		totalTime = 0;
-		iterationCount = 0;
 		
 		for (auto valueIterator : valueNew) {
 			stopWatch.resetTimer();
@@ -104,8 +103,6 @@ struct TheD {
 	TheD(simdjson::ondemand::document value) {
 		simdjson::ondemand::array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
-		totalTime = 0;
-		iterationCount = 0;
 
 		for (auto valueNewer: valueNew) {
 			stopWatch.resetTimer();
@@ -163,8 +160,8 @@ int32_t main() {
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
-		std::string stringNew{ serializer.operator std::string&&() };
+		std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
+		//std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -182,18 +179,21 @@ int32_t main() {
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		size_t oldSize = stringNew.size();
 
-		std::cout << "THE STRING: " << stringNew << std::endl;
+		//std::cout << "THE STRING: " << stringNew << std::endl;/
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
 
 		totalSize = 0;
 		totalTime = 0;
 
-
+		
+		iterationCount = 0;
+		totalTime = 0;
 		stopWatch.resetTimer();
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 2048; ++x) {
+		for (size_t x = 0ull; x < 128; ++x) {
+			
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			//TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -205,17 +205,18 @@ int32_t main() {
 			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
 			totalSize += oldSize;
 		}
-		totalTime += stopWatch.totalTimePassed().count();
+		totalTime = stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		totalSize = 0;
 		totalTime = 0;
-	
+		iterationCount = 0;
+		totalTime = 0;
 		stopWatch.resetTimer();
 		Jsonifier::JsonifierCore parserOld{};
-		for (size_t x = 0ull; x < 2048; ++x) {
+		for (size_t x = 0ull; x < 128; ++x) {
 			
 			auto jsonData = parserOld.parseJson(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			//TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -225,7 +226,7 @@ int32_t main() {
 			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
 			totalSize += oldSize;
 		}
-		totalTime += stopWatch.totalTimePassed().count();
+		totalTime = stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 	} catch (std::runtime_error& e) { std::cout << e.what() << std::endl; }
 	return 0;
