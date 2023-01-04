@@ -20,4 +20,17 @@ namespace Jsonifier {
 		friend struct JsonifierResult<Field>;
 		friend class ObjectIterator;
 	};
+
+	template<>
+	struct JsonifierResult<Field>
+		: public JsonifierResultBase<Field> {
+	  public:
+		inline JsonifierResult(Field&& value) noexcept;///< @private
+		inline JsonifierResult(ErrorCode error) noexcept;///< @private
+		inline JsonifierResult() noexcept = default;
+
+		inline JsonifierResult<std::string_view> unescaped_key() noexcept;
+		inline JsonifierResult<RawJsonString> key() noexcept;
+		inline JsonifierResult<Value> value() noexcept;
+	};
 }
