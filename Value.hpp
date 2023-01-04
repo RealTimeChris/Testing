@@ -11,8 +11,9 @@ namespace Jsonifier {
 	  public:
 		inline EnumStringConverter(ErrorCode error) {
 			this->code = error;
-		}
-		inline operator std::string() {
+		} 
+
+	inline operator std::string() {
 			switch (this->code) {
 				case ErrorCode::Empty: {
 					return "Empty";
@@ -70,8 +71,9 @@ namespace Jsonifier {
 	  public:
 		inline ValueIterator() noexcept {
 			;
-		}
-		inline void start_document() noexcept;
+		} 
+
+	inline void start_document() noexcept;
 		inline ErrorCode skip_child() noexcept;
 		inline bool at_end() const noexcept;
 		inline bool at_start() const noexcept;

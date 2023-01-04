@@ -212,9 +212,9 @@ namespace Jsonifier {
 				}
 			}
 			return returnValue;
-		}
+		} 
 
-		inline static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0x0.
+	inline static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0x0.
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0,
 
@@ -238,18 +238,21 @@ namespace Jsonifier {
 					static_cast<uint32_t>((v == '\\').toBitMask()),
 					static_cast<uint32_t>((v == '\"').toBitMask()),
 				};
-			}
+			} 
 
-			inline bool hasQuoteFirst() {
+	inline bool hasQuoteFirst() {
 				return ((bsBits - 1) & quoteBits) != 0;
-			}
-			inline bool hasBackslash() {
+			} 
+
+	inline bool hasBackslash() {
 				return bsBits != 0;
-			}
-			inline int quoteIndex() {
+			} 
+
+	inline int quoteIndex() {
 				return _tzcnt_u64(quoteBits);
-			}
-			inline int backslashIndex() {
+			} 
+
+	inline int backslashIndex() {
 				return _tzcnt_u64(bsBits);
 			}
 
