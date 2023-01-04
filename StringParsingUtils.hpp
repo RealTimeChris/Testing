@@ -185,8 +185,8 @@ namespace Jsonifier {
 			size_t offset = codepointToUtf8(codePoint, *dstPtr);
 			*dstPtr += offset;
 			return offset > 0;
-		}
-
+		} 
+	
 		template<typename SimdBase256> static inline uint32_t copyAndFind(const uint8_t* src, uint8_t* dst) {
 			SimdBase256 values{ reinterpret_cast<const char*>(src) };
 
@@ -214,7 +214,7 @@ namespace Jsonifier {
 			return returnValue;
 		} 
 
-	inline static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0x0.
+		inline static const uint8_t escapeMap[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,// 0x0.
 			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x2f, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 			0, 0, 0, 0,
 
@@ -240,73 +240,25 @@ namespace Jsonifier {
 				};
 			} 
 
-	inline bool hasQuoteFirst() {
+		inline bool hasQuoteFirst() {
 				return ((bsBits - 1) & quoteBits) != 0;
 			} 
 
-	inline bool hasBackslash() {
+		inline bool hasBackslash() {
 				return bsBits != 0;
 			} 
 
-	inline int quoteIndex() {
+		inline int quoteIndex() {
 				return _tzcnt_u64(quoteBits);
 			} 
 
-	inline int backslashIndex() {
+		inline int backslashIndex() {
 				return _tzcnt_u64(bsBits);
 			}
 
 			uint32_t bsBits;
 			uint32_t quoteBits;
 		};
-		/*
-		 static inline uint8_t* parseString(uint8_t* src, uint8_t* dst) {
-			while (1) {
-				 auto bsQuote = BackslashAndQuote<SimdBase256>::copyAndFind(src, dst);
-				if (bsQuote.hasQuoteFirst()) {
-					 return dst + bsQuote.quoteIndex();
-				}
-				if (bsQuote.hasBackslash()) {
-					auto bsDist = bsQuote.backslashIndex();
-					uint8_t escapeChar = src[bsDist + 1];
-					if (escapeChar == 'u') {
-						src += bsDist;
-						dst += bsDist;
-						if (!handleUnicodeCodepoint(const_cast<const uint8_t**>(&src), &dst)) {
-							return nullptr;
-						}
-					} else {
-						uint8_t escapeResult = escapeMap[escapeChar];
-						if (escapeResult == 0u) {
-							return nullptr;
-						}
-						dst[bsDist] = escapeResult;
-						src += static_cast<size_t>(bsDist + 2ull);
-						dst += static_cast<size_t>(bsDist + 1ull);
-					}
-				} else {
-					src += BackslashAndQuote<SimdBase256>::BYTES_PROCESSED;
-					dst += BackslashAndQuote<SimdBase256>::BYTES_PROCESSED;
-				}
-			}
-			return nullptr;
-		}
-		*/
-		/*
-		static inline uint8_t* parseString(const uint8_t* src, uint8_t* dst) {
-			int32_t index{};
-			while (1) {
-				if (auto result = copyAndFind<SimdBase256>(src + index, dst + index); result != 0) {
-					std::cout << "WERRE HERE THIS IS IT: (REAL) " << src[index] << std::endl;
-					std::cout << "WERRE HERE THIS IS IT: (INDEX) " << index + result << std::endl;
-					std::cout << std::string_view{ reinterpret_cast<char*>(dst + result), result } << std::endl;
-					return dst;
-				}
-				index += 32;
-			}
-			return nullptr;
-		}
-		*/
 	};
 
 

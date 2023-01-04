@@ -30,7 +30,7 @@ namespace Jsonifier {
 
 	int64_t getInt64(simdjson::ondemand::value jsonData, const char* key) {
 		int64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return int64_t{ value };
 		} else {
 			return 0;
@@ -39,7 +39,7 @@ namespace Jsonifier {
 
 	int32_t getInt32(simdjson::ondemand::value jsonData, const char* key) {
 		int64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return static_cast<int32_t>(value);
 		} else {
 			return 0;
@@ -48,7 +48,7 @@ namespace Jsonifier {
 
 	int16_t getInt16(simdjson::ondemand::value jsonData, const char* key) {
 		int64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return static_cast<int16_t>(value);
 		} else {
 			return 0;
@@ -57,7 +57,7 @@ namespace Jsonifier {
 
 	int8_t getInt8(simdjson::ondemand::value jsonData, const char* key) {
 		int64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return static_cast<int8_t>(value);
 		} else {
 			return 0;
@@ -66,7 +66,7 @@ namespace Jsonifier {
 
 	uint64_t getUint64(simdjson::ondemand::value jsonData, const char* key) {
 		uint64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return uint64_t{ value };
 		} else {
 			return 0;
@@ -75,7 +75,7 @@ namespace Jsonifier {
 
 	uint32_t getUint32(simdjson::ondemand::value jsonData, const char* key) {
 		uint64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return static_cast<uint32_t>(value);
 		} else {
 			return 0;
@@ -84,7 +84,7 @@ namespace Jsonifier {
 
 	uint16_t getUint16(simdjson::ondemand::value jsonData, const char* key) {
 		uint64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return static_cast<uint16_t>(value);
 		} else {
 			return 0;
@@ -93,7 +93,7 @@ namespace Jsonifier {
 
 	uint8_t getUint8(simdjson::ondemand::value jsonData, const char* key) {
 		uint64_t value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return static_cast<uint8_t>(value);
 		} else {
 			return 0;
@@ -102,7 +102,7 @@ namespace Jsonifier {
 
 	float getFloat(simdjson::ondemand::value jsonData, const char* key) {
 		double value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return double{ value };
 		} else {
 			return 0.0f;
@@ -111,7 +111,7 @@ namespace Jsonifier {
 
 	bool getBool(simdjson::ondemand::value jsonData, const char* key) {
 		bool value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return bool{ value };
 		} else {
 			return false;
@@ -120,7 +120,7 @@ namespace Jsonifier {
 
 	std::string getString(simdjson::ondemand::value jsonData, const char* key) {
 		std::string_view value{};
-		if (jsonData[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[key].get(value) == ErrorCode::Success) {
 			return std::string{ value.data(), value.size() };
 		} else {
 			return "";
@@ -128,7 +128,7 @@ namespace Jsonifier {
 	}
 
 	bool getObject(simdjson::ondemand::value& object, const char* key, simdjson::ondemand::value jsonObjectData) {
-		if (jsonObjectData[key].get(object) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonObjectData[key].get(object) == ErrorCode::Success) {
 			return true;
 		} else {
 			return false;
@@ -136,7 +136,7 @@ namespace Jsonifier {
 	}
 
 	bool getArray(simdjson::ondemand::array& array, const char* key, simdjson::ondemand::value jsonObjectData) {
-		if (jsonObjectData[key].get(array) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonObjectData[key].get(array) == ErrorCode::Success) {
 			return true;
 		} else {
 			return false;
@@ -144,7 +144,7 @@ namespace Jsonifier {
 	}
 
 	bool getArray(simdjson::ondemand::array& array, simdjson::ondemand::value jsonObjectData) {
-		if (jsonObjectData.get(array) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonObjectData.get(array) == ErrorCode::Success) {
 			return true;
 		} else {
 			return false;
@@ -153,7 +153,7 @@ namespace Jsonifier {
 
 	std::string getString(ObjectReturnData jsonData, const char* key) {
 		std::string_view value{};
-		if (jsonData.didItSucceed && jsonData.object[key].get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData.didItSucceed && jsonData.object[key].get(value) == ErrorCode::Success) {
 			return static_cast<std::string>(value);
 		}
 		return static_cast<std::string>(value);
@@ -161,7 +161,7 @@ namespace Jsonifier {
 
 	std::string getString(simdjson::ondemand::value jsonData) {
 		std::string_view value{};
-		if (jsonData.get(value) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData.get(value) == ErrorCode::Success) {
 			return std::string{ value.data(), value.size() };
 		} else {
 			return "";
@@ -170,7 +170,7 @@ namespace Jsonifier {
 
 	ObjectReturnData getObject(simdjson::ondemand::value jsonData, const char* objectName) {
 		ObjectReturnData value{};
-		if (jsonData[objectName].get(value.object) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[objectName].get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
@@ -178,7 +178,7 @@ namespace Jsonifier {
 
 	ObjectReturnData getObject(ObjectReturnData jsonData, const char* objectName) {
 		ObjectReturnData value{};
-		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
@@ -186,7 +186,7 @@ namespace Jsonifier {
 
 	ObjectReturnData getObject(ArrayReturnData jsonData, uint64_t objectIndex) {
 		ObjectReturnData value{};
-		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
@@ -194,7 +194,7 @@ namespace Jsonifier {
 
 	ArrayReturnData getArray(simdjson::ondemand::value jsonData, const char* arrayName) {
 		ArrayReturnData value{};
-		if (jsonData[arrayName].get(value.arrayValue) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
@@ -202,7 +202,223 @@ namespace Jsonifier {
 
 	ArrayReturnData getArray(ObjectReturnData jsonData, const char* arrayName) {
 		ArrayReturnData value{};
-		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == simdjson::ErrorCode::ErrorCode::Success) {
+		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
+			value.didItSucceed = true;
+		}
+		return value;
+	}
+
+	int64_t getInt64(Object jsonData, const char* key) {
+		int64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return int64_t{ value };
+		} else {
+			return 0;
+		}
+	}
+
+	int64_t getInt64(Value jsonData, const char* key) {
+		int64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return int64_t{ value };
+		} else {
+			return 0;
+		}
+	}
+
+	int32_t getInt32(Value jsonData, const char* key) {
+		int64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return static_cast<int32_t>(value);
+		} else {
+			return 0;
+		}
+	}
+
+	int16_t getInt16(Value jsonData, const char* key) {
+		int64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return static_cast<int16_t>(value);
+		} else {
+			return 0;
+		}
+	}
+
+	int8_t getInt8(Value jsonData, const char* key) {
+		int64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return static_cast<int8_t>(value);
+		} else {
+			return 0;
+		}
+	}
+
+	uint64_t getUint64(Value jsonData, const char* key) {
+		uint64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return uint64_t{ value };
+		} else {
+			return 0;
+		}
+	}
+
+	uint32_t getUint32(Value jsonData, const char* key) {
+		uint64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return static_cast<uint32_t>(value);
+		} else {
+			return 0;
+		}
+	}
+
+	uint16_t getUint16(Value jsonData, const char* key) {
+		uint64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return static_cast<uint16_t>(value);
+		} else {
+			return 0;
+		}
+	}
+
+	uint8_t getUint8(Value jsonData, const char* key) {
+		uint64_t value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return static_cast<uint8_t>(value);
+		} else {
+			return 0;
+		}
+	}
+
+	float getFloat(Object jsonData, const char* key) {
+		double value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return double{ value };
+		} else {
+			return 0.0f;
+		}
+	}
+
+	float getFloat(Value jsonData, const char* key) {
+		double value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return double{ value };
+		} else {
+			return 0.0f;
+		}
+	}
+
+	bool getBool(Object jsonData, const char* key) {
+		bool value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return bool{ value };
+		} else {
+			return false;
+		}
+	}
+
+	bool getBool(Value jsonData, const char* key) {
+		bool value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return bool{ value };
+		} else {
+			return false;
+		}
+	}
+
+	std::string getString(Object jsonData, const char* key) {
+		std::string_view value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return std::string{ value.data(), value.size() };
+		} else {
+			return "";
+		}
+	}
+
+	std::string getString(Value jsonData, const char* key) {
+		std::string_view value{};
+		if (jsonData[key].get(value) == ErrorCode::Success) {
+			return std::string{ value.data(), value.size() };
+		} else {
+			return "";
+		}
+	}
+
+	bool getObject(Value& object, const char* key, Value jsonObjectData) {
+		if (jsonObjectData[key].get(object) == ErrorCode::Success) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool getArray(Array& array, const char* key, Value jsonObjectData) {
+		if (jsonObjectData[key].get(array) == ErrorCode::Success) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	bool getArray(Array& array, Value jsonObjectData) {
+		if (jsonObjectData.get(array) == ErrorCode::Success) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	std::string getString(ObjectReturnDataJson jsonData, const char* key) {
+		std::string_view value{};
+		if (jsonData.didItSucceed && jsonData.object[key].get(value) == ErrorCode::Success) {
+			return static_cast<std::string>(value);
+		}
+		return static_cast<std::string>(value);
+	}
+
+	std::string getString(Value jsonData) {
+		std::string_view value{};
+		if (jsonData.get(value) == ErrorCode::Success) {
+			return std::string{ value.data(), value.size() };
+		} else {
+			return "";
+		}
+	}
+
+	ObjectReturnDataJson getObject(Value jsonData, const char* objectName) {
+		ObjectReturnDataJson value{};
+		if (jsonData[objectName].get(value.object) == ErrorCode::Success) {
+			value.didItSucceed = true;
+		}
+		return value;
+	}
+
+	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonData, const char* objectName) {
+		ObjectReturnDataJson value{};
+		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
+			value.didItSucceed = true;
+		}
+		return value;
+	}
+
+	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonData, uint64_t objectIndex) {
+		ObjectReturnDataJson value{};
+		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
+			value.didItSucceed = true;
+		}
+		return value;
+	}
+
+	ArrayReturnDataJson getArray(Value jsonData, const char* arrayName) {
+		ArrayReturnDataJson value{};
+		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
+			value.didItSucceed = true;
+		}
+		return value;
+	}
+
+	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonData, const char* arrayName) {
+		ArrayReturnDataJson value{};
+		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;

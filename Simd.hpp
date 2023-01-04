@@ -239,9 +239,9 @@ namespace Jsonifier {
 
 	inline SimdBase256 operator==(uint8_t other) {
 			return _mm256_cmpeq_epi8(this->value, _mm256_set1_epi8(other));
-		}
-
-		template<size_t amount> inline SimdBase256 shl() {
+		} 
+	
+	template	<size_t amount> inline SimdBase256 shl() {
 			SimdBase256 returnValueReal{};
 			//this->printBits("PRE LEFT SHIFT: ");
 			SimdBase256 returnValue{};
@@ -254,9 +254,9 @@ namespace Jsonifier {
 			//returnValueReal &= ~returnValue;
 			//returnValueReal.printBits("POST LEFT SHIFT: ");
 			return returnValueReal;
-		}
-
-		template<size_t amount> inline SimdBase256 shr() {
+		} 
+	
+	template	<size_t amount> inline SimdBase256 shr() {
 			//this->printBits("PRE RIGHT SHIFT: ");
 			SimdBase256 returnValue{};
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
@@ -350,9 +350,9 @@ namespace Jsonifier {
 		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[6]), 6);
 		returnValue = _mm256_insert_epi32(returnValue, _mm256_movemask_epi8(input00[7]), 7);
 		return returnValue;
-	}
-
-	template<size_t StepSize> struct StringBlockReader {
+	} 
+	
+	template	<size_t StepSize> struct StringBlockReader {
 	  public:
 		inline StringBlockReader(const uint8_t* _buf, size_t _len);
 		inline size_t getRemainder(char* dst) const;
@@ -371,30 +371,30 @@ namespace Jsonifier {
 	template<size_t StepSize>
 	inline StringBlockReader<StepSize>::StringBlockReader(const uint8_t* _buf, size_t _len)
 		: stringBuffer{ _buf }, length{ _len }, lengthMinusStep{ length < StepSize ? 0 : length - StepSize }, index{ 0 } {
-	}
-
-	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
+	} 
+	
+	template	<size_t StepSize> inline size_t StringBlockReader<StepSize>::blockIndex() {
 		return index;
-	}
-
-	template<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
+	} 
+	
+	template	<size_t StepSize> inline bool StringBlockReader<StepSize>::hasFullBlock() const {
 		return index < lengthMinusStep;
-	}
-
-	template<size_t StepSize> inline const char* StringBlockReader<StepSize>::fullBlock() const {
+	} 
+	
+	template	<size_t StepSize> inline const char* StringBlockReader<StepSize>::fullBlock() const {
 		return reinterpret_cast<const char*>(&stringBuffer[index]);
-	}
-
-	template<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(char* dst) const {
+	} 
+	
+	template	<size_t StepSize> inline size_t StringBlockReader<StepSize>::getRemainder(char* dst) const {
 		if (length == index) {
 			return 0;
 		}
 		std::memset(dst, 0x20, StepSize);
 		std::memcpy(dst, stringBuffer + index, length - index);
 		return length - index;
-	}
-
-	template<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
+	} 
+	
+	template	<size_t StepSize> inline void StringBlockReader<StepSize>::advance() {
 		index += StepSize;
 	}
 

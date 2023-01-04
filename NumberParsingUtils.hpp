@@ -520,8 +520,8 @@ namespace Jsonifier {
 		static inline bool parseFloatFallback(const uint8_t* ptr, double* outDouble) {
 			*outDouble = fromChars(reinterpret_cast<const uint8_t*>(ptr));
 			return !(*outDouble > (std::numeric_limits<double>::max)() || *outDouble < std::numeric_limits<double>::lowest());
-		}
-
+		} 
+	
 		template<typename TapeWriter> static inline ErrorCode slowFloatParsing(const uint8_t* src, TapeWriter writer) {
 			double d{};
 			if (parseFloatFallback(src, &d)) {
@@ -636,8 +636,8 @@ namespace Jsonifier {
 				return true;
 			}
 			return false;
-		}
-
+		} 
+	
 		template<typename TapeWriter>
 		static inline ErrorCode writeFloat(const uint8_t* const src, bool negative, uint64_t i, const uint8_t* startDigits, size_t digitCount,
 			int64_t exponent, TapeWriter& writer) {
@@ -662,8 +662,8 @@ namespace Jsonifier {
 			}
 			writer.appendDouble(std::move(d));
 			return ErrorCode::Success;
-		}
-
+		} 
+	
 		template<typename TapeWriter> static inline ErrorCode parseNumber(const uint8_t* src, TapeWriter& writer) {
 			bool negative = (*src == '-');
 			const uint8_t* p = src + uint8_t(negative);
@@ -716,8 +716,8 @@ namespace Jsonifier {
 				writer.appendS64(negative ? (~i + 1) : i);
 			}
 			return ErrorCode::Success;
-		}
-
+		} 
+	
 		template<typename NumberType> static inline NumberType parseNumber(const uint8_t* src) {
 			bool negative = (*src == '-');
 			const uint8_t* p = src + uint8_t(negative);

@@ -14,14 +14,14 @@ int64_t totalTime{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Object&& value){
-		this->TEST_VALUE_04 = value["TEST_VALUE_00"].get_double().value_unsafe();
-		this->TEST_VALUE_05 = value["TEST_VALUE_01"].get_bool().value_unsafe();
-		this->TEST_VALUE_06 = value["TEST_VALUE_02"].get_string().value_unsafe();
-		this->TEST_VALUE_07 = value["TEST_VALUE_03"].get_int64().value_unsafe();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get_double().value_unsafe();
-		this->TEST_VALUE_05 = value["TEST_VALUE_05"].get_bool().value_unsafe();
-		this->TEST_VALUE_06 = value["TEST_VALUE_06"].get_string().value_unsafe();
-		this->TEST_VALUE_07 = value["TEST_VALUE_07"].get_int64().value_unsafe();
+		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
+		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
+		this->TEST_VALUE_02 = Jsonifier ::getString(value, "TEST_VALUE_02");
+		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_04 = Jsonifier::getFloat(value, "TEST_VALUE_04");
+		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
+		this->TEST_VALUE_06 = Jsonifier ::getString(value, "TEST_VALUE_06");
+		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
 		std::cout << "CURRENT VALUE: " << this->TEST_VALUE_06 << std::endl;
 	};
 	double TEST_VALUE_00{};

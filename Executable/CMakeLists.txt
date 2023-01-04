@@ -3,6 +3,7 @@ add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
 	"../Jsonifier.cpp"
+	"../DataParsingFunctions.cpp"
 	"${PRODUCT_INFO}"
 )
 
