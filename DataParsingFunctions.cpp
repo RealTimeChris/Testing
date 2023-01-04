@@ -158,7 +158,6 @@ namespace Jsonifier {
 		}
 		return static_cast<std::string>(value);
 	}
-
 	std::string getString(simdjson::ondemand::value jsonData) {
 		std::string_view value{};
 		if (jsonData.get(value) == ErrorCode::Success) {
@@ -175,7 +174,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ObjectReturnData getObject(ObjectReturnData jsonData, const char* objectName) {
 		ObjectReturnData value{};
 		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
@@ -183,7 +181,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ObjectReturnData getObject(ArrayReturnData jsonData, uint64_t objectIndex) {
 		ObjectReturnData value{};
 		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
@@ -191,7 +188,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ArrayReturnData getArray(simdjson::ondemand::value jsonData, const char* arrayName) {
 		ArrayReturnData value{};
 		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
@@ -199,7 +195,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ArrayReturnData getArray(ObjectReturnData jsonData, const char* arrayName) {
 		ArrayReturnData value{};
 		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
@@ -207,7 +202,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	int64_t getInt64(Object jsonData, const char* key) {
 		int64_t value{};
 		if (jsonData[key].get(value) == ErrorCode::Success) {
@@ -374,7 +368,6 @@ namespace Jsonifier {
 		}
 		return static_cast<std::string>(value);
 	}
-
 	std::string getString(Value jsonData) {
 		std::string_view value{};
 		if (jsonData.get(value) == ErrorCode::Success) {
@@ -391,7 +384,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonData, const char* objectName) {
 		ObjectReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
@@ -399,7 +391,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonData, uint64_t objectIndex) {
 		ObjectReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
@@ -407,7 +398,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ArrayReturnDataJson getArray(Value jsonData, const char* arrayName) {
 		ArrayReturnDataJson value{};
 		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
@@ -415,7 +405,6 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonData, const char* arrayName) {
 		ArrayReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
@@ -423,5 +412,4 @@ namespace Jsonifier {
 		}
 		return value;
 	}
-
 };

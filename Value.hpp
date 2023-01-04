@@ -11,9 +11,8 @@ namespace Jsonifier {
 	  public:
 		inline EnumStringConverter(ErrorCode error) {
 			this->code = error;
-		} 
-
-	inline operator std::string() {
+		}
+		inline operator std::string() {
 			switch (this->code) {
 				case ErrorCode::Empty: {
 					return "Empty";
@@ -71,9 +70,8 @@ namespace Jsonifier {
 	  public:
 		inline ValueIterator() noexcept {
 			;
-		} 
-
-	inline void start_document() noexcept;
+		}
+		inline void start_document() noexcept;
 		inline ErrorCode skip_child() noexcept;
 		inline bool at_end() const noexcept;
 		inline bool at_start() const noexcept;
@@ -192,9 +190,8 @@ namespace Jsonifier {
 		inline Value() noexcept = default;
 		template<typename T> inline JsonifierResult<T> get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
-		} 
-	
-	template	<typename T> inline ErrorCode get(T& out) noexcept;
+		}
+		template<typename T> inline ErrorCode get(T& out) noexcept;
 		inline JsonifierResult<Array> get_array() noexcept;
 		inline JsonifierResult<Object> get_object() noexcept;
 		inline JsonifierResult<uint64_t> get_uint64() noexcept;
@@ -287,5 +284,4 @@ namespace Jsonifier {
 		inline JsonifierResult<int32_t> current_depth() const noexcept;
 		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
 	};
-
 }
