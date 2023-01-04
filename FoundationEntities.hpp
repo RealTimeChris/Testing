@@ -60,12 +60,12 @@ namespace Jsonifier {
 		inline TokenIterator(const TokenIterator& other) noexcept = default;
 		inline TokenIterator& operator=(const TokenIterator& other) noexcept = default;
 
-		inline const uint8_t* return_current_and_advance() noexcept;
+		inline const uint8_t* returnCurrentAndAdvance() noexcept;
 		inline uint32_t currentOffset() const noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
-		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
+		inline uint32_t peekLength(int32_t delta = 0) const noexcept;
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
-		inline uint32_t peek_length(uint32_t* position) const noexcept;
+		inline uint32_t peekLength(uint32_t* position) const noexcept;
 		inline uint32_t* position() const noexcept;
 		inline void setPosition(uint32_t* target_position) noexcept;
 		inline bool operator==(const TokenIterator& other) const noexcept;
@@ -88,7 +88,6 @@ namespace Jsonifier {
 		friend class Object;
 	};
 
-
 	class JsonIterator {
 	  protected:
 		TokenIterator token;
@@ -101,25 +100,22 @@ namespace Jsonifier {
 	  public:
 		inline JsonIterator(JsonIterator&& other) noexcept;
 		inline JsonIterator& operator=(JsonIterator&& other) noexcept;
-		inline bool isSingleToken() const noexcept;
 		inline ErrorCode skipChild(size_t parentDepth) noexcept;
-		inline bool at_root() const noexcept;
-		inline uint32_t* root_position() const noexcept;
-		inline void assert_at_document_depth() const noexcept;
-		inline void assert_at_root() const noexcept;
+		inline bool atRoot() const noexcept;
+		inline uint32_t* rootPosition() const noexcept;
+		inline bool isSingleToken() const noexcept;
+		inline void assertAtDocumentDepth() const noexcept;
+		inline void assertAtRoot() const noexcept;
 		inline bool atEnd() const noexcept;
 		inline bool isAlive() const noexcept;
 		inline void abandon() noexcept;
-		inline const uint8_t* return_current_and_advance() noexcept;
-		inline bool isSingleToken() const noexcept;
-		inline void assert_more_tokens(uint32_t required_tokens = 1) const noexcept;
-		inline void assert_valid_position(uint32_t* position) const noexcept;
+		inline const uint8_t* returnCurrentAndAdvance() noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
-		inline uint32_t peek_length(int32_t delta = 0) const noexcept;
+		inline uint32_t peekLength(int32_t delta = 0) const noexcept;
 		inline const uint8_t* unsafePointer() const noexcept;
 		inline const uint8_t* peek(uint32_t* position) const noexcept;
-		inline uint32_t peek_length(uint32_t* position) const noexcept;
-		inline const uint8_t* peek_last() const noexcept;
+		inline uint32_t peekLength(uint32_t* position) const noexcept;
+		inline const uint8_t* peekLast() const noexcept;
 		inline void ascendTo(size_t parentDepth) noexcept;
 		inline void descendTo(size_t childDepth) noexcept;
 		inline void descendTo(size_t childDepth, int32_t delta) noexcept;

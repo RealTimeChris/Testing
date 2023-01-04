@@ -1,6 +1,6 @@
 #pragma once
 
-#include "JsonValueBase.hpp"
+#include "FoundationEntities.hpp"
 #include "Value.hpp"
 
 namespace Jsonifier {

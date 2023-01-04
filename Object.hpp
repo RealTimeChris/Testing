@@ -1,6 +1,6 @@
 #pragma once
 
-#include "JsonValueBase.hpp"
+#include "FoundationEntities.hpp"
 #include "Field.hpp"
 
 namespace Jsonifier {
@@ -52,7 +52,7 @@ namespace Jsonifier {
 		static inline JsonifierResult<Object> started(ValueIterator& iterator) noexcept;
 		static inline Object resume(const ValueIterator& iterator) noexcept;
 
-		inline ErrorCode find_field_raw(const std::string_view key) noexcept;
+		inline ErrorCode findFieldRaw(const std::string_view key) noexcept;
 
 		ValueIterator iterator;
 

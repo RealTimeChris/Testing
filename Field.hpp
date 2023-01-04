@@ -1,6 +1,6 @@
 #pragma once
 
-#include "JsonValueBase.hpp"
+#include "FoundationEntities.hpp"
 #include "Value.hpp"
 
 namespace Jsonifier {
@@ -8,7 +8,7 @@ namespace Jsonifier {
 	class Field : public std::pair<RawJsonString, Value> {
 	  public:
 		inline Field() noexcept;
-		inline JsonifierResult<std::string_view> unescaped_key() noexcept;
+		inline JsonifierResult<std::string_view> unescapedKey() noexcept;
 		inline RawJsonString key() const noexcept;
 		inline Value& value() & noexcept;
 		inline Value value() && noexcept;
