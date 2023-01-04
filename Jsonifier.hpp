@@ -2458,7 +2458,7 @@ namespace Jsonifier {
 		jsonIterator->abandon();
 	}
 
-	inline int32_t ValueIterator::depth() const noexcept {
+	inline size_t ValueIterator::depth() const noexcept {
 		return currentDepth;
 	}
 
@@ -2736,6 +2736,7 @@ namespace Jsonifier {
 	}
 
 	inline const uint8_t* TokenIterator::return_current_and_advance() noexcept {
+		std::cout << "CURRENT INDEX: " << *this->currentPosition << ", THAT INDEXE'S VALUE: " << stringView[*currentPosition] << std::endl;
 		return &stringView[*(currentPosition++)];
 	}
 
