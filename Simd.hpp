@@ -266,9 +266,9 @@ namespace Jsonifier {
 			//returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
 			//returnValue.printBits("POST SHIFT 03: ");
 			//returnValueReal |= returnValue;
-			returnValue = _mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0);
+			returnValue = returnValue.bitAndNot(_mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0));
 			returnValue.printBits("MATCH BITS: ");
-			returnValue = returnValue.bitAndNot(returnValue);
+			//returnValue = returnValue.bitAndNot(returnValue);2
 			returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
@@ -279,19 +279,37 @@ namespace Jsonifier {
 			return newValues;
 		}
 
-		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString) {
+		inline SimdBase256 carrylessMultiplication(uint64_t& prevInString, size_t currentIndexIntoString) {
 			SimdBase128 allOnes{ '\xFF' };
-			const uint64_t inString00 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ prevInString;
+			const uint64_t inString00 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(0)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
 			prevInString = uint64_t(static_cast<int64_t>(inString00) >> 63);
-			const uint64_t inString01 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ prevInString;
+			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString00) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 64<< std::endl;
+			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 64 << std::endl;
+			const uint64_t inString01 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(1)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
 			prevInString = uint64_t(static_cast<int64_t>(inString01) >> 63);
-			const uint64_t inString02 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ prevInString;
+			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString01) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 128 << std::endl;
+			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 128 << std::endl;
+			const uint64_t inString02 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(2)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
 			prevInString = uint64_t(static_cast<int64_t>(inString02) >> 63);
-			const uint64_t inString03 = _mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ prevInString;
+			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString02) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 192 << std::endl;
+			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 192 << std::endl;
+			const uint64_t inString03 =
+				_mm_cvtsi128_si64(_mm_clmulepi64_si128(_mm_set_epi64x(0ULL, this->getInt64(3)), allOnes, 0)) ^ static_cast<int64_t>(prevInString);
+			std::cout << "PREV IN (POST) STRING: " << std::bitset<64>{ static_cast<uint64_t>(inString03) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 256 << std::endl;
 			prevInString = uint64_t(static_cast<int64_t>(inString03) >> 63);
-			//std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) } << std::endl;
+			std::cout << "PREV IN STRING: " << std::bitset<64>{ static_cast<uint64_t>(prevInString) }
+					  << ", FOR INDEX: " << currentIndexIntoString + 256 << std::endl;
 			return SimdBase256{ inString00, inString01, inString02, inString03 };
-			//.printBits("PREVIOUS IN STRING: ");
 		}
 
 		inline bool collectCarries(SimdBase256 other1, SimdBase256& result) {
@@ -501,11 +519,14 @@ namespace Jsonifier {
 			return convertSimdBytesToBits(quotesReal);
 		}
 
-		inline SimdBase256 collectFinalStructurals() {
-			this->backslash = this->collectBackslashes();
-			this->collectEscapedCharacters();
+		inline void collectStringCharacters() {
 			this->quote = this->collectQuotes().bitAndNot(this->escaped);
-			this->inString = this->quote.carrylessMultiplication(this->prevInString);
+			this->inString = this->quote.carrylessMultiplication(this->prevInString, this->currentIndexIntoString);
+		}
+
+		inline SimdBase256 collectFinalStructurals() {
+			this->collectEscapedCharacters();
+			this->collectStringCharacters();
 			this->collectJsonCharacters();
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			this->followsNonQuoteScalar = follows(nonQuoteScalar, this->prevInScalar);
@@ -528,6 +549,7 @@ namespace Jsonifier {
 			this->structurals = this->collectFinalStructurals();
 			this->structurals.printBits("FINAL BITS: ");
 			std::cout << "PREV ESCAPED: " << std::boolalpha << this->prevEscaped << std::endl;
+			std::cout << "PREV IN STRING: " << std::bitset<64>{ this->prevInString } << ", FOR INDEX: " << currentIndexIntoString + 256 << std::endl;
 		}
 
 	  protected:
