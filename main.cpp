@@ -5,7 +5,8 @@
 #include "DataParsingFunctions.hpp"
 #include "Jsonifier.hpp"
 #include <simdjson.h>
-#include <fstream>	Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+#include <fstream>	
+Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 int64_t iterationCount{};
 int64_t totalTime{};
 

@@ -266,9 +266,10 @@ namespace Jsonifier {
 			//returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
 			//returnValue.printBits("POST SHIFT 03: ");
 			//returnValueReal |= returnValue;
-			returnValue = returnValue.bitAndNot(_mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0));
-			returnValue.printBits("MATCH BITS: ");
+			SimdBase256 returnValueNew = _mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0);
+			returnValueNew.printBits("MATCH BITS: ");
 			//returnValue = returnValue.bitAndNot(returnValue);2
+			returnValue &= returnValueNew;
 			returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
