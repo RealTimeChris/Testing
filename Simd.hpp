@@ -198,21 +198,6 @@ namespace Jsonifier {
 			}
 		}
 
-		void setBit(size_t bitIndex, bool setTheBit) {
-			int64_t value{ this->getInt64(bitIndex / 64) };
-			if (setTheBit) {
-				_bittestandreset64(&value, bitIndex % 64);
-			} else {
-				_bittestandset64(&value, bitIndex % 64);
-			}
-			this->insertInt64(value, bitIndex / 64);
-		}
-
-		bool getBit(size_t bitIndex) {
-			int64_t value{ this->getInt64(bitIndex / 64) };
-			return _bittest64(&value, (bitIndex % 64));
-		}
-
 		inline operator __m256i&() {
 			return this->value;
 		}
@@ -299,7 +284,6 @@ namespace Jsonifier {
 			returnValue = _mm256_permute4x64_epi64(*this, 0b10010011);
 			returnValue = _mm256_srli_epi64(returnValue, 64 - (amount % 64));
 			returnValueReal |= returnValue;
-			returnValue = _mm256_set_epi64x(0, 0, 0, (1ull << amount) - (1ull << 0));
 			return returnValueReal;
 		}
 
@@ -559,19 +543,12 @@ namespace Jsonifier {
 			auto scalar = ~(this->op | this->whitespace);
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
 			auto prevInScalarNew = this->prevInScalar;
-			SimdBase256 shiftMask{ _mm256_set_epi64x((1ull << 64) - (1ull << 63), 0, 0, 0) };
-			//nonQuoteScalar.printBits("NON QUOTE SCALAR: ");
-			//shiftMask.printBits("SHIFT MASK: ");
+			SimdBase256 shiftMask{ _mm256_set_epi64x(0 - (1ll << 63), 0, 0, 0) };
 			this->prevInScalar = nonQuoteScalar & shiftMask;
-			//prevInScalar.printBits("PREV IN SCALAR 01: ");
 			this->prevInScalar = _mm256_permute4x64_epi64(this->prevInScalar, 0b10010011);
-			//prevInScalar.printBits("PREV IN SCALAR 02: ");
 			this->prevInScalar = _mm256_srli_epi64(this->prevInScalar, 63);
-			//prevInScalar.printBits("PREV IN SCALAR 03: ");
 			auto followsNonQuoteScalar = nonQuoteScalar.shl<1>();
-			//prevInScalarNew.printBits("PREV IN SCALAR NEW: ");
 			followsNonQuoteScalar = prevInScalarNew.copyBits(followsNonQuoteScalar);
-			//followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
 			auto potentialScalarStart = scalar.bitAndNot(followsNonQuoteScalar);
 			auto stringTail = this->inString ^ this->quote;
 			auto potentialStructuralStart = this->op | potentialScalarStart;
