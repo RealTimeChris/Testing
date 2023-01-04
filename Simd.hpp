@@ -1,6 +1,7 @@
 #pragma once
 
 #include <immintrin.h>
+#include <intrin.h>
 
 namespace Jsonifier {
 
@@ -188,6 +189,21 @@ namespace Jsonifier {
 			}
 		}
 
+		void setBit(size_t bitIndex) {
+			int64_t value{ this->getInt64(bitIndex / 64) };
+			std::cout << "THE BITS PRE SETTING: " << std::bitset<64>{ static_cast<uint64_t>(value) } << std::endl;
+			_bittestandreset64(&value, bitIndex % 64);
+			std::cout << "THE BITS POST SETTING: " << std::bitset<64>{ static_cast<uint64_t>(value) } << std::endl;
+			this->printBits("PRE-SETTING THE BIT: ");
+			this->insertInt64(value, bitIndex / 64);
+			this->printBits("POST-SETTING THE BIT: ");
+		}
+
+		bool getBit(size_t bitIndex) {
+			int64_t value{ this->getInt64(bitIndex / 64) };
+			return _bittest64(&value, (bitIndex % 64));
+		}
+
 		inline operator __m256i&() {
 			return this->value;
 		}
@@ -286,18 +302,23 @@ namespace Jsonifier {
 			SimdBase256 returnValue{};
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
 			//returnValue.printBits("POST SHIFT 01: ");
-			//returnValue = _mm256_permute4x64_epi64(*this, 0b00111001);
-			//returnValue.printBits("POST SHIFT 02: ");
-			//returnValue = _mm256_slli_epi64(returnValue, 64 - (amount % 64));
-			//returnValue.printBits("POST SHIFT 03: ");
+			SimdBase256 returnValueNewer = _mm256_permute4x64_epi64(*this, 0b00111001);
+			returnValueNewer.printBits("POST SHIFT 02: ");
+			returnValueNewer = _mm256_slli_epi64(returnValueNewer, 64 - (amount % 64));
+			returnValueNewer.printBits("POST SHIFT 03: ");
+			returnValue.printBits("POST SHIFT 04: ");
 			//returnValueReal |= returnValue;
-			SimdBase256 returnValueNew = _mm256_set_epi64x((1ull << 63) - (1ull << amount), (1ull << 63) - (1ull << amount),
-				(1ull << 63) - (1ull << amount), (1ull << 63) - (1ull << amount));
-			returnValueNew.printBits("MATCH BITS: ");
+			SimdBase256 returnValueNew = _mm256_set_epi64x((1ull << amount) - (1ull << 0), (1ull << amount) - (1ull << 0),
+				(1ull << amount) - (1ull << 0),
+				(1ull << amount) - (1ull << 0));
+			(~returnValueNew).printBits("MATCH BITS: ");
+			returnValueNewer &= ~returnValueNew;
+			returnValueNewer |= (returnValue & ~returnValueNew).printBits("POST SHIFT 05: ");
+			returnValueNewer.printBits("POST SHIFT 06: ");
 			//returnValue = returnValue.bitAndNot(returnValue);2
-			returnValue &= returnValueNew;
-			returnValue.printBits("POST RIGHT SHIFT: ");
-			return returnValue;
+			//returnValue &= ~returnValueNew;
+			//returnValue.printBits("POST RIGHT SHIFT: ");
+			return returnValueNewer;
 		}
 
 		inline SimdBase256 operator~() {
@@ -470,14 +491,6 @@ namespace Jsonifier {
 			return;
 		}
 
-		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
-			SimdBase256 result = match.shl<1>() | overflow;
-			match.printBits("MATCH PRE SHIFT: ");
-			overflow = match.shr<63>();
-			overflow.printBits("MATCH POST SHIFT: ");
-			return result;
-		}
-
 		inline void getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
 			for (size_t x = 0; x < 4; ++x) {
 				auto newValue = this->structurals.getUint64(x);
@@ -521,6 +534,7 @@ namespace Jsonifier {
 		}
 
 		inline void collectEscapedCharacters() {
+			this->backslash = this->collectBackslashes();
 			backslash &= SimdBase256{ bool{ !this->prevEscaped } };
 			SimdBase256 followsEscape = this->backslash.shl<1>() | SimdBase256{ this->prevEscaped };
 			SimdBase256 evenBits{ _mm256_set1_epi8(0b01010101) };
@@ -557,15 +571,23 @@ namespace Jsonifier {
 			this->collectJsonCharacters();
 			auto scalar = ~(op | whitespace);
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
-			this->followsNonQuoteScalar = follows(nonQuoteScalar, this->prevInScalar);
+			nonQuoteScalar.printBits("NONQUOTE SCALAR BITS: ");
+			auto prevInScalarNew = this->prevInScalar;
+			if (nonQuoteScalar.getBit(255)) {
+				this->prevInScalar = true;
+			} else {
+				this->prevInScalar = false;
+			}
+			this->followsNonQuoteScalar = nonQuoteScalar.shl<1>();
+			if (prevInScalarNew) {
+				this->followsNonQuoteScalar.setBit(0);
+			}
+			this->followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
 			auto potentialScalarStart = scalar & ~followsNonQuoteScalar;
 			auto stringTail = inString ^ quote;
 			auto potentialStructuralStart = op | potentialScalarStart;
-			auto structuralStart = potentialStructuralStart & ~stringTail;
-			structuralStart.printBits("STRUCTURAL START: ");
-			this->followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
-			this->op.printBits("OP BITS: ");
-			potentialStructuralStart.printBits("potentialStructuralStart BITS: ");
+			auto structuralStart = (potentialStructuralStart.bitAndNot(stringTail)) | (quote & inString);
+			scalar.printBits("SCALAR BITS: ");
 			return structuralStart;
 		}
 
@@ -587,7 +609,6 @@ namespace Jsonifier {
 	  protected:
 		SimdBase256 followsNonQuoteScalar{};
 		size_t currentIndexIntoString{};
-		SimdBase256 prevInScalar{};
 		SimdBase256 structurals{};
 		SimdBase256 whitespace{};
 		uint64_t prevInString{};
@@ -596,6 +617,7 @@ namespace Jsonifier {
 		SimdBase256 inString{};
 		SimdBase256 escaped{};
 		SimdBase256 quote{};
+		bool prevInScalar{};
 		bool prevEscaped{};
 		SimdBase256 op{};
 	};
