@@ -13,8 +13,8 @@ namespace Jsonifier {
 		inline Document& operator=(const Document& other) noexcept = delete;
 		inline Document& operator=(Document&& other) noexcept = default;
 
-		inline JsonifierResult<Array> get_array() & noexcept;
-		inline JsonifierResult<Object> get_object() & noexcept;
+		inline JsonifierResult<Array> get_array() noexcept;
+		inline JsonifierResult<Object> get_object() noexcept;
 		inline JsonifierResult<uint64_t> get_uint64() noexcept;
 		inline JsonifierResult<uint64_t> get_uint64_in_string() noexcept;
 		inline JsonifierResult<int64_t> get_int64() noexcept;
@@ -26,25 +26,21 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> get_bool() noexcept;
 		inline JsonifierResult<Value> get_value() noexcept;
 		inline JsonifierResult<bool> is_null() noexcept;
-		template<typename T> inline JsonifierResult<T> get() & noexcept {
+		template<typename T> inline JsonifierResult<T> get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the	Jsonifierlibrary.");
 		}
-		template<typename T> inline JsonifierResult<T> get() && noexcept {
-			static_assert(!sizeof(T), "The get method with given type is not implemented by the	Jsonifierlibrary.");
-		}
-		template<typename T> inline ErrorCode get(T& out) & noexcept;
-		template<typename T> inline ErrorCode get(T& out) && noexcept;
-		inline JsonifierResult<size_t> count_elements() & noexcept;
-		inline JsonifierResult<size_t> count_fields() & noexcept;
-		inline JsonifierResult<Value> at(size_t index) & noexcept;
-		inline JsonifierResult<ArrayIterator> begin() & noexcept;
-		inline JsonifierResult<ArrayIterator> end() & noexcept;
-		inline JsonifierResult<Value> find_field(std::string_view key) & noexcept;
-		inline JsonifierResult<Value> find_field(const char* key) & noexcept;
-		inline JsonifierResult<Value> find_field_unordered(std::string_view key) & noexcept;
-		inline JsonifierResult<Value> find_field_unordered(const char* key) & noexcept;
-		inline JsonifierResult<Value> operator[](std::string_view key) & noexcept;
-		inline JsonifierResult<Value> operator[](const char* key) & noexcept;
+		template<typename T> inline ErrorCode get(T& out) noexcept;
+		inline JsonifierResult<size_t> count_elements() noexcept;
+		inline JsonifierResult<size_t> count_fields() noexcept;
+		inline JsonifierResult<Value> at(size_t index) noexcept;
+		inline JsonifierResult<ArrayIterator> begin() noexcept;
+		inline JsonifierResult<ArrayIterator> end() noexcept;
+		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
+		inline JsonifierResult<Value> find_field(const char* key) noexcept;
+		inline JsonifierResult<Value> find_field_unordered(std::string_view key) noexcept;
+		inline JsonifierResult<Value> find_field_unordered(const char* key) noexcept;
+		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
+		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
 		inline JsonifierResult<bool> is_scalar() noexcept;
 		inline bool is_negative() noexcept;

@@ -10,8 +10,7 @@ namespace Jsonifier {
 		inline Field() noexcept;
 		inline JsonifierResult<std::string_view> unescaped_key() noexcept;
 		inline RawJsonString key() const noexcept;
-		inline Value& value() & noexcept;
-		inline Value value() && noexcept;
+		inline Value value() noexcept;
 
 	  protected:
 		inline Field(RawJsonString key, Value&& Value) noexcept;

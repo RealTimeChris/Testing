@@ -202,10 +202,10 @@ namespace Jsonifier {
 		inline JsonifierResult<RawJsonString> get_raw_json_string() noexcept;
 		inline JsonifierResult<bool> get_bool() noexcept;
 		inline JsonifierResult<bool> is_null() noexcept;
-		inline JsonifierResult<ArrayIterator> begin() & noexcept;
-		inline JsonifierResult<ArrayIterator> end() & noexcept;
-		inline JsonifierResult<size_t> count_elements() & noexcept;
-		inline JsonifierResult<size_t> count_fields() & noexcept;
+		inline JsonifierResult<ArrayIterator> begin() noexcept;
+		inline JsonifierResult<ArrayIterator> end() noexcept;
+		inline JsonifierResult<size_t> count_elements() noexcept;
+		inline JsonifierResult<size_t> count_fields() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
 		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
 		inline JsonifierResult<Value> find_field(const char* key) noexcept;
@@ -262,11 +262,11 @@ namespace Jsonifier {
 		template<typename T> inline JsonifierResult<T> get() noexcept;
 
 		template<typename T> inline ErrorCode get(T& out) noexcept;
-		inline JsonifierResult<size_t> count_elements() & noexcept;
-		inline JsonifierResult<size_t> count_fields() & noexcept;
+		inline JsonifierResult<size_t> count_elements() noexcept;
+		inline JsonifierResult<size_t> count_fields() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
-		inline JsonifierResult<ArrayIterator> begin() & noexcept;
-		inline JsonifierResult<ArrayIterator> end() & noexcept;
+		inline JsonifierResult<ArrayIterator> begin() noexcept;
+		inline JsonifierResult<ArrayIterator> end() noexcept;
 		inline JsonifierResult<Value> find_field(std::string_view key) noexcept;
 		inline JsonifierResult<Value> find_field(const char* key) noexcept;
 		inline JsonifierResult<Value> find_field_unordered(std::string_view key) noexcept;

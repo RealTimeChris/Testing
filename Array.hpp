@@ -27,9 +27,9 @@ namespace Jsonifier {
 		inline Array() noexcept = default;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<size_t> count_elements() & noexcept;
-		inline JsonifierResult<bool> is_empty() & noexcept;
-		inline JsonifierResult<bool> reset() & noexcept;
+		inline JsonifierResult<size_t> count_elements() noexcept;
+		inline JsonifierResult<bool> is_empty() noexcept;
+		inline JsonifierResult<bool> reset() noexcept;
 		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
 		inline JsonifierResult<std::string_view> raw_json() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
@@ -68,8 +68,8 @@ namespace Jsonifier {
 
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<size_t> count_elements() & noexcept;
-		inline JsonifierResult<bool> is_empty() & noexcept;
-		inline JsonifierResult<bool> reset() & noexcept;
+		inline JsonifierResult<size_t> count_elements() noexcept;
+		inline JsonifierResult<bool> is_empty() noexcept;
+		inline JsonifierResult<bool> reset() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
 		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;	};	}

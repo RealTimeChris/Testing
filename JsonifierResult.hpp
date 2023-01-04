@@ -10,19 +10,19 @@ namespace Jsonifier {
 		inline JsonifierResultBase(ErrorCode error) noexcept;
 		inline JsonifierResultBase(T&& value) noexcept;
 		inline JsonifierResultBase(T&& value, ErrorCode error) noexcept;
-		inline void tie(T& value, ErrorCode& error) && noexcept;
-		inline ErrorCode get(T& value) && noexcept;
+		inline void tie(T& value, ErrorCode& error) noexcept;
+		inline ErrorCode get(T& value) noexcept;
 		inline ErrorCode error() const noexcept;
-		inline const T& value_unsafe() const& noexcept;
-		inline T&& value_unsafe() && noexcept;	};
+		inline const T& value_unsafe() const noexcept;
+		inline T&& value_unsafe() noexcept;	};
 
 	template<typename T> struct JsonifierResult : public JsonifierResultBase<T> {
 		inline JsonifierResult() noexcept;
 		inline JsonifierResult(T&& value) noexcept;
 		inline JsonifierResult(ErrorCode ErrorCode) noexcept;
 		inline JsonifierResult(T&& value, ErrorCode error) noexcept;
-		inline void tie(T& value, ErrorCode& error) && noexcept;
-		inline ErrorCode get(T& value) && noexcept;
+		inline void tie(T& value, ErrorCode& error) noexcept;
+		inline ErrorCode get(T& value) noexcept;
 		inline ErrorCode error() const noexcept;
-		inline const T& value_unsafe() const& noexcept;
-		inline T&& value_unsafe() && noexcept;	};	}
+		inline const T& value_unsafe() const noexcept;
+		inline T&& value_unsafe() noexcept;	};	}
