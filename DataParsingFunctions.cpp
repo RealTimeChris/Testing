@@ -322,7 +322,7 @@ namespace Jsonifier {
 	std::string getString(Object jsonData, const char* key) {
 		std::string_view value{};
 		if (jsonData[key].get(value) == ErrorCode::Success) {
-			return std::string{ value.data(), value.size() };
+			return std::string{ value };
 		} else {
 			return "";
 		}
@@ -331,7 +331,7 @@ namespace Jsonifier {
 	std::string getString(Value jsonData, const char* key) {
 		std::string_view value{};
 		if (jsonData[key].get(value) == ErrorCode::Success) {
-			return std::string{ value.data(), value.size() };
+			return std::string{ value };
 		} else {
 			return "";
 		}
