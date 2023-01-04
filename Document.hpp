@@ -36,10 +36,6 @@ namespace Jsonifier {
 		inline JsonifierResult<Value> at(size_t index) noexcept;
 		inline JsonifierResult<ArrayIterator> begin() noexcept;
 		inline JsonifierResult<ArrayIterator> end() noexcept;
-		inline JsonifierResult<Value> findField(std::string_view key) noexcept;
-		inline JsonifierResult<Value> findField(const char* key) noexcept;
-		inline JsonifierResult<Value> findFieldUnordered(std::string_view key) noexcept;
-		inline JsonifierResult<Value> findFieldUnordered(const char* key) noexcept;
 		inline JsonifierResult<Value> operator[](std::string_view key) noexcept;
 		inline JsonifierResult<Value> operator[](const char* key) noexcept;
 		inline JsonifierResult<JsonType> type() noexcept;
