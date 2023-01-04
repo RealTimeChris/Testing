@@ -155,13 +155,13 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 5; ++x) {
-			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValue);
+		for (size_t x = 0; x < 18; ++x) {
+			serializer["TEST_VALUE_11"]["d"].emplaceBack(serializer);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
-		//std::string stringNew{ serializer.operator std::string&&() };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
+		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
