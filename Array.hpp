@@ -20,7 +20,8 @@ namespace Jsonifier {
 
 		friend class Array;
 		friend class Value;
-		friend struct JsonifierResult<ArrayIterator>;	};
+		friend struct JsonifierResult<ArrayIterator>;
+	};
 
 	class Array {
 	  public:
@@ -47,7 +48,8 @@ namespace Jsonifier {
 		friend class Document;
 		friend struct JsonifierResult<Value>;
 		friend struct JsonifierResult<Array>;
-		friend class ArrayIterator;	};
+		friend class ArrayIterator;
+	};
 
 	template<> struct JsonifierResult<ArrayIterator> : public JsonifierResultBase<ArrayIterator> {
 	  public:
@@ -58,7 +60,8 @@ namespace Jsonifier {
 		inline JsonifierResult<Value> operator*() noexcept;
 		inline bool operator==(const JsonifierResult<ArrayIterator>&) const noexcept;
 		inline bool operator!=(const JsonifierResult<ArrayIterator>&) const noexcept;
-		inline JsonifierResult<ArrayIterator>& operator++() noexcept;	};
+		inline JsonifierResult<ArrayIterator>& operator++() noexcept;
+	};
 
 	template<> struct JsonifierResult<Array> : public JsonifierResultBase<Array> {
 	  public:
@@ -72,4 +75,6 @@ namespace Jsonifier {
 		inline JsonifierResult<bool> is_empty() noexcept;
 		inline JsonifierResult<bool> reset() noexcept;
 		inline JsonifierResult<Value> at(size_t index) noexcept;
-		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;	};	}
+		inline JsonifierResult<Value> at_pointer(std::string_view json_pointer) noexcept;
+	};
+}

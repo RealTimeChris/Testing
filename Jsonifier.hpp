@@ -1452,15 +1452,15 @@ namespace Jsonifier {
 		return get_value();
 	}
 
-	template<> inline JsonifierResult<double> Document::get() noexcept{
+	template<> inline JsonifierResult<double> Document::get() noexcept {
 		return std::forward<Document>(*this).get_double();
 	}
 
-	template<> inline JsonifierResult<int64_t> Document::get() noexcept{
+	template<> inline JsonifierResult<int64_t> Document::get() noexcept {
 		return std::forward<Document>(*this).get_int64();
 	}
 
-	template<> inline JsonifierResult<bool> Document::get() noexcept{
+	template<> inline JsonifierResult<bool> Document::get() noexcept {
 		return std::forward<Document>(*this).get_bool();
 	}
 
@@ -1805,14 +1805,14 @@ namespace Jsonifier {
 		return iterator.reset_array();
 	}
 
-	template<typename T> inline void JsonifierResultBase<T>::tie(T& value, ErrorCode& error) noexcept{
+	template<typename T> inline void JsonifierResultBase<T>::tie(T& value, ErrorCode& error) noexcept {
 		error = this->second;
 		if (!error) {
 			value = std::forward<JsonifierResultBase<T>>(*this).first;
 		}
 	}
 
-	template<typename T> inline ErrorCode JsonifierResultBase<T>::get(T& value) noexcept{
+	template<typename T> inline ErrorCode JsonifierResultBase<T>::get(T& value) noexcept {
 		ErrorCode error;
 		std::forward<JsonifierResultBase<T>>(*this).tie(value, error);
 		return error;
@@ -1826,7 +1826,7 @@ namespace Jsonifier {
 		return this->first;
 	}
 
-	template<typename T> inline T&& JsonifierResultBase<T>::value_unsafe() noexcept{
+	template<typename T> inline T&& JsonifierResultBase<T>::value_unsafe() noexcept {
 		return std::forward<T>(this->first);
 	}
 
@@ -1844,11 +1844,11 @@ namespace Jsonifier {
 	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase() noexcept : JsonifierResultBase(T{}, Uninitialized) {
 	}
 
-	template<typename T> inline void JsonifierResult<T>::tie(T& value, ErrorCode& error) noexcept{
+	template<typename T> inline void JsonifierResult<T>::tie(T& value, ErrorCode& error) noexcept {
 		std::forward<JsonifierResultBase<T>>(*this).tie(value, error);
 	}
 
-	template<typename T> inline ErrorCode JsonifierResult<T>::get(T& value) noexcept{
+	template<typename T> inline ErrorCode JsonifierResult<T>::get(T& value) noexcept {
 		return std::forward<JsonifierResultBase<T>>(*this).get(value);
 	}
 
@@ -1860,7 +1860,7 @@ namespace Jsonifier {
 		return JsonifierResultBase<T>::value_unsafe();
 	}
 
-	template<typename T> inline T&& JsonifierResult<T>::value_unsafe() noexcept{
+	template<typename T> inline T&& JsonifierResult<T>::value_unsafe() noexcept {
 		return std::forward<JsonifierResultBase<T>>(*this).value_unsafe();
 	}
 
@@ -1906,7 +1906,7 @@ namespace Jsonifier {
 		return first;
 	}
 
-	inline Value Field::value() noexcept{
+	inline Value Field::value() noexcept {
 		return std::forward<Field>(*this).second;
 	}
 
@@ -1919,7 +1919,7 @@ namespace Jsonifier {
 		return Value(iterator.child());
 	}
 
-	inline JsonifierResult<Value> Object::operator[](std::string_view key) noexcept{
+	inline JsonifierResult<Value> Object::operator[](std::string_view key) noexcept {
 		return std::forward<Object>(*this).find_field_unordered(key);
 	}
 
@@ -3105,7 +3105,7 @@ namespace Jsonifier {
 		return first.end();
 	}
 
-	inline JsonifierResult<Value> JsonifierResult<Object>::find_field_unordered(std::string_view key) noexcept{
+	inline JsonifierResult<Value> JsonifierResult<Object>::find_field_unordered(std::string_view key) noexcept {
 		if (error()) {
 			return error();
 		}
@@ -3458,13 +3458,9 @@ namespace Jsonifier {
 		return answer;
 	}
 
-	inline JsonifierResult<Array>::JsonifierResult(Array&& value) noexcept : JsonifierResultBase<Array>(std::forward<Array>(value)) {
-	}
+	inline JsonifierResult<Array>::JsonifierResult(Array&& value) noexcept : JsonifierResultBase<Array>(std::forward<Array>(value)){};
 
-	inline JsonifierResult<Array>::JsonifierResult(ErrorCode error) noexcept
-
-		: JsonifierResultBase<Array>(error) {
-	}
+	inline JsonifierResult<Array>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<Array>(error){};
 
 	inline JsonifierResult<ArrayIterator> JsonifierResult<Array>::begin() noexcept {
 		if (error()) {

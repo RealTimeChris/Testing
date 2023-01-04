@@ -36,11 +36,13 @@ namespace Jsonifier {
 
 	struct ObjectReturnDataJson {
 		Object object{};
-		bool didItSucceed{ false	};	};
+		bool didItSucceed{ false };
+	};
 
 	struct ArrayReturnDataJson {
 		Array arrayValue{};
-		bool didItSucceed{ false	};	};
+		bool didItSucceed{ false };
+	};
 
 	int64_t getInt64(Object jsonData, const char* key);
 
@@ -86,11 +88,13 @@ namespace Jsonifier {
 
 	struct ObjectReturnData {
 		simdjson::ondemand::value object{};
-		bool didItSucceed{ false	};	};
+		bool didItSucceed{ false };
+	};
 
 	struct ArrayReturnData {
 		simdjson::ondemand::array arrayValue{};
-		bool didItSucceed{ false	};	};
+		bool didItSucceed{ false };
+	};
 
 	int64_t getInt64(simdjson::ondemand::value jsonData, const char* key);
 
@@ -132,5 +136,6 @@ namespace Jsonifier {
 
 	ArrayReturnData getArray(simdjson::ondemand::value jsonObjectData, const char* arrayName);
 
-	ArrayReturnData getArray(ObjectReturnData jsonObjectData, const char* arrayName);	};
+	ArrayReturnData getArray(ObjectReturnData jsonObjectData, const char* arrayName);
+};
 #endif
