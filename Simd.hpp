@@ -573,23 +573,16 @@ namespace Jsonifier {
 			this->collectEscapedCharacters();
 			this->collectStringCharacters();
 			this->collectJsonCharacters();
-			auto scalar = ~(op | whitespace);
+			auto scalar = ~(this->op | this->whitespace);
 			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
-			nonQuoteScalar.printBits("NONQUOTE SCALAR BITS: ");
 			auto prevInScalarNew = this->prevInScalar;
-			if (nonQuoteScalar.getBit(0)) {
-				this->prevInScalar = true;
-			} else {
-				this->prevInScalar = false;
-			}
+			this->prevInScalar = !nonQuoteScalar.getBit(255);
 			this->followsNonQuoteScalar = nonQuoteScalar.shl<1>();
 			this->followsNonQuoteScalar.setBit(0, prevInScalarNew);
-			this->followsNonQuoteScalar.printBits("FOLLOWS NONQUOTE SCALAR: ");
-			auto potentialScalarStart = scalar & ~followsNonQuoteScalar;
-			auto stringTail = inString ^ quote;
-			auto potentialStructuralStart = op | potentialScalarStart;
-			auto structuralStart = (potentialStructuralStart.bitAndNot(stringTail)) | (quote & inString);
-			scalar.printBits("SCALAR BITS: ");
+			auto potentialScalarStart = scalar.bitAndNot(this->followsNonQuoteScalar);
+			auto stringTail = this->inString ^ this->quote;
+			auto potentialStructuralStart = this->op | potentialScalarStart;
+			auto structuralStart = (potentialStructuralStart.bitAndNot(stringTail));
 			return structuralStart;
 		}
 
