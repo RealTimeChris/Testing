@@ -1317,10 +1317,10 @@ namespace Jsonifier {
 	Document JsonifierCore::parseJson(std::string& string) {
 		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		//std::cout << "CURRENT TAPE: ";
-		//for (size_t x = 0; x < this->getTapeLength(); ++x) {
-		//std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
-		//<< std::endl;
-		//}
+		for (size_t x = 0; x < this->getTapeLength(); ++x) {
+			std::cout << "THE INDEX: " << this->structuralIndexes[x] << " THE INDEX'S VALUE: " << this->stringView[this->structuralIndexes[x]]
+					  << std::endl;
+		}
 		return std::forward<Document>(this->getDocument());
 	}
 

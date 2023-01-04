@@ -268,7 +268,7 @@ namespace Jsonifier {
 			//returnValueReal |= returnValue;
 			returnValue = _mm256_set_epi64x((1ll << 63) - (1ll << 63 - amount), 0, 0, 0);
 			returnValue.printBits("MATCH BITS: ");
-			returnValue = returnValue & ~returnValue;
+			returnValue = returnValue.bitAndNot(returnValue);
 			returnValue.printBits("POST RIGHT SHIFT: ");
 			return returnValue;
 		}
@@ -527,21 +527,22 @@ namespace Jsonifier {
 			this->packStringIntoValue(&this->values[7], valueNew + 224);
 			this->structurals = this->collectFinalStructurals();
 			this->structurals.printBits("FINAL BITS: ");
+			std::cout << "PREV ESCAPED: " << std::boolalpha << this->prevEscaped << std::endl;
 		}
 
 	  protected:
-		SimdBase256 op{};
+		SimdBase256 followsNonQuoteScalar{};
+		size_t currentIndexIntoString{};
+		SimdBase256 prevInScalar{};
+		SimdBase256 structurals{};
 		SimdBase256 whitespace{};
+		uint64_t prevInString{};
+		SimdBase256 values[8]{};
 		SimdBase256 backslash{};
+		SimdBase256 inString{};
 		SimdBase256 escaped{};
 		SimdBase256 quote{};
 		bool prevEscaped{};
-		SimdBase256 inString{};
-		SimdBase256 followsNonQuoteScalar{};
-		size_t currentIndexIntoString{};
-		uint64_t prevInString{};
-		SimdBase256 prevInScalar{};
-		SimdBase256 structurals{};
-		SimdBase256 values[8]{};
+		SimdBase256 op{};
 	};
 }
