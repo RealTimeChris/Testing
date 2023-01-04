@@ -282,11 +282,6 @@ namespace Jsonifier {
 		}
 
 		template<size_t amount> inline SimdBase256 shr() {
-			uint64_t values[4]{};
-			values[0] = this->getUint64(0);
-			values[1] = this->getUint64(1);
-			values[2] = this->getUint64(2);
-			values[3] = this->getUint64(3);
 			this->printBits("PRE RIGHT SHIFT: ");
 			SimdBase256 returnValue{};
 			returnValue = _mm256_srli_epi64(*this, (amount % 64));
@@ -477,9 +472,9 @@ namespace Jsonifier {
 
 		inline SimdBase256 follows(SimdBase256 match, SimdBase256& overflow) {
 			SimdBase256 result = match.shl<1>() | overflow;
-			//match.printBits("MATCH PRE SHIFT: ");
+			match.printBits("MATCH PRE SHIFT: ");
 			overflow = match.shr<63>();
-			//overflow.printBits("MATCH POST SHIFT: ");
+			overflow.printBits("MATCH POST SHIFT: ");
 			return result;
 		}
 
