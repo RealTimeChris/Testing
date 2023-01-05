@@ -10,7 +10,7 @@
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Value&& value) {
-		this->TEST_VALUE_03 = value["TEST_VALUE_07"];
+		
 		this->TEST_VALUE_00 = value["TEST_VALUE_00"];
 		this->TEST_VALUE_01 = value["TEST_VALUE_01"];
 		this->TEST_VALUE_02 = static_cast<std::string_view>(value["TEST_VALUE_02"]);
@@ -18,6 +18,7 @@ struct ActivitiesJson {
 		this->TEST_VALUE_00 = value["TEST_VALUE_04"];
 		this->TEST_VALUE_01 = value["TEST_VALUE_05"];
 		this->TEST_VALUE_02 = static_cast<std::string_view>(value["TEST_VALUE_06"]);
+		this->TEST_VALUE_03 = value["TEST_VALUE_07"];
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -32,37 +33,14 @@ struct ActivitiesJson {
 struct Activities {
 	Activities() noexcept = default;
 	Activities(simdjson::ondemand::value value) {
-		Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
-		this->TEST_VALUE_00 = value["TEST_VALUE_00"].get_double().value_unsafe();
-		//valueDoubleTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();
-		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
-		//valueBoolTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();
-		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
-		//valueStringTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();
-		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
-		//valueIntTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();
-		this->TEST_VALUE_04 = value["TEST_VALUE_04"].get_double().value_unsafe();
-		//valueDoubleTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();
-		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
-		//valueBoolTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();
-		this->TEST_VALUE_06 = Jsonifier::getString(value, "TEST_VALUE_06");
-		//valueStringTime += stopWatch.totalTimePassed().count();
-		//stopWatch.resetTimer();//
-		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
-		//valueIntTime += stopWatch.totalTimePassed().count();
-		//std::cout << "CURRENT VALUE 00: " << this->TEST_VALUE_00 << std::endl;
-		//std::cout << "CURRENT VALUE 01: " << this->TEST_VALUE_01 << std::endl;
-		//std::cout << "CURRENT VALUE 02: " << this->TEST_VALUE_02 << std::endl;
-		//std::cout << "CURRENT VALUE 03: " << this->TEST_VALUE_03 << std::endl;
-		//std::cout << "CURRENT VALUE 04: " << this->TEST_VALUE_04 << std::endl;
-		//std::cout << "CURRENT VALUE 05: " << this->TEST_VALUE_05 << std::endl;
-		//std::cout << "CURRENT VALUE 06: " << this->TEST_VALUE_06 << std::endl;
+		this->TEST_VALUE_00 = value["TEST_VALUE_00"];
+		this->TEST_VALUE_01 = value["TEST_VALUE_01"];
+		this->TEST_VALUE_02 = static_cast<std::string_view>(value["TEST_VALUE_02"]);
+		this->TEST_VALUE_03 = value["TEST_VALUE_03"];
+		this->TEST_VALUE_00 = value["TEST_VALUE_04"];
+		this->TEST_VALUE_01 = value["TEST_VALUE_05"];
+		this->TEST_VALUE_02 = static_cast<std::string_view>(value["TEST_VALUE_06"]);
+		this->TEST_VALUE_03 = value["TEST_VALUE_07"];
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -175,7 +153,7 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 11; ++x) {
+		for (size_t x = 0; x < 101; ++x) {
 			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
