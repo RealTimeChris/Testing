@@ -25,8 +25,8 @@ namespace Jsonifier {
 	struct JsonifierResult<Field>
 		: public JsonifierResultBase<Field> {
 	  public:
-		inline JsonifierResult(Field&& value) noexcept;///< @private
-		inline JsonifierResult(ErrorCode error) noexcept;///< @private
+		inline JsonifierResult(Field&& value) noexcept;
+		inline JsonifierResult(ErrorCode error) noexcept;
 		inline JsonifierResult() noexcept = default;
 
 		inline JsonifierResult<std::string_view> unescaped_key() noexcept;

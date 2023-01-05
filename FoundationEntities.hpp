@@ -37,19 +37,18 @@ namespace Jsonifier {
 		static inline bool isFreeFromUnescapedQuote(std::string_view target) noexcept;
 		static inline bool isFreeFromUnescapedQuote(const char* target) noexcept;
 
-	  protected:
+	  private:
 		inline void consume() noexcept {
-			stringView = nullptr;
+			this->stringView = nullptr;
 		}
 		inline bool alive() const noexcept {
-			return stringView != nullptr;
+			return this->stringView != nullptr;
 		}
-		inline JsonifierResult<std::string_view> unescape(JsonIterator& iterator) const noexcept;
+		inline JsonifierResult<std::string_view> unescape(JsonIterator& iter) const noexcept;
 
 		const uint8_t* stringView{};
-		friend class object;
+		friend class Object;
 		friend class Field;
-		friend class parser;
 		friend struct JsonifierResult<RawJsonString>;
 	};
 

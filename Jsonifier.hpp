@@ -1213,7 +1213,7 @@ namespace Jsonifier {
 		return std::string_view(reinterpret_cast<const char*>(starting_point), size_t(final_point - starting_point));
 	}
 
-	inline JsonifierResult<size_t> Array::countElements() noexcept {
+	inline JsonifierResult<size_t> Array::countElements() &noexcept {
 		size_t count{ 0 };
 		for (auto iterator = this->begin(); iterator != this->end(); ++iterator) {
 			count++;
@@ -1225,7 +1225,7 @@ namespace Jsonifier {
 		return count;
 	}
 
-	inline JsonifierResult<bool> Array::isEmpty() noexcept {
+	inline JsonifierResult<bool> Array::isEmpty() &noexcept {
 		bool is_not_empty;
 		auto error = iterator.resetArray().get(is_not_empty);
 		if (error) {
@@ -1234,7 +1234,7 @@ namespace Jsonifier {
 		return !is_not_empty;
 	}
 
-	inline JsonifierResult<bool> Array::reset() noexcept {
+	inline JsonifierResult<bool> Array::reset() &noexcept {
 		return iterator.resetArray();
 	}
 
@@ -2847,14 +2847,14 @@ namespace Jsonifier {
 		return first.end();
 	}
 
-	inline JsonifierResult<size_t> JsonifierResult<Array>::countElements() noexcept {
+	inline JsonifierResult<size_t> JsonifierResult<Array>::countElements()& noexcept {
 		if (error()) {
 			return error();
 		}
 		return first.countElements();
 	}
 
-	inline JsonifierResult<bool> JsonifierResult<Array>::isEmpty() noexcept {
+	inline JsonifierResult<bool> JsonifierResult<Array>::isEmpty() &noexcept {
 		if (error()) {
 			return error();
 		}

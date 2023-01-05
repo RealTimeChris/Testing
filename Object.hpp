@@ -13,7 +13,7 @@ namespace Jsonifier {
 		inline bool operator!=(const ObjectIterator&) const noexcept;
 		inline ObjectIterator& operator++() noexcept;
 
-	  private:
+	  protected:
 		ValueIterator iterator{};
 
 		inline ObjectIterator(const ValueIterator& iter) noexcept;
