@@ -96,7 +96,7 @@ struct TheD {
 		//int64_t totalTime{};
 		//int64_t totalIterations{};
 		simdjson::ondemand::array valueNew{};
-		value["TEST_VALUE_11"]["d"].get(valueNew);
+		value["TEST_VALUE_11"]["d"]["TEST_VALUES"].get(valueNew);
 		//stopWatch.resetTimer();
 		for (auto valueIterator: valueNew) {
 			//			stopWatch.resetTimer();//
@@ -153,8 +153,8 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 340; ++x) {
-			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
+		for (size_t x = 0; x < 500; ++x) {
+			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
