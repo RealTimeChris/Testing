@@ -7,7 +7,7 @@ namespace Jsonifier {
 
 	class Document {
 	  public:
-		inline Document() noexcept = default;
+		inline Document() noexcept {};
 		inline Document(const Document& other) noexcept = delete;
 		inline Document(Document&& other) noexcept = default;
 		inline Document& operator=(const Document& other) noexcept = delete;
@@ -59,7 +59,7 @@ namespace Jsonifier {
 		inline JsonifierResult<Object> startOrResumeObject() noexcept;
 		static inline Document start(JsonIterator&& iterator) noexcept;
 
-		JsonIterator iterator;
+		JsonIterator iterator{};
 		static constexpr size_t DOCUMENT_DEPTH = 0;
 
 		friend class ArrayIterator;

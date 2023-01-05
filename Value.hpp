@@ -65,7 +65,7 @@ namespace Jsonifier {
 	  protected:
 		JsonIterator* jsonIterator{};
 		size_t currentDepth{};
-		uint32_t* rootStructural{};
+		uint32_t*rootStructural{};
 
 	  public:
 		inline ValueIterator() noexcept = default;
@@ -136,7 +136,7 @@ namespace Jsonifier {
 		inline void moveAtStart() noexcept;
 		inline void moveAtContainerStart() noexcept;
 		inline std::string toString() const noexcept;
-		inline ValueIterator(JsonIterator* jsonIter, size_t depth, uint32_t* start_index) noexcept;
+		inline ValueIterator(JsonIterator* jsonIter, size_t depth, uint32_t*start_index) noexcept;
 
 		inline JsonifierResult<bool> parseNull(const uint8_t* json) const noexcept;
 		inline JsonifierResult<bool> parseBool(const uint8_t* json) const noexcept;
@@ -170,11 +170,11 @@ namespace Jsonifier {
 		inline void assertAtNext() const noexcept;
 		inline void assertAtNonRootStart() const noexcept;
 
-		inline uint32_t* startPosition() const noexcept;
+		inline uint32_t*startPosition() const noexcept;
 
-		inline uint32_t* position() const noexcept;
-		inline uint32_t* lastPosition() const noexcept;
-		inline uint32_t* endPosition() const noexcept;
+		inline uint32_t*position() const noexcept;
+		inline uint32_t*lastPosition() const noexcept;
+		inline uint32_t*endPosition() const noexcept;
 		inline ErrorCode reportError(ErrorCode error, const char* message) noexcept;
 
 		friend class Document;
@@ -189,6 +189,7 @@ namespace Jsonifier {
 		template<typename T> inline JsonifierResult<T> get() noexcept {
 			static_assert(!sizeof(T), "The get method with given type is not implemented by the simdjson library.");
 		}
+		inline Value() noexcept = default;
 		template<typename T> inline ErrorCode get(T& out) noexcept;
 		inline JsonifierResult<Array> getArray() noexcept;
 		inline JsonifierResult<Object> getObject() noexcept;

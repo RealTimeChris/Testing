@@ -434,153 +434,135 @@ namespace Jsonifier {
 		index += StepSize;
 	}
 
+	struct SimdJsonCharacters {
+		SimdBase256 whitespace{};
+		SimdBase256 op{};
+	};
+
+	struct SimdStringCharacters {
+		SimdBase256 inString{};
+		SimdBase256 quote{};
+	};
+
 	class SimdStringSection {
 	  public:
 		inline SimdStringSection() noexcept = default;
 
-		inline void packStringIntoValue(SimdBase256* theValue, const uint8_t string[32]) {
-			*theValue = string;
-		}
-
-		inline void addTapeValues(uint32_t* tapePtrs, uint64_t* theBits, size_t currentIndexNew, size_t& currentIndexIntoTape, size_t stringLength) {
-			int cnt = static_cast<int>(__popcnt64(*theBits));
-			int64_t newValue{};
-			for (int i = 0; i < cnt; i++) {
-				newValue = _tzcnt_u64(*theBits) + (currentIndexNew * 64) + currentIndexIntoString;
-
-				if (newValue > stringLength) {
-					currentIndexIntoTape += i;
-					return;
-
-				} else {
-					tapePtrs[i + currentIndexIntoTape] = newValue;
-					*theBits = _blsr_u64(*theBits);
-				}
-			}
-			currentIndexIntoTape += cnt;
-			return;
-		}
-
-		inline void getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength) {
+		static inline void getStructuralIndices(uint32_t* currentPtr, size_t& currentIndexIntoTape, size_t stringLength, SimdBase256 structurals, size_t& currentIndexIntoString) {
 			for (size_t x = 0; x < 4; ++x) {
-				auto newValue = this->structurals.getUint64(x);
-				this->addTapeValues(currentPtr, &newValue, x, currentIndexIntoTape, stringLength);
+				auto newValue = structurals.getUint64(x);
+				int cnt = static_cast<int>(__popcnt64(newValue));
+				int64_t newerValue{};
+				for (int i = 0; i < cnt; i++) {
+					newerValue = _tzcnt_u64(newValue) + (x * 64) + currentIndexIntoString;
+
+					if (newerValue > stringLength) {
+						currentIndexIntoTape += i;
+						return;
+
+					} else {
+						currentPtr[i + currentIndexIntoTape] = newerValue;
+						newValue = _blsr_u64(newValue);
+					}
+				}
+				currentIndexIntoTape += cnt;
 			}
-			this->currentIndexIntoString += 256;
+			currentIndexIntoString += 256;
 			return;
 		}
 
-		inline SimdBase256 collectWhiteSpace() {
+		static inline SimdBase256 collectWhiteSpace(SimdBase256* values) {
 			char valuesNew[32]{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100, ' ', 100, 100, 100, 17, 100, 113,
 				2,
 				100, '\t', '\n', 112, 100, '\r', 100, 100 };
 			SimdBase256 whitespaceTable{ valuesNew };
 			SimdBase256 whiteSpaceReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				whiteSpaceReal[x] = this->values[x].shuffle(whitespaceTable) == this->values[x];
+				whiteSpaceReal[x] = values[x].shuffle(whitespaceTable) == values[x];
 			}
 			return convertSimdBytesToBits(whiteSpaceReal);
 		}
 
-		inline SimdBase256 collectStructuralCharacters() {
+		static inline SimdBase256 collectStructuralCharacters(SimdBase256* values) {
 			char newValues[32]{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ':', '{', ',', '}', 0, 0 };
 			SimdBase256 opTable{ newValues };
 			SimdBase256 structural[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				auto valuesNew00 = this->values[x] | char{ 0x20 };
-				structural[x] = this->values[x].shuffle(opTable) == valuesNew00;
+				auto valuesNew00 = values[x] | char{ 0x20 };
+				structural[x] = values[x].shuffle(opTable) == valuesNew00;
 			}
 
 			return convertSimdBytesToBits(structural);
 		}
 
-		inline SimdBase256 collectBackslashes() {
+		static inline SimdBase256 collectBackslashes(SimdBase256* values) {
 			SimdBase256 backslashes = _mm256_set1_epi8('\\');
 			SimdBase256 backslashesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				backslashesReal[x] = this->values[x] == backslashes;
+				backslashesReal[x] = values[x] == backslashes;
 			}
 
 			return convertSimdBytesToBits(backslashesReal);
 		}
 
-		inline void collectEscapedCharacters() {
-			this->backslash = this->collectBackslashes();
-			backslash &= SimdBase256{ bool{ !this->prevEscaped } };
-			SimdBase256 followsEscape = this->backslash.shl<1>() | SimdBase256{ this->prevEscaped };
+		static inline SimdBase256 collectEscapedCharacters(SimdBase256 backslash, SimdBase256* values, bool&prevEscaped) {
+			backslash = collectBackslashes(values);
+			backslash = SimdBase256{ bool{ !prevEscaped } };
+			SimdBase256 followsEscape = backslash.shl<1>() | SimdBase256{ prevEscaped };
 			SimdBase256 evenBits{ _mm256_set1_epi8(0b01010101) };
-			SimdBase256 oddSequenceStarts = this->backslash.bitAndNot(evenBits.bitAndNot(followsEscape));
+			SimdBase256 oddSequenceStarts = backslash.bitAndNot(evenBits.bitAndNot(followsEscape));
 			SimdBase256 sequencesStartingOnEvenBits{};
-			this->prevEscaped = oddSequenceStarts.collectCarries(this->backslash, sequencesStartingOnEvenBits);
+			prevEscaped = oddSequenceStarts.collectCarries(backslash, sequencesStartingOnEvenBits);
 			SimdBase256 invertMask = sequencesStartingOnEvenBits.shl<1>();
-			this->escaped = (evenBits ^ invertMask) & followsEscape;
+			return (evenBits ^ invertMask) & followsEscape;
 		}
 
-		void collectJsonCharacters() {
-			this->op = this->collectStructuralCharacters();
-			this->whitespace = this->collectWhiteSpace();
+		static inline SimdJsonCharacters collectJsonCharacters(SimdBase256* values) {
+			return { collectWhiteSpace(values), collectStructuralCharacters(values) };
 		}
 
-		inline SimdBase256 collectQuotes() {
+		static inline SimdBase256 collectQuotes(SimdBase256* values) {
 			SimdBase256 quotes = _mm256_set1_epi8('"');
 			SimdBase256 quotesReal[8]{};
 			for (size_t x = 0; x < 8; ++x) {
-				quotesReal[x] = (this->values[x] == quotes);
+				quotesReal[x] = (values[x] == quotes);
 			}
 
 			return convertSimdBytesToBits(quotesReal);
 		}
 
-		inline void collectStringCharacters() {
-			this->quote = this->collectQuotes().bitAndNot(this->escaped);
-			this->inString = this->quote.carrylessMultiplication(this->prevInString);
+		static inline SimdStringCharacters collectStringCharacters(SimdBase256 escaped, SimdBase256 quote, SimdBase256* values, uint64_t &prevInString) {
+			return { collectQuotes(values).bitAndNot(escaped), quote.carrylessMultiplication(prevInString) };
 		}
 
-		inline SimdBase256 collectFinalStructurals() {
-			this->collectEscapedCharacters();
-			this->collectStringCharacters();
-			this->collectJsonCharacters();
-			auto scalar = ~(this->op | this->whitespace);
-			SimdBase256 nonQuoteScalar = ~(this->op | this->whitespace).bitAndNot(this->quote);
-			auto prevInScalarNew = this->prevInScalar;
-			SimdBase256 shiftMask{ _mm256_set_epi64x(0 - (1ll << 63), 0, 0, 0) };
-			this->prevInScalar = nonQuoteScalar & shiftMask;
-			this->prevInScalar = _mm256_permute4x64_epi64(this->prevInScalar, 0b10010011);
-			this->prevInScalar = _mm256_srli_epi64(this->prevInScalar, 63);
+		static inline SimdBase256 collectFinalStructurals(SimdBase256* values, SimdBase256& prevInScalar, uint64_t& prevInString, bool&prevEscaped) {
+			SimdBase256 backslash{ collectBackslashes(values) };
+			SimdBase256 escaped{ collectEscapedCharacters(backslash, values, prevEscaped) };
+			auto simdStringCharacters = collectStringCharacters(escaped, collectQuotes(values), values, prevInString);
+			auto jsonCharacters = collectJsonCharacters(values);
+			auto scalar = ~(jsonCharacters.op | jsonCharacters.whitespace);
+			SimdBase256 nonQuoteScalar = ~(jsonCharacters.op | jsonCharacters.whitespace).bitAndNot(simdStringCharacters.quote);
+			auto prevInScalarNew = prevInScalar;
+			SimdBase256 shiftMask{ _mm256_set_epi64x(0 - (1ull << 63), 0, 0, 0) };
+			prevInScalar = _mm256_srli_epi64(_mm256_permute4x64_epi64(nonQuoteScalar & shiftMask, 0b10010011), 63);
 			auto followsNonQuoteScalar = nonQuoteScalar.shl<1>();
 			followsNonQuoteScalar = prevInScalarNew.copyBits(followsNonQuoteScalar);
 			auto potentialScalarStart = scalar.bitAndNot(followsNonQuoteScalar);
-			auto stringTail = this->inString ^ this->quote;
-			auto potentialStructuralStart = this->op | potentialScalarStart;
+			auto stringTail = simdStringCharacters.inString ^ simdStringCharacters.quote;
+			auto potentialStructuralStart = jsonCharacters.op | potentialScalarStart;
 			auto structuralStart = (potentialStructuralStart.bitAndNot(stringTail));
 			return structuralStart;
 		}
 
-		void submitDataForProcessing(const uint8_t* valueNew) {
-			this->packStringIntoValue(&this->values[0], valueNew);
-			this->packStringIntoValue(&this->values[1], valueNew + 32);
-			this->packStringIntoValue(&this->values[2], valueNew + 64);
-			this->packStringIntoValue(&this->values[3], valueNew + 96);
-			this->packStringIntoValue(&this->values[4], valueNew + 128);
-			this->packStringIntoValue(&this->values[5], valueNew + 160);
-			this->packStringIntoValue(&this->values[6], valueNew + 192);
-			this->packStringIntoValue(&this->values[7], valueNew + 224);
-			this->structurals = this->collectFinalStructurals();
+		static void submitDataForProcessing(const uint8_t* valueNew, uint32_t* currentPtr, size_t& currentIndexIntoTape,size_t stringLength,SimdBase256& prevInScalar, uint64_t& prevInString, bool& prevEscaped, size_t currentIndexIntoString) {
+			SimdBase256 values[8]{};
+			SimdBase256 structurals{};
+			for (size_t x = 0; x < 8; ++x) {
+				values[x] = valueNew + (x * 32);
+			}
+			structurals = collectFinalStructurals(values, prevInScalar, prevInString, prevEscaped);
+			getStructuralIndices(currentPtr, currentIndexIntoTape, stringLength, structurals, currentIndexIntoString);
 			//this->structurals.printBits("FINAL BITS: ");
 		}
-
-	  protected:
-		size_t currentIndexIntoString{};
-		SimdBase256 prevInScalar{};
-		SimdBase256 structurals{};
-		SimdBase256 whitespace{};
-		uint64_t prevInString{};
-		SimdBase256 values[8]{};
-		SimdBase256 backslash{};
-		SimdBase256 inString{};
-		SimdBase256 escaped{};
-		SimdBase256 quote{};
-		bool prevEscaped{};
-		SimdBase256 op{};
 	};
 }

@@ -155,12 +155,12 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 18; ++x) {
+		for (size_t x = 0; x < 15; ++x) {
 			serializer["TEST_VALUE_11"]["d"].emplaceBack(serializer);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/citm_catalog.json" } };
 		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
@@ -212,9 +212,9 @@ int32_t main() {
 		totalTimeNew = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
-		Jsonifier::Parser parserOld{};	
+
+		Jsonifier::Parser parserOld{};		
 		for (size_t x = 0ull; x < 256; ++x) {
-			
 			auto jsonData = parserOld.parseJson(stringNew);
 			//TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
