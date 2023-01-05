@@ -175,7 +175,7 @@ int32_t main() {
 		stopWatch.resetTimer();
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x <1; ++x) {
+		for (size_t x = 0ull; x <10; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -196,7 +196,7 @@ int32_t main() {
 		stopWatch.resetTimer();
 
 		Jsonifier::Parser parserOld{};
-		for (size_t x = 0ull; x < 1; ++x) {
+		for (size_t x = 0ull; x < 10; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew);
 			TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
