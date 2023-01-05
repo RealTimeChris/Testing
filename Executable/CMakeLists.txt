@@ -2,7 +2,6 @@
 add_executable(
 	"${PROJECT_NAME}"
 	"../main.cpp"
-	"../Jsonifier.cpp"
 	"../DataParsingFunctions.cpp"
 	"${PRODUCT_INFO}"
 )
@@ -17,11 +16,12 @@ if (DEFINED ENV{EnableASAN})
 	endif()
 endif()
 
-find_package(simdjson CONFIG REQUIRED)
 
 target_link_libraries(
 	"${PROJECT_NAME}" PUBLIC
 	$<$<TARGET_EXISTS:simdjson::simdjson>:simdjson::simdjson>
+	$<$<TARGET_EXISTS:Jsonifier::Jsonifier>:Jsonifier::Jsonifier>
+
 )
 
 target_compile_options(
@@ -55,16 +55,16 @@ if (WIN32)
 	install(
 		FILES 
 		"$<IF:$<CONFIG:Debug>,${DEBUG_PDB_FILE_PATH},${RELEASE_PDB_FILE_PATH}>" 
-		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/$<CONFIG>"
 	)	
 	install(
 		FILES 
 		"$<TARGET_RUNTIME_DLLS:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/$<CONFIG>"
 	)
 endif()
 install(
 		FILES 
 		"$<TARGET_FILE:${PROJECT_NAME}>"
-		DESTINATION "${CMAKE_SOURCE_DIR}/Build/${CMAKE_BUILD_TYPE}/Executable/${CMAKE_BUILD_TYPE}"
+		DESTINATION "${CMAKE_INSTALL_PREFIX}/$<CONFIG>"
 )

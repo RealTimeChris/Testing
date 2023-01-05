@@ -1,5 +1,6 @@
 
 set(simdjson_DIR "C:/Program Files (x86)/simdjson")
+set(Jsonifier_DIR "C:/Users/Chris/CMake/Jsonifier/share/jsonifier")
 
 set(DOWNLOAD_EXTRACT_TIMESTAMP true)
 
@@ -34,6 +35,7 @@ endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_SOURCE_DIR}/CMake") 
 set(CMAKE_CONFIGURATION_TYPES "${CMAKE_BUILD_TYPE}")
+find_package(Jsonifier CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
 add_subdirectory(Executable)
 

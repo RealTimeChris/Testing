@@ -24,7 +24,7 @@
 /// \file DataParsingFunctions.cpp
 
 #include "DataParsingFunctions.hpp"
-#include "Jsonifier.hpp"
+#include <jsonifier/Jsonifier.hpp>
 
 namespace Jsonifier {
 

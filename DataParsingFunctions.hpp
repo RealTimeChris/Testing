@@ -30,7 +30,7 @@
 
 	#include <simdjson.h>
 	#include <map>
-	#include "Jsonifier.hpp"
+	#include <jsonifier/Jsonifier.hpp>
 
 namespace Jsonifier {
 
