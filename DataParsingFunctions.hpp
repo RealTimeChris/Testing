@@ -35,40 +35,38 @@
 namespace Jsonifier {
 
 	struct ObjectReturnDataJson {
-		ObjectReturnDataJson(){};
-		Object object;
+		Value object{};
 		bool didItSucceed{ false };
 	};
 
 	struct ArrayReturnDataJson {
-		ArrayReturnDataJson(){};
-		Array arrayValue;
+		Array arrayValue{};
 		bool didItSucceed{ false };
 	};
 
-	int64_t getInt64(Value& jsonData, const char* key);
+	int64_t getInt64(Value jsonData, const char* key);
 
-	int32_t getInt32(Value& jsonData, const char* key);
+	int32_t getInt32(Value jsonData, const char* key);
 
-	int16_t getInt16(Value& jsonData, const char* key);
+	int16_t getInt16(Value jsonData, const char* key);
 
-	int8_t getInt8(Value& jsonData, const char* key);
+	int8_t getInt8(Value jsonData, const char* key);
 
-	uint64_t getUint64(Value& jsonData, const char* key);
+	uint64_t getUint64(Value jsonData, const char* key);
 
-	uint32_t getUint32(Value& jsonData, const char* key);
+	uint32_t getUint32(Value jsonData, const char* key);
 
-	uint16_t getUint16(Value& jsonData, const char* key);
+	uint16_t getUint16(Value jsonData, const char* key);
 
-	uint8_t getUint8(Value& jsonData, const char* key);
+	uint8_t getUint8(Value jsonData, const char* key);
 
-	float getFloat(Value& jsonData, const char* key);
+	float getFloat(Value jsonData, const char* key);
 
-	bool getBool(Value& jsonData, const char* key);
+	bool getBool(Value jsonData, const char* key);
 
-	std::string getString(Value& jsonData, const char* key);
+	std::string getString(Value jsonData, const char* key);
 
-	std::string getString(ObjectReturnDataJson& jsonData, const char* key);
+	std::string getString(ObjectReturnDataJson jsonData, const char* key);
 
 	bool getObject(Value& object, const char* key, Value jsonObjectData);
 
@@ -76,17 +74,17 @@ namespace Jsonifier {
 
 	bool getArray(Array& array, Value jsonObjectData);
 
-	std::string getString(Value& jsonData);
+	std::string getString(Value jsonData);
 
-	ObjectReturnDataJson getObject(Value& jsonObjectData, const char* objectName);
+	ObjectReturnDataJson getObject(Value jsonObjectData, const char* objectName);
 
-	ObjectReturnDataJson getObject(ObjectReturnDataJson& jsonObjectData, const char* objectName);
+	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonObjectData, const char* objectName);
 
-	ObjectReturnDataJson getObject(ArrayReturnDataJson& jsonObjectData, uint64_t objectIndex);
+	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonObjectData, uint64_t objectIndex);
 
-	ArrayReturnDataJson getArray(Value& jsonObjectData, const char* arrayName);
+	ArrayReturnDataJson getArray(Value jsonObjectData, const char* arrayName);
 
-	ArrayReturnDataJson getArray(ObjectReturnDataJson& jsonObjectData, const char* arrayName);
+	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonObjectData, const char* arrayName);
 
 	struct ObjectReturnData {
 		simdjson::ondemand::value object{};
