@@ -295,10 +295,10 @@ namespace Jsonifier {
 
 	std::string getString(Value jsonData, const char* key) {
 		std::string_view value{};
-		if (jsonData[key].get(value) == ErrorCode::Success) {
+		if (auto error = jsonData[key].get(value); error == ErrorCode::Success) {
 			return std::string{ value.data(), value.size() };
 		} else {
-			return "";
+			throw std::runtime_error{ "FAILED TO PARSE THE STRING: ERROR WAS: " + std::to_string(error) };
 		}
 	}
 

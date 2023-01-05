@@ -13,12 +13,12 @@ struct ActivitiesJson {
 		
 		this->TEST_VALUE_00 = value["TEST_VALUE_00"];
 		this->TEST_VALUE_01 = value["TEST_VALUE_01"];
-		this->TEST_VALUE_02 = static_cast<std::string_view>(value["TEST_VALUE_02"]);
+		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
 		this->TEST_VALUE_03 = value["TEST_VALUE_03"];
-		this->TEST_VALUE_00 = value["TEST_VALUE_04"];
-		this->TEST_VALUE_01 = value["TEST_VALUE_05"];
-		this->TEST_VALUE_02 = static_cast<std::string_view>(value["TEST_VALUE_06"]);
-		this->TEST_VALUE_03 = value["TEST_VALUE_07"];
+		this->TEST_VALUE_04 = value["TEST_VALUE_04"];
+		this->TEST_VALUE_05 = value["TEST_VALUE_05"];
+		this->TEST_VALUE_06 = Jsonifier::getString(value, "TEST_VALUE_06");
+		this->TEST_VALUE_07 = value["TEST_VALUE_07"];
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -55,19 +55,19 @@ struct Activities {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
-		Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
-		int64_t totalTime{};
-		int64_t totalIterations{};
+		//Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+		//int64_t totalTime{};
+		//int64_t totalIterations{};
 		Jsonifier::Array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
-		stopWatch.resetTimer();
+		//stopWatch.resetTimer();
 		for (auto valueIterator : valueNew) {
-			stopWatch.resetTimer();//
+			//stopWatch.resetTimer();//
 			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
 			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
 			strings.emplace_back(std::move(valueIterator.valueUnsafe()));
-			totalTime += stopWatch.totalTimePassed().count();
-			totalIterations++;
+			//			totalTime += stopWatch.totalTimePassed().count();
+			//totalIterations++;
 			
 			
 		}
@@ -92,19 +92,19 @@ struct TheValueJson {
 struct TheD {
 	TheD() noexcept = default;
 	TheD(simdjson::ondemand::document value) {
-		Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
-		int64_t totalTime{};
-		int64_t totalIterations{};
+		//Jsonifier::StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
+		//int64_t totalTime{};
+		//int64_t totalIterations{};
 		simdjson::ondemand::array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
-		stopWatch.resetTimer();
+		//stopWatch.resetTimer();
 		for (auto valueIterator: valueNew) {
-			stopWatch.resetTimer();//
+			//			stopWatch.resetTimer();//
 			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
 			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
 			strings.emplace_back(valueIterator.value_unsafe());
-			totalTime += stopWatch.totalTimePassed().count();
-			totalIterations++;
+			//totalTime += stopWatch.totalTimePassed().count();
+			//totalIterations++;
 		}
 		//std::cout << "TOTAL TIME PASSED: (double) " << valueDoubleTime / iterationCountValue << std::endl;
 		//std::cout << "TOTAL TIME PASSED: (Bool) " << valueDoubleTime / iterationCountValue << std::endl;
@@ -153,13 +153,13 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 150; ++x) {
+		for (size_t x = 0; x < 340; ++x) {
 			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
-		//std::string stringNew{ serializer.operator std::string&&() };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
+		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
