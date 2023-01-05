@@ -32,18 +32,14 @@ namespace Jsonifier {
 		}
 
 		inline operator OTy*() noexcept {
-			return this->objects;
+			return this->objects.get();
 		}
 
 		inline void reset(size_t newSize) noexcept {
 			this->deallocate();
 			if (newSize != 0) {
-				AllocatorType allocator{};
-				this->objects = AllocatorTraits::allocate(allocator, newSize);
-				//this->objects.reset(new (std::nothrow) OTy[newSize]);
-				//for (size_t x = 0; x < newSize; ++x) {
-				//AllocatorTraits::construct(allocator, &this->objects[x]);
-				//}
+				//AllocatorType allocator{};
+				this->objects.reset(new (std::nothrow) OTy[newSize]);
 				this->currentSize = newSize;
 			}
 		}
@@ -54,16 +50,13 @@ namespace Jsonifier {
 
 	  protected:
 		size_t currentSize{};
-		OTy* objects{};
+		std::unique_ptr<OTy> objects{};
 
 		inline void deallocate() {
 			if (this->currentSize > 0 && this->objects) {
-				AllocatorType allocator{};
-				AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
-				//for (size_t x = 0; x < this->currentSize; ++x) {
-				//					AllocatorTraits::destroy(allocator, &this->objects[x]);
-				//}
-				//this->objects.reset(nullptr);
+				//AllocatorType allocator{};
+				//AllocatorTraits::deallocate(allocator, this->objects, this->currentSize);
+				this->objects.reset(nullptr);
 				this->currentSize = 0;
 			}
 		}
@@ -677,26 +670,23 @@ namespace Jsonifier {
 	class Parser {
 	  public:
 		inline Document getDocument() {
-			Document data{};
-			return data;
+			return std::forward<Document>(Document{ this });
 		}
 
 		inline Parser& operator=(Parser&&) = default;
 		inline Parser(Parser&&) = default;
 		inline Parser(){};
 
-		
-		inline int64_t round(int64_t a, int64_t n) {
-			return ((a + (n - 1)) & ~(n - 1));
+		inline uint64_t round(int64_t a, int64_t n) {
+			return (((a) + (( n )-1)) & ~(( n )-1));
 		}
 
-		inline ErrorCode allocate(const uint8_t* stringViewNew) noexcept {
+		inline ErrorCode allocate(uint8_t* stringViewNew) noexcept {
 			if (this->stringLengthRaw == 0) {
 				return ErrorCode::Success;
 			}
-			this->stringBuffer.reset(round(5 * stringLengthRaw / 3 + 64, 64));
-			this->structuralIndexes.reset(round(stringLengthRaw, 64) + 2 + 7);
-			std::cout << "MAX STRUCTURES: " << round(5 * stringLengthRaw / 3 + 64, 64) << std::endl;
+			this->stringBuffer.reset(round(5 * this->stringLengthRaw / 3 + 256, 256));
+			this->structuralIndexes.reset(round(this->stringLengthRaw + 3, 256));
 			this->stringView = stringViewNew;
 			if (!(this->structuralIndexes && this->stringBuffer)) {
 				this->stringBuffer.reset(0);
@@ -707,7 +697,7 @@ namespace Jsonifier {
 			return ErrorCode::Success;
 		}
 
-		inline void generateJsonEvents(const uint8_t* stringNew, size_t stringLength) {
+		inline void generateJsonEvents(uint8_t* stringNew, size_t stringLength) {
 			if (stringNew) {
 				if (stringLength == 0) {
 					throw JsonifierException{ "Failed to parse as the string size is 0." };
@@ -724,21 +714,15 @@ namespace Jsonifier {
 				StringBlockReader<256> stringReader{ this->stringView, this->stringLengthRaw };
 				StopWatch stopWatch{ std::chrono::nanoseconds{ 1 } };
 				size_t tapeCurrentIndex{ 0 };
-				size_t currentIndexIntoString{};
-				SimdBase256 prevInScalar{};
-				uint64_t prevInString{};
-				bool prevEscaped{};
 				while (stringReader.hasFullBlock()) {
-					SimdStringSection ::submitDataForProcessing(stringReader.fullBlock(), this->structuralIndexes, tapeCurrentIndex, stringLengthRaw,
-						prevInScalar, prevInString, prevEscaped, currentIndexIntoString);
-					//section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
+					this->section.submitDataForProcessing(stringReader.fullBlock());
+					section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
 					stringReader.advance();
 				}
 				uint8_t block[256];
 				stringReader.getRemainder(block);
-				SimdStringSection ::submitDataForProcessing(block, this->structuralIndexes, tapeCurrentIndex, stringLengthRaw, prevInScalar,
-					prevInString, prevEscaped, currentIndexIntoString);
-				//section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
+				this->section.submitDataForProcessing(block);
+				section.getStructuralIndices(this->structuralIndexes, tapeCurrentIndex, this->stringLengthRaw);
 				totalTimePassed += stopWatch.totalTimePassed().count();
 				this->getTapeLength() = tapeCurrentIndex;
 				std::cout << "TIME FOR STAGE1: " << totalTimePassed / iterationCount << std::endl;
@@ -749,7 +733,7 @@ namespace Jsonifier {
 			}
 		}
 
-		inline const uint8_t* getStringView() {
+		inline uint8_t* getStringView() {
 			return this->stringView;
 		}
 
@@ -761,7 +745,7 @@ namespace Jsonifier {
 			return this->structuralIndexes;
 		}
 
-		inline Document parseJson(const std::string& string);
+		inline Document parseJson(std::string& string);
 
 		inline size_t& getTapeLength() {
 			return this->tapeLength;
@@ -770,8 +754,9 @@ namespace Jsonifier {
 	  protected:
 		ObjectBuffer<uint32_t> structuralIndexes{};
 		ObjectBuffer<uint8_t> stringBuffer{};
-		const uint8_t* stringView{};
+		SimdStringSection section{};
 		size_t stringLengthRaw{};
+		uint8_t* stringView{};
 		size_t tapeLength{};
 	};
 
@@ -790,8 +775,8 @@ namespace Jsonifier {
 		Null_Value = 'n'
 	};
 
-	Document Parser::parseJson(const std::string& string) {
-		this->generateJsonEvents(reinterpret_cast<const uint8_t*>(string.data()), string.size());
+	Document Parser::parseJson(std::string& string) {
+		this->generateJsonEvents(reinterpret_cast<uint8_t*>(string.data()), string.size());
 		return std::forward<Document>(this->getDocument());
 	}
 
@@ -845,12 +830,12 @@ namespace Jsonifier {
 		}
 	}
 
-	inline JsonifierResult<Array> Document::getArray() noexcept {
+	inline JsonifierResult<Array> Document::getArray() &noexcept {
 		auto Value = getRootValueIterator();
 		return Array::startRoot(Value);
 	}
 
-	inline JsonifierResult<Object> Document::getObject() noexcept {
+	inline JsonifierResult<Object> Document::getObject() &noexcept {
 		auto Value = getRootValueIterator();
 		return Object::startRoot(Value);
 	}
@@ -930,8 +915,8 @@ namespace Jsonifier {
 	}
 
 	inline JsonIterator& JsonIterator::operator=(JsonIterator&& other) noexcept {
-		rootStructural = other.rootStructural;
 		currentDepth = other.currentDepth;
+		rootStructural = other.rootStructural;
 		stringBuffer = other.stringBuffer;
 		parser = other.parser;
 		error = other.error;
@@ -940,11 +925,11 @@ namespace Jsonifier {
 		return *this;
 	}
 
-	inline JsonIterator::JsonIterator(Parser* parserNew) noexcept
-		: token(parserNew->getStringView(), parserNew->getStructuralIndices()), parser{ parserNew }, stringBuffer{ parserNew->getStringBuffer() },
-		  currentDepth{ 1 }, rootStructural{ parserNew->getStructuralIndices() } {};
+	inline JsonIterator::JsonIterator(Parser* _parser) noexcept
+		: token(_parser->getStringView(), _parser->getStructuralIndices()), parser{ _parser }, stringBuffer{ _parser->getStringBuffer() },
+		  currentDepth{ 1 }, rootStructural{ _parser->getStructuralIndices() } {};
 
-	inline TokenIterator::TokenIterator(const uint8_t* _bufNew, uint32_t*positionNew) noexcept
+	inline TokenIterator::TokenIterator(const uint8_t* _bufNew, uint32_t* positionNew) noexcept
 		: stringView{ _bufNew }, currentPosition{ positionNew } {
 	}
 
@@ -1048,11 +1033,11 @@ namespace Jsonifier {
 		return position() == endPosition();
 	}
 
-	inline uint32_t*JsonIterator::rootPosition() const noexcept {
+	inline uint32_t* JsonIterator::rootPosition() const noexcept {
 		return this->rootStructural;
 	}
 
-	inline uint32_t*JsonIterator::endPosition() const noexcept {
+	inline uint32_t* JsonIterator::endPosition() const noexcept {
 		size_t structuralIndexCount{ parser->getTapeLength() };
 		return &this->parser->getStructuralIndices()[structuralIndexCount];
 	}
@@ -1107,15 +1092,15 @@ namespace Jsonifier {
 		return token.peekLength(delta);
 	}
 
-	inline const uint8_t* JsonIterator::peek(uint32_t*position) const noexcept {
+	inline const uint8_t* JsonIterator::peek(uint32_t* position) const noexcept {
 		return token.peek(position);
 	}
 
-	inline uint32_t JsonIterator::peekLength(uint32_t*position) const noexcept {
+	inline uint32_t JsonIterator::peekLength(uint32_t* position) const noexcept {
 		return token.peekLength(position);
 	}
 
-	inline uint32_t*JsonIterator::lastPosition() const noexcept {
+	inline uint32_t* JsonIterator::lastPosition() const noexcept {
 		size_t structuralIndexCount{ parser->getTapeLength() };
 		assert(structuralIndexCount > 0);
 		return &parser->getStructuralIndices()[structuralIndexCount - 1];
@@ -1151,7 +1136,7 @@ namespace Jsonifier {
 		return error;
 	}
 
-	inline uint32_t*JsonIterator::position() const noexcept {
+	inline uint32_t* JsonIterator::position() const noexcept {
 		return token.position();
 	}
 
@@ -1159,7 +1144,7 @@ namespace Jsonifier {
 		return JsonifierResult<std::string_view>{ reinterpret_cast<const char*>(StringParser::parseString(( uint8_t* )(in.raw()), stringBuffer)) };
 	}
 
-	inline void JsonIterator::reenterChild(uint32_t*position, size_t childDepth) noexcept {
+	inline void JsonIterator::reenterChild(uint32_t* position, size_t childDepth) noexcept {
 		assert(childDepth >= 1 && childDepth < INT32_MAX);
 		assert(currentDepth == childDepth - 1);
 	}
@@ -1253,7 +1238,72 @@ namespace Jsonifier {
 		return iterator.resetArray();
 	}
 
-	inline Field::Field() noexcept : std::pair<RawJsonString, Value>(nullptr, ValueIterator{ nullptr, size_t{}, nullptr }){};
+	template<typename T> inline void JsonifierResultBase<T>::tie(T& value, ErrorCode& error) &&noexcept
+	{
+		error = this->second;
+		if (!error) {
+			value = std::forward<JsonifierResultBase<T>>(*this).first;
+		}
+	}
+
+	template<typename T> inline ErrorCode JsonifierResultBase<T>::get(T& value) && noexcept {
+		ErrorCode error;
+		std::forward<JsonifierResultBase<T>>(*this).tie(value, error);
+		return error;
+	}
+
+	template<typename T> inline ErrorCode JsonifierResultBase<T>::error() const noexcept {
+		return this->second;
+	}
+
+	template<typename T> inline T&& JsonifierResultBase<T>::valueUnsafe() && noexcept {
+		return std::forward<T>(this->first);
+	}
+
+	template<typename T> inline const T& JsonifierResultBase<T>::valueUnsafe() const& noexcept {
+		return this->first;
+	}
+
+	template<typename T>
+	inline JsonifierResultBase<T>::JsonifierResultBase(T&& value, ErrorCode error) noexcept : std::pair<T, ErrorCode>(std::forward<T>(value), error) {
+	}
+
+	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase(ErrorCode error) noexcept : JsonifierResultBase(T{ this->first }, error) {
+	}
+
+	template<typename T>
+	inline JsonifierResultBase<T>::JsonifierResultBase(T&& value) noexcept : JsonifierResultBase(std::forward<T>(value), Success) {
+	}
+
+	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase() noexcept : JsonifierResultBase(T{}, Uninitialized) {
+	}
+
+	template<typename T> inline void JsonifierResult<T>::tie(T& value, ErrorCode& error) && noexcept {
+		std::forward<JsonifierResultBase<T>>(*this).tie(value, error);
+	}
+
+	template<typename T> inline ErrorCode JsonifierResult<T>::get(T& value) && noexcept {
+		return std::forward<JsonifierResultBase<T>>(*this).get(value);
+	}
+
+	template<typename T> inline ErrorCode JsonifierResult<T>::error() const noexcept {
+		return JsonifierResultBase<T>::error();
+	}
+
+	template<typename T> inline T&& JsonifierResult<T>::valueUnsafe() && noexcept {
+		return std::forward<JsonifierResultBase<T>>(*this).valueUnsafe();
+	}
+
+	template<typename T>
+	inline JsonifierResult<T>::JsonifierResult(T&& value, ErrorCode error) noexcept : JsonifierResultBase<T>(std::forward<T>(value), error){}
+
+	template<typename T> inline JsonifierResult<T>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<T>(error){}
+
+	template<typename T> inline JsonifierResult<T>::JsonifierResult(T&& value) noexcept : JsonifierResultBase<T>(std::forward<T>(value)){}
+
+	template<typename T> inline JsonifierResult<T>::JsonifierResult() noexcept : JsonifierResultBase<T>(){}
+
+	inline Field::Field() noexcept : std::pair<RawJsonString, Value>(nullptr, ValueIterator{}){};
 
 	inline Field::Field(RawJsonString key, Value&& value) noexcept : std::pair<RawJsonString, Value>(key, std::forward<Value>(value)) {
 	}
@@ -1371,7 +1421,7 @@ namespace Jsonifier {
 		return ObjectIterator(iterator);
 	}
 
-	inline JsonifierResult<size_t> Object::countFields() noexcept {
+	inline JsonifierResult<size_t> Object::countFields() &noexcept {
 		size_t count{ 0 };
 		for (auto v: *this) {
 			count++;
@@ -1383,7 +1433,7 @@ namespace Jsonifier {
 		return count;
 	}
 
-	inline JsonifierResult<bool> Object::isEmpty() noexcept {
+	inline JsonifierResult<bool> Object::isEmpty() &noexcept {
 		bool is_not_empty;
 		auto error = iterator.resetObject().get(is_not_empty);
 		if (error) {
@@ -1392,7 +1442,7 @@ namespace Jsonifier {
 		return !is_not_empty;
 	}
 
-	inline JsonifierResult<bool> Object::reset() noexcept {
+	inline JsonifierResult<bool> Object::reset() &noexcept {
 		return iterator.resetObject();
 	}
 
@@ -1434,7 +1484,7 @@ namespace Jsonifier {
 		return *this;
 	}
 
-	inline ValueIterator::ValueIterator(JsonIterator* jsonIter, size_t depth, uint32_t*startPosition) noexcept
+	inline ValueIterator::ValueIterator(JsonIterator* jsonIter, size_t depth, uint32_t* startPosition) noexcept
 		: jsonIterator{ jsonIter }, currentDepth{ depth }, rootStructural{ startPosition } {
 	}
 
@@ -1452,7 +1502,7 @@ namespace Jsonifier {
 		assertAtContainerStart();
 		if (*jsonIterator->peek() == '}') {
 			jsonIterator->returnCurrentAndAdvance();
-			end_container();
+			endContainer();
 			return false;
 		}
 		return true;
@@ -1462,7 +1512,7 @@ namespace Jsonifier {
 		return startedObject();
 	}
 
-	inline ErrorCode ValueIterator::end_container() noexcept {
+	inline ErrorCode ValueIterator::endContainer() noexcept {
 		jsonIterator->ascendTo(depth() - 1);
 		return Success;
 	}
@@ -1472,7 +1522,7 @@ namespace Jsonifier {
 
 		switch (*jsonIterator->returnCurrentAndAdvance()) {
 			case '}':
-				end_container();
+				endContainer();
 				return false;
 			case ',':
 				return true;
@@ -1524,7 +1574,7 @@ namespace Jsonifier {
 	inline JsonifierResult<bool> ValueIterator::findFieldUnorderedRaw(const std::string_view key) noexcept {
 		ErrorCode error;
 		bool has_value;
-		uint32_t*search_start = jsonIterator->position();
+		uint32_t* search_start = jsonIterator->position();
 		bool at_first = atFirstField();
 		if (at_first) {
 			has_value = true;
@@ -1632,7 +1682,7 @@ namespace Jsonifier {
 		assertAtContainerStart();
 		if (*jsonIterator->peek() == ']') {
 			jsonIterator->returnCurrentAndAdvance();
-			end_container();
+			endContainer();
 			return false;
 		}
 		jsonIterator->descendTo(depth() + 1);
@@ -1648,7 +1698,7 @@ namespace Jsonifier {
 
 		switch (*jsonIterator->returnCurrentAndAdvance()) {
 			case ']':
-				end_container();
+				endContainer();
 				return false;
 			case ',':
 				jsonIterator->descendTo(depth() + 1);
@@ -1691,26 +1741,26 @@ namespace Jsonifier {
 
 	inline JsonifierResult<uint64_t> ValueIterator::getUint64() noexcept {
 		auto result = NumberParser::parseUnsigned(peekNonRootScalar("uint64"));
-		advance_non_root_scalar("uint64");
+		advanceNonRootScalar("uint64");
 		return result;
 	}
 
 	inline JsonifierResult<int64_t> ValueIterator::getInt64() noexcept {
 		auto result = NumberParser::parseInteger(peekNonRootScalar("int64"));
-		advance_non_root_scalar("int64");
+		advanceNonRootScalar("int64");
 		return result;
 	}
 
 	inline JsonifierResult<double> ValueIterator::getDouble() noexcept {
 		auto result = NumberParser::parseDouble(peekNonRootScalar("double"));
-		advance_non_root_scalar("double");
+		advanceNonRootScalar("double");
 		return result;
 	}
 
 	inline JsonifierResult<bool> ValueIterator::getBool() noexcept {
 		auto result = parseBool(peekNonRootScalar("bool"));
 		if (result.error() == Success) {
-			advance_non_root_scalar("bool");
+			advanceNonRootScalar("bool");
 		}
 		return result;
 	}
@@ -1719,7 +1769,7 @@ namespace Jsonifier {
 		bool is_null_value;
 		parseNull(peekNonRootScalar("null")).get(is_null_value);
 		if (is_null_value) {
-			advance_non_root_scalar("null");
+			advanceNonRootScalar("null");
 		}
 		return is_null_value;
 	}
@@ -1842,7 +1892,7 @@ namespace Jsonifier {
 		jsonIterator->abandon();
 	}
 
-	inline size_t ValueIterator::depth() const noexcept {
+	inline int32_t ValueIterator::depth() const noexcept {
 		return currentDepth;
 	}
 
@@ -1935,7 +1985,7 @@ namespace Jsonifier {
 		jsonIterator->ascendTo(depth() - 1);
 	}
 
-	inline void ValueIterator::advance_non_root_scalar(const char* type) noexcept {
+	inline void ValueIterator::advanceNonRootScalar(const char* type) noexcept {
 		if (!isAtStart()) {
 			return;
 		}
@@ -2054,19 +2104,19 @@ namespace Jsonifier {
 		}
 	}
 
-	inline uint32_t*ValueIterator::startPosition() const noexcept {
+	inline uint32_t* ValueIterator::startPosition() const noexcept {
 		return rootStructural;
 	}
 
-	inline uint32_t*ValueIterator::position() const noexcept {
+	inline uint32_t* ValueIterator::position() const noexcept {
 		return jsonIterator->position();
 	}
 
-	inline uint32_t*ValueIterator::endPosition() const noexcept {
+	inline uint32_t* ValueIterator::endPosition() const noexcept {
 		return jsonIterator->endPosition();
 	}
 
-	inline uint32_t*ValueIterator::lastPosition() const noexcept {
+	inline uint32_t* ValueIterator::lastPosition() const noexcept {
 		return jsonIterator->lastPosition();
 	}
 
@@ -2123,15 +2173,15 @@ namespace Jsonifier {
 		return &stringView[*(currentPosition++)];
 	}
 
-	inline const uint8_t* TokenIterator::peek(uint32_t*position) const noexcept {
+	inline const uint8_t* TokenIterator::peek(uint32_t* position) const noexcept {
 		return &stringView[*position];
 	}
 
-	inline uint32_t TokenIterator::peekIndex(uint32_t*position) const noexcept {
+	inline uint32_t TokenIterator::peekIndex(uint32_t* position) const noexcept {
 		return *position;
 	}
 
-	inline uint32_t TokenIterator::peekLength(uint32_t*position) const noexcept {
+	inline uint32_t TokenIterator::peekLength(uint32_t* position) const noexcept {
 		return *(position + 1) - *position;
 	}
 
@@ -2147,11 +2197,11 @@ namespace Jsonifier {
 		return *(currentPosition + delta + 1) - *(currentPosition + delta);
 	}
 
-	inline uint32_t*TokenIterator::position() const noexcept {
+	inline uint32_t* TokenIterator::position() const noexcept {
 		return currentPosition;
 	}
 
-	inline void TokenIterator::setPosition(uint32_t*target_position) noexcept {
+	inline void TokenIterator::setPosition(uint32_t* target_position) noexcept {
 		currentPosition = target_position;
 	}
 
@@ -2433,11 +2483,11 @@ namespace Jsonifier {
 		return iterator.jsonIter().depth();
 	}
 
-	inline JsonifierResult<Value> Document::operator[](std::string_view key) noexcept {
+	inline JsonifierResult<Value> Document::operator[](std::string_view key)&noexcept {
 		return startOrResumeObject()[key];
 	}
 
-	inline JsonifierResult<Value> Document::operator[](const char* key) noexcept {
+	inline JsonifierResult<Value> Document::operator[](const char* key) &noexcept {
 		return startOrResumeObject()[key];
 	}
 
@@ -2510,7 +2560,7 @@ namespace Jsonifier {
 		return first.countFields();
 	}
 
-	inline JsonifierResult<size_t> Value::countFields() noexcept {
+	inline JsonifierResult<size_t> Value::countFields() &noexcept {
 		JsonifierResult<size_t> answer;
 		auto a = getObject();
 		answer = a.countFields();
@@ -2518,7 +2568,7 @@ namespace Jsonifier {
 		return answer;
 	}
 
-	inline JsonifierResult<size_t> Document::countFields() noexcept {
+	inline JsonifierResult<size_t> Document::countFields() &noexcept {
 		auto a = getObject();
 		JsonifierResult<size_t> answer = a.countFields();
 		if (answer.error() == Success) {
@@ -2771,7 +2821,7 @@ namespace Jsonifier {
 		return first.atPointer(jsonPointer);
 	}
 
-	inline JsonifierResult<size_t> Value::countElements() noexcept {
+	inline JsonifierResult<size_t> Value::countElements() &noexcept {
 		JsonifierResult<size_t> answer;
 		auto a = getArray();
 		answer = a.countElements();
@@ -2900,11 +2950,11 @@ namespace Jsonifier {
 		return iter.unescape(*this);
 	}
 
-	inline JsonifierResult<ArrayIterator> Value::begin() noexcept {
+	inline JsonifierResult<ArrayIterator> Value::begin() &noexcept {
 		return getArray().begin();
 	}
 
-	inline JsonifierResult<ArrayIterator> Value::end() noexcept {
+	inline JsonifierResult<ArrayIterator> Value::end() &noexcept {
 		return {};
 	}
 
@@ -2927,81 +2977,4 @@ namespace Jsonifier {
 		auto a = getArray();
 		return a.at(index);
 	}
-
-	template<typename T> inline void JsonifierResultBase<T>::tie(T& Value, ErrorCode& error) && noexcept {
-		error = this->second;
-		if (!error) {
-			Value = std::forward<JsonifierResultBase<T>>(*this).first;
-		}
-	}
-
-	template<typename T> inline ErrorCode JsonifierResultBase<T>::get(T& Value) && noexcept {
-		ErrorCode error;
-		std::forward<JsonifierResultBase<T>>(*this).tie(Value, error);
-		return error;
-	}
-
-	template<typename T> inline ErrorCode JsonifierResultBase<T>::error() const noexcept {
-		return this->second;
-	}
-
-
-	template<typename T> inline const T& JsonifierResultBase<T>::valueUnsafe() const& noexcept {
-		return this->first;
-	}
-
-	template<typename T> inline T&& JsonifierResultBase<T>::valueUnsafe() && noexcept {
-		return std::forward<T>(this->first);
-	}
-
-	template<typename T>
-	inline JsonifierResultBase<T>::JsonifierResultBase(T&& Value, ErrorCode error) noexcept
-		: std::pair<T, ErrorCode>(std::forward<T>(Value), error) {
-	}
-
-	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase(ErrorCode error) noexcept : JsonifierResultBase(T{}, error) {
-	}
-
-	template<typename T>
-	inline JsonifierResultBase<T>::JsonifierResultBase(T&& Value) noexcept : JsonifierResultBase(std::forward<T>(Value), Success) {
-	}
-
-	template<typename T> inline JsonifierResultBase<T>::JsonifierResultBase() noexcept : JsonifierResultBase(T{}, Uninitialized) {
-	}
-
-	template<typename T> inline void JsonifierResult<T>::tie(T& Value, ErrorCode& error) && noexcept {
-		std::forward<JsonifierResultBase<T>>(*this).tie(Value, error);
-	}
-
-	template<typename T> inline ErrorCode JsonifierResult<T>::get(T& Value) && noexcept {
-		return std::forward<JsonifierResultBase<T>>(*this).get(Value);
-	}
-
-	template<typename T> inline ErrorCode JsonifierResult<T>::error() const noexcept {
-		return JsonifierResultBase<T>::error();
-	}
-
-	template<typename T> inline const T& JsonifierResult<T>::valueUnsafe() const& noexcept {
-		return JsonifierResultBase<T>::valueUnsafe();
-	}
-
-	template<typename T> inline T&& JsonifierResult<T>::valueUnsafe() && noexcept {
-		return std::forward<JsonifierResultBase<T>>(*this).valueUnsafe();
-	}
-
-	template<typename T>
-	inline JsonifierResult<T>::JsonifierResult(T&& Value, ErrorCode error) noexcept
-		: JsonifierResultBase<T>(std::forward<T>(Value), error) {
-	}
-
-	template<typename T> inline JsonifierResult<T>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<T>(error) {
-	}
-
-	template<typename T>
-	inline JsonifierResult<T>::JsonifierResult(T&& Value) noexcept : JsonifierResultBase<T>(std::forward<T>(Value)) {
-	}
-
-	template<typename T> inline JsonifierResult<T>::JsonifierResult() noexcept : JsonifierResultBase<T>() {
-	}
-	
 };

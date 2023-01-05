@@ -322,7 +322,7 @@ namespace Jsonifier {
 	std::string getString(Object jsonData, const char* key) {
 		std::string_view value{};
 		if (jsonData[key].get(value) == ErrorCode::Success) {
-			return std::string{ value };
+			return std::string{ value.data(), value.size() };
 		} else {
 			return "";
 		}
@@ -331,7 +331,7 @@ namespace Jsonifier {
 	std::string getString(Value jsonData, const char* key) {
 		std::string_view value{};
 		if (jsonData[key].get(value) == ErrorCode::Success) {
-			return std::string{ value };
+			return std::string{ value.data(), value.size() };
 		} else {
 			return "";
 		}
@@ -364,10 +364,11 @@ namespace Jsonifier {
 	std::string getString(ObjectReturnDataJson jsonData, const char* key) {
 		std::string_view value{};
 		if (jsonData.didItSucceed && jsonData.object[key].get(value) == ErrorCode::Success) {
-			return static_cast<std::string>(value);
+			return std::string{ value.data(), value.size() };
 		}
-		return static_cast<std::string>(value);
+		return std::string{ value };
 	}
+
 	std::string getString(Value jsonData) {
 		std::string_view value{};
 		if (jsonData.get(value) == ErrorCode::Success) {
@@ -378,35 +379,35 @@ namespace Jsonifier {
 	}
 
 	ObjectReturnDataJson getObject(Value jsonData, const char* objectName) {
-		ObjectReturnDataJson value{ jsonData };
+		ObjectReturnDataJson value{};
 		if (jsonData[objectName].get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonData, const char* objectName) {
-		ObjectReturnDataJson value{ jsonData.object };
+		ObjectReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonData, uint64_t objectIndex) {
-		ObjectReturnDataJson value{ jsonData.arrayValue };
+		ObjectReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ArrayReturnDataJson getArray(Value jsonData, const char* arrayName) {
-		ArrayReturnDataJson value{ jsonData };
+		ArrayReturnDataJson value{ };
 		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}
 		return value;
 	}
 	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonData, const char* arrayName) {
-		ArrayReturnDataJson value{ jsonData.object };
+		ArrayReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
 			value.didItSucceed = true;
 		}

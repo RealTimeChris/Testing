@@ -55,7 +55,6 @@ namespace Jsonifier {
 
 	class TokenIterator {
 	  public:
-		inline TokenIterator() noexcept = default;
 		inline TokenIterator(TokenIterator&& other) noexcept = default;
 		inline TokenIterator& operator=(TokenIterator&& other) noexcept = default;
 		inline TokenIterator(const TokenIterator& other) noexcept = default;
@@ -65,10 +64,10 @@ namespace Jsonifier {
 		inline uint32_t currentOffset() const noexcept;
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline uint32_t peekLength(int32_t delta = 0) const noexcept;
-		inline const uint8_t* peek(uint32_t*position) const noexcept;
-		inline uint32_t peekLength(uint32_t*position) const noexcept;
-		inline uint32_t*position() const noexcept;
-		inline void setPosition(uint32_t*target_position) noexcept;
+		inline const uint8_t* peek(uint32_t* position) const noexcept;
+		inline uint32_t peekLength(uint32_t* position) const noexcept;
+		inline uint32_t* position() const noexcept;
+		inline void setPosition(uint32_t* target_position) noexcept;
 		inline bool operator==(const TokenIterator& other) const noexcept;
 		inline bool operator!=(const TokenIterator& other) const noexcept;
 		inline bool operator>(const TokenIterator& other) const noexcept;
@@ -77,12 +76,12 @@ namespace Jsonifier {
 		inline bool operator<=(const TokenIterator& other) const noexcept;
 
 	  protected:
-		inline TokenIterator(const uint8_t* stringView, uint32_t*position) noexcept;
+		inline TokenIterator(const uint8_t* stringView, uint32_t* position) noexcept;
 		inline uint32_t peekIndex(int32_t delta = 0) const noexcept;
-		inline uint32_t peekIndex(uint32_t*position) const noexcept;
+		inline uint32_t peekIndex(uint32_t* position) const noexcept;
 
 		const uint8_t* stringView{};
-		uint32_t*currentPosition{};
+		uint32_t* currentPosition{};
 
 		friend class JsonIterator;
 		friend class ValueIterator;
@@ -96,15 +95,14 @@ namespace Jsonifier {
 		uint8_t* stringBuffer{};
 		ErrorCode error{ ErrorCode::Success };
 		size_t currentDepth{ 1 };
-		uint32_t*rootStructural{};
+		uint32_t* rootStructural{};
 
 	  public:
-		inline JsonIterator() noexcept = default;
 		inline JsonIterator(JsonIterator&& other) noexcept;
 		inline JsonIterator& operator=(JsonIterator&& other) noexcept;
 		inline ErrorCode skipChild(size_t parentDepth) noexcept;
 		inline bool atRoot() const noexcept;
-		inline uint32_t*rootPosition() const noexcept;
+		inline uint32_t* rootPosition() const noexcept;
 		inline bool isSingleToken() const noexcept;
 		inline void assertAtDocumentDepth() const noexcept;
 		inline void assertAtRoot() const noexcept;
@@ -115,8 +113,8 @@ namespace Jsonifier {
 		inline const uint8_t* peek(int32_t delta = 0) const noexcept;
 		inline uint32_t peekLength(int32_t delta = 0) const noexcept;
 		inline const uint8_t* unsafePointer() const noexcept;
-		inline const uint8_t* peek(uint32_t*position) const noexcept;
-		inline uint32_t peekLength(uint32_t*position) const noexcept;
+		inline const uint8_t* peek(uint32_t* position) const noexcept;
+		inline uint32_t peekLength(uint32_t* position) const noexcept;
 		inline const uint8_t* peekLast() const noexcept;
 		inline void ascendTo(size_t parentDepth) noexcept;
 		inline void descendTo(size_t childDepth) noexcept;
@@ -128,9 +126,9 @@ namespace Jsonifier {
 
 		template<int N> inline bool copyToBuffer(const uint8_t* json, uint32_t max_len, uint8_t (&tmpbuf)[N]) noexcept;
 
-		inline uint32_t*position() const noexcept;
+		inline uint32_t* position() const noexcept;
 		inline JsonifierResult<std::string_view> unescape(RawJsonString in) noexcept;
-		inline void reenterChild(uint32_t*position, size_t childDepth) noexcept;
+		inline void reenterChild(uint32_t* position, size_t childDepth) noexcept;
 		inline std::string toString() const noexcept;
 		inline JsonifierResult<const char*> currentLocation() noexcept;
 		inline void rewind() noexcept;
@@ -138,9 +136,9 @@ namespace Jsonifier {
 
 	  protected:
 		inline JsonIterator(Parser* parser) noexcept;
-		inline uint32_t*lastPosition() const noexcept;
-		inline uint32_t*endPosition() const noexcept;
-		inline uint32_t*end() const noexcept;
+		inline uint32_t* lastPosition() const noexcept;
+		inline uint32_t* endPosition() const noexcept;
+		inline uint32_t* end() const noexcept;
 
 		friend class Document;
 		friend class document_stream;
