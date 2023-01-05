@@ -2610,14 +2610,14 @@ namespace Jsonifier {
 	inline JsonifierResult<Value>::JsonifierResult(ErrorCode error) noexcept : JsonifierResultBase<Value>(error) {
 	}
 
-	inline JsonifierResult<size_t> JsonifierResult<Value>::countElements() noexcept {
+	inline JsonifierResult<size_t> JsonifierResult<Value>::countElements()& noexcept {
 		if (error()) {
 			return error();
 		}
 		return first.countElements();
 	}
 
-	inline JsonifierResult<size_t> JsonifierResult<Value>::countFields() noexcept {
+	inline JsonifierResult<size_t> JsonifierResult<Value>::countFields() &noexcept {
 		if (error()) {
 			return error();
 		}
@@ -2631,14 +2631,14 @@ namespace Jsonifier {
 		return first.at(index);
 	}
 
-	inline JsonifierResult<ArrayIterator> JsonifierResult<Value>::begin() noexcept {
+	inline JsonifierResult<ArrayIterator> JsonifierResult<Value>::begin() &noexcept {
 		if (error()) {
 			return error();
 		}
 		return first.begin();
 	}
 
-	inline JsonifierResult<ArrayIterator> JsonifierResult<Value>::end() noexcept {
+	inline JsonifierResult<ArrayIterator> JsonifierResult<Value>::end() &noexcept {
 		if (error()) {
 			return error();
 		}

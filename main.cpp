@@ -70,11 +70,11 @@ struct Activities {
 
 struct TheDJson {
 	TheDJson() noexcept = default;
-	TheDJson(Jsonifier::Document value) {
+	TheDJson(Jsonifier::Document&& value) {
 		Jsonifier::Array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
 		//std::cout << "ELEMENT COUNT: " << valueNew.countElements().value_unsafe() << std::endl;
-		
+		stopWatch.resetTimer();
 		for (auto valueIterator : valueNew) {
 			stopWatch.resetTimer();
 			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
@@ -85,7 +85,7 @@ struct TheDJson {
 			
 			
 		}
-		std::cout << "TOTAL TIME PASSED: (JSON) " << totalTimeNew / iterationCount << std::endl;
+		std::cout << "TOTAL TIME PASSED: (JSON) " << totalTimeNew / iterationCount << ", THE COUNT: " << this->strings.size() << std::endl;
 	}
 	std::vector<ActivitiesJson> strings{};
 };
@@ -93,7 +93,7 @@ struct TheDJson {
 struct TheValueJson {
 	TheValueJson(Jsonifier::Document value) {
 		//std::cout << "THE DATA: " << value.rawJson().value_unsafe() << std::endl;
-		this->theD = TheDJson{ std::move(value) };
+		this->theD = TheDJson{ std::forward<Jsonifier::Document>(value) };
 	}
 	TheDJson theD{};
 };
@@ -103,7 +103,7 @@ struct TheD {
 	TheD(simdjson::ondemand::document value) {
 		simdjson::ondemand::array valueNew{};
 		value["TEST_VALUE_11"]["d"].get(valueNew);
-
+		stopWatch.resetTimer();
 		for (auto valueNewer: valueNew) {
 			stopWatch.resetTimer();
 			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
@@ -112,7 +112,7 @@ struct TheD {
 			totalTimeNew += stopWatch.totalTimePassed().count();
 			iterationCount++;
 		}
-		std::cout << "TOTAL TIME PASSED: " << totalTimeNew / iterationCount << std::endl;
+		std::cout << "TOTAL TIME PASSED: " << totalTimeNew / iterationCount << ", THE COUNT: " << this->strings.size() << std::endl;
 	}
 	std::vector<Activities> strings{};
 };
@@ -155,7 +155,7 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 15; ++x) {
+		for (size_t x = 0; x < 1115; ++x) {
 			serializer["TEST_VALUE_11"]["d"].emplaceBack(arrayValueNew);
 		}
 		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
@@ -185,8 +185,27 @@ int32_t main() {
 
 		totalSize = 0;
 		totalTime = 0;
+		iterationCount = 0;
+		totalTimeNew = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
 
-		
+		Jsonifier::Parser parserOld{};
+		for (size_t x = 0ull; x < 256; ++x) {
+			auto jsonData = parserOld.parseJson(stringNew);
+			TheValueJson value{ std::move(jsonData) };
+			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
+			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
+			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
+			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
+			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
+			totalSize += oldSize;
+		}
+		totalTime = stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		totalTimeNew = 0;
 		iterationCount = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -208,26 +227,7 @@ int32_t main() {
 		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
 		totalSize = 0;
 		totalTime = 0;
-		iterationCount = 0;
-		totalTimeNew = 0;
-		totalTime = 0; 
-		stopWatch.resetTimer();
-
-		Jsonifier::Parser parserOld{};		
-		for (size_t x = 0ull; x < 256; ++x) {
-			auto jsonData = parserOld.parseJson(stringNew);
-			TheValueJson value{ std::move(jsonData) };
-			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
-			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
-			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
-			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
-			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
-			totalSize += oldSize;
-		}
-		totalTime = stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime << "ns TO PARSE THROUGH IT: " << totalSize << " BYTES!" << std::endl;
+		
 	} catch (std::runtime_error& e) { std::cout << e.what() << std::endl; }
 	return 0;
 };
