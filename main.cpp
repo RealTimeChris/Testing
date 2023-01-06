@@ -153,12 +153,12 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
 		arrayValueNew["TEST_VALUE_07"] = 4325454;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 500; ++x) {
+		for (size_t x = 0; x < 5000; ++x) {
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
-		//std::string stringNew{ serializer.operator std::string&&() };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
+		std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -176,7 +176,7 @@ int32_t main() {
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x <1; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			//TheValue value{ std::move(newDocument) };
+			TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
