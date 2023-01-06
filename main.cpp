@@ -59,7 +59,7 @@ struct TheDJson {
 		//int64_t totalTime{};
 		//int64_t totalIterations{};
 		Jsonifier::Array valueNew{};
-		value["TEST_VALUE_11"]["d"].get(valueNew);
+		value["TEST_VALUE_11"]["d"]["TEST_VALUES"].get(valueNew);
 		//stopWatch.resetTimer();
 		for (auto valueIterator : valueNew) {
 			//stopWatch.resetTimer();//
@@ -156,7 +156,6 @@ int32_t main() {
 		for (size_t x = 0; x < 500; ++x) {
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
-		std::cout << "CURRENT SIZE: " << serializer.size() << std::endl;
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::string stringNew{ FileLoader{ "C:/users/chris/downloads/refsnp-unsupported35000.json" } };
 		std::string stringNew{ serializer.operator std::string&&() };
@@ -204,7 +203,7 @@ int32_t main() {
 			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
 			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
 			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
+			//			std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
 			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
 			totalSize += oldSize;
 		}
