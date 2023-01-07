@@ -17,40 +17,45 @@ int64_t iterationCountNew{};
 struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Value value) {
-		iterationCountNew++;
-		stopWatchNew.resetTimer();
+		//iterationCountNew++;
+		////stopWatchNew.resetTimer();
 		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
-		timeValueDouble += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
+		//timeValueDouble += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
-		timeValueBool += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
+		//timeValueBool += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
-		timeValueString += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
+		//timeValueString += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
-		timeValueInt64 += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_04 = Jsonifier::getFloat(value, "TEST_VALUE_04");
-		timeValueDouble += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
-		timeValueBool += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_06 = Jsonifier::getString(value, "TEST_VALUE_06");
-		timeValueString += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
-		timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
+		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_05 = Jsonifier::getFloat(value, "TEST_VALUE_05");
+		//timeValueDouble += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_06 = Jsonifier::getBool(value, "TEST_VALUE_06");
+		//timeValueBool += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_07 = Jsonifier::getString(value, "TEST_VALUE_07");
+		//timeValueString += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_08 = Jsonifier::getInt64(value, "TEST_VALUE_08");
+
+		this->TEST_VALUE_09 = Jsonifier::getInt64(value, "TEST_VALUE_09");
+		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
 	std::string TEST_VALUE_02{};
 	int64_t TEST_VALUE_03{};
-	double TEST_VALUE_04{};
-	bool TEST_VALUE_05{};
-	std::string TEST_VALUE_06{};
-	int64_t TEST_VALUE_07{};
+	uint64_t TEST_VALUE_04{};
+	double TEST_VALUE_05{};
+	bool TEST_VALUE_06{};
+	std::string TEST_VALUE_07{};
+	int64_t TEST_VALUE_08{};
+	uint64_t TEST_VALUE_09{};
 };
 
 struct TheDJson {
@@ -65,14 +70,14 @@ struct TheDJson {
 		newObject = newObject["TEST_VALUES"];
 		//std::cout << "TYPE: " << ( int32_t )newObject.type().valueUnsafe() << std::endl;
 		
-		stopWatchNew.resetTimer();
+		//stopWatchNew.resetTimer();
 		timeValueDouble = 0;	
 		timeValueBool = 0;
 		timeValueString = 0;
 		timeValueInt64 = 0;
 		iterationCountNew = 0;
 		for (auto valueIterator: newObject) {
-			stopWatchNew.resetTimer();//
+			//stopWatchNew.resetTimer();//
 			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
 			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
 			strings.emplace_back(std::move(valueIterator.valueUnsafe()));
@@ -81,7 +86,7 @@ struct TheDJson {
 		}
 		//std::cout << "TOTAL TIME PASSED:(JSON) (double) " << timeValueDouble / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED:(JSON) (Bool) " << timeValueBool / iterationCountNew << std::endl;
-		//		std::cout << "TOTAL TIME PASSED:(JSON) (String) " << timeValueString / iterationCountNew << std::endl;
+		//std::cout << "TOTAL TIME PASSED:(JSON) (String) " << timeValueString / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED:(JSON) (int64_t) " << timeValueInt64 / iterationCountNew << std::endl;
 
 		//std::cout << "TOTAL TIME PASSED: (JSON) " << totalTime << ", THE COUNT: " << this->strings.size() << std::endl;
@@ -100,41 +105,45 @@ struct TheValueJson {
 struct Activities {
 	Activities() noexcept = default;
 	Activities(simdjson::ondemand::value value) {
-		iterationCountNew++;
-		stopWatchNew.resetTimer();
-		stopWatchNew.resetTimer();
+		//iterationCountNew++;
+		////stopWatchNew.resetTimer();
 		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
-		timeValueDouble += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
+		//timeValueDouble += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_01 = Jsonifier::getBool(value, "TEST_VALUE_01");
-		timeValueBool += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
+		//timeValueBool += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
-		timeValueString += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
+		//timeValueString += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
-		timeValueInt64 += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_04 = Jsonifier::getFloat(value, "TEST_VALUE_04");
-		timeValueDouble += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_05 = Jsonifier::getBool(value, "TEST_VALUE_05");
-		timeValueBool += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_06 = Jsonifier::getString(value, "TEST_VALUE_06");
-		timeValueString += stopWatchNew.totalTimePassed().count();
-		stopWatchNew.resetTimer();
-		this->TEST_VALUE_07 = Jsonifier::getInt64(value, "TEST_VALUE_07");
-		timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
+		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_05 = Jsonifier::getFloat(value, "TEST_VALUE_05");
+		//timeValueDouble += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_06 = Jsonifier::getBool(value, "TEST_VALUE_06");
+		//timeValueBool += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_07 = Jsonifier::getString(value, "TEST_VALUE_07");
+		//timeValueString += stopWatchNew.totalTimePassed().count();
+		//stopWatchNew.resetTimer();
+		this->TEST_VALUE_08 = Jsonifier::getInt64(value, "TEST_VALUE_08");
+
+		this->TEST_VALUE_09 = Jsonifier::getInt64(value, "TEST_VALUE_09");
+		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
 	std::string TEST_VALUE_02{};
 	int64_t TEST_VALUE_03{};
-	double TEST_VALUE_04{};
-	bool TEST_VALUE_05{};
-	std::string TEST_VALUE_06{};
-	int64_t TEST_VALUE_07{};
+	uint64_t TEST_VALUE_04{};
+	double TEST_VALUE_05{};
+	bool TEST_VALUE_06{};
+	std::string TEST_VALUE_07{};
+	int64_t TEST_VALUE_08{};
+	uint64_t TEST_VALUE_09{};
 };
 
 
@@ -164,7 +173,7 @@ struct TheD {
 		//std::cout << "TOTAL TIME PASSED: (double) " << timeValueDouble / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED: (Bool) " << timeValueBool / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED: (String) " << timeValueString / iterationCountNew << std::endl;
-		//std::cout << "TOTAL TIME PASSED: (int64_t) " << timeValueInt64 / iterationCountNew << std::endl;
+		//st//d::cout << "TOTAL TIME PASSED: (int64_t) " << timeValueInt64 / iterationCountNew << std::endl;
 
 		//std::cout << "TOTAL TIME PASSED: " << totalTime << ", THE COUNT: " << this->strings.size() << std::endl;
 	}
@@ -203,37 +212,39 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
 		arrayValueNew["TEST_VALUE_01"] = true;
 		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE112323";
-		arrayValueNew["TEST_VALUE_03"] = 4325454;
-		arrayValueNew["TEST_VALUE_04"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_05"] = true;
-		arrayValueNew["TEST_VALUE_06"] = "TESTING_VALUE";
-		arrayValueNew["TEST_VALUE_07"] = 4325454;
+		arrayValueNew["TEST_VALUE_03"] = 4325454ll;
+		arrayValueNew["TEST_VALUE_04"] = 4325454ull;
+		arrayValueNew["TEST_VALUE_05"] = 0.00333423;
+		arrayValueNew["TEST_VALUE_06"] = true;
+		arrayValueNew["TEST_VALUE_07"] = "TESTING_VALUE";
+		arrayValueNew["TEST_VALUE_08"] = 4325454ll;
+		arrayValueNew["TEST_VALUE_09"] = 23423423ull;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 150; ++x) {
+		for (size_t x = 0; x < 15; ++x) {
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/Jsonifier/benchmarking/twitter.json" } };
-		std::string stringNew{ serializer.operator std::string&&() };
+		std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/Jsonifier/benchmarking/twitter.json" } };
+		//std::string stringNew{ serializer.operator std::string&&() };
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t oldSize = stringNew.size();
 
-		//std::cout << "THE STRING: " << stringNew << std::endl;
+		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
 				
-		
-		iterationCountNew = 0;
+		int32_t iterationCount{};
+		iterationCount = 0;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 5; ++x) {
+		for (size_t x = 0ull; x < 500; ++x) {
 			auto newDocument = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheValue value{ std::move(newDocument) };
+			//TheValue value{ std::move(newDocument) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
@@ -241,32 +252,35 @@ int32_t main() {
 			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
 			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
 			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
-			iterationCountNew++;
+			iterationCount++;
 			totalSize += oldSize;
 		}
 		totalTime = stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime/iterationCountNew << "ns TO PARSE THROUGH IT: " << totalSize/iterationCountNew << " BYTES!" << std::endl;
+		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!"
+				  << std::endl;
 		totalSize = 0;
 		totalTime = 0;
-		iterationCountNew = 0;
+		iterationCount = 0;
 		stopWatch.resetTimer();
 
 		Jsonifier::Parser parserOld{};
-		for (size_t x = 0ull; x < 5; ++x) {
+		for (size_t x = 0ull; x < 500; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew);
-			TheValueJson value{ std::move(jsonData) };
+			//TheValueJson value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
 			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
 			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//			std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
 			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
-			iterationCountNew++;
+			//std::cout << "VALUE08: " << value.theD.strings.begin().operator*().TEST_VALUE_08 << std::endl;
+			//std::cout << "VALUE09: " << value.theD.strings.begin().operator*().TEST_VALUE_09 << std::endl;
+			iterationCount++;
 			totalSize += oldSize;
 		}
 		totalTime = stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime / iterationCountNew << "ns TO PARSE THROUGH IT: " << totalSize / iterationCountNew << " BYTES!"
+		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!"
 				  << std::endl;
 		
 		
