@@ -298,7 +298,7 @@ namespace Jsonifier {
 		if (auto error = jsonData[key].get(value); error == ErrorCode::Success) {
 			return std::string{ value.data(), value.size() };
 		} else {
-			throw std::runtime_error{ "FAILED TO PARSE THE STRING: ERROR WAS: " + std::to_string(error) };
+			return "";
 		}
 	}
 
