@@ -3,7 +3,6 @@
 #endif
 
 #include "DataParsingFunctions.hpp"
-#include <jsonifier/Jsonifier.hpp>
 #include <simdjson.h>
 #include <fstream>
 
@@ -65,10 +64,10 @@ struct TheDJson {
 		int64_t totalTime{};
 		int64_t totalIterations{};
 		Jsonifier::Array valueNew{};
-		auto newObject = value["TEST_VALUE_11"];
-		newObject = newObject["d"]; 
-		newObject = newObject["TEST_VALUES"];
-		//std::cout << "TYPE: " << ( int32_t )newObject.type().valueUnsafe() << std::endl;
+		if (auto result = value["TEST_VALUE_11"]["d"]["TEST_VALUES"].get(valueNew); result != Jsonifier::Success) {
+			throw std::runtime_error{ "FAILED FOR REASON: " + std::to_string(result) };
+		}
+		//std::cout << "COUNT: " << ( int32_t )valueNew.countElements().valueUnsafe() << std::endl;
 		
 		//stopWatchNew.resetTimer();
 		timeValueDouble = 0;	
@@ -76,10 +75,10 @@ struct TheDJson {
 		timeValueString = 0;
 		timeValueInt64 = 0;
 		iterationCountNew = 0;
-		for (auto valueIterator: newObject) {
+		for (auto valueIterator: valueNew) {
 			//stopWatchNew.resetTimer();//
-			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
-			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
+			//std::cout << "FIELD COUNT: " << +valueIterator.countFields().error() << std::endl;
+			//std::cout << "THE TYPE: " << ( int32_t )valueIterator.type().valueUnsafe() << std::endl;
 			strings.emplace_back(std::move(valueIterator.valueUnsafe()));
 			totalTime += stopWatchNew.totalTimePassed().count();
 			totalIterations++;
@@ -119,7 +118,7 @@ struct Activities {
 		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
 		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
-		//stopWatchNew.resetTimer();
+		//stopWatchNew.resetTimer(); 
 		this->TEST_VALUE_05 = Jsonifier::getFloat(value, "TEST_VALUE_05");
 		//timeValueDouble += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
@@ -422,12 +421,12 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_08"] = 4325454ll;
 		arrayValueNew["TEST_VALUE_09"] = 23423423ull;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 180; ++x) {
+		for (size_t x = 0; x < 10; ++x) {
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew02{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/test_data.json" } };
-		std::string stringNew{ serializer.operator std::string&&() };
+		std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/refsnp-unsupported35000.json" } };
+		//std::string stringNew{ serializer.operator std::string&&() };
 		
 		/* std::string stringNew{
 			"{\"d\":{\"_trace\":[\"[\"gateway-prd-us-east1-c-hxpp\",{\"micros\":69465,\"calls\":[\"id_created\",{\"micros\":818,\"calls\":[]},"
@@ -452,25 +451,46 @@ int32_t main() {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t oldSize = stringNew.size();
-		size_t oldSize02 = stringNew02.size();
-
-		std::cout << "THE STRING: " << stringNew << std::endl;
-		std::cout << "THE STRING 02: " << stringNew02 << std::endl;
+ 		//std::cout << "THE STRING: " << stringNew << std::endl;
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
-		std::cout << "THE STRING LENGTH 02: " << stringNew02.size() << std::endl;
 		std::string stringNewer = stringNew;
-		std::string stringNewer02 = stringNew02;
 				
 		int32_t iterationCount{};
+		
+		
+		iterationCount = 0;
+		totalSize = 0;
+		totalTime = 0;
+		stopWatch.resetTimer();
+		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
+		simdjson::ondemand::parser parser{};
+		for (size_t x = 0ull; x < 1; ++x) {
+			auto jsonData = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
+			//TheD theValue{ std::move(jsonData) };
+			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
+			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
+			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
+			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
+			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
+			//std::cout << "THE NAME: " << value.name << std::endl;
+			//std::cout << "MEMBER COUNT: " << value.memberCount << std::endl;
+			iterationCount++;
+			totalSize += oldSize;
+		}
+		totalTime = stopWatch.totalTimePassed().count();
+		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!" << std::endl;
 
 		iterationCount = 0;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
+
 		Jsonifier::Parser parserOld{};
 		for (size_t x = 0ull; x < 1; ++x) {
-			auto jsonData = parserOld.parseJson(stringNew);
-			TheDJson value{ std::move(jsonData) };
+			auto jsonData = parserOld.parseJson(stringNew.data(), stringNew.size());
+			//TheDJson value{ std::move(jsonData) };
 			//GuildData value{ std::move(jsonData["d"]) };
 			//WebSocketMessage value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -484,79 +504,9 @@ int32_t main() {
 			iterationCount++;
 			totalSize += oldSize;
 		}
-		for (size_t x = 0ull; x < 1; ++x) {
-			//auto jsonData = parserOld.parseJson(stringNew02);
-			//auto jsonDataNew = jsonData.getValue().valueUnsafe().getObject();
-			//GuildData value{ std::move(jsonData["d"]) };
-			//for (auto iterator = jsonDataNew.begin(); iterator != jsonDataNew.end(); ++iterator) {
-			//std::cout << "CURRENT TYPE (JSON): " << iterator.operator*().key().valueUnsafe() << std::endl;
-			//}
-			//GuildData value{ std::move(jsonData["d"]) };
-			//std::cout << "VALUE00: " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
-			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
-			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
-			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
-			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
-			//std::cout << "VALUE08: " << value.theD.strings.begin().operator*().TEST_VALUE_08 << std::endl;
-			//std::cout << "VALUE09: " << value.theD.strings.begin().operator*().TEST_VALUE_09 << std::endl;
-			//std::cout << "THE NAME: " << value.name << std::endl;
-			//std::cout << "MEMBER COUNT: " << value.memberCount << std::endl;
-			//iterationCount++;
-			//totalSize += oldSize02;
-		}
 		totalTime = stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!" << std::endl;
-
-		iterationCount = 0;
-		totalSize = 0;
-		totalTime = 0;
-		stopWatch.resetTimer();
-		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
-		stringNewer02.reserve(oldSize02 + simdjson::SIMDJSON_PADDING);
-		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 1; ++x) {
-			auto jsonData = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			TheD theValue{ std::move(jsonData) };
-			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
-			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
-			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
-			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
-			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
-			//std::cout << "THE NAME: " << value.name << std::endl;
-			//std::cout << "MEMBER COUNT: " << value.memberCount << std::endl;
-			iterationCount++;
-			totalSize += oldSize;
-		}
-		for (size_t x = 0ull; x < 1; ++x) {
-			//auto jsonData = parser.iterate(stringNewer02.data(), stringNewer02.size(), stringNewer02.capacity());
-
-			//auto jsonDataNew = jsonData.get_value().value_unsafe().get_object();
-			//GuildData value{ std::move(jsonData["d"]) };
-			//for (auto iterator = jsonDataNew.begin(); iterator != jsonDataNew.end(); ++iterator) {
-				//std::cout << "CURRENT TYPE: " << iterator.operator*().key().value_unsafe() << std::endl;
-			//}
-
-			//WebSocketMessage value{ std::move(jsonData) };
-			//GuildData value{ std::move(jsonData["d"]) };
-			//TheValue value{ std::move(jsonData) };
-			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
-			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
-			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
-			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
-			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
-			//std::cout << "THE NAME: " << value.name << std::endl;
-			//std::cout << "MEMBER COUNT: " << value.memberCount << std::endl;
-			//iterationCount++;
-			//totalSize += oldSize02;
-		}
-		totalTime = stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!" << std::endl;
+		
 		
 		
 	} catch (std::runtime_error& e) { std::cout << e.what() << std::endl; }
