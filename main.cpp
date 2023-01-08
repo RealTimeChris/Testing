@@ -468,7 +468,7 @@ int32_t main() {
 		totalTime = 0;
 		stopWatch.resetTimer();
 		Jsonifier::Parser parserOld{};
-		for (size_t x = 0ull; x < 5; ++x) {
+		for (size_t x = 0ull; x < 1; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew02);
 			TheDJson value{ std::move(jsonData) };
 			//GuildData value{ std::move(jsonData["d"]) };
@@ -484,7 +484,7 @@ int32_t main() {
 			iterationCount++;
 			totalSize += oldSize02;
 		}
-		for (size_t x = 0ull; x < 5; ++x) {
+		for (size_t x = 0ull; x < 1; ++x) {
 			//auto jsonData = parserOld.parseJson(stringNew02);
 			//auto jsonDataNew = jsonData.getValue().valueUnsafe().getObject();
 			//GuildData value{ std::move(jsonData["d"]) };
@@ -516,7 +516,7 @@ int32_t main() {
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		stringNewer02.reserve(oldSize02 + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 5; ++x) {
+		for (size_t x = 0ull; x < 1; ++x) {
 			auto jsonData = parser.iterate(stringNewer02.data(), stringNewer02.size(), stringNewer02.capacity());
 			TheD theValue{ std::move(jsonData) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -531,7 +531,7 @@ int32_t main() {
 			iterationCount++;
 			totalSize += oldSize02;
 		}
-		for (size_t x = 0ull; x < 5; ++x) {
+		for (size_t x = 0ull; x < 1; ++x) {
 			//auto jsonData = parser.iterate(stringNewer02.data(), stringNewer02.size(), stringNewer02.capacity());
 
 			//auto jsonDataNew = jsonData.get_value().value_unsafe().get_object();
