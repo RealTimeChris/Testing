@@ -469,7 +469,7 @@ int32_t main() {
 		stopWatch.resetTimer();
 		Jsonifier::Parser parserOld{};
 		for (size_t x = 0ull; x < 1; ++x) {
-			auto jsonData = parserOld.parseJson(stringNew02);
+			auto jsonData = parserOld.parseJson(stringNew);
 			TheDJson value{ std::move(jsonData) };
 			//GuildData value{ std::move(jsonData["d"]) };
 			//WebSocketMessage value{ std::move(jsonData) };
@@ -482,7 +482,7 @@ int32_t main() {
 			//std::cout << "VALUE06: " << value.strings.begin().operator*().TEST_VALUE_06 << std::endl;
 			//std::cout << "VALUE07: " << value.strings.begin().operator*().TEST_VALUE_07 << std::endl;
 			iterationCount++;
-			totalSize += oldSize02;
+			totalSize += oldSize;
 		}
 		for (size_t x = 0ull; x < 1; ++x) {
 			//auto jsonData = parserOld.parseJson(stringNew02);
@@ -517,7 +517,7 @@ int32_t main() {
 		stringNewer02.reserve(oldSize02 + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 1; ++x) {
-			auto jsonData = parser.iterate(stringNewer02.data(), stringNewer02.size(), stringNewer02.capacity());
+			auto jsonData = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheD theValue{ std::move(jsonData) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
@@ -529,7 +529,7 @@ int32_t main() {
 			//std::cout << "THE NAME: " << value.name << std::endl;
 			//std::cout << "MEMBER COUNT: " << value.memberCount << std::endl;
 			iterationCount++;
-			totalSize += oldSize02;
+			totalSize += oldSize;
 		}
 		for (size_t x = 0ull; x < 1; ++x) {
 			//auto jsonData = parser.iterate(stringNewer02.data(), stringNewer02.size(), stringNewer02.capacity());
