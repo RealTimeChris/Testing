@@ -421,14 +421,14 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_08"] = 4325454ll;
 		arrayValueNew["TEST_VALUE_09"] = 23423423ull;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 10; ++x) {
+		for (size_t x = 0; x < 10; ++x) { 
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/refsnp-unsupported35000.json" } };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/refsnp-unsupported35000.json" } };
 		//std::string stringNew{ serializer.operator std::string&&() };
 		
-		/* std::string stringNew{
+		 std::string stringNew{
 			"{\"d\":{\"_trace\":[\"[\"gateway-prd-us-east1-c-hxpp\",{\"micros\":69465,\"calls\":[\"id_created\",{\"micros\":818,\"calls\":[]},"
 			"\"session_lookup_time\",{\"micros\":1732,\"calls\":[]},\"session_lookup_finished\",{\"micros\":16,\"calls\":[]},\"discord-sessions-blue-"
 			"prd-2-110\",{\"micros\":65609,\"calls\":[\"start_session\",{\"micros\":56176,\"calls\":[\"discord-api-bb96f7fd9-r2n7w\",{\"micros\":"
@@ -446,7 +446,7 @@ int32_t main() {
 			"\"user\":{\"avatar\":\"46abb15c4bf57cd5dfc6db3fd661a491\",\"bot\":true,\"discriminator\":\"9071\",\"email\":null,\"flags\":0,\"id\":"
 			"\"1008143759944450190\",\"mfa_enabled\":false,\"username\":\"MBot-MusicHouse-2\",\"verified\":true},\"user_settings\":{},\"v\":10},"
 			"\"op\":0,\"s\":1,\"t\":\"READY\"}\\"
-		};*/
+		};
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
