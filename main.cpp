@@ -17,7 +17,7 @@ struct ActivitiesJson {
 	ActivitiesJson() noexcept = default;
 	ActivitiesJson(Jsonifier::Value value) {
 		//iterationCountNew++;
-		////stopWatchNew.resetTimer();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
 		//timeValueDouble += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
@@ -27,9 +27,9 @@ struct ActivitiesJson {
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
+		this->TEST_VALUE_03 = Jsonifier::getUint64(value, "TEST_VALUE_03");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
 		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_05 = Jsonifier::getFloat(value, "TEST_VALUE_05");
 		//timeValueDouble += stopWatchNew.totalTimePassed().count();
@@ -40,10 +40,9 @@ struct ActivitiesJson {
 		this->TEST_VALUE_07 = Jsonifier::getString(value, "TEST_VALUE_07");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_08 = Jsonifier::getInt64(value, "TEST_VALUE_08");
-
-		this->TEST_VALUE_09 = Jsonifier::getInt64(value, "TEST_VALUE_09");
+		this->TEST_VALUE_08 = Jsonifier::getUint64(value, "TEST_VALUE_08");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		this->TEST_VALUE_09 = Jsonifier::getUint64(value, "TEST_VALUE_09");
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -69,14 +68,14 @@ struct TheDJson {
 		}
 		//std::cout << "COUNT: " << ( int32_t )valueNew.countElements().valueUnsafe() << std::endl;
 		
-		//stopWatchNew.resetTimer();
+		stopWatchNew.resetTimer();
 		timeValueDouble = 0;	
 		timeValueBool = 0;
 		timeValueString = 0;
 		timeValueInt64 = 0;
 		iterationCountNew = 0;
 		for (auto valueIterator: valueNew) {
-			//stopWatchNew.resetTimer();//
+			stopWatchNew.resetTimer();//
 			//std::cout << "FIELD COUNT: " << +valueIterator.countFields().error() << std::endl;
 			//std::cout << "THE TYPE: " << ( int32_t )valueIterator.type().valueUnsafe() << std::endl;
 			strings.emplace_back(std::move(valueIterator.valueUnsafe()));
@@ -105,7 +104,7 @@ struct Activities {
 	Activities() noexcept = default;
 	Activities(simdjson::ondemand::value value) {
 		//iterationCountNew++;
-		////stopWatchNew.resetTimer();
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_00 = Jsonifier::getFloat(value, "TEST_VALUE_00");
 		//timeValueDouble += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
@@ -115,10 +114,10 @@ struct Activities {
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
-		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
+		this->TEST_VALUE_03 = Jsonifier::getUint64(value, "TEST_VALUE_03");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
-		//stopWatchNew.resetTimer(); 
+		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
+		//stopWatchNew.resetTimer();
 		this->TEST_VALUE_05 = Jsonifier::getFloat(value, "TEST_VALUE_05");
 		//timeValueDouble += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
@@ -128,10 +127,9 @@ struct Activities {
 		this->TEST_VALUE_07 = Jsonifier::getString(value, "TEST_VALUE_07");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_08 = Jsonifier::getInt64(value, "TEST_VALUE_08");
-
-		this->TEST_VALUE_09 = Jsonifier::getInt64(value, "TEST_VALUE_09");
+		this->TEST_VALUE_08 = Jsonifier::getUint64(value, "TEST_VALUE_08");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
+		this->TEST_VALUE_09 = Jsonifier::getUint64(value, "TEST_VALUE_09");
 	};
 	double TEST_VALUE_00{};
 	bool TEST_VALUE_01{};
@@ -172,7 +170,7 @@ struct TheD {
 		//std::cout << "TOTAL TIME PASSED: (double) " << timeValueDouble / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED: (Bool) " << timeValueBool / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED: (String) " << timeValueString / iterationCountNew << std::endl;
-		//st//d::cout << "TOTAL TIME PASSED: (int64_t) " << timeValueInt64 / iterationCountNew << std::endl;
+		//std::cout << "TOTAL TIME PASSED: (int64_t) " << timeValueInt64 / iterationCountNew << std::endl;
 
 		//std::cout << "TOTAL TIME PASSED: " << totalTime << ", THE COUNT: " << this->strings.size() << std::endl;
 	}
@@ -204,208 +202,6 @@ class FileLoader {
 	std::string fileContents{};
 };
 
-/// \brief Data structure representing a single Guild.
-class GuildData {
-  public:
-	uint64_t id{};
-	std::vector<uint64_t> guildScheduledEvents{};///< Array of Guild channels.
-	std::vector<uint64_t> stageInstances{};///< Array of Guild channels.
-	std::vector<uint64_t> stickers{};///< Array of Guild channels.
-	std::vector<uint64_t> channels{};///< Array of Guild channels.
-	std::vector<uint64_t> threads{};///< Array of Guild channels.
-	std::vector<uint64_t> members{};///< Array of GuildMembers.
-	std::vector<uint64_t> roles{};///< Array of Guild roles.
-	std::vector<uint64_t> emoji{};///< Array of Guild channels.
-	uint32_t memberCount{};///< Member count.
-	uint64_t joinedAt{};///< When the bot joined this Guild.
-	std::string name{};///< The Guild's name.
-	uint64_t ownerId{};///< User id of the Guild's owner.
-	uint8_t flags{};///< Guild flags.
-	std::string icon{};
-
-	GuildData() noexcept = default;
-
-	GuildData& operator=(GuildData&&) noexcept = default;
-
-	GuildData(GuildData&&) noexcept = default;
-
-	GuildData& operator=(const GuildData&) noexcept = default;
-
-	GuildData(const GuildData&) noexcept = default;
-
-	GuildData(Jsonifier::Value jsonData);
-
-	GuildData(simdjson::ondemand::value jsonData);
-
-	virtual ~GuildData() noexcept = default;
-};
-
-GuildData::GuildData(Jsonifier::Value jsonData) {
-	uint8_t newFlags{};
-	newFlags = getBool(jsonData, "widget_enabled");
-
-	newFlags = getBool(jsonData, "unavailable");
-
-	newFlags = getBool(jsonData, "owner");
-
-	newFlags = getUint8(jsonData, "large");
-
-	this->ownerId = getUint64(jsonData, "owner_id");
-
-	this->memberCount = getUint32(jsonData, "member_count");
-
-	this->joinedAt = getUint64(jsonData, "joined_at");
-
-	this->id = getUint64(jsonData, "id");
-
-	this->icon = getString(jsonData, "icon");
-
-	this->name = getString(jsonData, "name");
-
-	this->threads.clear();
-
-	Jsonifier::Array arrayValue{};
-	if (getArray(arrayValue, "features", jsonData)) {
-		this->threads.clear();
-		for (auto value: arrayValue) {
-			auto& object = value.valueUnsafe();
-		}
-	}
-
-	if (getArray(arrayValue, "stickers", jsonData)) {
-		this->stickers.clear();
-		for (auto value: arrayValue) {
-			this->stickers.emplace_back(getUint64(value.valueUnsafe(), "id"));
-		}
-	}
-
-	if (getArray(arrayValue, "guild_scheduled_events", jsonData)) {
-		this->guildScheduledEvents.clear();
-		for (auto value: arrayValue) {
-			this->guildScheduledEvents.emplace_back(getUint64(value.valueUnsafe(), "id"));
-		}
-	}
-
-	if (getArray(arrayValue, "stage_instances", jsonData)) {
-		this->stageInstances.clear();
-		for (auto value: arrayValue) {
-			this->stageInstances.emplace_back(getUint64(value.valueUnsafe(), "id"));
-		}
-	}
-
-	if (getArray(arrayValue, "emoji", jsonData)) {
-		this->emoji.clear();
-		for (auto value: arrayValue) {
-			this->emoji.emplace_back(getUint64(value.valueUnsafe(), "id"));
-		}
-	}
-}
-
-GuildData::GuildData(simdjson::ondemand::value jsonData) {
-	uint8_t newFlags{};
-	newFlags = Jsonifier::getBool(jsonData, "widget_enabled");
-
-	newFlags = Jsonifier::getBool(jsonData, "unavailable");
-
-	newFlags = Jsonifier::getBool(jsonData, "owner");
-
-	newFlags = Jsonifier::getUint8(jsonData, "large");
-
-	this->ownerId = Jsonifier::getUint64(jsonData, "owner_id");
-
-	this->memberCount = Jsonifier::getUint32(jsonData, "member_count");
-
-	this->joinedAt = Jsonifier::getUint64(jsonData, "joined_at");
-
-	this->id = Jsonifier::getUint64(jsonData, "id");
-
-	this->icon = Jsonifier::getString(jsonData, "icon");
-
-	this->name = Jsonifier::getString(jsonData, "name");
-
-	this->threads.clear();
-
-	simdjson::ondemand::array arrayValue{};
-	if (Jsonifier::getArray(arrayValue, "features", jsonData)) {
-		this->threads.clear();
-		for (auto value: arrayValue) {
-			auto& object = value.value_unsafe();
-		}
-	}
-
-	if (Jsonifier::getArray(arrayValue, "stickers", jsonData)) {
-		this->stickers.clear();
-		for (auto value: arrayValue) {
-			this->stickers.emplace_back(Jsonifier::getUint64(value.value_unsafe(), "id"));
-		}
-	}
-
-	if (Jsonifier::getArray(arrayValue, "guild_scheduled_events", jsonData)) {
-		this->guildScheduledEvents.clear();
-		for (auto value: arrayValue) {
-			this->guildScheduledEvents.emplace_back(Jsonifier::getUint64(value.value_unsafe(), "id"));
-		}
-	}
-
-	if (Jsonifier::getArray(arrayValue, "stage_instances", jsonData)) {
-		this->stageInstances.clear();
-		for (auto value: arrayValue) {
-			this->stageInstances.emplace_back(Jsonifier::getUint64(value.value_unsafe(), "id"));
-		}
-	}
-
-	if (Jsonifier::getArray(arrayValue, "emoji", jsonData)) {
-		this->emoji.clear();
-		for (auto value: arrayValue) {
-			this->emoji.emplace_back(Jsonifier::getUint64(value.value_unsafe(), "id"));
-		}
-	}
-}
-
-struct WebSocketMessage {
-	int64_t op{ -1 };
-	std::string t{};
-	int64_t s{};
-
-	WebSocketMessage() noexcept = default;
-
-	WebSocketMessage(Jsonifier::Value);
-
-	WebSocketMessage(simdjson::ondemand::value);
-
-	template<typename RTy> RTy processJsonMessage(Jsonifier::Value jsonData, const char* dataName) {
-		Jsonifier::Value object{};
-		if (jsonData[dataName].get(object) != Jsonifier::ErrorCode::Success) {
-			throw std::runtime_error{ std::string{ "Failed to collect the " } + dataName };
-		} else {
-			return RTy{ object };
-		}
-	}
-};
-
-WebSocketMessage::WebSocketMessage(simdjson::ondemand::value jsonData) {
-	//std::cout << "OP TYPE: " << jsonData["op"].type().value_unsafe() << std::endl;
-	this->op = Jsonifier::getUint32(jsonData, "op");
-	
-	//std::cout << "THE OP VALUE: " << this->op << std::endl;
-	this->s = Jsonifier::getUint32(jsonData, "s");
-
-	this->t = Jsonifier::getString(jsonData, "t");
-	//std::cout << "THE T VALUE: " << this->t << std::endl;
-}
-
-WebSocketMessage::WebSocketMessage(Jsonifier::Value jsonData) {
-	//std::cout << "OP TYPE: " << ( int32_t )jsonData["op"].type().valueUnsafe() << std::endl;
-	this->op = Jsonifier::getUint32(jsonData, "op");
-	
-	//std::cout << "THE OP VALUE: " << this->op << std::endl;
-
-	this->s = Jsonifier::getUint32(jsonData, "s");
-
-	this->t = Jsonifier::getString(jsonData, "t");
-	//std::cout << "THE T VALUE: " << this->t << std::endl;
-}
-
 int32_t main() {
 	try {
 		Jsonifier::Serializer serializer{};
@@ -421,13 +217,13 @@ int32_t main() {
 		arrayValueNew["TEST_VALUE_08"] = 4325454ll;
 		arrayValueNew["TEST_VALUE_09"] = 23423423ull;
 		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 10; ++x) { 
+		for (size_t x = 0; x < 90; ++x) { 
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
 		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/refsnp-unsupported35000.json" } };
-		//std::string stringNew{ serializer.operator std::string&&() };
-		
+		std::string stringNew{ serializer.operator std::string&&() };
+		/*
 		 std::string stringNew{
 			"{\"d\":{\"_trace\":[\"[\"gateway-prd-us-east1-c-hxpp\",{\"micros\":69465,\"calls\":[\"id_created\",{\"micros\":818,\"calls\":[]},"
 			"\"session_lookup_time\",{\"micros\":1732,\"calls\":[]},\"session_lookup_finished\",{\"micros\":16,\"calls\":[]},\"discord-sessions-blue-"
@@ -446,7 +242,7 @@ int32_t main() {
 			"\"user\":{\"avatar\":\"46abb15c4bf57cd5dfc6db3fd661a491\",\"bot\":true,\"discriminator\":\"9071\",\"email\":null,\"flags\":0,\"id\":"
 			"\"1008143759944450190\",\"mfa_enabled\":false,\"username\":\"MBot-MusicHouse-2\",\"verified\":true},\"user_settings\":{},\"v\":10},"
 			"\"op\":0,\"s\":1,\"t\":\"READY\"}\\"
-		};
+		};*/
 		size_t totalTime{};
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
@@ -457,7 +253,7 @@ int32_t main() {
 				
 		int32_t iterationCount{};
 		
-		
+			
 		iterationCount = 0;
 		totalSize = 0;
 		totalTime = 0;
@@ -466,11 +262,11 @@ int32_t main() {
 		simdjson::ondemand::parser parser{};
 		for (size_t x = 0ull; x < 1; ++x) {
 			auto jsonData = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
-			//TheD theValue{ std::move(jsonData) };
+			TheD theValue{ std::move(jsonData) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.theD.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.theD.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.theD.strings.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE03: " << theValue.strings.begin().operator*().TEST_VALUE_03 << std::endl;
 			//std::cout << "VALUE04: " << value.theD.strings.begin().operator*().TEST_VALUE_04 << std::endl;
 			//std::cout << "VALUE06: " << value.theD.strings.begin().operator*().TEST_VALUE_06 << std::endl;
 			//std::cout << "VALUE07: " << value.theD.strings.begin().operator*().TEST_VALUE_07 << std::endl;
@@ -482,7 +278,7 @@ int32_t main() {
 		totalTime = stopWatch.totalTimePassed().count();
 		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!" << std::endl;
 
-		iterationCount = 0;
+	iterationCount = 0;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
@@ -490,7 +286,7 @@ int32_t main() {
 		Jsonifier::Parser parserOld{};
 		for (size_t x = 0ull; x < 1; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew.data(), stringNew.size());
-			//TheDJson value{ std::move(jsonData) };
+			TheDJson value{ std::move(jsonData) };
 			//GuildData value{ std::move(jsonData["d"]) };
 			//WebSocketMessage value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.strings.begin().operator*().TEST_VALUE_00 << std::endl;
