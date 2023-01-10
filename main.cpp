@@ -213,8 +213,8 @@ int32_t main() {
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/canada.json" } };
-		std::string stringNew{ serializer.operator std::string&&() };
+		std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/test_data.json" } };
+		//std::string stringNew{ serializer.operator std::string&&() };
 		/*
 		 std::string stringNew{
 			"{\"d\":{\"_trace\":[\"[\"gateway-prd-us-east1-c-hxpp\",{\"micros\":69465,\"calls\":[\"id_created\",{\"micros\":818,\"calls\":[]},"

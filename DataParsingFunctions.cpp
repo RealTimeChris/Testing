@@ -277,10 +277,11 @@ namespace Jsonifier {
 
 	float getFloat(Value jsonData, const char* key) {
 		double value{};
-		if (jsonData[key].get(value) == ErrorCode::Success) {
+		std::cout << "TYPE: " << jsonData[key].type() << std::endl;
+		if (auto result = jsonData[key].get(value); result == ErrorCode::Success) {
 			return double{ value };
 		} else {
-			return 0.0f;
+			throw std::runtime_error{ "There's no float here, the error is: " + std::to_string(result) };
 		}
 	}
 
