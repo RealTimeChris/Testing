@@ -6,7 +6,7 @@
 #include <simdjson.h>
 #include <fstream>
 
-StopWatch stopWatchNew{ std::chrono::nanoseconds{ 1 } };
+Jsonifier::StopWatch stopWatchNew{ std::chrono::nanoseconds{ 1 } };
 int64_t timeValueDouble{};
 int64_t timeValueBool{};
 int64_t timeValueString{};
@@ -59,28 +59,20 @@ struct ActivitiesJson {
 struct TheDJson {
 	TheDJson() noexcept = default;
 	TheDJson(Jsonifier::Document value) {
-		Jsonifier::StopWatch stopWatchNew{ std::chrono::nanoseconds{ 1 } };
+		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatchNew{ std::chrono::nanoseconds{ 1 } };
 		int64_t totalTime{};
 		int64_t totalIterations{};
 		Jsonifier::Array valueNew{};
-		if (auto result = value["TEST_VALUE_11"]["d"]["TEST_VALUES"].get(valueNew); result != Jsonifier::Success) {
-			throw std::runtime_error{ "FAILED FOR REASON: " + std::to_string(result) };
-		}
-		//std::cout << "COUNT: " << ( int32_t )valueNew.countElements().valueUnsafe() << std::endl;
-		
-		stopWatchNew.resetTimer();
-		timeValueDouble = 0;	
+		value["TEST_VALUE_11"]["d"]["TEST_VALUES"].get(valueNew);
+		timeValueDouble = 0;
 		timeValueBool = 0;
 		timeValueString = 0;
 		timeValueInt64 = 0;
 		iterationCountNew = 0;
 		for (auto valueIterator: valueNew) {
-			stopWatchNew.resetTimer();//
-			//std::cout << "FIELD COUNT: " << +valueIterator.countFields().error() << std::endl;
-			//std::cout << "THE TYPE: " << ( int32_t )valueIterator.type().valueUnsafe() << std::endl;
+			//std::cout << "FIELD COUNT: " << +valueNewer.countFields().error() << std::endl;
+			//std::cout << "THE TYPE: " << ( int32_t )valueNewer.type().value_unsafe() << std::endl;
 			strings.emplace_back(std::move(valueIterator.valueUnsafe()));
-			totalTime += stopWatchNew.totalTimePassed().count();
-			totalIterations++;
 		}
 		//std::cout << "TOTAL TIME PASSED:(JSON) (double) " << timeValueDouble / iterationCountNew << std::endl;
 		//std::cout << "TOTAL TIME PASSED:(JSON) (Bool) " << timeValueBool / iterationCountNew << std::endl;
@@ -221,7 +213,7 @@ int32_t main() {
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/refsnp-unsupported35000.json" } };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/canada.json" } };
 		std::string stringNew{ serializer.operator std::string&&() };
 		/*
 		 std::string stringNew{
@@ -247,20 +239,28 @@ int32_t main() {
 		size_t totalSize{};
 		Jsonifier::StopWatch<std::chrono::nanoseconds> stopWatch{ std::chrono::nanoseconds{ 25 } };
 		size_t oldSize = stringNew.size();
- 		//std::cout << "THE STRING: " << stringNew << std::endl;
+ 		std::cout << "THE STRING: " << stringNew << std::endl;
 		std::cout << "THE STRING LENGTH: " << stringNew.size() << std::endl;
 		std::string stringNewer = stringNew;
 				
 		int32_t iterationCount{};
 		
-			
+
 		iterationCount = 0;
 		totalSize = 0;
 		totalTime = 0;
 		stopWatch.resetTimer();
+
+		
+
+		//std::cout << "IT TOOK: " << stopWatch.totalTimePassed() << ", TO RESERVE THE STRING!" << std::endl;
+
+		
+		
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
-		for (size_t x = 0ull; x < 1; ++x) {
+		stopWatch.resetTimer();
+		for (size_t x = 0ull; x < 10; ++x) {
 			auto jsonData = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheD theValue{ std::move(jsonData) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -275,16 +275,17 @@ int32_t main() {
 			iterationCount++;
 			totalSize += oldSize;
 		}
-		totalTime = stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!" << std::endl;
-
-	iterationCount = 0;
+		std::cout << "IT TOOK: " << stopWatch.totalTimePassed().count() / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount
+				  << " BYTES!" << std::endl;
+		iterationCount = 0;
 		totalSize = 0;
 		totalTime = 0;
-		stopWatch.resetTimer();
 
+		
+		
 		Jsonifier::Parser parserOld{};
-		for (size_t x = 0ull; x < 1; ++x) {
+		stopWatch.resetTimer();
+		for (size_t x = 0ull; x < 10; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew.data(), stringNew.size());
 			TheDJson value{ std::move(jsonData) };
 			//GuildData value{ std::move(jsonData["d"]) };
@@ -292,16 +293,18 @@ int32_t main() {
 			//std::cout << "VALUE00: " << value.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			//std::cout << "VALUE03: " << value.strings.begin().operator*().TEST_VALUE_03 << std::endl;
-			//std::cout << "VALUE04: " << value.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			//std::cout << "VALUE05: " << value.strings.begin().operator*().TEST_VALUE_05 << std::endl;
-			//std::cout << "VALUE06: " << value.strings.begin().operator*().TEST_VALUE_06 << std::endl;
-			//std::cout << "VALUE07: " << value.strings.begin().operator*().TEST_VALUE_07 << std::endl;
+			std::cout << "VALUE03: " << value.strings.begin().operator*().TEST_VALUE_03 << std::endl;
+			std::cout << "VALUE04: " << value.strings.begin().operator*().TEST_VALUE_04 << std::endl;
+			std::cout << "VALUE05: " << value.strings.begin().operator*().TEST_VALUE_05 << std::endl;
+			std::cout << "VALUE06: " << value.strings.begin().operator*().TEST_VALUE_06 << std::endl;
+			std::cout << "VALUE07: " << value.strings.begin().operator*().TEST_VALUE_07 << std::endl;
+			//std::cout << "VALUE08: " << value.strings.begin().operator*().TEST_VALUE_08 << std::endl;
 			iterationCount++;
 			totalSize += oldSize;
 		}
 		totalTime = stopWatch.totalTimePassed().count();
-		std::cout << "IT TOOK: " << totalTime / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount << " BYTES!" << std::endl;
+		std::cout << "IT TOOK: " << stopWatch.totalTimePassed().count() / iterationCount << "ns TO PARSE THROUGH IT: " << totalSize / iterationCount
+				  << " BYTES!" << std::endl;
 		
 		
 		

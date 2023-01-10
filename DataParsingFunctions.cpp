@@ -24,7 +24,7 @@
 /// \file DataParsingFunctions.cpp
 
 #include "DataParsingFunctions.hpp"
-#include <jsonifier/Jsonifier.hpp>
+#include <jsonifier/Index.hpp>
 
 namespace Jsonifier {
 
@@ -333,6 +333,7 @@ namespace Jsonifier {
 		}
 		return static_cast<std::string>(value);
 	}
+
 	std::string getString(Value jsonData) {
 		std::string_view value{};
 		if (jsonData.get(value) == ErrorCode::Success) {
@@ -349,6 +350,7 @@ namespace Jsonifier {
 		}
 		return value;
 	}
+
 	ObjectReturnDataJson getObject(ObjectReturnDataJson jsonData, const char* objectName) {
 		ObjectReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.object[objectName].get(value.object) == ErrorCode::Success) {
@@ -356,6 +358,7 @@ namespace Jsonifier {
 		}
 		return value;
 	}
+
 	ObjectReturnDataJson getObject(ArrayReturnDataJson jsonData, uint64_t objectIndex) {
 		ObjectReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.arrayValue.at(objectIndex).get(value.object) == ErrorCode::Success) {
@@ -363,6 +366,7 @@ namespace Jsonifier {
 		}
 		return value;
 	}
+
 	ArrayReturnDataJson getArray(Value jsonData, const char* arrayName) {
 		ArrayReturnDataJson value{};
 		if (jsonData[arrayName].get(value.arrayValue) == ErrorCode::Success) {
@@ -370,6 +374,7 @@ namespace Jsonifier {
 		}
 		return value;
 	}
+
 	ArrayReturnDataJson getArray(ObjectReturnDataJson jsonData, const char* arrayName) {
 		ArrayReturnDataJson value{};
 		if (jsonData.didItSucceed && jsonData.object[arrayName].get(value.arrayValue) == ErrorCode::Success) {
