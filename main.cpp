@@ -107,7 +107,7 @@ struct Activities {
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_03 = Jsonifier::getUint64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
 		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
 		//stopWatchNew.resetTimer();
@@ -120,7 +120,7 @@ struct Activities {
 		this->TEST_VALUE_07 = Jsonifier::getString(value, "TEST_VALUE_07");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_08 = Jsonifier::getUint64(value, "TEST_VALUE_08");
+		this->TEST_VALUE_08 = Jsonifier::getInt64(value, "TEST_VALUE_08");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
 		this->TEST_VALUE_09 = Jsonifier::getUint64(value, "TEST_VALUE_09");
 	};
@@ -203,13 +203,26 @@ uint64_t randomUint64() {
 	return returnValue;
 }
 
-std::string randomString() {
+std::string randomStringInternal() {
 	std::mt19937_64 randomGenerator{};
 	randomGenerator.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
 	uint64_t stringLength{ static_cast<uint64_t>((static_cast<float>(randomGenerator()) / static_cast<float>(randomGenerator.max())) * 60) };
+
+
 	std::string returnValue{};
 	for (size_t x = 0; x < stringLength; ++x) {
 		returnValue.push_back(static_cast<uint8_t>((static_cast<float>(randomGenerator()) / static_cast<float>(randomGenerator.max())) * 127));
+	}
+
+	return returnValue;
+}
+
+std::string randomString() {
+	bool testValue{ false };
+	std::string returnValue{};
+	while (!testValue) {
+		returnValue = randomStringInternal();
+		testValue = simdjson::validate_utf8(returnValue.data(), returnValue.size());
 	}
 	return returnValue;
 }
@@ -238,7 +251,7 @@ double randomDouble() {
 int32_t main() {
 	try {
 		Jsonifier::Serializer serializer{};
-		for (size_t x = 0; x <500; ++x) { 
+		for (size_t x = 0; x <100; ++x) { 
 			
 		Jsonifier::Serializer arrayValueNew{};
 			arrayValueNew["TEST_VALUE_00"] = randomDouble();
