@@ -5,6 +5,7 @@
 #include "DataParsingFunctions.hpp"
 #include <simdjson.h>
 #include <fstream>
+#include <random>
 
 Jsonifier::StopWatch stopWatchNew{ std::chrono::nanoseconds{ 1 } };
 int64_t timeValueDouble{};
@@ -27,7 +28,7 @@ struct ActivitiesJson {
 		this->TEST_VALUE_02 = Jsonifier::getString(value, "TEST_VALUE_02");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_03 = Jsonifier::getUint64(value, "TEST_VALUE_03");
+		this->TEST_VALUE_03 = Jsonifier::getInt64(value, "TEST_VALUE_03");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
 		this->TEST_VALUE_04 = Jsonifier::getUint64(value, "TEST_VALUE_04");
 		//stopWatchNew.resetTimer();
@@ -40,7 +41,7 @@ struct ActivitiesJson {
 		this->TEST_VALUE_07 = Jsonifier::getString(value, "TEST_VALUE_07");
 		//timeValueString += stopWatchNew.totalTimePassed().count();
 		//stopWatchNew.resetTimer();
-		this->TEST_VALUE_08 = Jsonifier::getUint64(value, "TEST_VALUE_08");
+		this->TEST_VALUE_08 = Jsonifier::getInt64(value, "TEST_VALUE_08");
 		//timeValueInt64 += stopWatchNew.totalTimePassed().count();
 		this->TEST_VALUE_09 = Jsonifier::getUint64(value, "TEST_VALUE_09");
 	};
@@ -194,27 +195,67 @@ class FileLoader {
 	std::string fileContents{};
 };
 
+
+uint64_t randomUint64() {
+	std::mt19937_64 randomGenerator{};
+	randomGenerator.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	uint64_t returnValue{ randomGenerator() };
+	return returnValue;
+}
+
+std::string randomString() {
+	std::mt19937_64 randomGenerator{};
+	randomGenerator.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	uint64_t stringLength{ static_cast<uint64_t>((static_cast<float>(randomGenerator()) / static_cast<float>(randomGenerator.max())) * 60) };
+	std::string returnValue{};
+	for (size_t x = 0; x < stringLength; ++x) {
+		returnValue.push_back(static_cast<uint8_t>((static_cast<float>(randomGenerator()) / static_cast<float>(randomGenerator.max())) * 127));
+	}
+	return returnValue;
+}
+
+bool randomBool() {
+	std::mt19937_64 randomGenerator{};
+	randomGenerator.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	bool returnValue{ static_cast<bool>(randomGenerator()) };
+	return returnValue;
+}
+
+int64_t randomInt64() {
+	std::mt19937_64 randomGenerator{};
+	randomGenerator.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	int64_t returnValue{ static_cast<int64_t>(randomGenerator()) };
+	return returnValue;
+}
+
+double randomDouble() {
+	std::mt19937_64 randomGenerator{};
+	randomGenerator.seed(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+	double returnValue{ static_cast<double>(randomGenerator()) };
+	return returnValue;
+}
+
 int32_t main() {
 	try {
 		Jsonifier::Serializer serializer{};
+		for (size_t x = 0; x <500; ++x) { 
+			
 		Jsonifier::Serializer arrayValueNew{};
-		arrayValueNew["TEST_VALUE_00"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_01"] = true;
-		arrayValueNew["TEST_VALUE_02"] = "TESTING_VALUE112323";
-		arrayValueNew["TEST_VALUE_03"] = 4325454ll;
-		arrayValueNew["TEST_VALUE_04"] = 4325454ull;
-		arrayValueNew["TEST_VALUE_05"] = 0.00333423;
-		arrayValueNew["TEST_VALUE_06"] = true;
-		arrayValueNew["TEST_VALUE_07"] = "TESTING_VALUE";
-		arrayValueNew["TEST_VALUE_08"] = 4325454ll;
-		arrayValueNew["TEST_VALUE_09"] = 23423423ull;
-		auto& arrayValue = arrayValueNew;
-		for (size_t x = 0; x < 90; ++x) { 
+			arrayValueNew["TEST_VALUE_00"] = randomDouble();
+			arrayValueNew["TEST_VALUE_01"] = randomBool();
+			arrayValueNew["TEST_VALUE_02"] = randomString();
+			arrayValueNew["TEST_VALUE_03"] = randomInt64();
+			arrayValueNew["TEST_VALUE_04"] = randomUint64();
+			arrayValueNew["TEST_VALUE_05"] = randomDouble();
+			arrayValueNew["TEST_VALUE_06"] = randomBool();
+			arrayValueNew["TEST_VALUE_07"] = randomString();
+			arrayValueNew["TEST_VALUE_08"] = randomInt64();
+			arrayValueNew["TEST_VALUE_09"] = randomUint64();
 			serializer["TEST_VALUE_11"]["d"]["TEST_VALUES"].emplaceBack(arrayValueNew);
 		}
 		serializer.refreshString(Jsonifier::JsonifierSerializeType::Json);
-		std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/test_data.json" } };
-		//std::string stringNew{ serializer.operator std::string&&() };
+		//std::string stringNew{ FileLoader{ "C:/users/chris/source/repos/jsonifier/benchmarking/twitter.json" } };
+		std::string stringNew{ serializer.operator std::string&&() };
 		/*
 		 std::string stringNew{
 			"{\"d\":{\"_trace\":[\"[\"gateway-prd-us-east1-c-hxpp\",{\"micros\":69465,\"calls\":[\"id_created\",{\"micros\":818,\"calls\":[]},"
@@ -257,10 +298,11 @@ int32_t main() {
 
 		
 		
+		
 		stringNewer.reserve(oldSize + simdjson::SIMDJSON_PADDING);
 		simdjson::ondemand::parser parser{};
 		stopWatch.resetTimer();
-		for (size_t x = 0ull; x < 10; ++x) {
+		for (size_t x = 0ull; x < 5; ++x) {
 			auto jsonData = parser.iterate(stringNewer.data(), stringNewer.size(), stringNewer.capacity());
 			TheD theValue{ std::move(jsonData) };
 			//std::cout << "VALUE00 (TESTING): " << value.theD.strings.begin().operator*().TEST_VALUE_00 << std::endl;
@@ -283,21 +325,20 @@ int32_t main() {
 
 		
 		
+		
 		Jsonifier::Parser parserOld{};
 		stopWatch.resetTimer();
-		for (size_t x = 0ull; x < 10; ++x) {
+		for (size_t x = 0ull; x < 5 ; ++x) {
 			auto jsonData = parserOld.parseJson(stringNew.data(), stringNew.size());
 			TheDJson value{ std::move(jsonData) };
-			//GuildData value{ std::move(jsonData["d"]) };
-			//WebSocketMessage value{ std::move(jsonData) };
 			//std::cout << "VALUE00: " << value.strings.begin().operator*().TEST_VALUE_00 << std::endl;
 			//std::cout << "VALUE01: " << value.strings.begin().operator*().TEST_VALUE_01 << std::endl;
 			//std::cout << "VALUE02: " << value.strings.begin().operator*().TEST_VALUE_02 << std::endl;
-			std::cout << "VALUE03: " << value.strings.begin().operator*().TEST_VALUE_03 << std::endl;
-			std::cout << "VALUE04: " << value.strings.begin().operator*().TEST_VALUE_04 << std::endl;
-			std::cout << "VALUE05: " << value.strings.begin().operator*().TEST_VALUE_05 << std::endl;
-			std::cout << "VALUE06: " << value.strings.begin().operator*().TEST_VALUE_06 << std::endl;
-			std::cout << "VALUE07: " << value.strings.begin().operator*().TEST_VALUE_07 << std::endl;
+			//std::cout << "VALUE03: " << value.strings.begin().operator*().TEST_VALUE_03 << std::endl;
+			//std::cout << "VALUE04: " << value.strings.begin().operator*().TEST_VALUE_04 << std::endl;
+			//std::cout << "VALUE05: " << value.strings.begin().operator*().TEST_VALUE_05 << std::endl;
+			//std::cout << "VALUE06: " << value.strings.begin().operator*().TEST_VALUE_06 << std::endl;
+			//std::cout << "VALUE07: " << value.strings.begin().operator*().TEST_VALUE_07 << std::endl;
 			//std::cout << "VALUE08: " << value.strings.begin().operator*().TEST_VALUE_08 << std::endl;
 			iterationCount++;
 			totalSize += oldSize;
@@ -311,4 +352,5 @@ int32_t main() {
 	} catch (std::runtime_error& e) { std::cout << e.what() << std::endl; }
 	return 0;
 };
+
 
